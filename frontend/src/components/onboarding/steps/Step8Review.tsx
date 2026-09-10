@@ -91,7 +91,7 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
 
       <ReviewSection title="Guest experience (Step 6)" onEdit={() => onGoToStep(6)}>
         <Row
-          label="Enabled for patients"
+          label="Enabled for guests"
           value={
             state.enabledFeatures.length ? (
               <ul className="list-disc space-y-0.5 pl-space-4">

@@ -1,12 +1,12 @@
 import { ArrowLeft, BadgeCheck, Camera, Mic, MoreVertical, Signal, Wifi, BatteryFull } from "lucide-react";
 
 const MENU_ITEMS = [
-  "Book an appointment",
-  "Reschedule appointment",
-  "Cancel appointment",
-  "My appointments",
-  "Hospital information",
-  "Talk to reception",
+  "Book a table",
+  "Reschedule reservation",
+  "Cancel reservation",
+  "My reservations",
+  "Restaurant information",
+  "Talk to a host",
 ];
 
 export function PhoneMockup() {
@@ -34,7 +34,7 @@ export function PhoneMockup() {
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <span className="flex items-center gap-1">
-              <strong className="truncate text-[13.5px]">ABC Hospital</strong>
+              <strong className="truncate text-[13.5px]">ABC Restaurant</strong>
               <BadgeCheck size={13} className="shrink-0 fill-white text-brand-600" />
             </span>
             <span className="block text-[10px] tracking-wide text-[#D9E9E1] uppercase">Business Account</span>
@@ -44,7 +44,7 @@ export function PhoneMockup() {
 
         <div className="flex-1 overflow-hidden p-space-3">
           <div className="max-w-[92%] rounded-[10px] bg-white p-space-3 text-[12.5px] leading-relaxed font-semibold text-ink-900 shadow-[0_1px_1px_rgba(0,0,0,0.06)]">
-            Hi! Welcome to ABC Hospital.
+            Hi! Welcome to ABC Restaurant.
             <br />
             How can we help you today?
             <br />

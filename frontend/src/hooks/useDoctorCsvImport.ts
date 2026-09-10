@@ -52,7 +52,7 @@ export function useDoctorCsvImport(onImported: () => void) {
       const data = res.data as ImportResult;
       setResult(data);
       if (data.created_count > 0) {
-        toast.success(`${data.created_count} doctor(s) imported`);
+        toast.success(`${data.created_count} table(s) imported`);
         onImported();
       }
       if (data.row_errors.length > 0) {
@@ -62,7 +62,7 @@ export function useDoctorCsvImport(onImported: () => void) {
       setRows(null);
       return true;
     }
-    if (!res.unauthorized) toast.error("Couldn't import doctors", res.error);
+    if (!res.unauthorized) toast.error("Couldn't import tables", res.error);
     return false;
   }
 

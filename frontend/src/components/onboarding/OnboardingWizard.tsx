@@ -255,7 +255,7 @@ export function OnboardingWizard() {
               {
                 icon: Phone,
                 title: "Register your number",
-                description: "Add your hospital's real WhatsApp number and verify it via the code Meta texts you.",
+                description: "Add your restaurant's real WhatsApp number and verify it via the code Meta texts you.",
               },
               {
                 icon: CreditCard,

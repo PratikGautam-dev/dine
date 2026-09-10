@@ -29,8 +29,8 @@ function UsersOverview() {
         <p className="text-eyebrow mb-space-1">Platform admin</p>
         <h1 className="text-display">Users</h1>
         <p className="text-[13px] text-ink-600">
-          Staff headcount by hospital. Pick a hospital to see its staff list — read-only here, edit a
-          person&apos;s role or active status from that hospital&apos;s own Staff page.
+          Staff headcount by restaurant. Pick a restaurant to see its staff list — read-only here, edit a
+          person&apos;s role or active status from that restaurant&apos;s own Staff page.
         </p>
       </div>
 
@@ -38,7 +38,7 @@ function UsersOverview() {
         <div className="relative w-full flex-1 sm:max-w-[320px]">
           <Search size={15} className="absolute top-1/2 left-space-3 -translate-y-1/2 text-ink-400" />
           <Input
-            placeholder="Search by hospital name"
+            placeholder="Search by restaurant name"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -72,7 +72,7 @@ function UsersOverview() {
       {!hospitals ? (
         <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
       ) : filtered.length === 0 ? (
-        <p className="py-space-4 text-center text-[13px] text-ink-400">No hospitals match this filter.</p>
+        <p className="py-space-4 text-center text-[13px] text-ink-400">No restaurants match this filter.</p>
       ) : (
         <div className="grid grid-cols-1 gap-space-3 md:grid-cols-2">
           {filtered.map((h) => (
@@ -103,7 +103,7 @@ function UsersOverview() {
                 </div>
                 <div className="flex items-center gap-space-1.5">
                   <Stethoscope size={14} className="text-ink-400" />
-                  <span className="text-[13px] text-ink-700">{h.doctor_count} doctor{h.doctor_count === 1 ? "" : "s"}</span>
+                  <span className="text-[13px] text-ink-700">{h.doctor_count} staff member{h.doctor_count === 1 ? "" : "s"}</span>
                 </div>
                 <div className="flex items-center gap-space-1.5">
                   <UsersIcon size={14} className="text-ink-400" />

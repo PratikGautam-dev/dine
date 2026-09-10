@@ -36,7 +36,7 @@ const TIERS: {
     badgeTone: "clay",
     title: "Activate with DAAP Restaurant ERP",
     description: "We already use a website and restaurant ERP from DAAPrime Technologies.",
-    cta: "Activate WhatsApp booking",
+    cta: "Activate WhatsApp reservations",
   },
 ];
 
@@ -118,7 +118,7 @@ export function Step0DataConnection({ state, dispatch }: Props) {
             <p className="text-[12.5px] leading-relaxed text-ink-600">
               Most restaurants should pick <strong className="text-ink-900">Tier 1</strong> — it works immediately
               with no extra setup. We&apos;ve selected it for you; only switch to Tier 2 or 3 if a separate system
-              already owns your doctors&apos; schedules today.
+              already owns your tables&apos; availability today.
             </p>
           )}
         </div>
@@ -129,7 +129,7 @@ export function Step0DataConnection({ state, dispatch }: Props) {
           <Field label="API base URL" htmlFor="api_base_url" required>
             <Input
               id="api_base_url"
-              placeholder="https://api.yourhospital.example"
+              placeholder="https://api.yourrestaurant.example"
               value={state.apiBaseUrl}
               onChange={(e) => dispatch({ type: "set", field: "apiBaseUrl", value: e.target.value })}
             />

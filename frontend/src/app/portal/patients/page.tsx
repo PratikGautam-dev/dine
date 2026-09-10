@@ -80,7 +80,7 @@ export default function PortalPatientsPage() {
             <div className="py-space-6 text-center">
               <UserRound size={28} className="mx-auto mb-space-2 text-ink-300" />
               <p className="text-[13px] text-ink-400">
-                {search ? "No patients match that search." : "No patients yet — they appear here after a first booking."}
+                {search ? "No guests match that search." : "No guests yet — they appear here after a first booking."}
               </p>
             </div>
           ) : (
@@ -95,11 +95,11 @@ export default function PortalPatientsPage() {
 
         <ConfirmDialog
           open={pendingDelete !== null}
-          title={pendingDelete && pendingDelete.length > 1 ? `Delete ${pendingDelete.length} patients?` : "Delete patient?"}
+          title={pendingDelete && pendingDelete.length > 1 ? `Delete ${pendingDelete.length} guests?` : "Delete guest?"}
           message={
             pendingDelete
               ? `This will permanently delete ${
-                  pendingDelete.length > 1 ? `${pendingDelete.length} patient records` : pendingDelete[0].name || pendingDelete[0].phone
+                  pendingDelete.length > 1 ? `${pendingDelete.length} guest records` : pendingDelete[0].name || pendingDelete[0].phone
                 }. This action is irreversible.`
               : ""
           }

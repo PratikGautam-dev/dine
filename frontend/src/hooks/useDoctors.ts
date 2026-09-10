@@ -75,12 +75,12 @@ export function useDoctors(ready: boolean) {
     setAddingDept(false);
     if (result.ok) {
       setNewDeptName("");
-      toast.success("Department added");
+      toast.success("Section added");
       load();
     } else if (result.unauthorized) {
       router.push("/portal/login");
     } else {
-      toast.error("Couldn't add department", result.error);
+      toast.error("Couldn't add section", result.error);
     }
   }
 
@@ -135,17 +135,17 @@ export function useDoctors(ready: boolean) {
       if (result.unauthorized) router.push("/portal/login");
       else {
         setDoctorErrors([result.error]);
-        toast.error(editingDoctorId ? "Couldn't update doctor" : "Couldn't add doctor", result.error);
+        toast.error(editingDoctorId ? "Couldn't update table" : "Couldn't add table", result.error);
       }
       return;
     }
     const data = result.data as { errors?: string[] };
     if (data.errors?.length) {
       setDoctorErrors(data.errors);
-      toast.error(editingDoctorId ? "Couldn't update doctor" : "Couldn't add doctor", data.errors[0]);
+      toast.error(editingDoctorId ? "Couldn't update table" : "Couldn't add table", data.errors[0]);
       return;
     }
-    toast.success(editingDoctorId ? "Doctor updated" : "Doctor added");
+    toast.success(editingDoctorId ? "Table updated" : "Table added");
     setDoctorForm(emptyDoctorScheduleForm());
     setShowDoctorForm(false);
     setEditingDoctorId(null);
@@ -201,7 +201,7 @@ export function useDoctors(ready: boolean) {
     });
     setTogglingId(null);
     if (result.ok) {
-      toast.success(`Dr. ${doc.name} marked ${doc.is_active ? "unavailable" : "available"}`);
+      toast.success(`Table ${doc.name} marked ${doc.is_active ? "unavailable" : "available"}`);
       load();
     } else if (result.unauthorized) {
       router.push("/portal/login");

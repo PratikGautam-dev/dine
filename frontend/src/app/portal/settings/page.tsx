@@ -75,7 +75,7 @@ function PortalSettingsPageContent() {
                   Extra text guests see: appended after a reservation/cancellation/reschedule completes, shown as an informational
                   line in the &quot;Restaurant Information&quot; reply, and shown on the &quot;Consent &amp; Privacy&quot; menu item.
                 </p>
-                <Field label="Closing / thank-you message" htmlFor="closing_message_text" hint='e.g. "Thank you for choosing City Hospital. For emergencies, call 102."'>
+                <Field label="Closing / thank-you message" htmlFor="closing_message_text" hint='e.g. "Thank you for choosing City Bistro. We look forward to seeing you again."'>
                   <Textarea
                     id="closing_message_text"
                     rows={2}
@@ -134,7 +134,7 @@ function PortalSettingsPageContent() {
               <Card className="p-space-5">
                 <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Conversation behavior</h2>
                 <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Session timeout, handoff auto-resolve, and whether a single linked patient still needs to confirm.
+                  Session timeout, handoff auto-resolve, and whether a single linked guest still needs to confirm.
                 </p>
                 <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
                   <Field label="Session timeout (minutes)" htmlFor="session_timeout_minutes" hint="Between 2 and 120 minutes.">
@@ -162,14 +162,14 @@ function PortalSettingsPageContent() {
                   checked={settings.require_patient_confirmation}
                   onChange={(checked) => setSettings({ ...settings, require_patient_confirmation: checked })}
                 >
-                  Require explicit confirmation before entering the menu, even for a single linked patient
+                  Require explicit confirmation before entering the menu, even for a single linked guest
                 </CheckboxRow>
               </Card>
 
               <Card className="p-space-5 lg:col-span-2">
-                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Follow-up appointments</h2>
+                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Follow-up reservations</h2>
                 <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  How long after a visit a patient can still book a Follow-up for it, and the fees shown on booking
+                  How long after a visit a guest can still book a Follow-up for it, and the fees shown on booking
                   confirmation messages. Leave a fee blank to omit that line entirely rather than showing ₹0.
                 </p>
                 <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -196,7 +196,7 @@ function PortalSettingsPageContent() {
                       onChange={(e) => setSettings({ ...settings, followup_fee: e.target.value === "" ? "" : Number(e.target.value) })}
                     />
                   </Field>
-                  <Field label="New consultation fee (₹)" htmlFor="new_consultation_fee" hint="Not shown to patients yet.">
+                  <Field label="New reservation deposit (₹)" htmlFor="new_consultation_fee" hint="Not shown to guests yet.">
                     <Input
                       id="new_consultation_fee"
                       type="number"
@@ -234,9 +234,9 @@ function PortalSettingsPageContent() {
         {canManageAppointmentTypes && (
           <div className="mt-space-5 grid grid-cols-1 gap-space-5 lg:grid-cols-2">
             <Card className="p-space-5">
-              <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Appointment types</h2>
+              <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Reservation types</h2>
               <p className="mb-space-3 text-[12.5px] text-ink-400">
-                Turn on/off which of your allowed appointment types show up in the WhatsApp booking menu.
+                Turn on/off which of your allowed reservation types show up in the WhatsApp booking menu.
                 A type greyed out below hasn&apos;t been enabled for your account by the platform — contact
                 support to request it.
               </p>

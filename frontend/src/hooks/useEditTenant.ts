@@ -124,7 +124,7 @@ export function useEditTenant(tenantId: number) {
     });
     if (!result.ok) {
       setAppointmentTypeError(result.unauthorized ? "Session expired — refresh to sign in again." : result.error);
-      if (!result.unauthorized) toast.error("Couldn't update appointment type", result.error);
+      if (!result.unauthorized) toast.error("Couldn't update reservation type", result.error);
       return;
     }
     const updated = (result.data as { appointment_type: AppointmentTypeRow }).appointment_type;

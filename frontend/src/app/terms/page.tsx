@@ -4,8 +4,8 @@ import { Mail } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 export const metadata: Metadata = {
-  title: "Terms of Service — DAAP CareConnect",
-  description: "The terms governing use of the DAAP CareConnect WhatsApp appointment platform.",
+  title: "Terms of Service — Dine Connect",
+  description: "The terms governing use of the Dine Connect WhatsApp reservation platform.",
 };
 
 const LAST_UPDATED = "3 September 2026";
@@ -13,9 +13,9 @@ const CONTACT_EMAIL = "info@daaprimeprojects.com";
 
 const SECTIONS = [
   { id: "agreement", title: "1. Agreement to these terms" },
-  { id: "what-is-careconnect", title: "2. What CareConnect is" },
-  { id: "hospital-accounts", title: "3. Hospital accounts" },
-  { id: "patients-whatsapp", title: "4. Patients using WhatsApp" },
+  { id: "what-is-careconnect", title: "2. What Dine Connect is" },
+  { id: "hospital-accounts", title: "3. Restaurant accounts" },
+  { id: "patients-whatsapp", title: "4. Guests using WhatsApp" },
   { id: "google-calendar", title: "5. Google Calendar integration" },
   { id: "fees", title: "6. Fees" },
   { id: "acceptable-use", title: "7. Acceptable use" },
@@ -28,10 +28,10 @@ const SECTIONS = [
 
 function BrandMark() {
   return (
-    <a href="/" aria-label="CareConnect home" className="flex items-center gap-space-3">
+    <a href="/" aria-label="Dine Connect home" className="flex items-center gap-space-3">
       <Image src="/logo-icon.png" alt="" width={32} height={32} className="shrink-0" />
       <span className="font-display text-[19px] leading-tight font-extrabold text-ink-900">
-        Care<span className="text-brand-600">Connect</span>
+        Dine<span className="text-brand-600">Connect</span>
       </span>
     </a>
   );
@@ -82,57 +82,57 @@ export default function TermsOfServicePage() {
           <Card className="p-space-6 md:p-space-8">
             <Section id="agreement" title="1. Agreement to these terms">
               <p>
-                These Terms of Service (&ldquo;Terms&rdquo;) govern access to and use of DAAP CareConnect
-                (&ldquo;CareConnect,&rdquo; &ldquo;the Platform&rdquo;), operated by DaaPrime Tech
-                (&ldquo;we,&rdquo; &ldquo;us&rdquo;). By using CareConnect — as a hospital, a member of hospital
-                staff, a doctor, or a patient booking through WhatsApp — you agree to these Terms. If you do not
+                These Terms of Service (&ldquo;Terms&rdquo;) govern access to and use of Dine Connect
+                (&ldquo;Dine Connect,&rdquo; &ldquo;the Platform&rdquo;), operated by DaaPrime Tech
+                (&ldquo;we,&rdquo; &ldquo;us&rdquo;). By using Dine Connect — as a restaurant, a member of restaurant
+                staff, or a guest booking through WhatsApp — you agree to these Terms. If you do not
                 agree, please do not use the Platform.
               </p>
             </Section>
 
-            <Section id="what-is-careconnect" title="2. What CareConnect is">
+            <Section id="what-is-careconnect" title="2. What Dine Connect is">
               <p>
-                CareConnect is a WhatsApp-based appointment booking and reminder platform for hospitals and
-                clinics (&ldquo;Hospitals&rdquo;). Patients interact with their Hospital&apos;s own WhatsApp number
-                to book, reschedule, and cancel appointments. Hospital staff manage those appointments, patients,
-                and doctors through a web dashboard. A hospital admin may optionally connect one Google account for
-                the whole hospital to create Google Meet links for tele-consultation appointments.
+                Dine Connect is a WhatsApp-based table reservation booking and reminder platform for restaurants and
+                venues (&ldquo;Restaurants&rdquo;). Guests interact with their Restaurant&apos;s own WhatsApp number
+                to book, reschedule, and cancel reservations. Restaurant staff manage those reservations, guests,
+                and tables through a web dashboard. A restaurant admin may optionally connect one Google account for
+                the whole restaurant to create Google Meet links for select bookings.
               </p>
               <p>
-                CareConnect is a scheduling and communication tool. It does not provide medical advice, diagnosis,
-                or treatment, and is not a substitute for professional medical judgment or emergency services. In
-                a medical emergency, contact your local emergency services directly.
+                Dine Connect is a scheduling and communication tool for table reservations. It is not a substitute
+                for a restaurant&apos;s own judgment on seating, capacity, or service. In an emergency, contact
+                your local emergency services directly.
               </p>
             </Section>
 
-            <Section id="hospital-accounts" title="3. Hospital accounts">
+            <Section id="hospital-accounts" title="3. Restaurant accounts">
               <p>
-                A Hospital is responsible for the accuracy of the department, doctor, and scheduling information
-                it configures on the Platform, for obtaining any consent required from its own patients before
+                A Restaurant is responsible for the accuracy of the section, table, and scheduling information
+                it configures on the Platform, for obtaining any consent required from its own guests before
                 communicating with them via WhatsApp, and for the conduct of the staff accounts it creates. A
-                Hospital must keep its staff login credentials confidential and is responsible for activity under
+                Restaurant must keep its staff login credentials confidential and is responsible for activity under
                 its accounts.
               </p>
             </Section>
 
-            <Section id="patients-whatsapp" title="4. Patients using WhatsApp">
+            <Section id="patients-whatsapp" title="4. Guests using WhatsApp">
               <p>
-                Using CareConnect via WhatsApp is free for patients, though your mobile carrier&apos;s standard
+                Using Dine Connect via WhatsApp is free for guests, though your mobile carrier&apos;s standard
                 messaging/data rates may apply, and WhatsApp messaging costs charged by Meta may apply to the
-                Hospital. Use of WhatsApp itself is also subject to{" "}
+                Restaurant. Use of WhatsApp itself is also subject to{" "}
                 <a href="https://www.whatsapp.com/legal/terms-of-service" target="_blank" rel="noopener noreferrer" className="text-brand-600 hover:underline">
                   WhatsApp&apos;s own Terms of Service
                 </a>
-                . A patient may withdraw consent to data processing, or request deletion of their data, at any
-                time by messaging &ldquo;DELETE&rdquo; to the Hospital&apos;s WhatsApp number.
+                . A guest may withdraw consent to data processing, or request deletion of their data, at any
+                time by messaging &ldquo;DELETE&rdquo; to the Restaurant&apos;s WhatsApp number.
               </p>
             </Section>
 
             <Section id="google-calendar" title="5. Google Calendar integration">
               <p>
-                Connecting a Google account for the Google Meet tele-consultation feature is entirely optional and
-                can be disconnected at any time from the hospital admin&apos;s own Settings page. CareConnect only requests
-                access to create calendar events, and only ever creates one event per tele-consultation booking —
+                Connecting a Google account for the Google Meet feature is entirely optional and
+                can be disconnected at any time from the restaurant admin&apos;s own Settings page. Dine Connect only requests
+                access to create calendar events, and only ever creates one event per booking —
                 see our{" "}
                 <a href="/privacy#google-calendar" className="text-brand-600 hover:underline">
                   Privacy Policy
@@ -143,45 +143,45 @@ export default function TermsOfServicePage() {
 
             <Section id="fees" title="6. Fees">
               <p>
-                Fees for a Hospital&apos;s use of CareConnect are as agreed separately between the Hospital and
-                DaaPrime Tech. WhatsApp messaging costs charged by Meta to the Hospital are separate from, and in
-                addition to, any CareConnect platform fee.
+                Fees for a Restaurant&apos;s use of Dine Connect are as agreed separately between the Restaurant and
+                DaaPrime Tech. WhatsApp messaging costs charged by Meta to the Restaurant are separate from, and in
+                addition to, any Dine Connect platform fee.
               </p>
             </Section>
 
             <Section id="acceptable-use" title="7. Acceptable use">
-              <p>You agree not to use CareConnect to:</p>
+              <p>You agree not to use Dine Connect to:</p>
               <ul className="list-disc space-y-space-2 pl-space-5">
-                <li>Send unsolicited or unlawful messages to patients;</li>
-                <li>Attempt to access another Hospital&apos;s data, or another staff member&apos;s or doctor&apos;s account;</li>
+                <li>Send unsolicited or unlawful messages to guests;</li>
+                <li>Attempt to access another Restaurant&apos;s data, or another staff member&apos;s account;</li>
                 <li>Interfere with or disrupt the Platform&apos;s operation; or</li>
-                <li>Use the Platform in a way that violates applicable law, including healthcare data protection law.</li>
+                <li>Use the Platform in a way that violates applicable law, including data protection law.</li>
               </ul>
             </Section>
 
             <Section id="ip" title="8. Intellectual property">
               <p>
-                CareConnect, its software, and its branding are the property of DaaPrime Tech. These Terms do not
-                grant any Hospital, staff member, doctor, or patient ownership of the Platform itself — only the
+                Dine Connect, its software, and its branding are the property of DaaPrime Tech. These Terms do not
+                grant any Restaurant, staff member, or guest ownership of the Platform itself — only the
                 right to use it as described here.
               </p>
             </Section>
 
             <Section id="disclaimers" title="9. Disclaimers & liability">
               <p>
-                CareConnect is provided &ldquo;as is.&rdquo; We work to keep the Platform available and accurate,
+                Dine Connect is provided &ldquo;as is.&rdquo; We work to keep the Platform available and accurate,
                 but do not guarantee it will be uninterrupted or error-free (including the underlying WhatsApp
                 Business Platform and Google Calendar API, which we do not control). To the fullest extent
                 permitted by law, DaaPrime Tech is not liable for indirect, incidental, or consequential damages
-                arising from use of the Platform, including a missed or double-booked appointment, beyond amounts
+                arising from use of the Platform, including a missed or double-booked reservation, beyond amounts
                 actually paid for the Platform in the preceding three months.
               </p>
             </Section>
 
             <Section id="termination" title="10. Termination">
               <p>
-                We may suspend or terminate access to the Platform for a Hospital, staff account, or doctor
-                account that violates these Terms. A Hospital may stop using the Platform at any time by
+                We may suspend or terminate access to the Platform for a Restaurant or staff account
+                that violates these Terms. A Restaurant may stop using the Platform at any time by
                 discontinuing its subscription.
               </p>
             </Section>
@@ -193,7 +193,7 @@ export default function TermsOfServicePage() {
             <Section id="changes" title="12. Changes to these terms">
               <p>
                 We may update these Terms from time to time. We will update the &ldquo;Last updated&rdquo; date
-                above when we do. Continued use of CareConnect after a change means you accept the updated Terms.
+                above when we do. Continued use of Dine Connect after a change means you accept the updated Terms.
               </p>
             </Section>
           </Card>

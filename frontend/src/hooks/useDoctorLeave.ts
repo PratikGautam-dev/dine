@@ -38,10 +38,10 @@ export function useDoctorLeave(doctorId: string) {
     setAdding(false);
     if (!result.ok) {
       setError(result.unauthorized ? "Session expired — please log in again." : result.error);
-      if (!result.unauthorized) toast.error("Couldn't add leave", result.error);
+      if (!result.unauthorized) toast.error("Couldn't add unavailable dates", result.error);
       return;
     }
-    toast.success("Leave added");
+    toast.success("Unavailable dates added");
     setFromDate("");
     setToDate("");
     setReason("");
@@ -51,9 +51,9 @@ export function useDoctorLeave(doctorId: string) {
   async function handleDelete(leaveId: number) {
     const result = await portalFetch(`/api/portal/doctors/${doctorId}/leave/${leaveId}/delete`, { method: "POST" });
     if (result.ok) {
-      toast.success("Leave removed");
+      toast.success("Unavailable date removed");
     } else if (!result.unauthorized) {
-      toast.error("Couldn't remove leave", result.error);
+      toast.error("Couldn't remove unavailable date", result.error);
     }
     load();
   }

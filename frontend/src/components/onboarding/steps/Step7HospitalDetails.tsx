@@ -39,7 +39,7 @@ export function Step7HospitalDetails({ state, dispatch, error }: Props) {
       <h2 className="text-display mb-space-2">{heading}</h2>
       <p className="text-body mb-space-4">{desc}</p>
 
-      <Field label="Type of practice">
+      <Field label="Venue type">
         <div className="grid grid-cols-1 gap-space-3 md:grid-cols-2">
           {TENANT_TYPE_OPTIONS.map(({ value, label, description, icon: Icon }) => {
             const selected = state.tenantType === value;
@@ -203,7 +203,7 @@ export function validateStep7(state: WizardState): string | null {
         ? "Table booking is enabled, so your table details are required."
         : "Table booking is enabled, so at least one section with at least one table is required.";
     }
-    if (!state.portalPassword.trim()) return "A bookings portal password is required.";
+    if (!state.portalPassword.trim()) return "A reservations portal password is required.";
   }
   if (state.enabledFeatures.includes("faq")) {
     const topicCount = state.topics.filter((t) => t.topicLabel.trim() && t.answerText.trim()).length;

@@ -14,11 +14,11 @@ export function DoctorLeaveManager({ doctorId }: { doctorId: string }) {
 
   return (
     <div className="rounded-lg border border-line bg-paper p-space-3">
-      <p className="text-label mb-space-2 font-semibold text-ink-900">Leave dates</p>
+      <p className="text-label mb-space-2 font-semibold text-ink-900">Unavailable dates</p>
       {leave === null ? (
         <p className="text-hint">Loading…</p>
       ) : leave.length === 0 ? (
-        <p className="text-hint mb-space-2">No leave dates set.</p>
+        <p className="text-hint mb-space-2">No unavailable dates set.</p>
       ) : (
         <ul className="mb-space-2 space-y-space-1">
           {leave.map((l) => (
@@ -56,7 +56,7 @@ export function DoctorLeaveManager({ doctorId }: { doctorId: string }) {
         </div>
         <Input placeholder="Reason (optional)" value={reason} onChange={(e) => setReason(e.target.value)} className="max-w-[180px]" />
         <Button type="button" size="md" onClick={handleAdd} disabled={adding || !fromDate || !toDate}>
-          <Plus size={13} /> {adding ? "Confirming…" : "Confirm leave"}
+          <Plus size={13} /> {adding ? "Confirming…" : "Confirm dates"}
         </Button>
       </div>
     </div>

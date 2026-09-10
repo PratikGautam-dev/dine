@@ -53,7 +53,7 @@ export default function PortalActivityLogPage() {
     <PortalShell hospital={hospital} active="settings">
       <PageHeader
         title="Activity log"
-        description="Recent changes made by your staff through this portal — doctor/department edits, feature toggles,
+        description="Recent changes made by your staff through this portal — table/section edits, feature toggles,
           settings updates. Platform-level changes (made by the operator on your behalf) aren't shown here."
         actions={<Button href="/portal/settings" variant="secondary"><ArrowLeft size={14} /> Back to settings</Button>}
       />

@@ -258,7 +258,7 @@ export default function PortalAppointmentsPage() {
             <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
             <input
               type="text"
-              placeholder="Search phone, doctor, department, or reference…"
+              placeholder="Search phone, table, section, or reference…"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
@@ -280,9 +280,9 @@ export default function PortalAppointmentsPage() {
           {!appointments ? (
             <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
           ) : appointments.length === 0 ? (
-            <p className="py-space-4 text-center text-[13px] text-ink-400">No appointments yet.</p>
+            <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations yet.</p>
           ) : filteredAppointments && filteredAppointments.length === 0 ? (
-            <p className="py-space-4 text-center text-[13px] text-ink-400">No appointments match your search/filter.</p>
+            <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations match your search/filter.</p>
           ) : (
             <DataTable
               columns={columns}
@@ -296,11 +296,11 @@ export default function PortalAppointmentsPage() {
 
         <ConfirmDialog
           open={pendingDelete !== null}
-          title={pendingDelete && pendingDelete.length > 1 ? `Delete ${pendingDelete.length} appointments?` : "Delete appointment?"}
+          title={pendingDelete && pendingDelete.length > 1 ? `Delete ${pendingDelete.length} reservations?` : "Delete reservation?"}
           message={
             pendingDelete
               ? `This will permanently delete ${
-                  pendingDelete.length > 1 ? `${pendingDelete.length} appointment records` : `the ${pendingDelete[0].reference_id || "selected"} appointment`
+                  pendingDelete.length > 1 ? `${pendingDelete.length} reservation records` : `the ${pendingDelete[0].reference_id || "selected"} reservation`
                 }. This action is irreversible.`
               : ""
           }

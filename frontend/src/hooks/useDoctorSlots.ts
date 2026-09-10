@@ -61,15 +61,15 @@ export function useDoctorSlots(doctorId: string) {
     setPendingId(null);
     if (!result.ok) {
       setError(result.unauthorized ? "Session expired — please log in again." : result.error);
-      if (!result.unauthorized) toast.error("Couldn't update slot", result.error);
+      if (!result.unauthorized) toast.error("Couldn't update seating time", result.error);
       return;
     }
-    toast.success(slot.blocked ? "Slot unblocked" : "Slot blocked");
+    toast.success(slot.blocked ? "Seating time unblocked" : "Seating time blocked");
     load();
   }
 
   async function removeSlot(slot: Slot) {
-    if (!window.confirm(`Remove the ${slot.time} slot on ${slot.date}? This deletes it outright, not just blocks it.`)) return;
+    if (!window.confirm(`Remove the ${slot.time} seating time on ${slot.date}? This deletes it outright, not just blocks it.`)) return;
     setPendingId(slot.scheduled_at);
     setError(null);
     const result = await portalFetch(`/api/portal/doctors/${doctorId}/slots/remove`, {
@@ -80,10 +80,10 @@ export function useDoctorSlots(doctorId: string) {
     setPendingId(null);
     if (!result.ok) {
       setError(result.unauthorized ? "Session expired — please log in again." : result.error);
-      if (!result.unauthorized) toast.error("Couldn't remove slot", result.error);
+      if (!result.unauthorized) toast.error("Couldn't remove seating time", result.error);
       return;
     }
-    toast.success("Slot removed");
+    toast.success("Seating time removed");
     load();
   }
 
@@ -99,10 +99,10 @@ export function useDoctorSlots(doctorId: string) {
     setAdding(false);
     if (!result.ok) {
       setError(result.unauthorized ? "Session expired — please log in again." : result.error);
-      if (!result.unauthorized) toast.error("Couldn't add slot", result.error);
+      if (!result.unauthorized) toast.error("Couldn't add seating time", result.error);
       return;
     }
-    toast.success("Slot added");
+    toast.success("Seating time added");
     setNewTime("");
     load();
   }

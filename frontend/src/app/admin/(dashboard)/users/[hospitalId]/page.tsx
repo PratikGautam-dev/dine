@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { useHospitalStaff } from "@/hooks/useHospitalStaff";
 
-const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Doctor" };
+const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Staff member" };
 
 function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
   const router = useRouter();
@@ -21,14 +21,14 @@ function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
   return (
     <div>
       <Link href="/admin/users" className="mb-space-4 inline-block text-[13px] font-semibold text-brand-600 hover:underline">
-        ← All hospitals
+        ← All restaurants
       </Link>
 
       <div className="mb-space-5">
         <p className="text-eyebrow mb-space-1">Platform admin</p>
         <h1 className="text-display">{hospitalName || "Staff"}</h1>
         <p className="text-[13px] text-ink-600">
-          Read-only here — edit a person&apos;s role or active status from that hospital&apos;s own Staff page.
+          Read-only here — edit a person&apos;s role or active status from that restaurant&apos;s own Staff page.
         </p>
       </div>
 
@@ -51,7 +51,7 @@ function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
             <option value="">All roles</option>
             <option value="admin">Admin</option>
             <option value="receptionist">Receptionist</option>
-            <option value="doctor">Doctor</option>
+            <option value="doctor">Staff member</option>
           </select>
           <select
             value={activeFilter}

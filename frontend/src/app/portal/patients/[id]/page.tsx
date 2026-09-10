@@ -61,7 +61,7 @@ export default function PatientDetailPage() {
               {v.followup_valid_until && new Date(v.followup_valid_until) >= new Date()
                 ? `is open until ${formatDate(v.followup_valid_until)}`
                 : "has closed"}
-              . Grant extra days so the patient can book it themselves on WhatsApp, or book it directly right now.
+              . Grant extra days so the guest can book it themselves on WhatsApp, or book it directly right now.
             </p>
 
             <div className="mb-space-3 flex flex-wrap items-end gap-space-2">
@@ -82,7 +82,7 @@ export default function PatientDetailPage() {
 
             <div className="border-t border-line pt-space-3">
               <p className="mb-space-2 text-[12px] font-semibold text-ink-600">
-                Or book this follow-up now (with {v.doctor_name}, {v.department_name})
+                Or book this reservation now (table {v.doctor_name}, {v.department_name})
               </p>
               {(() => {
                 const dates = bookCtx ? Object.keys(bookCtx.slots_by_doctor[v.doctor_id] || {}).sort() : [];
@@ -90,7 +90,7 @@ export default function PatientDetailPage() {
                 return (
                   <>
                     {dates.length === 0 ? (
-                      <p className="mb-space-2 text-[12.5px] text-ink-400">No available dates for this doctor.</p>
+                      <p className="mb-space-2 text-[12.5px] text-ink-400">No available dates for this table.</p>
                     ) : (
                       <div className="mb-space-2 flex flex-wrap gap-space-2">
                         {dates.map((d) => (
@@ -132,7 +132,7 @@ export default function PatientDetailPage() {
                 );
               })()}
               <Button size="md" onClick={() => handleBookFollowupNow(v.id)} disabled={bookingId === v.id || !bookSlotId}>
-                {bookingId === v.id ? "Booking…" : "Book follow-up now"}
+                {bookingId === v.id ? "Booking…" : "Book reservation now"}
               </Button>
             </div>
 
@@ -155,7 +155,7 @@ export default function PatientDetailPage() {
           onClick={() => router.push("/portal/patients")}
           className="mb-space-3 flex items-center gap-space-1 text-[12.5px] font-semibold text-brand-600 hover:underline"
         >
-          <ArrowLeft size={14} /> All patients
+            <ArrowLeft size={14} /> All guests
         </button>
 
         <div className="mb-space-5 flex items-center gap-space-3">
@@ -240,7 +240,7 @@ export default function PatientDetailPage() {
                       <Search size={14} className="pointer-events-none absolute top-1/2 left-space-3 -translate-y-1/2 text-ink-400" />
                       <input
                         type="text"
-                        placeholder="Search doctor, department, or reference…"
+                        placeholder="Search table, section, or reference…"
                         value={visitSearch}
                         onChange={(e) => setVisitSearch(e.target.value)}
                         className="h-9 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[12.5px] text-ink-900 outline-none focus:border-brand-400"
@@ -277,16 +277,16 @@ export default function PatientDetailPage() {
           <Card className="h-fit p-space-4">
             <h3 className="text-label mb-space-1 font-bold text-ink-900">Record status</h3>
             <p className="text-hint mb-space-3">
-              Blocking a patient stops them from being selected/booked against on WhatsApp -- their appointment
-              history and Patient ID are untouched, and any phone still linked to them is unaffected.
+              Blocking a guest stops them from being selected/booked against on WhatsApp -- their reservation
+              history and Guest ID are untouched, and any phone still linked to them is unaffected.
             </p>
             {patient.status === "active" ? (
               <Button size="md" variant="secondary" onClick={() => handleSetStatus("blocked")} disabled={savingStatus} className="w-full">
-                {savingStatus ? "Saving…" : "Block this patient"}
+                {savingStatus ? "Saving…" : "Block this guest"}
               </Button>
             ) : (
               <Button size="md" onClick={() => handleSetStatus("active")} disabled={savingStatus} className="w-full">
-                {savingStatus ? "Saving…" : "Reactivate this patient"}
+                {savingStatus ? "Saving…" : "Reactivate this guest"}
               </Button>
             )}
           </Card>

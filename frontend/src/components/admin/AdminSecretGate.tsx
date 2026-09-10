@@ -60,7 +60,7 @@ export function AdminSecretGate({ title, children }: { title: string; children: 
             </div>
             <div>
               <span className="block text-eyebrow">DAAP</span>
-              <span className="block text-[16px] font-bold text-ink-900">CareConnect</span>
+              <span className="block text-[16px] font-bold text-ink-900">Dine Connect</span>
             </div>
           </div>
           <h1 className="text-display mb-space-1 !text-[22px]">{title}</h1>

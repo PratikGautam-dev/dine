@@ -57,7 +57,7 @@ function EditTenantForm({ tenantId }: { tenantId: number }) {
 
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-2">
-              <Field label="Hospital name" htmlFor="name" required>
+              <Field label="Restaurant name" htmlFor="name" required>
                 <Input id="name" required value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
               </Field>
               <Field label="WhatsApp phone_number_id" htmlFor="phone_id" required>
@@ -117,8 +117,8 @@ function EditTenantForm({ tenantId }: { tenantId: number }) {
                 onChange={(e) => setForm({ ...form, tenant_type: e.target.value })}
                 className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
               >
-                <option value="hospital">Hospital</option>
-                <option value="clinic">Clinic</option>
+                <option value="hospital">Restaurant</option>
+                <option value="clinic">Venue</option>
               </select>
             </Field>
 
@@ -151,7 +151,7 @@ function EditTenantForm({ tenantId }: { tenantId: number }) {
             </Field>
 
             <Field
-              label="Appointment types"
+              label="Reservation types"
               htmlFor="appointment_types"
               hint="Which types this tenant may offer at all. Unchecking one also turns it off in the tenant's own portal immediately — the tenant can then only switch it back on if you re-allow it here first."
             >
@@ -185,7 +185,7 @@ function EditTenantForm({ tenantId }: { tenantId: number }) {
             <Field
               label="Enabled WhatsApp features"
               htmlFor="enabled_features"
-              hint="Only set once, at onboarding -- this is the one place to change it afterward. A hospital's own /portal/settings can rename a label for an already-enabled feature, but can't turn one on or off."
+              hint="Only set once, at onboarding -- this is the one place to change it afterward. A restaurant's own /portal/settings can rename a label for an already-enabled feature, but can't turn one on or off."
             >
               <div id="enabled_features" className="grid grid-cols-1 gap-space-1 md:grid-cols-2">
                 {Object.entries(tenant.feature_default_labels).map(([key, label]) => (

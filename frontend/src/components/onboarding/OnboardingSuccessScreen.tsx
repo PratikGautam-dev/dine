@@ -40,7 +40,7 @@ export function OnboardingSuccessScreen({ result }: { result: OnboardingSuccess 
           Reminder: this only recorded the credentials you entered — the restaurant&apos;s own Meta Business/WhatsApp
           number verification and System User access token must already have been set up on Meta&apos;s side
           beforehand. If that wasn&apos;t done first, outbound messages and webhook signature validation for this
-          hospital will fail until it is.
+          restaurant will fail until it is.
         </p>
 
         <a href="/admin/onboard-hospital" className="text-[13.5px] font-semibold text-brand-600 hover:underline">

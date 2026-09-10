@@ -26,13 +26,13 @@ function AuthContent() {
           </div>
           <div>
             <span className="block text-eyebrow">DAAP</span>
-            <span className="block text-[16px] font-bold text-ink-900">CareConnect</span>
+            <span className="block text-[16px] font-bold text-ink-900">Dine Connect</span>
           </div>
         </div>
 
         <h1 className="text-display mb-space-1 !text-[22px]">Sign in</h1>
         <p className="text-body mb-space-5">
-          Continue with Google to set up a new hospital or get to a portal you already own.
+          Continue with Google to set up a new restaurant or get to a portal you already own.
         </p>
 
         {error && (
@@ -50,7 +50,7 @@ function AuthContent() {
         </a>
 
         <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
-          Prefer a hospital password instead?{" "}
+          Prefer a restaurant password instead?{" "}
           <a href="/portal/login" className="font-semibold text-brand-600 hover:underline">
             Staff login
           </a>

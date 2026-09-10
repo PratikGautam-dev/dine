@@ -22,9 +22,9 @@ const bodyFont = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "DAAP CareConnect — WhatsApp Appointment Booking & Reminder Platform for Hospitals",
+  title: "Dine Connect — WhatsApp Table Reservation & Reminder Platform for Restaurants",
   description:
-    "Let patients book, reschedule and cancel appointments through WhatsApp, managed from one hospital dashboard.",
+    "Let guests book, reschedule and cancel table reservations through WhatsApp, managed from one restaurant dashboard.",
 };
 
 export default function RootLayout({

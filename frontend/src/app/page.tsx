@@ -5,7 +5,7 @@ import { ClinicSetupButton } from "@/components/marketing/ClinicSetupButton";
 import { PhoneMockup } from "@/components/marketing/PhoneMockup";
 
 const FEATURES = [
-  { title: "No app for patients", desc: "Works directly on WhatsApp", Icon: CircleCheck },
+  { title: "No app for guests", desc: "Works directly on WhatsApp", Icon: CircleCheck },
   { title: "Simple & guided", desc: "Menu-driven booking that just works", Icon: ListChecks },
   { title: "Transparent pricing", desc: "Meta messaging charges may apply", Icon: Tag },
 ];
@@ -19,10 +19,10 @@ function BrandMark({ size = "md" }: { size?: "sm" | "md" }) {
       <div>
         <span className="block text-eyebrow leading-none">DAAP</span>
         <span className={`font-display ${name} leading-tight font-extrabold text-ink-900`}>
-          Care<span className="text-brand-600">Connect</span>
+          Dine<span className="text-brand-600">Connect</span>
         </span>
         <span className="mt-0.5 block text-[11px] font-semibold tracking-wide text-ink-400">
-          Connect &bull; Care &bull; Heal
+          Connect &bull; Reserve &bull; Dine
         </span>
       </div>
     </div>
@@ -32,15 +32,15 @@ function BrandMark({ size = "md" }: { size?: "sm" | "md" }) {
 export default function LandingPage() {
   return (
     <>
-    {/* Top nav: brand mark left, hospital login as a real button top-right
+    {/* Top nav: brand mark left, restaurant login as a real button top-right
         -- previously just a small text link buried under the hero CTAs. */}
     <header className="flex flex-wrap items-center justify-between gap-space-3 px-space-4 py-space-4 md:px-space-7 lg:px-space-9">
-      <a href="/" aria-label="CareConnect home">
+      <a href="/" aria-label="Dine Connect home">
         <BrandMark size="sm" />
       </a>
       <div className="flex items-center gap-space-2">
         <Button href="/portal/login" variant="secondary" size="md">
-          Hospital login
+          Restaurant login
         </Button>
       </div>
     </header>
@@ -67,19 +67,19 @@ export default function LandingPage() {
           <div>
             {/* Tagline */}
             <p className="mb-space-3 text-[14.5px] text-ink-600">
-              WhatsApp Appointment Booking &amp; Reminder Platform for Hospitals
+              WhatsApp Table Reservation &amp; Reminder Platform for Restaurants
             </p>
 
             {/* Heading */}
             <h1 className="text-display-lg mb-space-5 max-w-[650px]">
-              Appointments on <span className="text-brand-600">WhatsApp</span>. Managed from one hospital dashboard.
+              Reservations on <span className="text-brand-600">WhatsApp</span>. Managed from one restaurant dashboard.
             </h1>
 
             {/* Description */}
             <p className="text-body mb-space-6 max-w-[620px]">
-              Let patients book, reschedule and cancel appointments through WhatsApp. Use this platform&apos;s own
-              booking database, connect your existing hospital system, or activate directly inside your hospital
-              ERP.
+              Let guests book, reschedule and cancel table reservations through WhatsApp. Use this platform&apos;s own
+              booking database, connect your existing restaurant system, or activate directly inside your restaurant
+              POS.
             </p>
 
             {/* Feature row */}
@@ -97,11 +97,11 @@ export default function LandingPage() {
               ))}
             </div>
 
-            {/* CTAs -- Hospital login moved to the header button above,
+            {/* CTAs -- Restaurant login moved to the header button above,
                 no longer duplicated here as a text link. */}
             <div className="flex flex-wrap gap-space-3">
               <Button href="/auth" variant="primary" size="lg">
-                Set up your hospital
+                Set up your restaurant
               </Button>
               <ClinicSetupButton />
               <Button
@@ -127,7 +127,7 @@ export default function LandingPage() {
           <div className="max-w-[320px]">
             <BrandMark size="sm" />
             <p className="mt-space-3 text-[13px] text-ink-600">
-              WhatsApp appointment booking &amp; reminders for hospitals — no app for patients, managed from one
+              WhatsApp table reservation booking &amp; reminders for restaurants — no app for guests, managed from one
               dashboard.
             </p>
           </div>
@@ -138,12 +138,12 @@ export default function LandingPage() {
               <ul className="space-y-space-2 text-[13.5px] text-ink-600">
                 <li>
                   <a href="/auth" className="hover:text-brand-600 hover:underline">
-                    Set up your hospital
+                    Set up your restaurant
                   </a>
                 </li>
                 <li>
                   <a href="/portal/login" className="hover:text-brand-600 hover:underline">
-                    Hospital login
+                    Restaurant login
                   </a>
                 </li>
                 <li>
@@ -187,7 +187,7 @@ export default function LandingPage() {
         </div>
 
         <div className="mt-space-6 border-t border-line pt-space-4 text-[12.5px] text-ink-400">
-          © {new Date().getFullYear()} DAAP CareConnect. All rights reserved.
+          © {new Date().getFullYear()} Dine Connect. All rights reserved.
         </div>
       </div>
     </footer>

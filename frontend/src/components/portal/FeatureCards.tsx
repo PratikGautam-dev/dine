@@ -22,7 +22,7 @@ export function FeatureCards({ enabledFeatures }: { enabledFeatures: string[] })
     <Card className="p-space-4">
       <h3 className="text-label mb-space-3 font-bold text-ink-900">What we provide</h3>
       {known.length === 0 ? (
-        <p className="py-space-2 text-center text-[13px] text-ink-400">No patient-facing features enabled yet.</p>
+        <p className="py-space-2 text-center text-[13px] text-ink-400">No guest-facing features enabled yet.</p>
       ) : (
         <div className="flex flex-wrap gap-space-2">
           {known.map((key) => {

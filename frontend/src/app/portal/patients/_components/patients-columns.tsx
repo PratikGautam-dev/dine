@@ -33,7 +33,7 @@ export function createPatientColumns({
           onChange={(e) => toggleSelectAll(e.target.checked)}
           onClick={(e) => e.stopPropagation()}
           className="h-4 w-4 accent-brand-600"
-          aria-label="Select all patients"
+          aria-label="Select all guests"
         />
       ),
       cell: ({ row }) => {
@@ -52,7 +52,7 @@ export function createPatientColumns({
     },
     {
       id: "patient_display_id",
-      header: "Patient ID",
+      header: "Guest ID",
       cell: ({ row }) => (
         <span className="whitespace-nowrap font-mono text-[12px] text-ink-600">
           {row.original.patient_display_id || `#${row.original.id}`}

@@ -40,7 +40,7 @@ const FEATURE_DESCRIPTIONS: Record<FeatureKey, string> = {
   reports_prescriptions: "Guests can browse ordering-ahead options when that feature is available.",
   manage_patients: "One phone can link up to 5 guests, each with their own profile.",
   consent_privacy: "Privacy notice, consent status, and a marketing-messages opt-in/out.",
-  manage_language: "Patients can switch their conversation language at any time from the main menu.",
+  manage_language: "Guests can switch their conversation language at any time from the main menu.",
   hospital_info: "Hours, location, parking, and general restaurant information.",
   reception_handoff: "Hand off to a host or staff member through the portal's Messages inbox.",
   faq: "Guests pick a topic (hours, location, pricing...) and get an instant answer.",
@@ -101,6 +101,6 @@ export function Step6PatientExperience({ state, dispatch, error }: Props) {
 }
 
 export function validateStep6(state: WizardState): string | null {
-  if (state.enabledFeatures.length === 0) return "Select at least one capability for patients to use.";
+  if (state.enabledFeatures.length === 0) return "Select at least one capability for guests to use.";
   return null;
 }

@@ -8,17 +8,17 @@ import { Input } from "@/components/ui/Input";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
 const FEATURE_DISPLAY_NAMES: Record<string, string> = {
-  book_doctor_appointment: "Book Doctor Appointment",
+  book_doctor_appointment: "Book a Table",
   tests_diagnostics: "Tests & Diagnostics",
-  reschedule: "Reschedule Appointment",
-  cancel: "Cancel Appointment",
-  view_appointments: "My Appointments",
-  reports_prescriptions: "Reports & Prescriptions",
-  manage_patients: "Manage Patients",
+  reschedule: "Reschedule Reservation",
+  cancel: "Cancel Reservation",
+  view_appointments: "View My Reservations",
+  reports_prescriptions: "Order Ahead",
+  manage_patients: "Manage Guests",
   consent_privacy: "Consent & Privacy",
   manage_language: "Manage Language",
-  hospital_info: "Hospital Information",
-  reception_handoff: "Talk to Reception",
+  hospital_info: "Restaurant Information",
+  reception_handoff: "Talk to a Host",
   faq: "FAQ / Information",
 };
 
@@ -43,7 +43,7 @@ function PlatformSettingsForm() {
         <p className="text-eyebrow mb-space-1">Platform admin</p>
         <h1 className="text-display">Platform settings</h1>
         <p className="text-[13px] text-ink-600">
-          Global values that apply identically across every hospital — no per-tenant override.
+          Global values that apply identically across every restaurant — no per-tenant override.
         </p>
       </div>
 
@@ -55,9 +55,9 @@ function PlatformSettingsForm() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-space-5">
           <Card className="p-space-5">
             <Field
-              label="Max active patient links"
+              label="Max active guest links"
               htmlFor="max_active_patient_links"
-              hint="How many patients a single WhatsApp number can stay linked to at once, across every hospital."
+              hint="How many guests a single WhatsApp number can stay linked to at once, across every restaurant."
               error={error || undefined}
             >
               <Input
@@ -74,8 +74,8 @@ function PlatformSettingsForm() {
           <Card className="p-space-5">
             <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Menu labels</h2>
             <p className="mb-space-3 text-[12.5px] text-ink-400">
-              Rename how a feature appears in every hospital&apos;s WhatsApp menu. Leave a field blank to use the
-              default. Applies platform-wide — a hospital&apos;s own Settings page can no longer override this.
+              Rename how a feature appears in every restaurant&apos;s WhatsApp menu. Leave a field blank to use the
+              default. Applies platform-wide — a restaurant&apos;s own Settings page can no longer override this.
             </p>
             {Object.keys(settings.feature_default_labels).map((key) => (
               <Field key={key} label={FEATURE_DISPLAY_NAMES[key] || key} htmlFor={`label_${key}`}>
@@ -92,13 +92,13 @@ function PlatformSettingsForm() {
           <Card className="p-space-5">
             <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">DPDP Act consent</h2>
             <p className="mb-space-3 text-[12.5px] text-ink-400">
-              When enabled, a fresh conversation on ANY hospital&apos;s bot must tap &quot;I Agree&quot; on a fixed
+              When enabled, a fresh conversation on ANY restaurant&apos;s bot must tap &quot;I Agree&quot; on a fixed
               Digital Personal Data Protection (DPDP) Act notice right after choosing a language, before anything
-              else — including registration or picking a patient. The decision is remembered per phone number, so a
-              patient who has already agreed is never asked again.
+              else — including registration or picking a guest. The decision is remembered per phone number, so a
+              guest who has already agreed is never asked again.
             </p>
             <CheckboxRow checked={dpdpRequired} onChange={setDpdpRequired}>
-              Require DPDP consent before entering the menu, for every hospital
+              Require DPDP consent before entering the menu, for every restaurant
             </CheckboxRow>
           </Card>
 

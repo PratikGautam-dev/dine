@@ -27,8 +27,8 @@ export default function PortalSchedulePage() {
   return (
     <PortalShell hospital={hospital} active="schedule">
       <p className="text-[13px] text-ink-400">
-        Self-service schedule editing isn&apos;t available here. Ask your hospital administrator to update your
-        schedule from Doctors &amp; departments.
+        Self-service schedule editing isn&apos;t available here. Ask your restaurant administrator to update your
+        schedule from Tables &amp; sections.
       </p>
     </PortalShell>
   );

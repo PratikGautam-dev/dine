@@ -69,7 +69,7 @@ export function createAppointmentColumns({
             onChange={(e) => toggleSelectAll(e.target.checked)}
             disabled={deletableCount === 0}
             className="h-4 w-4 accent-brand-600"
-            aria-label="Select all deletable appointments"
+            aria-label="Select all deletable reservations"
           />
         </PermissionGate>
       ),
@@ -83,7 +83,7 @@ export function createAppointmentColumns({
               checked={selected.has(a.id)}
               onChange={(e) => toggleSelected(a.id, e.target.checked)}
               className="h-4 w-4 accent-brand-600"
-              aria-label={`Select appointment ${a.reference_id || a.id}`}
+              aria-label={`Select reservation ${a.reference_id || a.id}`}
             />
           </PermissionGate>
         );

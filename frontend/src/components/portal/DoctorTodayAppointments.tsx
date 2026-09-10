@@ -20,7 +20,7 @@ export function DoctorTodayAppointments({ doctorId }: { doctorId: string }) {
 
   return (
     <div className="rounded-lg border border-line bg-paper p-space-3">
-      <p className="text-label mb-space-2 font-semibold text-ink-900">Today&apos;s appointments</p>
+      <p className="text-label mb-space-2 font-semibold text-ink-900">Today&apos;s reservations</p>
       {appointments === null ? (
         <p className="text-hint">Loading…</p>
       ) : appointments.length === 0 ? (

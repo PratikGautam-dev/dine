@@ -31,7 +31,7 @@ export function DoctorSlotManager({ doctorId }: { doctorId: string }) {
           type="button"
           disabled={pendingId === s.scheduled_at || (s.booked && !s.blocked)}
           onClick={() => toggleBlock(s)}
-          title={s.booked && !s.blocked ? "Already booked — cancel or reschedule that appointment first" : s.blocked ? "Tap to unblock" : "Tap to block"}
+          title={s.booked && !s.blocked ? "Already reserved — cancel or reschedule that reservation first" : s.blocked ? "Tap to unblock" : "Tap to block"}
           className="flex items-center gap-space-1 disabled:cursor-not-allowed disabled:opacity-60"
         >
           {s.blocked ? <Ban size={11} /> : s.booked ? <CheckCircle2 size={11} /> : null}
@@ -41,7 +41,7 @@ export function DoctorSlotManager({ doctorId }: { doctorId: string }) {
           type="button"
           disabled={pendingId === s.scheduled_at || s.booked}
           onClick={() => removeSlot(s)}
-          title={s.booked ? "Already booked — cancel or reschedule that appointment first" : "Remove this slot entirely"}
+          title={s.booked ? "Already reserved — cancel or reschedule that reservation first" : "Remove this seating time entirely"}
           className="text-ink-300 hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
         >
           <X size={11} />
@@ -53,7 +53,7 @@ export function DoctorSlotManager({ doctorId }: { doctorId: string }) {
   return (
     <div className="rounded-lg border border-line bg-paper p-space-3">
       <div className="mb-space-2 flex flex-wrap items-center justify-between gap-space-2">
-        <p className="text-label font-semibold text-ink-900">Manage individual slots</p>
+        <p className="text-label font-semibold text-ink-900">Manage individual seating times</p>
         <div className="flex items-center gap-space-2">
           {!viewAll && <Input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="w-40" />}
           <button
@@ -61,7 +61,7 @@ export function DoctorSlotManager({ doctorId }: { doctorId: string }) {
             onClick={() => setViewAll((v) => !v)}
             className="text-[12px] font-semibold text-brand-600 hover:underline"
           >
-            {viewAll ? "Show one date" : "View all upcoming slots"}
+            {viewAll ? "Show one date" : "View all upcoming seating times"}
           </button>
         </div>
       </div>
@@ -70,7 +70,7 @@ export function DoctorSlotManager({ doctorId }: { doctorId: string }) {
         <p className="text-hint">Loading…</p>
       ) : slots.length === 0 ? (
         <p className="mb-space-2 text-hint">
-          {viewAll ? "No upcoming slots generated for this doctor." : "No generated slots on this date."}
+          {viewAll ? "No upcoming seating times generated for this table." : "No generated seating times on this date."}
         </p>
       ) : viewAll ? (
         <div className="mb-space-3 max-h-64 space-y-space-2 overflow-y-auto">
@@ -88,7 +88,7 @@ export function DoctorSlotManager({ doctorId }: { doctorId: string }) {
         {viewAll && <Input type="date" value={newDate} onChange={(e) => setNewDate(e.target.value)} className="w-40" />}
         <Input type="time" value={newTime} onChange={(e) => setNewTime(e.target.value)} className="w-32" />
         <Button type="button" size="md" onClick={addSlot} disabled={adding || !newTime}>
-          <Plus size={13} /> {adding ? "Adding…" : "Add a slot"}
+          <Plus size={13} /> {adding ? "Adding…" : "Add a seating time"}
         </Button>
       </div>
     </div>

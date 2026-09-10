@@ -34,7 +34,7 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
                 <div className="min-w-0 flex-1 text-[12.5px]">
                   <p className="text-ink-900">
                     <span className="font-semibold">{item.phone}</span> — {item.label.toLowerCase()} with{" "}
-                    {item.doctor_name} ({item.department_name})
+                    Table {item.doctor_name} ({item.department_name})
                   </p>
                   <p className="text-hint">{formatTimeOnly(item.at)}</p>
                 </div>

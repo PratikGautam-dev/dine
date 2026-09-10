@@ -3,7 +3,7 @@ import { AdminSecretGate } from "@/components/admin/AdminSecretGate";
 import { OnboardingWizard } from "@/components/onboarding/OnboardingWizard";
 
 export const metadata: Metadata = {
-  title: "Onboard a hospital — DAAP CareConnect",
+  title: "Onboard a restaurant — Dine Connect",
 };
 
 export default function OnboardHospitalPage() {

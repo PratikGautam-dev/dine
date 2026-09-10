@@ -11,7 +11,7 @@ import { useDoctorCsvImport } from "@/hooks/useDoctorCsvImport";
 type CsvRow = Record<string, string>;
 
 const PREVIEW_COLUMNS: ColumnDef<CsvRow>[] = [
-  { id: "department_name", header: "Department", cell: ({ row }) => <span className="text-ink-900">{row.original.department_name}</span> },
+  { id: "department_name", header: "Section", cell: ({ row }) => <span className="text-ink-900">{row.original.department_name}</span> },
   { id: "name", header: "Name", cell: ({ row }) => <span className="text-ink-900">{row.original.name}</span> },
   { id: "working_days", header: "Days", cell: ({ row }) => <span className="text-ink-600">{row.original.working_days}</span> },
 ];
@@ -26,7 +26,7 @@ const CSV_COLUMNS = [
 const SAMPLE_CSV = [
   CSV_COLUMNS.join(","),
   [
-    "Cardiology", "Dr. Ananya Singh",
+    "Patio", "Table 5",
     '"Mon,Tue,Wed,Thu,Fri"', '"09:00-13:00,16:00-19:00"', "20", '"11:20-11:40"',
     "1", "30", "20", "10", "15", "",
   ].join(","),
@@ -37,7 +37,7 @@ function downloadSample() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = "doctors-template.csv";
+  a.download = "tables-template.csv";
   a.click();
   URL.revokeObjectURL(url);
 }
@@ -66,7 +66,7 @@ export function DoctorCsvImport({ onImported }: { onImported: () => void }) {
         </button>
       </div>
       <p className="text-hint mb-space-3">
-        Columns with multiple values (working days, shifts, breaks) must be comma-joined and quoted, e.g. &quot;Mon,Tue,Wed&quot;.
+        Columns with multiple values (open days, shifts, breaks) must be comma-joined and quoted, e.g. &quot;Mon,Tue,Wed&quot;.
       </p>
 
       <label className="mb-space-3 flex cursor-pointer items-center gap-space-2 rounded-md border border-dashed border-line px-space-4 py-space-3 text-[13px] text-ink-600 hover:border-brand-300">
@@ -89,7 +89,7 @@ export function DoctorCsvImport({ onImported }: { onImported: () => void }) {
 
       {result && (
         <div className="mb-space-3 rounded-md border border-line bg-paper p-space-3 text-[12.5px]">
-          <p className="font-semibold text-success">{result.created_count} doctor(s) created.</p>
+          <p className="font-semibold text-success">{result.created_count} table(s) created.</p>
           {result.row_errors.length > 0 && (
             <ul className="mt-space-2 list-disc space-y-0.5 pl-space-4 text-error">
               {result.row_errors.map((e, i) => (
@@ -101,7 +101,7 @@ export function DoctorCsvImport({ onImported }: { onImported: () => void }) {
       )}
 
       <Button type="button" onClick={handleImportClick} disabled={!rows || rows.length === 0 || importing}>
-        {importing ? "Importing…" : "Import doctors"}
+        {importing ? "Importing…" : "Import tables"}
       </Button>
     </Card>
   );

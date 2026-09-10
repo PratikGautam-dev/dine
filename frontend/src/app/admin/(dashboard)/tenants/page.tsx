@@ -21,7 +21,7 @@ function TenantsList() {
           <h1 className="text-display">All tenants</h1>
         </div>
         <Button href="/admin/onboard-hospital" variant="secondary">
-          Onboard a hospital
+          Onboard a restaurant
         </Button>
       </div>
 
@@ -68,7 +68,7 @@ function TenantsList() {
         <p className="text-eyebrow mb-space-1">Follow-up</p>
         <h2 className="text-display !text-[20px]">Signed in, never onboarded</h2>
         <p className="text-[13px] text-ink-600">
-          Google accounts that have signed in but don&apos;t own a hospital yet.
+          Google accounts that have signed in but don&apos;t own a restaurant yet.
         </p>
       </div>
       <Card className="p-space-4">
@@ -76,7 +76,7 @@ function TenantsList() {
           <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
         ) : stalledSignups.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">
-            Nobody — every signed-in account owns at least one hospital.
+            Nobody — every signed-in account owns at least one restaurant.
           </p>
         ) : (
           <ul className="divide-y divide-line">

@@ -84,12 +84,12 @@ export function usePatients(ready: boolean) {
       if (result.unauthorized) router.push("/portal/login");
       else {
         setError(result.error);
-        toast.error("Couldn't delete patient" + (targets.length > 1 ? "s" : ""), result.error);
+        toast.error("Couldn't delete guest" + (targets.length > 1 ? "s" : ""), result.error);
       }
       return;
     }
     const deletedIds = new Set((result.data as { deleted: number[] }).deleted);
-    toast.success(deletedIds.size > 1 ? `${deletedIds.size} patients deleted` : "Patient deleted");
+    toast.success(deletedIds.size > 1 ? `${deletedIds.size} guests deleted` : "Guest deleted");
     setPatients((prev) => (prev ? prev.filter((p) => !deletedIds.has(p.id)) : prev));
     setSelected((prev) => {
       const next = new Set(prev);

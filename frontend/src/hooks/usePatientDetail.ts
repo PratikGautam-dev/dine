@@ -115,11 +115,11 @@ export function usePatientDetail(patientId: string, ready: boolean) {
     });
     setSavingStatus(false);
     if (result.ok) {
-      toast.success("Patient status updated");
+      toast.success("Guest status updated");
       load();
     } else if (!result.unauthorized) {
       setError(result.error);
-      toast.error("Couldn't update patient status", result.error);
+      toast.error("Couldn't update guest status", result.error);
     }
   }
 
@@ -132,10 +132,10 @@ export function usePatientDetail(patientId: string, ready: boolean) {
     });
     setSavingDemographics(false);
     if (result.ok) {
-      toast.success("Patient details saved");
+      toast.success("Guest details saved");
       load();
     } else if (!result.unauthorized) {
-      toast.error("Couldn't save patient details", result.error);
+      toast.error("Couldn't save guest details", result.error);
     }
   }
 

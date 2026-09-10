@@ -60,7 +60,7 @@ export function useStaffManagement(canView: boolean) {
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault();
     if (role === "doctor" && !doctorId) {
-      setFormError("Select which doctor this login belongs to.");
+      setFormError("Select which table this login manages.");
       return;
     }
     setSaving(true);

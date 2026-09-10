@@ -31,7 +31,7 @@ export function ClinicSetupButton({
         }
       }}
     >
-      Set up your clinic
+      Set up your venue
     </Button>
   );
 }

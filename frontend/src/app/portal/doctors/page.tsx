@@ -168,7 +168,7 @@ export default function PortalDoctorsPage() {
                                   onClick={() => handleEditDoctor(doc)}
                                   disabled={loadingDoctorForEdit === doc.id}
                                   className="text-ink-400 hover:text-ink-700 disabled:opacity-50"
-                                  title="Edit doctor"
+                                  title="Edit table"
                                 >
                                   <Pencil size={15} />
                                 </button>
@@ -207,17 +207,17 @@ export default function PortalDoctorsPage() {
             </div>
           ) : (
             <Card className="h-fit p-space-4">
-              <h3 className="text-label mb-space-3 font-bold text-ink-900">Departments</h3>
+              <h3 className="text-label mb-space-3 font-bold text-ink-900">Sections</h3>
               {canManageDoctors && (
                 <form onSubmit={handleAddDepartment} className="mb-space-3 flex gap-space-2">
-                  <Input placeholder="New department" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} />
+                  <Input placeholder="New section" value={newDeptName} onChange={(e) => setNewDeptName(e.target.value)} />
                   <Button type="submit" size="md" disabled={addingDept || !newDeptName.trim()}>
                     <Plus size={14} />
                   </Button>
                 </form>
               )}
               {departments.length === 0 ? (
-                <p className="text-[12.5px] text-ink-400">No departments yet.</p>
+                <p className="text-[12.5px] text-ink-400">No sections yet.</p>
               ) : (
                 <ul className="space-y-space-1">
                   {departments.map((d) => (

@@ -62,7 +62,7 @@ export default function PortalLoginPage() {
           </div>
           <div>
             <span className="block text-eyebrow">DAAP</span>
-            <span className="block text-[16px] font-bold text-ink-900">CareConnect</span>
+            <span className="block text-[16px] font-bold text-ink-900">Dine Connect</span>
           </div>
         </div>
 
@@ -113,7 +113,7 @@ export default function PortalLoginPage() {
         </form>
 
         <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
-          Don&apos;t have a hospital account yet?{" "}
+          Don&apos;t have a restaurant account yet?{" "}
           <a href="/auth" className="font-semibold text-brand-600 hover:underline">
             Set one up
           </a>

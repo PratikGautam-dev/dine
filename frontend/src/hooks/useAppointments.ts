@@ -3,8 +3,8 @@ import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
-const DEFAULT_CANCEL_MESSAGE = "Your appointment has been cancelled.";
-const DEFAULT_RESCHEDULE_MESSAGE = "Your appointment has been rescheduled.";
+const DEFAULT_CANCEL_MESSAGE = "Your reservation has been cancelled.";
+const DEFAULT_RESCHEDULE_MESSAGE = "Your reservation has been rescheduled.";
 
 export type Appointment = {
   id: number;
@@ -232,7 +232,7 @@ export function useAppointments(ready: boolean) {
   // rows (cancel it first), same guard reflected here by only offering the
   // button once status !== "booked".
   async function handleDelete(id: number) {
-    if (!window.confirm("Delete this appointment record? This can't be undone from the portal.")) return;
+    if (!window.confirm("Delete this reservation record? This can't be undone from the portal.")) return;
     setDeletingId(id);
     const result = await portalFetch(`/api/portal/bookings/${id}/delete`, { method: "POST" });
     setDeletingId(null);

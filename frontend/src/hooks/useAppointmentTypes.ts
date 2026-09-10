@@ -38,7 +38,7 @@ export function useAppointmentTypes() {
     setPendingId(null);
     if (!result.ok) {
       setError(result.unauthorized ? "Session expired — please log in again." : result.error);
-      if (!result.unauthorized) toast.error("Couldn't update appointment type", result.error);
+      if (!result.unauthorized) toast.error("Couldn't update reservation type", result.error);
       return;
     }
     toast.success(type.is_active ? `${type.label} deactivated` : `${type.label} activated`);

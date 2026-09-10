@@ -66,7 +66,7 @@ export function createVisitHistoryColumns({
     },
     {
       id: "department_name",
-      header: "Department",
+      header: "Section",
       cell: ({ row }) => <span className="text-ink-600">{row.original.department_name}</span>,
     },
     {

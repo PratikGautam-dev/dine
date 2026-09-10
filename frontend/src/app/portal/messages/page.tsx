@@ -94,7 +94,7 @@ export default function PortalMessagesPage() {
           <Card className="p-space-6 text-center">
             <MessageCircle size={28} className="mx-auto mb-space-2 text-ink-300" />
             <p className="text-[13px] text-ink-400">
-              {filter === "open" ? "No open requests — patients needing a human are queued here." : "Nothing here."}
+              {filter === "open" ? "No open requests — guests needing a host are queued here." : "Nothing here."}
             </p>
           </Card>
         ) : (
@@ -140,7 +140,7 @@ export default function PortalMessagesPage() {
                           ) : null}
                         </div>
                         <p className="line-clamp-2 text-[12px] text-ink-600">
-                          {h.message_text || (h.reason === "patient_requested" ? "Asked to talk to reception." : "System error.")}
+                          {h.message_text || (h.reason === "patient_requested" ? "Asked to talk to a host." : "System error.")}
                         </p>
                         <div className="flex flex-wrap items-center gap-space-2">
                           <Badge tone={h.status === "open" ? "clay" : "success"}>{h.status === "open" ? "Open" : "Resolved"}</Badge>
@@ -168,7 +168,7 @@ export default function PortalMessagesPage() {
                       <p className="text-[15px] font-bold text-ink-900">{selected.phone}</p>
                       <div className="mt-space-1 flex items-center gap-space-2">
                         <Badge tone={selected.reason === "system_error" ? "clay" : "brand"}>
-                          {selected.reason === "system_error" ? "System error" : "Patient requested"}
+                          {selected.reason === "system_error" ? "System error" : "Guest requested"}
                         </Badge>
                         <span className="text-[12px] text-ink-400">{formatShortDateTime(selected.created_at)}</span>
                       </div>

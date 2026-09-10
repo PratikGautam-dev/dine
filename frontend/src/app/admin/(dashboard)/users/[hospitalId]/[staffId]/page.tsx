@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { useStaffDetail } from "@/hooks/useStaffDetail";
 
-const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Doctor" };
+const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Staff member" };
 
 function StaffDetailView({ hospitalId, staffId }: { hospitalId: number; staffId: number }) {
   const { staff, error } = useStaffDetail(staffId);
@@ -61,12 +61,12 @@ function StaffDetailView({ hospitalId, staffId }: { hospitalId: number; staffId:
 
           {staff.role === "doctor" && (
             <Card className="p-space-5">
-              <p className="text-eyebrow mb-space-3">Doctor details</p>
+              <p className="text-eyebrow mb-space-3">Table assignment</p>
               {!staff.doctor_name ? (
-                <p className="text-[13px] text-ink-400">Not linked to a doctor record.</p>
+                <p className="text-[13px] text-ink-400">Not linked to a table record.</p>
               ) : (
                 <div className="grid grid-cols-1 gap-space-4 sm:grid-cols-2">
-                  <Field label="Department">
+                  <Field label="Section">
                     <p className="text-[13.5px] text-ink-900">{staff.department_name || "—"}</p>
                   </Field>
                 </div>
