@@ -15,7 +15,7 @@ function DonutTooltip({ active, payload }: { active?: boolean; payload?: { name:
   return (
     <div className="rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] shadow-[var(--shadow-md)]">
       <p className="font-semibold text-ink-900">{payload[0].name}</p>
-      <p className="text-ink-600">{payload[0].value} appointments</p>
+      <p className="text-ink-600">{payload[0].value} reservations</p>
     </div>
   );
 }
@@ -25,10 +25,10 @@ export function DepartmentDonut({ data }: { data: Slice[] }) {
 
   return (
     <Card className="p-space-4">
-      <h3 className="text-label mb-space-4 font-bold text-ink-900">Appointments by department</h3>
+      <h3 className="text-label mb-space-4 font-bold text-ink-900">Reservations by section</h3>
       {total === 0 ? (
         <div className="flex h-[220px] items-center justify-center text-[13px] text-ink-400">
-          No appointments in the last 30 days or scheduled in the next 30.
+          No reservations in the last 30 days or scheduled in the next 30.
         </div>
       ) : (
         <div className="flex items-center gap-space-4">

@@ -57,7 +57,7 @@ export default function PortalAppointmentsPage() {
         <div className="rounded-lg border border-line bg-paper p-space-3">
           <div className="mb-space-3 grid grid-cols-1 gap-x-space-3 gap-y-space-2 md:grid-cols-2">
             <div>
-              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Department</label>
+              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Section</label>
               <select
                 value={rDepartmentId}
                 onChange={(e) => { setRDepartmentId(e.target.value); setRDoctorId(""); setRDate(""); setRSlotId(""); }}
@@ -70,7 +70,7 @@ export default function PortalAppointmentsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Doctor</label>
+              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Table</label>
               <select
                 value={rDoctorId}
                 onChange={(e) => { setRDoctorId(e.target.value); setRDate(""); setRSlotId(""); }}
@@ -89,7 +89,7 @@ export default function PortalAppointmentsPage() {
             <div className="mb-space-2">
               <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Date</label>
               {rDatesForDoctor.length === 0 ? (
-                <p className="text-[12.5px] text-ink-400">No available dates for this doctor.</p>
+                <p className="text-[12.5px] text-ink-400">No available dates for this table.</p>
               ) : (
                 <div className="flex flex-wrap gap-space-2">
                   {rDatesForDoctor.map((d) => (
@@ -204,7 +204,7 @@ export default function PortalAppointmentsPage() {
   return (
     <PortalShell hospital={hospital} active="appointments">
         <PageHeader
-          title="Appointments"
+          title="Reservations"
           actions={
             <>
               {selectedAppointments.length > 0 && (
@@ -216,12 +216,12 @@ export default function PortalAppointmentsPage() {
                     onClick={() => setPendingDelete(selectedAppointments)}
                   >
                     <Trash2 size={15} />
-                    Delete selected ({selectedAppointments.length})
+                      Delete selected ({selectedAppointments.length})
                   </Button>
                 </PermissionGate>
               )}
               <Button href="/portal/new-booking">
-                <Plus size={15} /> New booking
+                <Plus size={15} /> New reservation
               </Button>
             </>
           }

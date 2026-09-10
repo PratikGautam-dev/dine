@@ -45,7 +45,7 @@ export default function PortalPatientsPage() {
 
   return (
     <PortalShell hospital={hospital} active="patients">
-        <PageHeader title="Patients" />
+        <PageHeader title="Guests" />
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
         <div className="mb-space-4 flex flex-col gap-space-3 sm:flex-row sm:items-center sm:justify-between sm:gap-space-4">

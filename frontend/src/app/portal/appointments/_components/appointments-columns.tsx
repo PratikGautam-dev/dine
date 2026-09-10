@@ -91,7 +91,7 @@ export function createAppointmentColumns({
     },
     {
       id: "scheduled_at",
-      header: "Appointment time",
+      header: "Reservation time",
       cell: ({ row }) => (
         <span className="whitespace-nowrap tabular-nums text-ink-600">{formatShortDateTime(row.original.scheduled_at)}</span>
       ),
@@ -114,7 +114,7 @@ export function createAppointmentColumns({
     },
     {
       id: "patient",
-      header: "Patient",
+      header: "Guest",
       cell: ({ row }) => {
         const a = row.original;
         return (
@@ -127,12 +127,12 @@ export function createAppointmentColumns({
     },
     {
       id: "doctor_name",
-      header: "Doctor",
+      header: "Table",
       cell: ({ row }) => <span className="text-ink-600">{row.original.doctor_name}</span>,
     },
     {
       id: "department_name",
-      header: "Department",
+      header: "Section",
       cell: ({ row }) => <span className="text-ink-600">{row.original.department_name}</span>,
     },
     {

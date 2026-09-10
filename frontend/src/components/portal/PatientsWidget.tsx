@@ -8,13 +8,13 @@ export function PatientsWidget({ patients }: { patients: Patient[] }) {
   return (
     <Card className="p-space-4">
       <div className="mb-space-3 flex items-center justify-between">
-        <h3 className="text-label font-bold text-ink-900">Patients</h3>
+        <h3 className="text-label font-bold text-ink-900">Guests</h3>
         <Link href="/portal/patients" className="text-[12.5px] font-semibold text-brand-600 hover:underline">
-          View all patients →
+          View all guests →
         </Link>
       </div>
       {patients.length === 0 ? (
-        <p className="py-space-4 text-center text-[13px] text-ink-400">No patients yet.</p>
+        <p className="py-space-4 text-center text-[13px] text-ink-400">No guests yet.</p>
       ) : (
         <ul className="divide-y divide-line">
           {patients.map((p) => (

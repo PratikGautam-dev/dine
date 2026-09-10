@@ -56,7 +56,7 @@ const columns: ColumnDef<Appointment>[] = [
   },
   {
     id: "patient",
-    header: "Patient",
+    header: "Guest",
     cell: ({ row }) => {
       const a = row.original;
       return (
@@ -72,12 +72,12 @@ const columns: ColumnDef<Appointment>[] = [
   },
   {
     id: "doctor_name",
-    header: "Doctor",
+    header: "Table",
     cell: ({ row }) => <span className="text-ink-600">{row.original.doctor_name}</span>,
   },
   {
     id: "department_name",
-    header: "Department",
+    header: "Section",
     cell: ({ row }) => <span className="text-ink-600">{row.original.department_name}</span>,
   },
   {
@@ -105,13 +105,13 @@ export function RecentAppointmentsTable({ appointments }: { appointments: Appoin
   return (
     <Card className="p-space-4">
       <div className="mb-space-3 flex items-center justify-between">
-        <h3 className="text-label font-bold text-ink-900">Recent appointments</h3>
+        <h3 className="text-label font-bold text-ink-900">Recent reservations</h3>
         <Link href="/portal/patients" className="text-[12.5px] font-semibold text-brand-600 hover:underline">
-          View all patients →
+          View all guests →
         </Link>
       </div>
       {appointments.length === 0 ? (
-        <p className="py-space-4 text-center text-[13px] text-ink-400">No appointments yet.</p>
+        <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations yet.</p>
       ) : (
         <DataTable columns={columns} data={appointments} getRowId={(a) => String(a.id)} />
       )}

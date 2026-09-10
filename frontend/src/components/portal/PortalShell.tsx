@@ -44,7 +44,7 @@ export function PortalShell({ hospital, active, children }: Props) {
           >
             <Menu size={20} strokeWidth={2} />
           </button>
-          <span className="truncate text-[14px] font-bold text-ink-900">{hospital?.name || "Hospital"}</span>
+          <span className="truncate text-[14px] font-bold text-ink-900">{hospital?.name || "Restaurant"}</span>
         </header>
 
         <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">{children}</main>

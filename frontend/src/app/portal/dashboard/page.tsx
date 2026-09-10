@@ -35,7 +35,7 @@ function HospitalDashboard() {
         <PageHeader
           title={
             <>
-              Hospital Admin Dashboard
+              Restaurant Dashboard
               {data && (
                 <span className="ml-space-2 text-[15px] font-medium text-ink-400">
                   ({TIER_LABELS[data.hospital.data_tier] || data.hospital.data_tier})
@@ -59,10 +59,10 @@ function HospitalDashboard() {
         ) : (
           <>
             <div className="mb-space-4 grid grid-cols-1 gap-space-4 md:grid-cols-2 lg:grid-cols-5">
-              <StatTile label="Upcoming appointments" value={data.stats.upcoming_appointments} deltaPct={null} hint="Currently booked" />
-              <StatTile label="Today's appointments" value={data.stats.today_appointments} deltaPct={data.stats.today_appointments_delta_pct} />
+              <StatTile label="Upcoming reservations" value={data.stats.upcoming_appointments} deltaPct={null} hint="Currently booked" />
+              <StatTile label="Today's reservations" value={data.stats.today_appointments} deltaPct={data.stats.today_appointments_delta_pct} />
               <StatTile label="Confirmed" value={data.stats.confirmed_today} deltaPct={data.stats.confirmed_today_delta_pct} />
-              <StatTile label="New patients" value={data.stats.new_patients_today} deltaPct={data.stats.new_patients_today_delta_pct} />
+              <StatTile label="New guests" value={data.stats.new_patients_today} deltaPct={data.stats.new_patients_today_delta_pct} />
               <StatTile label="No-shows" value={data.stats.no_shows_today} deltaPct={data.stats.no_shows_today_delta_pct} upIsGood={false} />
             </div>
 

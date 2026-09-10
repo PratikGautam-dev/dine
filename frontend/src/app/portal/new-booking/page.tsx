@@ -22,35 +22,35 @@ export default function NewBookingPage() {
 
   return (
     <PortalShell hospital={hospital} active="appointments">
-        <PageHeader title="New booking" />
+        <PageHeader title="New reservation" />
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
         <Card className="max-w-xl p-space-5">
           {success ? (
             <div className="text-center">
-              <p className="mb-space-3 text-[14px] font-semibold text-success">Booking created.</p>
-              <Button href="/portal/appointments">View appointments</Button>
+              <p className="mb-space-3 text-[14px] font-semibold text-success">Reservation created.</p>
+              <Button href="/portal/appointments">View reservations</Button>
             </div>
           ) : !ctx ? (
             <p className="text-[13px] text-ink-400">Loading…</p>
           ) : (
             <form onSubmit={handleSubmit}>
               <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-2">
-                <Field label="Patient name (optional)" htmlFor="patient_name">
+                <Field label="Guest name (optional)" htmlFor="patient_name">
                   <Input id="patient_name" value={patientName} onChange={(e) => setPatientName(e.target.value)} />
                 </Field>
-                <Field label="Patient phone" htmlFor="patient_phone" required>
+                <Field label="Guest phone" htmlFor="patient_phone" required>
                   <Input id="patient_phone" required value={patientPhone} onChange={(e) => setPatientPhone(e.target.value)} />
                 </Field>
               </div>
 
-              <Field label="Branch" htmlFor="branch" hint="Single-location hospital — nothing to choose yet.">
+              <Field label="Venue" htmlFor="branch" hint="Single-location restaurant — nothing to choose yet.">
                 <select id="branch" disabled className="h-11 w-full cursor-not-allowed rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-600">
-                  <option>Main Branch — {hospital?.name}</option>
+                  <option>Main Venue — {hospital?.name}</option>
                 </select>
               </Field>
 
-              <Field label="Department" htmlFor="department" required>
+              <Field label="Section" htmlFor="department" required>
                 <select
                   id="department"
                   required
@@ -68,7 +68,7 @@ export default function NewBookingPage() {
               </Field>
 
               {departmentId && (
-                <Field label="Doctor" htmlFor="doctor" required>
+                <Field label="Table" htmlFor="doctor" required>
                   <select
                     id="doctor"
                     required
@@ -89,7 +89,7 @@ export default function NewBookingPage() {
               {doctorId && (
                 <Field label="Date">
                   {datesForDoctor.length === 0 ? (
-                    <p className="text-[12.5px] text-ink-400">No available dates for this doctor.</p>
+                    <p className="text-[12.5px] text-ink-400">No available dates for this table.</p>
                   ) : (
                     <div className="flex flex-wrap gap-space-2">
                       {datesForDoctor.map((d) => (
@@ -111,7 +111,7 @@ export default function NewBookingPage() {
               )}
 
               {date && (
-                <Field label="Time slot" required>
+                <Field label="Seating time" required>
                   {slotsForDate.length === 0 ? (
                     <p className="text-[12.5px] text-ink-400">No slots available on this date.</p>
                   ) : (

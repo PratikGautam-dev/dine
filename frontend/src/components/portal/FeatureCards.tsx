@@ -2,14 +2,14 @@ import { Calendar, CalendarClock, CalendarX, FlaskConical, HelpCircle, Info, Lan
 import { Card } from "@/components/ui/Card";
 
 const FEATURE_META: Record<string, { label: string; Icon: typeof Calendar }> = {
-  book_doctor_appointment: { label: "Book Doctor Appointment", Icon: Calendar },
+  book_doctor_appointment: { label: "Book a Table", Icon: Calendar },
   tests_diagnostics: { label: "Tests & Diagnostics", Icon: FlaskConical },
-  reschedule: { label: "Reschedule Appointment", Icon: CalendarClock },
-  cancel: { label: "Cancel Appointment", Icon: CalendarX },
-  view_appointments: { label: "View Appointments", Icon: ListChecks },
+  reschedule: { label: "Reschedule Reservation", Icon: CalendarClock },
+  cancel: { label: "Cancel Reservation", Icon: CalendarX },
+  view_appointments: { label: "View Reservations", Icon: ListChecks },
   manage_language: { label: "Manage Language", Icon: Languages },
-  hospital_info: { label: "Hospital Information", Icon: Info },
-  reception_handoff: { label: "Talk to Reception", Icon: UserRound },
+  hospital_info: { label: "Restaurant Information", Icon: Info },
+  reception_handoff: { label: "Talk to a Host", Icon: UserRound },
   faq: { label: "FAQ / Information", Icon: HelpCircle },
 };
 

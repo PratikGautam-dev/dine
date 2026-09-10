@@ -38,7 +38,7 @@ export function createVisitHistoryColumns({
   return [
     {
       id: "scheduled_at",
-      header: "Appointment time",
+      header: "Reservation time",
       cell: ({ row }) => (
         <span className="whitespace-nowrap tabular-nums text-ink-600">{formatShortDateTime(row.original.scheduled_at)}</span>
       ),
@@ -61,7 +61,7 @@ export function createVisitHistoryColumns({
     },
     {
       id: "doctor_name",
-      header: "Doctor",
+      header: "Table",
       cell: ({ row }) => <span className="text-ink-600">{row.original.doctor_name}</span>,
     },
     {

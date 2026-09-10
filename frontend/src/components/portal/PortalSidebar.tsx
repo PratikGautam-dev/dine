@@ -24,10 +24,10 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // second sidebar entry pointing at a page already reachable via "Doctors."
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard" },
-  { key: "appointments", label: "Appointments", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments" },
-  { key: "patients", label: "Patients", icon: Users, href: "/portal/patients", pageKey: "patients" },
+  { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments" },
+  { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients" },
   { key: "schedule", label: "Schedule", icon: CalendarClock, href: "/portal/schedule", pageKey: "schedule" },
-  { key: "doctors", label: "Doctors", icon: Stethoscope, href: "/portal/doctors", pageKey: "doctors" },
+  { key: "doctors", label: "Tables", icon: Stethoscope, href: "/portal/doctors", pageKey: "doctors" },
   { key: "messages", label: "Messages", icon: MessageCircle, href: "/portal/messages", pageKey: "messages" },
   { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings" },
   { key: "staff", label: "Staff", icon: Users, href: "/portal/settings/staff", pageKey: "staff" },
@@ -81,7 +81,7 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/15 font-display text-[14px] font-extrabold">
             H
           </div>
-          <span className="truncate text-[14px] font-bold">{hospital?.name || "Hospital"}</span>
+          <span className="truncate text-[14px] font-bold">{hospital?.name || "Restaurant"}</span>
           <button
             type="button"
             onClick={onClose}
