@@ -105,7 +105,7 @@ export function DoctorScheduleForm({ departments, value, onChange, onSave, onCan
             {initial}
           </div>
           <div className="grid grid-cols-1 gap-space-2 md:grid-cols-2">
-            <Input placeholder="Doctor name" value={value.name} onChange={(e) => set("name", e.target.value)} />
+            <Input placeholder="Table name or number" value={value.name} onChange={(e) => set("name", e.target.value)} />
           </div>
         </div>
         <div className="flex gap-space-2">
@@ -121,7 +121,7 @@ export function DoctorScheduleForm({ departments, value, onChange, onSave, onCan
       </div>
 
       <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-3">
-        <Field label="Department" htmlFor="doctor_department" required>
+        <Field label="Section" htmlFor="doctor_department" required>
           <select
             id="doctor_department"
             required
@@ -139,7 +139,7 @@ export function DoctorScheduleForm({ departments, value, onChange, onSave, onCan
         </Field>
       </div>
 
-      <Field label="Working days">
+      <Field label="Open days">
         <div className="flex flex-wrap items-center gap-space-2">
           {WEEKDAYS.map((day) => {
             const on = value.working_days.includes(day);
@@ -158,7 +158,7 @@ export function DoctorScheduleForm({ departments, value, onChange, onSave, onCan
             );
           })}
           <button type="button" onClick={selectWeekdays} className="ml-space-2 text-[12.5px] font-semibold text-brand-600 hover:underline">
-            Select weekdays
+            Select open days
           </button>
         </div>
         {showCopyDays && (
@@ -169,7 +169,7 @@ export function DoctorScheduleForm({ departments, value, onChange, onSave, onCan
         )}
       </Field>
 
-      <Field label="Shifts">
+      <Field label="Service hours">
         <div className="space-y-space-2">
           {value.shifts.map((shift, i) => (
             <div key={i} className="flex flex-wrap items-center gap-space-2 rounded-lg border border-line bg-paper p-space-3">
@@ -207,22 +207,22 @@ export function DoctorScheduleForm({ departments, value, onChange, onSave, onCan
       </Field>
 
       <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-3">
-        <Field label="Slot duration" htmlFor="slot_duration" hint="minutes">
+        <Field label="Seating duration" htmlFor="slot_duration" hint="minutes">
           <Input id="slot_duration" type="number" min={1} value={value.slot_duration_minutes} onChange={(e) => set("slot_duration_minutes", e.target.value)} />
         </Field>
-        <Field label="Max bookings" htmlFor="max_bookings" hint="per slot">
+        <Field label="Max reservations" htmlFor="max_bookings" hint="per seating time">
           <Input id="max_bookings" type="number" min={1} value={value.max_bookings_per_slot} onChange={(e) => set("max_bookings_per_slot", e.target.value)} />
         </Field>
-        <Field label="Daily limit" htmlFor="daily_limit" hint="optional">
+        <Field label="Daily reservation limit" htmlFor="daily_limit" hint="optional">
           <Input id="daily_limit" type="number" min={0} value={value.daily_booking_limit} onChange={(e) => set("daily_booking_limit", e.target.value)} />
         </Field>
         <Field label="Online quota" htmlFor="online_quota" hint="optional">
           <Input id="online_quota" type="number" min={0} value={value.online_quota} onChange={(e) => set("online_quota", e.target.value)} />
         </Field>
-        <Field label="Walk-in quota" htmlFor="walkin_quota" hint="optional">
+        <Field label="Walk-in capacity" htmlFor="walkin_quota" hint="optional">
           <Input id="walkin_quota" type="number" min={0} value={value.walkin_quota} onChange={(e) => set("walkin_quota", e.target.value)} />
         </Field>
-        <Field label="Follow-up duration" htmlFor="followup_duration" hint="minutes, optional">
+        <Field label="Default seating duration" htmlFor="followup_duration" hint="minutes, optional">
           <Input id="followup_duration" type="number" min={1} value={value.followup_duration_minutes} onChange={(e) => set("followup_duration_minutes", e.target.value)} />
         </Field>
       </div>

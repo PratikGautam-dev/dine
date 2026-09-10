@@ -11,17 +11,17 @@ import { createRoleColumns } from "./_components/role-columns";
 const PAGE_KEYS = ["dashboard", "appointments", "patients", "schedule", "doctors", "messages", "settings", "staff", "roles"];
 const PAGE_LABEL: Record<string, string> = {
   dashboard: "Dashboard",
-  appointments: "Appointments",
-  patients: "Patients",
+  appointments: "Reservations",
+  patients: "Guests",
   schedule: "Schedule",
-  doctors: "Doctors",
+  doctors: "Tables",
   messages: "Messages",
   settings: "Settings",
   staff: "Staff",
   roles: "Roles & Permissions",
 };
 const ROLES: StaffRole[] = ["admin", "receptionist", "doctor"];
-const ROLE_LABEL: Record<StaffRole, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Doctor" };
+const ROLE_LABEL: Record<StaffRole, string> = { admin: "Admin", receptionist: "Host / Reception", doctor: "Staff member" };
 
 export default function RolesPermissionsPage() {
   // useStaffSession (not getStaffSession directly): null on the server AND

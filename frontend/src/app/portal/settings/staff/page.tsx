@@ -14,8 +14,8 @@ import { useStaffManagement } from "@/hooks/useStaffManagement";
 
 const ROLE_LABEL: Record<StaffRole, string> = {
   admin: "Admin",
-  receptionist: "Receptionist",
-  doctor: "Doctor",
+  receptionist: "Host / Reception",
+  doctor: "Staff member",
 };
 
 export default function StaffManagementPage() {
@@ -88,19 +88,19 @@ export default function StaffManagementPage() {
                   className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
                 >
                   <option value="admin">Admin</option>
-                  <option value="receptionist">Receptionist</option>
-                  <option value="doctor">Doctor</option>
+                  <option value="receptionist">Host / Reception</option>
+                  <option value="doctor">Staff member</option>
                 </select>
               </Field>
               {role === "doctor" && (
-                <Field label="Doctor" htmlFor="staff_doctor" className="md:col-span-2">
+                  <Field label="Linked table manager" htmlFor="staff_doctor" className="md:col-span-2">
                   <select
                     id="staff_doctor"
                     value={doctorId}
                     onChange={(e) => setDoctorId(e.target.value)}
                     className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
                   >
-                    <option value="">Select a doctor…</option>
+                    <option value="">Select a table manager…</option>
                     {doctors.map((d) => (
                       <option key={d.id} value={d.id}>
                         {d.name}

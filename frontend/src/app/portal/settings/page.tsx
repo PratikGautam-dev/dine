@@ -25,7 +25,7 @@ function PortalSettingsPageContent() {
   return (
     <PortalShell hospital={hospital} active="settings">
         <PageHeader
-          title="Hospital settings"
+          title="Restaurant settings"
           actions={<Button href="/portal/settings/activity" variant="secondary">Activity log <ArrowRight size={14} /></Button>}
         />
 
@@ -36,7 +36,7 @@ function PortalSettingsPageContent() {
             <div className="grid grid-cols-1 gap-space-5 lg:grid-cols-2">
               <Card className="p-space-5">
                 <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">General</h2>
-                <Field label="Hospital name" htmlFor="name" hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection.">
+                <Field label="Restaurant name" htmlFor="name" hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection.">
                   <Input id="name" value={settings.name} disabled />
                 </Field>
                 <Field label="Welcome message text" htmlFor="welcome_message_text">
@@ -72,8 +72,8 @@ function PortalSettingsPageContent() {
               <Card className="p-space-5">
                 <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Messaging</h2>
                 <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Extra text patients see: appended after a booking/cancellation/reschedule completes, shown as an informational
-                  line in the &quot;Hospital Information&quot; reply, and shown on the &quot;Consent &amp; Privacy&quot; menu item.
+                  Extra text guests see: appended after a reservation/cancellation/reschedule completes, shown as an informational
+                  line in the &quot;Restaurant Information&quot; reply, and shown on the &quot;Consent &amp; Privacy&quot; menu item.
                 </p>
                 <Field label="Closing / thank-you message" htmlFor="closing_message_text" hint='e.g. "Thank you for choosing City Hospital. For emergencies, call 102."'>
                   <Textarea
@@ -83,7 +83,7 @@ function PortalSettingsPageContent() {
                     onChange={(e) => setSettings({ ...settings, closing_message_text: e.target.value })}
                   />
                 </Field>
-                <Field label="Business hours" htmlFor="business_hours_text" hint="e.g. Mon-Sat, 9am-8pm">
+                <Field label="Operating hours" htmlFor="business_hours_text" hint="e.g. Mon-Sat, 9am-10pm">
                   <Input
                     id="business_hours_text"
                     value={settings.business_hours_text}
@@ -103,7 +103,7 @@ function PortalSettingsPageContent() {
               <Card className="p-space-5">
                 <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Language</h2>
                 <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Which language a fresh conversation defaults to, and whether patients are asked to choose at all.
+                  Which language a fresh conversation defaults to, and whether guests are asked to choose at all.
                 </p>
                 <Field label="Default language" htmlFor="default_language">
                   <select
@@ -121,11 +121,11 @@ function PortalSettingsPageContent() {
                   onChange={(checked) => setSettings({ ...settings, language_prompt_enabled: checked })}
                   className="mt-space-1"
                 >
-                  Ask patients to choose a language at the start of every fresh conversation
+                  Ask guests to choose a language at the start of every fresh conversation
                 </CheckboxRow>
                 {!settings.language_prompt_enabled && (
                   <p className="mt-space-2 text-[12px] text-ink-400">
-                    Patients will go straight to the menu in {settings.default_language === "hi" ? "हिन्दी" : "English"} — the
+                    Guests will go straight to the menu in {settings.default_language === "hi" ? "हिन्दी" : "English"} — the
                     language picker won&apos;t be shown.
                   </p>
                 )}
