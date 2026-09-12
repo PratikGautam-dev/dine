@@ -192,6 +192,16 @@ def create_appointment(
         if doctor_row:
             source_quota = doctor_row["online_quota"] if source == SOURCE_WHATSAPP else doctor_row["walkin_quota"]
 
+    # The only resource dimension this function currently books against is
+    # doctor_id (the docstring's "resource_id" branch was never added as a
+    # parameter here -- resource-bound procedure bookings go through
+    # create_procedure_booking()/procedure_slots.py instead, never reaching
+    # this function). Kept as its own column/value pair rather than hardcoding
+    # "doctor_id" at each use site below, matching this function's own
+    # pre-existing intent to eventually support more than one resource type.
+    resource_column = "doctor_id"
+    resource_value = doctor_id
+
     # _upsert_patient runs BEFORE "BEGIN" (own durable statement) so a
     # QuotaExceededError/DuplicateBookingError later doesn't roll it back too.
     # patient_id given -> identity already resolved, read that row directly.

@@ -9,7 +9,7 @@ import { Input } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { useHospitalStaff } from "@/hooks/useHospitalStaff";
 
-const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Staff member" };
+const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Host / Reception", doctor: "Staff member" };
 
 function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
   const router = useRouter();
@@ -50,7 +50,7 @@ function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
           >
             <option value="">All roles</option>
             <option value="admin">Admin</option>
-            <option value="receptionist">Receptionist</option>
+            <option value="receptionist">Host / Reception</option>
             <option value="doctor">Staff member</option>
           </select>
           <select

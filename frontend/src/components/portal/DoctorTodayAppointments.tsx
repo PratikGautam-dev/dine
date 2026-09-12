@@ -36,21 +36,6 @@ export function DoctorTodayAppointments({ doctorId }: { doctorId: string }) {
                   {STATUS_LABELS[a.status] || a.status}
                 </span>
               </div>
-              {/* Tele-consultation Phase 2 (confirmed with the user
-                  directly): this portal view is the doctor's own way to get
-                  the video link -- there's no separate doctor login or
-                  notification channel in this app. Only shown for a
-                  tele-consultation row that actually has one. */}
-              {a.appointment_type_id === "tele" && a.video_link && (
-                <a
-                  href={a.video_link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-space-1 inline-flex items-center gap-1 text-[12px] font-semibold text-brand-600 hover:underline"
-                >
-                  🎥 Join video consultation
-                </a>
-              )}
             </li>
           ))}
         </ul>

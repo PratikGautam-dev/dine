@@ -52,10 +52,10 @@ LAB_REPORT_READY_NOTIFICATION = "lab_report_ready_notification"
 STRINGS: dict[str, dict[Language, str]] = {
     FEATURE_MY_DETAILS: {"en": "My Details", "hi": "मेरी जानकारी"},
     MY_DETAILS_NOT_FOUND: {
-        "en": "We don't have a record on file for this number yet at this hospital. "
-              "Book an appointment first and we'll create one for you.",
-        "hi": "इस अस्पताल में इस नंबर के लिए अभी तक कोई रिकॉर्ड नहीं है। "
-              "पहले एक अपॉइंटमेंट बुक करें, हम आपके लिए एक रिकॉर्ड बना देंगे।",
+        "en": "We don't have a record on file for this number yet at this restaurant. "
+              "Book a reservation first and we'll create one for you.",
+        "hi": "इस रेस्तरां में इस नंबर के लिए अभी तक कोई रिकॉर्ड नहीं है। "
+              "पहले एक रिज़र्वेशन बुक करें, हम आपके लिए एक रिकॉर्ड बना देंगे।",
     },
     # {summary_lines} is a pre-built block of "*Label:* value" lines (Patient
     # ID, Name, Age, Total appointments, Most recent) -- not templated field
@@ -67,10 +67,10 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": "Here are your details on file:\n\n{summary_lines}",
         "hi": "यहां आपकी दर्ज जानकारी है:\n\n{summary_lines}",
     },
-    MY_DETAILS_FIELD_PATIENT_ID: {"en": "Patient ID", "hi": "पेशेंट आईडी"},
+    MY_DETAILS_FIELD_PATIENT_ID: {"en": "Guest ID", "hi": "अतिथि आईडी"},
     MY_DETAILS_FIELD_NAME: {"en": "Name", "hi": "नाम"},
     MY_DETAILS_FIELD_AGE: {"en": "Age", "hi": "आयु"},
-    MY_DETAILS_FIELD_TOTAL_APPOINTMENTS: {"en": "Total appointments", "hi": "कुल अपॉइंटमेंट"},
+    MY_DETAILS_FIELD_TOTAL_APPOINTMENTS: {"en": "Total reservations", "hi": "कुल रिज़र्वेशन"},
     MY_DETAILS_FIELD_MOST_RECENT: {"en": "Most recent", "hi": "सबसे हाल की"},
     MY_DETAILS_NOT_PROVIDED: {"en": "Not provided", "hi": "दर्ज नहीं"},
     MY_DETAILS_NO_APPOINTMENTS_YET: {"en": "None yet", "hi": "अभी कोई नहीं"},
@@ -90,8 +90,8 @@ STRINGS: dict[str, dict[Language, str]] = {
         "hi": "भेज दिया गया! दस्तावेज़ के लिए अपनी चैट देखें।",
     },
     MY_DETAILS_DOCUMENT_SEND_FAILED: {
-        "en": "Sorry, we couldn't send that document right now. Please try again later or contact the hospital.",
-        "hi": "क्षमा करें, हम अभी वह दस्तावेज़ नहीं भेज सके। कृपया बाद में पुनः प्रयास करें या अस्पताल से संपर्क करें।",
+        "en": "Sorry, we couldn't send that document right now. Please try again later or contact the restaurant.",
+        "hi": "क्षमा करें, हम अभी वह दस्तावेज़ नहीं भेज सके। कृपया बाद में पुनः प्रयास करें या रेस्तरां से संपर्क करें।",
     },
 
     REPORTS_MENU_PROMPT: {"en": "What would you like to do?", "hi": "आप क्या करना चाहेंगे?"},

@@ -26,30 +26,30 @@ PATIENT_REMOVAL_CANCELLED = "patient_removal_cancelled"
 UNLINK_SELF_BLOCKED = "unlink_self_blocked"
 
 STRINGS: dict[str, dict[Language, str]] = {
-    FEATURE_MANAGE_PATIENTS: {"en": "Manage Patients", "hi": "मरीज़ प्रबंधित करें"},
+    FEATURE_MANAGE_PATIENTS: {"en": "Manage Guests", "hi": "अतिथि प्रबंधित करें"},
     MANAGE_PATIENTS_PROMPT: {
         "en": "What would you like to do?",
         "hi": "आप क्या करना चाहेंगे?",
     },
-    REMOVE_PATIENT_OPTION: {"en": "Remove Patient", "hi": "मरीज़ हटाएं"},
+    REMOVE_PATIENT_OPTION: {"en": "Remove Guest", "hi": "अतिथि हटाएं"},
     MANAGE_PATIENTS_HEADER: {
-        "en": "Select the patient you would like to remove:",
-        "hi": "जिस मरीज़ को आप हटाना चाहते हैं उसे चुनें:",
+        "en": "Select the guest you would like to remove:",
+        "hi": "जिस अतिथि को आप हटाना चाहते हैं उसे चुनें:",
     },
-    MANAGE_PATIENTS_BUTTON: {"en": "Patients", "hi": "मरीज़"},
-    MANAGE_PATIENTS_SECTION_TITLE: {"en": "Linked Patients", "hi": "जुड़े हुए मरीज़"},
+    MANAGE_PATIENTS_BUTTON: {"en": "Guests", "hi": "अतिथि"},
+    MANAGE_PATIENTS_SECTION_TITLE: {"en": "Linked Guests", "hi": "जुड़े हुए अतिथि"},
     NO_PATIENTS_TO_REMOVE: {
-        "en": "You have no patients to remove.",
-        "hi": "आपके पास हटाने के लिए कोई मरीज़ नहीं है।",
+        "en": "You have no guests to remove.",
+        "hi": "आपके पास हटाने के लिए कोई अतिथि नहीं है।",
     },
     PATIENT_ADDED: {
         "en": "{patient_name} has been added.",
         "hi": "{patient_name} को जोड़ दिया गया है।",
     },
     UNLINK_PATIENT_CONFIRM: {
-        "en": "Are you sure you want to remove {patient_name}? Their appointment history and Patient ID are not "
+        "en": "Are you sure you want to remove {patient_name}? Their reservation history and Guest ID are not "
               "affected — you can add them again anytime.",
-        "hi": "क्या आप वाकई {patient_name} को हटाना चाहते हैं? उनका अपॉइंटमेंट इतिहास और पेशेंट आईडी प्रभावित नहीं "
+        "hi": "क्या आप वाकई {patient_name} को हटाना चाहते हैं? उनका रिज़र्वेशन इतिहास और अतिथि आईडी प्रभावित नहीं "
               "होंगे — आप उन्हें कभी भी दोबारा जोड़ सकते हैं।",
     },
     PATIENT_UNLINKED: {
@@ -58,11 +58,11 @@ STRINGS: dict[str, dict[Language, str]] = {
         # "hi": "{patient_name} को इस नंबर से हटा दिया गया है।",
         "en": (
             "✅ {patient_name} has been removed from this WhatsApp number.\n\n"
-            "Their Patient ID, medical records, and appointment history remain unchanged."
+            "Their Guest ID, medical records, and reservation history remain unchanged."
         ),
         "hi": (
             "✅ {patient_name} को इस व्हाट्सएप नंबर से हटा दिया गया है।\n\n"
-            "उनकी पेशेंट आईडी, मेडिकल रिकॉर्ड और अपॉइंटमेंट इतिहास अपरिवर्तित रहेंगे।"
+            "उनकी अतिथि आईडी, मेडिकल रिकॉर्ड और रिज़र्वेशन इतिहास अपरिवर्तित रहेंगे।"
         ),
     },
     PATIENT_REMOVAL_CANCELLED: {
@@ -74,11 +74,11 @@ STRINGS: dict[str, dict[Language, str]] = {
     # emoji-prefixed, two-line style above.
     UNLINK_SELF_BLOCKED: {
         "en": (
-            "⚠️ {patient_name} is the main patient linked to this number and can't be removed here.\n\n"
+            "⚠️ {patient_name} is the main guest linked to this number and can't be removed here.\n\n"
             "If you need help with this, please use \"Talk to Reception\" from the main menu — our team can assist you further."
         ),
         "hi": (
-            "⚠️ {patient_name} इस नंबर से जुड़ा मुख्य मरीज़ है और इसे यहां से हटाया नहीं जा सकता।\n\n"
+            "⚠️ {patient_name} इस नंबर से जुड़ा मुख्य अतिथि है और इसे यहां से हटाया नहीं जा सकता।\n\n"
             "इसमें मदद के लिए, कृपया मुख्य मेनू से \"रिसेप्शन से बात करें\" का उपयोग करें — हमारी टीम आपकी आगे सहायता करेगी।"
         ),
     },

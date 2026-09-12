@@ -143,20 +143,6 @@ export function createAppointmentColumns({
         return (
           <div className="text-ink-600">
             <div>{a.appointment_type_id ? TYPE_LABELS[a.appointment_type_id] || a.appointment_type_id : "—"}</div>
-            {/* Tele-consultation Phase 2 (confirmed with the user directly):
-                staff need the video link too, not just the doctor's own
-                "Today's appointments" widget -- withheld from the patient's
-                immediate confirmation, but always visible here. */}
-            {a.appointment_type_id === "tele" && a.video_link && (
-              <a
-                href={a.video_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11.5px] font-semibold text-brand-600 hover:underline"
-              >
-                🎥 Join
-              </a>
-            )}
           </div>
         );
       },

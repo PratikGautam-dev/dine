@@ -244,8 +244,8 @@ STRINGS: dict[str, dict[Language, str]] = {
         "hi": "कृपया केवल अक्षरों का उपयोग करके एक मान्य नाम दर्ज करें (3–50 अक्षर)।",
     },
     ASK_PATIENT_CONTACT_NUMBER: {
-        "en": "Please enter the patient's contact number",
-        "hi": "कृपया मरीज का संपर्क नंबर दर्ज करें।",
+        "en": "Please enter the guest's contact number",
+        "hi": "कृपया अतिथि का संपर्क नंबर दर्ज करें।",
     },
     INVALID_PATIENT_CONTACT_NUMBER: {
         "en": "Please enter a valid 10-digit contact number, digits only, not starting with 0.",
@@ -352,32 +352,32 @@ STRINGS: dict[str, dict[Language, str]] = {
     VIEW_CHANGE_OPTIONS_BUTTON: {"en": "Choose", "hi": "चुनें"},
     CHANGE_OPTIONS_SECTION_TITLE: {"en": "Change", "hi": "बदलें"},
     CHANGE_DEPARTMENT_OPTION: {"en": "Department", "hi": "विभाग"},
-    CHANGE_DOCTOR_OPTION: {"en": "Doctor", "hi": "डॉक्टर"},
+    CHANGE_DOCTOR_OPTION: {"en": "Table", "hi": "टेबल"},
     CHANGE_DATE_OPTION: {"en": "Date", "hi": "तारीख"},
     CHANGE_TIME_OPTION: {"en": "Time", "hi": "समय"},
     BOOKING_CONFIRMED: {
         "en": (
-            "✅ *Appointment Confirmed*\n\n"
-            "Your appointment has been successfully booked.\n\n"
-            "🆔 Appointment ID: {reference_id}\n"
-            "👤 Patient: {patient_name}\n"
+            "✅ *Reservation Confirmed*\n\n"
+            "Your reservation has been successfully booked.\n\n"
+            "🆔 Reservation ID: {reference_id}\n"
+            "👤 Guest: {patient_name}\n"
             "🏥 Department: {department_name}\n"
-            "👨‍⚕️ Doctor: {doctor_name}\n"
+            "🪑 Table: {doctor_name}\n"
             "📅 Date: {date_label}\n"
             "🕐 Time: {time_label}\n\n"
-            "Please arrive 15 minutes before your appointment.\n"
+            "Please arrive 15 minutes before your reservation.\n"
             "We look forward to seeing you."
         ),
         "hi": (
-            "✅ *अपॉइंटमेंट की पुष्टि हो गई*\n\n"
-            "आपकी अपॉइंटमेंट सफलतापूर्वक बुक हो गई है।\n\n"
-            "🆔 अपॉइंटमेंट आईडी: {reference_id}\n"
-            "👤 मरीज़: {patient_name}\n"
+            "✅ *रिज़र्वेशन की पुष्टि हो गई*\n\n"
+            "आपका रिज़र्वेशन सफलतापूर्वक बुक हो गया है।\n\n"
+            "🆔 रिज़र्वेशन आईडी: {reference_id}\n"
+            "👤 अतिथि: {patient_name}\n"
             "🏥 विभाग: {department_name}\n"
-            "👨‍⚕️ डॉक्टर: {doctor_name}\n"
+            "🪑 टेबल: {doctor_name}\n"
             "📅 तारीख: {date_label}\n"
             "🕐 समय: {time_label}\n\n"
-            "कृपया अपनी अपॉइंटमेंट से 15 मिनट पहले पहुंचें।\n"
+            "कृपया अपने रिज़र्वेशन से 15 मिनट पहले पहुंचें।\n"
             "हम आपसे मिलने के लिए उत्सुक हैं।"
         ),
     },
@@ -390,8 +390,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     # age on file) already exists, so this attempt is blocked rather than
     # creating a second one.
     DUPLICATE_BOOKING_TEXT: {
-        "en": "You already have an appointment booked with {doctor_name} — reply below to manage it.",
-        "hi": "आपकी {doctor_name} के साथ पहले से ही एक अपॉइंटमेंट बुक है — इसे प्रबंधित करने के लिए नीचे उत्तर दें।",
+        "en": "You already have a reservation booked with {doctor_name} — reply below to manage it.",
+        "hi": "आपकी {doctor_name} के साथ पहले से ही एक रिज़र्वेशन बुक है — इसे प्रबंधित करने के लिए नीचे उत्तर दें।",
     },
     # Shared department-selection conflict (base.existing_department_appointment):
     # new/tele/second_opinion/daycare all block picking a department the
@@ -399,8 +399,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     # that existing appointment's own details plus Main Menu/Cancel/Reschedule
     # quick actions -- same shape as DUPLICATE_BOOKING_TEXT above.
     DEPARTMENT_APPOINTMENT_CONFLICT: {
-        "en": "You already have an appointment in {department_name} with {doctor_name} on {when} — reply below to manage it.",
-        "hi": "आपकी {department_name} में {doctor_name} के साथ {when} को पहले से ही एक अपॉइंटमेंट है — इसे प्रबंधित करने के लिए नीचे उत्तर दें।",
+        "en": "You already have a reservation in {department_name} with {doctor_name} on {when} — reply below to manage it.",
+        "hi": "आपकी {department_name} में {doctor_name} के साथ {when} को पहले से ही एक रिज़र्वेशन है — इसे प्रबंधित करने के लिए नीचे उत्तर दें।",
     },
     # docs/per-appointment-type-flow-plan.md Phase 2: New Consultation-only
     # booking rules -- flows/booking/types/new_consultation.py. (The
@@ -408,12 +408,12 @@ STRINGS: dict[str, dict[Language, str]] = {
     # DEPARTMENT_APPOINTMENT_CONFLICT above already blocks this earlier, at
     # department selection.)
     NEW_CONSULTATION_DEPARTMENT_CONFLICT: {
-        "en": "You already have an active appointment in this department. Please cancel it first if you'd like to book again.",
-        "hi": "इस विभाग में आपकी पहले से ही एक सक्रिय अपॉइंटमेंट है। दोबारा बुक करने के लिए कृपया पहले उसे रद्द करें।",
+        "en": "You already have an active reservation in this department. Please cancel it first if you'd like to book again.",
+        "hi": "इस विभाग में आपकी पहले से ही एक सक्रिय रिज़र्वेशन है। दोबारा बुक करने के लिए कृपया पहले उसे रद्द करें।",
     },
     NEW_CONSULTATION_SAME_DAY_CONFLICT: {
-        "en": "You already have an appointment booked on this day. Please choose a different date, or manage your existing appointment first.",
-        "hi": "इस दिन आपकी पहले से ही एक अपॉइंटमेंट बुक है। कृपया कोई और तारीख चुनें, या पहले अपनी मौजूदा अपॉइंटमेंट प्रबंधित करें।",
+        "en": "You already have a reservation booked on this day. Please choose a different date, or manage your existing reservation first.",
+        "hi": "इस दिन आपकी पहले से ही एक रिज़र्वेशन बुक है। कृपया कोई और तारीख चुनें, या पहले अपना मौजूदा रिज़र्वेशन प्रबंधित करें।",
     },
     # docs/per-appointment-type-flow-plan.md Phase 2 Step 2:
     # flows/booking/types/followup.py.
@@ -424,12 +424,12 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": (
             "No Previous Consultation Found\n"
             "We couldn't find any completed consultation for {name}.\n\n"
-            "A follow-up appointment can only be booked after a previous consultation. Please book a New Consultation instead."
+            "A follow-up reservation can only be booked after a previous consultation. Please book a New Consultation instead."
         ),
         "hi": (
             "कोई पिछला परामर्श नहीं मिला\n"
             "हमें {name} के लिए कोई पूर्ण परामर्श नहीं मिला।\n\n"
-            "फॉलो-अप अपॉइंटमेंट केवल पिछले परामर्श के बाद ही बुक की जा सकती है। कृपया इसके बजाय नई परामर्श बुक करें।"
+            "फॉलो-अप रिज़र्वेशन केवल पिछले परामर्श के बाद ही बुक की जा सकती है। कृपया इसके बजाय नई परामर्श बुक करें।"
         ),
     },
     # docs/per-appointment-type-flow-plan.md Phase 2 Step 2 follow-up: the
@@ -457,27 +457,27 @@ STRINGS: dict[str, dict[Language, str]] = {
     # fee_line uses.
     FOLLOWUP_CONFIRMATION_SUMMARY: {
         "en": (
-            "📋 *Confirm Follow-up Appointment*\n\n"
-            "👤 Patient: {patient_name}\n"
-            "🆔 Patient ID: {patient_code}\n"
-            "📋 Appointment Type: {appointment_type_label}\n"
+            "📋 *Confirm Follow-up Reservation*\n\n"
+            "👤 Guest: {patient_name}\n"
+            "🆔 Guest ID: {patient_code}\n"
+            "📋 Reservation Type: {appointment_type_label}\n"
             "🏥 Department: {department_name}\n"
-            "👨‍⚕️ Doctor: {doctor_name}\n"
+            "🪑 Table: {doctor_name}\n"
             "🔁 Previous Visit: {previous_visit_label}\n"
-            "📅 Appointment Date: {date_label}\n"
+            "📅 Reservation Date: {date_label}\n"
             "🕐 Time: {time_label}\n"
             "{fee_line}\n"
             "Please review the details before confirming."
         ),
         "hi": (
-            "📋 *फॉलो-अप अपॉइंटमेंट की पुष्टि करें*\n\n"
-            "👤 मरीज़: {patient_name}\n"
-            "🆔 मरीज़ आईडी: {patient_code}\n"
-            "📋 अपॉइंटमेंट प्रकार: {appointment_type_label}\n"
+            "📋 *फॉलो-अप रिज़र्वेशन की पुष्टि करें*\n\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🆔 अतिथि आईडी: {patient_code}\n"
+            "📋 रिज़र्वेशन प्रकार: {appointment_type_label}\n"
             "🏥 विभाग: {department_name}\n"
-            "👨‍⚕️ डॉक्टर: {doctor_name}\n"
+            "🪑 टेबल: {doctor_name}\n"
             "🔁 पिछली मुलाकात: {previous_visit_label}\n"
-            "📅 अपॉइंटमेंट तारीख: {date_label}\n"
+            "📅 रिज़र्वेशन तारीख: {date_label}\n"
             "🕐 समय: {time_label}\n"
             "{fee_line}\n"
             "कृपया पुष्टि करने से पहले विवरण की समीक्षा करें।"
@@ -485,35 +485,35 @@ STRINGS: dict[str, dict[Language, str]] = {
     },
     FOLLOWUP_APPOINTMENT_CONFIRMED: {
         "en": (
-            "✅ *Follow-up Appointment Confirmed*\n\n"
+            "✅ *Follow-up Reservation Confirmed*\n\n"
             "Your follow-up consultation has been successfully booked.\n\n"
-            "🆔 Appointment ID: {reference_id}\n"
-            "👤 Patient: {patient_name}\n"
-            "👨‍⚕️ Doctor: {doctor_name}\n"
+            "🆔 Reservation ID: {reference_id}\n"
+            "👤 Guest: {patient_name}\n"
+            "🪑 Table: {doctor_name}\n"
             "🏥 Department: {department_name}\n"
             "📅 Date: {date_label}\n"
             "🕐 Time: {time_label}\n\n"
-            "Please arrive 15 minutes before your appointment.\n\n"
+            "Please arrive 15 minutes before your reservation.\n\n"
             "We look forward to seeing you."
         ),
         "hi": (
-            "✅ *फॉलो-अप अपॉइंटमेंट की पुष्टि हो गई*\n\n"
+            "✅ *फॉलो-अप रिज़र्वेशन की पुष्टि हो गई*\n\n"
             "आपका फॉलो-अप परामर्श सफलतापूर्वक बुक हो गया है।\n\n"
-            "🆔 अपॉइंटमेंट आईडी: {reference_id}\n"
-            "👤 मरीज़: {patient_name}\n"
-            "👨‍⚕️ डॉक्टर: {doctor_name}\n"
+            "🆔 रिज़र्वेशन आईडी: {reference_id}\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🪑 टेबल: {doctor_name}\n"
             "🏥 विभाग: {department_name}\n"
             "📅 तारीख: {date_label}\n"
             "🕐 समय: {time_label}\n\n"
-            "कृपया अपनी अपॉइंटमेंट से 15 मिनट पहले पहुंचें।\n\n"
+            "कृपया अपने रिज़र्वेशन से 15 मिनट पहले पहुंचें।\n\n"
             "हम आपसे मिलने के लिए उत्सुक हैं।"
         ),
     },
     # Item 6 (Spec.md Section 0): shown after tapping one appointment in "My
     # Appointments" -- the same quick-action buttons item 3/5 use.
     MANAGE_APPOINTMENT_PROMPT: {
-        "en": "Your appointment with {doctor_name} — what would you like to do?",
-        "hi": "{doctor_name} के साथ आपकी अपॉइंटमेंट — आप क्या करना चाहेंगे?",
+        "en": "Your reservation with {doctor_name} — what would you like to do?",
+        "hi": "{doctor_name} के साथ आपका रिज़र्वेशन — आप क्या करना चाहेंगे?",
     },
 
     # --- Diagnostic/Lab Phase 2 (docs/per-appointment-type-flow-plan.md
@@ -548,8 +548,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     DIAGNOSTIC_CONFIRMATION_SUMMARY: {
         "en": (
             "🔬 *Review {appointment_type_label} Booking*\n\n"
-            "👤 Patient: {patient_name}\n"
-            "🆔 Patient ID: {patient_code}\n"
+            "👤 Guest: {patient_name}\n"
+            "🆔 Guest ID: {patient_code}\n"
             "🧪 Test: {test_name}\n"
             "🧾 Option: {variant_label}\n"
             "🏥 Location: {hospital_name}\n"
@@ -561,8 +561,8 @@ STRINGS: dict[str, dict[Language, str]] = {
         ),
         "hi": (
             "🔬 *{appointment_type_label} बुकिंग की समीक्षा करें*\n\n"
-            "👤 मरीज़: {patient_name}\n"
-            "🆔 मरीज़ आईडी: {patient_code}\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🆔 अतिथि आईडी: {patient_code}\n"
             "🧪 जांच: {test_name}\n"
             "🧾 विकल्प: {variant_label}\n"
             "🏥 स्थान: {hospital_name}\n"
@@ -577,7 +577,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": (
             "✅ *{appointment_type_label} Booked*\n\n"
             "🆔 Booking ID: {reference_id}\n"
-            "👤 Patient: {patient_name}\n"
+            "👤 Guest: {patient_name}\n"
             "🧪 Test: {test_name}\n"
             "🧾 Option: {variant_label}\n"
             "📅 Date: {date_label}\n"
@@ -587,7 +587,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "hi": (
             "✅ *{appointment_type_label} बुक हो गई*\n\n"
             "🆔 बुकिंग आईडी: {reference_id}\n"
-            "👤 मरीज़: {patient_name}\n"
+            "👤 अतिथि: {patient_name}\n"
             "🧪 जांच: {test_name}\n"
             "🧾 विकल्प: {variant_label}\n"
             "📅 तारीख: {date_label}\n"
@@ -617,7 +617,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": "How would you like to provide your sample?",
         "hi": "आप अपना सैंपल कैसे देना चाहेंगे?",
     },
-    COLLECTION_VISIT_BUTTON: {"en": "Visit Hospital/Lab", "hi": "अस्पताल/लैब जाएं"},
+    COLLECTION_VISIT_BUTTON: {"en": "Visit Restaurant/Lab", "hi": "रेस्तरां/लैब जाएं"},
     COLLECTION_HOME_BUTTON: {"en": "Home Collection", "hi": "होम कलेक्शन"},
     ASK_COLLECTION_PINCODE: {
         "en": "Please enter your area PIN code so we can check home-collection availability.",
@@ -625,9 +625,9 @@ STRINGS: dict[str, dict[Language, str]] = {
     },
     NOT_SERVICEABLE_PINCODE: {
         "en": "Sorry, home sample collection isn't available in your area yet. "
-              "You can visit the hospital/lab instead, or try a different PIN code.",
+              "You can visit the restaurant/lab instead, or try a different PIN code.",
         "hi": "क्षमा करें, आपके क्षेत्र में अभी होम सैंपल कलेक्शन उपलब्ध नहीं है। "
-              "आप इसके बजाय अस्पताल/लैब जा सकते हैं, या कोई अन्य पिन कोड आज़मा सकते हैं।",
+              "आप इसके बजाय रेस्तरां/लैब जा सकते हैं, या कोई अन्य पिन कोड आज़मा सकते हैं।",
     },
     TRY_ANOTHER_PINCODE_BUTTON: {"en": "Try Another PIN", "hi": "अन्य पिन आज़माएं"},
     ASK_COLLECTION_ADDRESS: {
@@ -647,8 +647,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     LAB_CONFIRMATION_SUMMARY: {
         "en": (
             "🔬 *Review {appointment_type_label} Booking*\n\n"
-            "👤 Patient: {patient_name}\n"
-            "🆔 Patient ID: {patient_code}\n"
+            "👤 Guest: {patient_name}\n"
+            "🆔 Guest ID: {patient_code}\n"
             "{tests_block}"
             "{collection_line}"
             "📅 Date: {date_label}\n"
@@ -659,8 +659,8 @@ STRINGS: dict[str, dict[Language, str]] = {
         ),
         "hi": (
             "🔬 *{appointment_type_label} बुकिंग की समीक्षा करें*\n\n"
-            "👤 मरीज़: {patient_name}\n"
-            "🆔 मरीज़ आईडी: {patient_code}\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🆔 अतिथि आईडी: {patient_code}\n"
             "{tests_block}"
             "{collection_line}"
             "📅 तारीख: {date_label}\n"
@@ -681,7 +681,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": (
             "✅ *{appointment_type_label} Booked*\n\n"
             "🆔 Booking ID: {reference_id}\n"
-            "👤 Patient: {patient_name}\n"
+            "👤 Guest: {patient_name}\n"
             "🧪 Tests: {test_count}\n"
             "{collection_line}"
             "📅 Date: {date_label}\n"
@@ -691,7 +691,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "hi": (
             "✅ *{appointment_type_label} बुक हो गई*\n\n"
             "🆔 बुकिंग आईडी: {reference_id}\n"
-            "👤 मरीज़: {patient_name}\n"
+            "👤 अतिथि: {patient_name}\n"
             "🧪 जांच: {test_count}\n"
             "{collection_line}"
             "📅 तारीख: {date_label}\n"
@@ -715,30 +715,30 @@ STRINGS: dict[str, dict[Language, str]] = {
     PROCEDURE_REQUEST_CONFIRM_SUMMARY: {
         "en": (
             "📋 *Review Your Request*\n\n"
-            "👤 Patient: {patient_name}\n"
+            "👤 Guest: {patient_name}\n"
             "🩺 Procedure: {procedure_name}\n"
             "{estimate_line}"
             "{instructions_line}"
-            "This procedure requires hospital verification before a slot is confirmed. "
+            "This procedure requires restaurant verification before a slot is confirmed. "
             "Please review the details above before sending your request."
         ),
         "hi": (
             "📋 *अपना अनुरोध जांचें*\n\n"
-            "👤 मरीज़: {patient_name}\n"
+            "👤 अतिथि: {patient_name}\n"
             "🩺 प्रक्रिया: {procedure_name}\n"
             "{estimate_line}"
             "{instructions_line}"
-            "इस प्रक्रिया के लिए स्लॉट कन्फर्म होने से पहले अस्पताल की मंजूरी आवश्यक है। "
+            "इस प्रक्रिया के लिए स्लॉट कन्फर्म होने से पहले रेस्तरां की मंजूरी आवश्यक है। "
             "कृपया अनुरोध भेजने से पहले ऊपर दिए गए विवरण जांच लें।"
         ),
     },
     PROCEDURE_REQUEST_SUBMITTED: {
         "en": (
-            "Your request for the selected procedure has been sent to the hospital for verification.\n\n"
+            "Your request for the selected procedure has been sent to the restaurant for verification.\n\n"
             "We will notify you once the request is approved and eligible slots are available."
         ),
         "hi": (
-            "चुनी गई प्रक्रिया के लिए आपका अनुरोध सत्यापन हेतु अस्पताल को भेज दिया गया है।\n\n"
+            "चुनी गई प्रक्रिया के लिए आपका अनुरोध सत्यापन हेतु रेस्तरां को भेज दिया गया है।\n\n"
             "अनुरोध स्वीकृत होने और स्लॉट उपलब्ध होने पर हम आपको सूचित करेंगे।"
         ),
     },
@@ -759,8 +759,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     PROCEDURE_CONFIRMATION_SUMMARY: {
         "en": (
             "🩺 *Review {appointment_type_label} Booking*\n\n"
-            "👤 Patient: {patient_name}\n"
-            "🆔 Patient ID: {patient_code}\n"
+            "👤 Guest: {patient_name}\n"
+            "🆔 Guest ID: {patient_code}\n"
             "Procedure: {procedure_name}\n"
             "{order_reference_line}"
             "🏥 Location: {department_name}\n"
@@ -772,8 +772,8 @@ STRINGS: dict[str, dict[Language, str]] = {
         ),
         "hi": (
             "🩺 *{appointment_type_label} बुकिंग जांचें*\n\n"
-            "👤 मरीज़: {patient_name}\n"
-            "🆔 मरीज़ आईडी: {patient_code}\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🆔 अतिथि आईडी: {patient_code}\n"
             "प्रक्रिया: {procedure_name}\n"
             "{order_reference_line}"
             "🏥 स्थान: {department_name}\n"
@@ -797,7 +797,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": (
             "✅ *Daycare / Procedure Booking Confirmed*\n"
             "Booking ID: {reference_id}\n"
-            "Patient: {patient_name}\n"
+            "Guest: {patient_name}\n"
             "Procedure: {procedure_name}\n"
             "Department: {department_name}\n"
             "Date: {date_label}\n"
@@ -807,7 +807,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         "hi": (
             "✅ *डेकेयर / प्रक्रिया बुकिंग कन्फर्म*\n"
             "बुकिंग आईडी: {reference_id}\n"
-            "मरीज़: {patient_name}\n"
+            "अतिथि: {patient_name}\n"
             "प्रक्रिया: {procedure_name}\n"
             "विभाग: {department_name}\n"
             "तारीख: {date_label}\n"
@@ -816,12 +816,12 @@ STRINGS: dict[str, dict[Language, str]] = {
         ),
     },
     PROCEDURE_RESCHEDULE_REQUEST_PROMPT: {
-        "en": "Please select your preferred new date and time. This procedure requires hospital approval before the change is confirmed.",
-        "hi": "कृपया अपनी पसंदीदा नई तारीख और समय चुनें। इस प्रक्रिया में बदलाव कन्फर्म होने से पहले अस्पताल की मंजूरी आवश्यक है।",
+        "en": "Please select your preferred new date and time. This procedure requires restaurant approval before the change is confirmed.",
+        "hi": "कृपया अपनी पसंदीदा नई तारीख और समय चुनें। इस प्रक्रिया में बदलाव कन्फर्म होने से पहले रेस्तरां की मंजूरी आवश्यक है।",
     },
     PROCEDURE_RESCHEDULE_REQUESTED: {
-        "en": "Your reschedule request has been sent to the hospital for approval. We will notify you once it's confirmed.",
-        "hi": "आपका रीशेड्यूल अनुरोध अस्पताल को मंजूरी हेतु भेज दिया गया है। कन्फर्म होते ही हम आपको सूचित करेंगे।",
+        "en": "Your reschedule request has been sent to the restaurant for approval. We will notify you once it's confirmed.",
+        "hi": "आपका रीशेड्यूल अनुरोध रेस्तरां को मंजूरी हेतु भेज दिया गया है। कन्फर्म होते ही हम आपको सूचित करेंगे।",
     },
     PROCEDURE_RESCHEDULE_APPROVED: {
         "en": (
@@ -834,7 +834,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         ),
     },
     PROCEDURE_RESCHEDULE_REJECTED: {
-        "en": "Your reschedule request could not be approved. Your original appointment remains unchanged.",
-        "hi": "आपका रीशेड्यूल अनुरोध स्वीकृत नहीं किया जा सका। आपकी मूल अपॉइंटमेंट अपरिवर्तित है।",
+        "en": "Your reschedule request could not be approved. Your original reservation remains unchanged.",
+        "hi": "आपका रीशेड्यूल अनुरोध स्वीकृत नहीं किया जा सका। आपका मूल रिज़र्वेशन अपरिवर्तित है।",
     },
 }

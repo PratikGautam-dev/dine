@@ -122,22 +122,22 @@ def test_confirmation_card_renders_structured_markdown_in_both_languages():
         time_label="10:00", patient_name="Ravi Kumar", patient_age=34, patient_code="DCCP-2026-00020",
         fee_line=fee_line_en,
     )
-    assert "*Confirm Booking Details:*" in summary_en
-    assert "👤 Patient: Ravi Kumar" in summary_en
-    assert "🆔 Patient Id: DCCP-2026-00020" in summary_en
+    assert "*Confirm Reservation Details:*" in summary_en
+    assert "👤 Guest: Ravi Kumar" in summary_en
+    assert "🆔 Guest Reference: DCCP-2026-00020" in summary_en
     assert "🎂 Age: 34" in summary_en
-    assert "📋 Appointment Type: New Consultation" in summary_en
-    assert "🏥 Department: Cardiology" in summary_en
-    assert "👨‍⚕️ Doctor: Anjali Rao" in summary_en
+    assert "📋 Reservation Type: New Consultation" in summary_en
+    assert "📍 Section: Cardiology" in summary_en
+    assert "🪑 Table: Anjali Rao" in summary_en
     assert "📅 Date: Sat, Aug 8" in summary_en
-    assert "🕐 Time: 10:00" in summary_en
-    assert "💰 Consultation Fee: ₹800" in summary_en
-    # Item 10 (Spec.md Section 0): patient name/code/age must come FIRST,
-    # ahead of department/doctor/date/time.
-    assert summary_en.index("Patient:") < summary_en.index("Department:")
-    assert summary_en.index("Age:") < summary_en.index("Doctor:")
+    assert "🕐 Seating Time: 10:00" in summary_en
+    assert "💰 Deposit / Minimum Spend: ₹800" in summary_en
+    # Item 10 (Spec.md Section 0): guest name/code/age must come FIRST,
+    # ahead of section/table/date/time.
+    assert summary_en.index("Guest:") < summary_en.index("Section:")
+    assert summary_en.index("Age:") < summary_en.index("Table:")
 
-    # fee_line="" (hospital hasn't configured a fee, or not a New Consultation
+    # fee_line="" (restaurant hasn't configured a fee, or not a New Consultation
     # booking): the line is omitted entirely, not shown as a fake ₹0.
     summary_no_fee = t(CONFIRM_BOOKING_SUMMARY, "en",
         appointment_type_label="New Consultation",
@@ -145,7 +145,7 @@ def test_confirmation_card_renders_structured_markdown_in_both_languages():
         time_label="10:00", patient_name="Ravi Kumar", patient_age=34, patient_code="DCCP-2026-00020",
         fee_line="",
     )
-    assert "Consultation Fee" not in summary_no_fee
+    assert "Deposit" not in summary_no_fee
 
     summary_hi = t(CONFIRM_BOOKING_SUMMARY, "hi",
         appointment_type_label="New Consultation",
@@ -160,8 +160,8 @@ def test_confirmation_card_renders_structured_markdown_in_both_languages():
         department_name="Cardiology", doctor_name="Dr. Anjali Rao", date_label="Saturday, 08 August 2026",
         time_label="10:00 AM",
     )
-    assert "✅ *Appointment Confirmed*" in confirmed_en
-    assert "Appointment ID: apt_1754650184123" in confirmed_en
+    assert "✅ *Reservation Confirmed*" in confirmed_en
+    assert "Reservation ID: apt_1754650184123" in confirmed_en
 
     confirmed_hi = t(
         BOOKING_CONFIRMED, "hi", reference_id="apt_1754650184123", patient_name="Ravi Kumar",

@@ -455,8 +455,8 @@ async def test_multi_patient_resolution_shows_list_directly_with_no_default(hosp
 
     assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_SINGLE_PATIENT_CONFIRM
     list_kwargs = _last_list(wa)
-    assert "Welcome to CareConnect" in list_kwargs["body_text"]
-    assert "Please select the patient." in list_kwargs["body_text"]
+    assert "Welcome to Dine Connect" in list_kwargs["body_text"]
+    assert "Please select the guest." in list_kwargs["body_text"]
     row_ids = {row["id"] for row in list_kwargs["sections"][0]["rows"]}
     assert patient_identity._patient_row_id(abhi["id"]) in row_ids
     assert patient_identity._patient_row_id(raj["id"]) in row_ids
@@ -481,7 +481,7 @@ async def test_multi_patient_resolution_shows_list_directly_with_no_default(hosp
     assert session["state"] == "IDLE"
     assert session["active_patient_id"] == raj["id"]
     final_list_kwargs = _last_list(wa)
-    assert "Patient Selected" in final_list_kwargs["body_text"]
+    assert "Guest Selected" in final_list_kwargs["body_text"]
     assert "Raj" in final_list_kwargs["body_text"]
     assert raj["patient_display_id"] in final_list_kwargs["body_text"]
 
@@ -505,7 +505,7 @@ async def test_multi_patient_returning_to_menu_reprompts_instead_of_defaulting(h
 
     assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_SINGLE_PATIENT_CONFIRM
     list_kwargs = _last_list(wa)
-    assert "Welcome to CareConnect" in list_kwargs["body_text"]
+    assert "Welcome to Dine Connect" in list_kwargs["body_text"]
 
 
 # --- 5. Patient status BLOCKED ---

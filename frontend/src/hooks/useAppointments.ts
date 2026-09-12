@@ -48,13 +48,9 @@ export type NewBookingContext = {
 // for appointment types (seeded once, at onboarding), so this mirrors that
 // same fixed id->label mapping rather than fetching it from a new endpoint.
 export const TYPE_LABELS: Record<string, string> = {
-  new: "New Consultation",
+  new: "New Reservation",
   followup: "Follow-up",
-  tele: "Tele-consultation",
-  second_opinion: "Second Opinion",
-  diagnostic: "Diagnostic",
-  lab: "Lab Test",
-  daycare: "Daycare",
+  procedure: "Procedure",
 };
 
 function typeBucket(a: Appointment) {
@@ -94,10 +90,10 @@ export function useAppointments(ready: boolean) {
   // needed).
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
-  // Divides the appointments list by type (New Consultation, Follow-up,
-  // Tele-consultation, ...) as its own tab row -- "other" covers any
-  // appointment predating appointment_type_id (never backfilled, so an
-  // old row is legitimately typeless, not a bug).
+  // Divides the appointments list by type (New Reservation, Follow-up,
+  // Procedure) as its own tab row -- "other" covers any appointment
+  // predating appointment_type_id (never backfilled, so an old row is
+  // legitimately typeless, not a bug).
   const [typeFilter, setTypeFilter] = useState("all");
 
   const load = useCallback(async () => {

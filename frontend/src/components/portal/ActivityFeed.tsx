@@ -11,9 +11,9 @@ type ActivityItem = {
 };
 
 const ICONS: Record<string, typeof CalendarCheck> = {
-  "Booked appointment": CalendarCheck,
-  "Cancelled appointment": CalendarX,
-  "Rescheduled appointment": RefreshCw,
+  "Booked reservation": CalendarCheck,
+  "Cancelled reservation": CalendarX,
+  "Rescheduled reservation": RefreshCw,
 };
 
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {

@@ -8,7 +8,7 @@ import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { useStaffDetail } from "@/hooks/useStaffDetail";
 
-const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Receptionist", doctor: "Staff member" };
+const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Host / Reception", doctor: "Staff member" };
 
 function StaffDetailView({ hospitalId, staffId }: { hospitalId: number; staffId: number }) {
   const { staff, error } = useStaffDetail(staffId);

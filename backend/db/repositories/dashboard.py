@@ -236,9 +236,9 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
         .limit(limit)
     ).all()
     labels = {
-        STATUS_BOOKED: "Booked appointment",
-        STATUS_CANCELLED: "Cancelled appointment",
-        STATUS_RESCHEDULED: "Rescheduled appointment",
+        STATUS_BOOKED: "Booked reservation",
+        STATUS_CANCELLED: "Cancelled reservation",
+        STATUS_RESCHEDULED: "Rescheduled reservation",
     }
     feed = []
     for r in rows:

@@ -153,7 +153,7 @@ async def test_no_closing_message_configured_leaves_standard_text_unchanged(hosp
 
     kind, kwargs = wa.sent[-1]
     assert kind == "buttons"
-    assert "Appointment Confirmed" in kwargs["body_text"]
+    assert "Reservation Confirmed" in kwargs["body_text"]
     assert kwargs["body_text"].rstrip().endswith("We look forward to seeing you.")  # no extra appended block
 
 

@@ -465,9 +465,9 @@ async def test_full_happy_path_through_confirmation(hospital_id):
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("confirm"))
     kind, kwargs = wa.sent[-1]
     assert kind == "buttons"
-    assert "appointment confirmed" in kwargs["body_text"].lower()
+    assert "reservation confirmed" in kwargs["body_text"].lower()
     # Item 8 (Spec.md Section 0): reference_id format is now APT-<DDMMYY>-<NNN>.
-    assert "Appointment ID: APT-" in kwargs["body_text"]
+    assert "Reservation ID: APT-" in kwargs["body_text"]
     button_ids = {b["id"] for b in kwargs["buttons"]}
     assert GOTO_MAIN_MENU in button_ids
     assert any(bid.startswith(MANAGE_CANCEL_PREFIX) for bid in button_ids)
@@ -483,7 +483,7 @@ async def test_full_happy_path_through_confirmation(hospital_id):
     assert appt.doctor_id == doctor_id
     assert appt.scheduled_at.isoformat() == f"{slot['date']}T{slot['time']}:00"
     assert appt.reference_id is not None and appt.reference_id.startswith("APT-")
-    assert f"Appointment ID: {appt.reference_id}" in kwargs["body_text"]
+    assert f"Reservation ID: {appt.reference_id}" in kwargs["body_text"]
 
     # ...and saved the patient's name/age (Section 12.11's other half).
     patient = db.get_patient_by_phone(hospital_id, PHONE)
