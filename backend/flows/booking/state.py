@@ -32,6 +32,14 @@ STATE_AWAITING_DEPARTMENT = "AWAITING_DEPARTMENT"
 STATE_AWAITING_DOCTOR = "AWAITING_DOCTOR"
 
 
+# Stage 4 (table-availability): party size -> optional section preference,
+# replacing department/doctor selection for the table-reservation type only.
+STATE_AWAITING_PARTY_SIZE = "AWAITING_PARTY_SIZE"
+
+
+STATE_AWAITING_TABLE_SECTION = "AWAITING_TABLE_SECTION"
+
+
 STATE_AWAITING_DATE = "AWAITING_DATE"
 
 

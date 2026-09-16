@@ -27,6 +27,7 @@ from flows.booking.types.procedure import (
     _handle_awaiting_procedure, _handle_awaiting_procedure_request_confirm,
     _handle_awaiting_procedure_reschedule_date, _handle_awaiting_procedure_reschedule_slot,
 )
+from flows.booking.types.table_reservation import _handle_awaiting_party_size, _handle_awaiting_table_section
 from flows.booking.reschedule import (
     _handle_awaiting_reschedule_confirm, _handle_awaiting_reschedule_date, _handle_awaiting_reschedule_selection,
     _handle_awaiting_reschedule_slot, _start_reschedule_flow,
@@ -37,6 +38,7 @@ from flows.booking.state import (
     STATE_AWAITING_CHANGE_SELECTION, STATE_AWAITING_CONFIRMATION, STATE_AWAITING_CONSENT, STATE_AWAITING_DATE,
     STATE_AWAITING_PROCEDURE, STATE_AWAITING_PROCEDURE_REQUEST_CONFIRM,
     STATE_AWAITING_PROCEDURE_RESCHEDULE_DATE, STATE_AWAITING_PROCEDURE_RESCHEDULE_SLOT,
+    STATE_AWAITING_PARTY_SIZE, STATE_AWAITING_TABLE_SECTION,
     STATE_AWAITING_DEPARTMENT, STATE_AWAITING_DOCTOR, STATE_AWAITING_FOLLOWUP_SELECTION,
     STATE_AWAITING_MANAGE_PATIENTS_ACTION, STATE_AWAITING_PATIENT_AGE, STATE_AWAITING_PATIENT_NAME,
     STATE_AWAITING_PATIENT_SELECTION, STATE_AWAITING_RESCHEDULE_CONFIRM, STATE_AWAITING_RESCHEDULE_DATE,
@@ -89,6 +91,8 @@ _HANDLERS = {
     STATE_AWAITING_PROCEDURE_REQUEST_CONFIRM: _handle_awaiting_procedure_request_confirm,
     STATE_AWAITING_PROCEDURE_RESCHEDULE_DATE: _handle_awaiting_procedure_reschedule_date,
     STATE_AWAITING_PROCEDURE_RESCHEDULE_SLOT: _handle_awaiting_procedure_reschedule_slot,
+    STATE_AWAITING_PARTY_SIZE: _handle_awaiting_party_size,
+    STATE_AWAITING_TABLE_SECTION: _handle_awaiting_table_section,
     STATE_AWAITING_PATIENT_NAME: _handle_awaiting_patient_name,
     STATE_AWAITING_PATIENT_AGE: _handle_awaiting_patient_age,
     STATE_AWAITING_CONFIRMATION: _handle_awaiting_confirmation,

@@ -46,7 +46,7 @@ from flows.booking.types.registry import get_type_flow
 
 def _get_slots(
     connector: Connector, hospital_id: int, doctor_id: str | None, resource_id: str | None,
-    procedure_id: int | None = None,
+    procedure_id: int | None = None, party_size: int | None = None, department_id: str | None = None,
 ) -> list[dict]:
     """Diagnostic/Lab Phase 2: the one place _handle_awaiting_date/
     _handle_awaiting_time_slot read slot availability from -- resource_id
@@ -56,7 +56,15 @@ def _get_slots(
     procedure_id (Daycare/Procedure rebuild): an instant-booking procedure's
     own multi-resource-constraint availability -- same shape ({"id"/"date"/
     "time"/"label"}) get_available_resource_slots() returns, so every caller
-    below needs only this one extra branch, not a new rendering path."""
+    below needs only this one extra branch, not a new rendering path.
+
+    party_size (Stage 4, table-availability): same override shape -- which
+    TABLE gets offered is never known here, only whether some qualifying
+    table is free for a given time (get_available_table_slots() already
+    resolves the "any free pool member" check); department_id here is the
+    guest's optional section preference, not a doctor's department."""
+    if party_size is not None:
+        return connector.get_available_table_slots(hospital_id, party_size, department_id)
     if procedure_id is not None:
         return connector.get_procedure_available_slots(hospital_id, procedure_id)
     if resource_id is not None:
@@ -376,8 +384,10 @@ async def _handle_awaiting_date(
     doctor_id = context.get("doctor_id")
     resource_id = context.get("resource_id")
     procedure_id = context.get("procedure_id")
+    party_size = context.get("party_size")
+    table_department_id = context.get("department_id") if party_size is not None else None
     doctor_name = context.get("doctor_name", "")
-    if not doctor_id and not resource_id and not procedure_id:
+    if not doctor_id and not resource_id and not procedure_id and party_size is None:
         sessions.reset(hospital_id, phone)
         await _send_main_menu(wa, phone, "the hospital", language=language)
         return
@@ -386,7 +396,9 @@ async def _handle_awaiting_date(
         if reply["id"] == BACK_ID:
             await _handle_back_navigation(wa, sessions, phone, hospital_id, context, connector, language=language)
             return
-        available_dates = {s["date"] for s in _get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id)}
+        available_dates = {s["date"] for s in _get_slots(
+            connector, hospital_id, doctor_id, resource_id, procedure_id, party_size, table_department_id,
+        )}
         if reply["id"] in available_dates:
             history = _push_history(context, STATE_AWAITING_DATE)
             new_context = {**context, "date": reply["id"], "date_label": _date_label(reply["id"]), _HISTORY_KEY: history}
@@ -394,19 +406,21 @@ async def _handle_awaiting_date(
             await _send_time_menu(
                 wa, phone, hospital_id, doctor_id, reply["id"], connector, language=language,
                 resource_id=resource_id, procedure_id=procedure_id,
+                party_size=party_size, table_department_id=table_department_id,
             )
             return
     # Dates are dynamic (another patient's booking can take the doctor's only
     # slot on a given date between this menu being sent and this reply) --
     # recheck rather than blindly re-send, same discipline as every other
     # dynamic-availability step in this file.
-    if not _get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id):
+    if not _get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id, party_size, table_department_id):
         await _notify_no_slots_available(wa, sessions, hospital_id, phone, doctor_name, language=language)
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_DATE, context)
     await _send_date_menu(
         wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language,
         resource_id=resource_id, procedure_id=procedure_id,
+        party_size=party_size, table_department_id=table_department_id,
     )
 
 
@@ -421,9 +435,11 @@ async def _handle_awaiting_time_slot(
     doctor_id = context.get("doctor_id")
     resource_id = context.get("resource_id")
     procedure_id = context.get("procedure_id")
+    party_size = context.get("party_size")
+    table_department_id = context.get("department_id") if party_size is not None else None
     doctor_name = context.get("doctor_name", "")
     date_str = context.get("date")
-    if (not doctor_id and not resource_id and not procedure_id) or not date_str:
+    if (not doctor_id and not resource_id and not procedure_id and party_size is None) or not date_str:
         sessions.reset(hospital_id, phone)
         await _send_main_menu(wa, phone, "the hospital", language=language)
         return
@@ -432,7 +448,10 @@ async def _handle_awaiting_time_slot(
         if reply["id"] == BACK_ID:
             await _handle_back_navigation(wa, sessions, phone, hospital_id, context, connector, language=language)
             return
-        slot = _find_by_id(_get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id), reply["id"])
+        slot = _find_by_id(
+            _get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id, party_size, table_department_id),
+            reply["id"],
+        )
         if slot and slot["date"] == date_str:
             new_context = {
                 **context,
@@ -459,7 +478,10 @@ async def _handle_awaiting_time_slot(
             return
     # Times are dynamic for the same reason dates are above -- recheck this
     # exact date's availability rather than blindly re-sending a stale list.
-    if not any(s["date"] == date_str for s in _get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id)):
+    if not any(
+        s["date"] == date_str
+        for s in _get_slots(connector, hospital_id, doctor_id, resource_id, procedure_id, party_size, table_department_id)
+    ):
         # This date specifically emptied out (not necessarily the whole
         # doctor) -- step back to date selection rather than a full reset,
         # so the patient picks a different date instead of starting over.
@@ -467,12 +489,14 @@ async def _handle_awaiting_time_slot(
         await _send_date_menu(
             wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language,
             min_date=context.get("followup_previous_visit_date"), resource_id=resource_id, procedure_id=procedure_id,
+            party_size=party_size, table_department_id=table_department_id,
         )
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_TIME_SLOT, context)
     await _send_time_menu(
         wa, phone, hospital_id, doctor_id, date_str, connector, language=language,
         resource_id=resource_id, procedure_id=procedure_id,
+        party_size=party_size, table_department_id=table_department_id,
     )
 
 
@@ -593,6 +617,24 @@ async def _create_booking_and_notify(
                 patient_age=context.get("patient_age"),
                 patient_id=context.get("active_patient_id"),
                 procedure_order_reference=context.get("procedure_order_reference"),
+            )
+        elif context.get("party_size") is not None:
+            # Stage 4 (table-availability): which table gets assigned is
+            # resolved inside create_table_reservation()'s own advisory lock
+            # (nearest-fit by capacity) -- never picked by the guest, and
+            # never known until this exact call. department_id here is the
+            # guest's optional section preference (None = no preference,
+            # resolved to the assigned table's own section instead).
+            appointment = connector.create_table_reservation(
+                hospital_id=hospital_id,
+                phone=phone,
+                party_size=context["party_size"],
+                scheduled_at=scheduled_at,
+                department_id=context.get("department_id"),
+                patient_name=context.get("patient_name"),
+                patient_age=context.get("patient_age"),
+                patient_id=context.get("active_patient_id"),
+                appointment_type_id=context.get("appointment_type_id"),
             )
         else:
             appointment = connector.create_booking(

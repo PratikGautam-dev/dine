@@ -12,6 +12,25 @@ CHANGE_APPOINTMENT_TYPE_OPTION = "change_appointment_type_option"
 CONSENT_PROMPT = "consent_prompt"
 CONSENT_AGREE_BUTTON = "consent_agree_button"
 CONSENT_DECLINED = "consent_declined"
+# Stage 4 (table-availability): party size -> optional section preference
+# -> date -> time -> auto-assigned table -> confirm. The guest never picks a
+# table by name (ARCHITECTURE_REFERENCE_FOR_FORKING.md Section 4, confirmed
+# with the user) -- these replace department/doctor selection for this flow
+# only; the department/doctor keys above stay as-is for any other type.
+ASK_PARTY_SIZE = "ask_party_size"
+PARTY_SIZE_SECTION_TITLE = "party_size_section_title"
+VIEW_PARTY_SIZES_BUTTON = "view_party_sizes_button"
+PARTY_SIZE_LARGE_OPTION = "party_size_large_option"
+LARGE_PARTY_HANDOFF_TEXT = "large_party_handoff_text"
+ASK_TABLE_SECTION = "ask_table_section"
+TABLE_SECTIONS_SECTION_TITLE = "table_sections_section_title"
+VIEW_TABLE_SECTIONS_BUTTON = "view_table_sections_button"
+NO_SECTION_PREFERENCE_OPTION = "no_section_preference_option"
+ASK_RESERVATION_DATE_FOR_PARTY = "ask_reservation_date_for_party"
+NO_TABLES_AVAILABLE = "no_tables_available"
+TABLE_RESERVATION_CONFIRMATION_SUMMARY = "table_reservation_confirmation_summary"
+TABLE_RESERVATION_CONFIRMED = "table_reservation_confirmed"
+
 SELECT_DEPARTMENT = "select_department"
 VIEW_DEPARTMENTS_BUTTON = "view_departments_button"
 DEPARTMENTS_SECTION_TITLE = "departments_section_title"
@@ -343,6 +362,85 @@ STRINGS: dict[str, dict[Language, str]] = {
     CONFIRM_BUTTON: {"en": "Confirm", "hi": "पुष्टि करें"},
     CANCEL_BUTTON: {"en": "Cancel", "hi": "रद्द करें"},
 
+    # Stage 4 (table-availability): party size -> optional section
+    # preference -> date -> time -> auto-assigned table -> confirm.
+    ASK_PARTY_SIZE: {
+        "en": "How many guests will be joining?",
+        "hi": "कितने मेहमान शामिल होंगे?",
+    },
+    PARTY_SIZE_SECTION_TITLE: {"en": "Party Size", "hi": "पार्टी का आकार"},
+    VIEW_PARTY_SIZES_BUTTON: {"en": "Select", "hi": "चुनें"},
+    PARTY_SIZE_LARGE_OPTION: {"en": "9 or more", "hi": "9 या अधिक"},
+    LARGE_PARTY_HANDOFF_TEXT: {
+        "en": (
+            "For parties of 9 or more, our host will help arrange the best seating for your group.\n\n"
+            "We've let the restaurant know — they'll reach out to you shortly."
+        ),
+        "hi": (
+            "9 या अधिक मेहमानों के लिए, हमारा होस्ट आपके समूह के लिए सबसे अच्छी बैठने की व्यवस्था करने में मदद करेगा।\n\n"
+            "हमने रेस्तरां को सूचित कर दिया है — वे जल्द ही आपसे संपर्क करेंगे।"
+        ),
+    },
+    ASK_TABLE_SECTION: {
+        "en": "Any section preference?",
+        "hi": "कोई सेक्शन पसंद है?",
+    },
+    TABLE_SECTIONS_SECTION_TITLE: {"en": "Sections", "hi": "सेक्शन"},
+    VIEW_TABLE_SECTIONS_BUTTON: {"en": "Select", "hi": "चुनें"},
+    NO_SECTION_PREFERENCE_OPTION: {"en": "No preference", "hi": "कोई पसंद नहीं"},
+    ASK_RESERVATION_DATE_FOR_PARTY: {
+        "en": "Please choose your preferred date for {party_size} guest(s):",
+        "hi": "कृपया {party_size} मेहमानों के लिए अपनी पसंदीदा तारीख चुनें:",
+    },
+    NO_TABLES_AVAILABLE: {
+        "en": "Sorry, we don't have a table available for that party size right now. Please try a different size or contact us directly.",
+        "hi": "क्षमा करें, अभी इतने मेहमानों के लिए कोई टेबल उपलब्ध नहीं है। कृपया एक अलग संख्या आज़माएं या सीधे हमसे संपर्क करें।",
+    },
+    TABLE_RESERVATION_CONFIRMATION_SUMMARY: {
+        "en": (
+            "*Confirm Reservation Details:*\n"
+            "👤 Guest: {patient_name}\n"
+            "🍽️ Party Size: {party_size}\n"
+            "{section_line}"
+            "📅 Date: {date_label}\n"
+            "🕐 Time: {time_label}\n\n"
+            "{fee_line}"
+            "We'll have a table ready for you. Please review the details before confirming."
+        ),
+        "hi": (
+            "*रिज़र्वेशन विवरण की पुष्टि करें:*\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🍽️ पार्टी का आकार: {party_size}\n"
+            "{section_line}"
+            "📅 तारीख: {date_label}\n"
+            "🕐 समय: {time_label}\n\n"
+            "{fee_line}"
+            "हम आपके लिए एक टेबल तैयार रखेंगे। कृपया पुष्टि करने से पहले विवरण की समीक्षा करें।"
+        ),
+    },
+    TABLE_RESERVATION_CONFIRMED: {
+        "en": (
+            "✅ *Reservation Confirmed*\n\n"
+            "Your table reservation has been successfully booked.\n\n"
+            "🆔 Reservation ID: {reference_id}\n"
+            "👤 Guest: {patient_name}\n"
+            "🍽️ Party Size: {party_size}\n"
+            "📅 Date: {date_label}\n"
+            "🕐 Time: {time_label}\n\n"
+            "Please arrive on time — we look forward to seeing you."
+        ),
+        "hi": (
+            "✅ *रिज़र्वेशन की पुष्टि हो गई*\n\n"
+            "आपका टेबल रिज़र्वेशन सफलतापूर्वक बुक हो गया है।\n\n"
+            "🆔 रिज़र्वेशन आईडी: {reference_id}\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🍽️ पार्टी का आकार: {party_size}\n"
+            "📅 तारीख: {date_label}\n"
+            "🕐 समय: {time_label}\n\n"
+            "कृपया समय पर पहुंचें — हम आपका इंतज़ार करेंगे।"
+        ),
+    },
+
     # Confirmation's own Back routes here instead of popping one field --
     # "which one field" isn't knowable, so this asks instead of guessing.
     WHAT_WOULD_YOU_LIKE_TO_CHANGE: {
@@ -361,7 +459,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "Your reservation has been successfully booked.\n\n"
             "🆔 Reservation ID: {reference_id}\n"
             "👤 Guest: {patient_name}\n"
-            "🏥 Department: {department_name}\n"
+            "📍 Section: {department_name}\n"
             "🪑 Table: {doctor_name}\n"
             "📅 Date: {date_label}\n"
             "🕐 Time: {time_label}\n\n"
@@ -373,7 +471,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "आपका रिज़र्वेशन सफलतापूर्वक बुक हो गया है।\n\n"
             "🆔 रिज़र्वेशन आईडी: {reference_id}\n"
             "👤 अतिथि: {patient_name}\n"
-            "🏥 विभाग: {department_name}\n"
+            "📍 सेक्शन: {department_name}\n"
             "🪑 टेबल: {doctor_name}\n"
             "📅 तारीख: {date_label}\n"
             "🕐 समय: {time_label}\n\n"
@@ -461,7 +559,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "👤 Guest: {patient_name}\n"
             "🆔 Guest ID: {patient_code}\n"
             "📋 Reservation Type: {appointment_type_label}\n"
-            "🏥 Department: {department_name}\n"
+            "📍 Section: {department_name}\n"
             "🪑 Table: {doctor_name}\n"
             "🔁 Previous Visit: {previous_visit_label}\n"
             "📅 Reservation Date: {date_label}\n"
@@ -474,7 +572,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "👤 अतिथि: {patient_name}\n"
             "🆔 अतिथि आईडी: {patient_code}\n"
             "📋 रिज़र्वेशन प्रकार: {appointment_type_label}\n"
-            "🏥 विभाग: {department_name}\n"
+            "📍 सेक्शन: {department_name}\n"
             "🪑 टेबल: {doctor_name}\n"
             "🔁 पिछली मुलाकात: {previous_visit_label}\n"
             "📅 रिज़र्वेशन तारीख: {date_label}\n"
@@ -490,7 +588,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "🆔 Reservation ID: {reference_id}\n"
             "👤 Guest: {patient_name}\n"
             "🪑 Table: {doctor_name}\n"
-            "🏥 Department: {department_name}\n"
+            "📍 Section: {department_name}\n"
             "📅 Date: {date_label}\n"
             "🕐 Time: {time_label}\n\n"
             "Please arrive 15 minutes before your reservation.\n\n"
@@ -502,7 +600,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "🆔 रिज़र्वेशन आईडी: {reference_id}\n"
             "👤 अतिथि: {patient_name}\n"
             "🪑 टेबल: {doctor_name}\n"
-            "🏥 विभाग: {department_name}\n"
+            "📍 सेक्शन: {department_name}\n"
             "📅 तारीख: {date_label}\n"
             "🕐 समय: {time_label}\n\n"
             "कृपया अपने रिज़र्वेशन से 15 मिनट पहले पहुंचें।\n\n"
@@ -799,7 +897,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "Booking ID: {reference_id}\n"
             "Guest: {patient_name}\n"
             "Procedure: {procedure_name}\n"
-            "Department: {department_name}\n"
+            "Section: {department_name}\n"
             "Date: {date_label}\n"
             "Time: {time_label}\n\n"
             "Please arrive as instructed and carry the required documents/orders."
@@ -809,7 +907,7 @@ STRINGS: dict[str, dict[Language, str]] = {
             "बुकिंग आईडी: {reference_id}\n"
             "अतिथि: {patient_name}\n"
             "प्रक्रिया: {procedure_name}\n"
-            "विभाग: {department_name}\n"
+            "सेक्शन: {department_name}\n"
             "तारीख: {date_label}\n"
             "समय: {time_label}\n\n"
             "कृपया निर्देशानुसार समय पर पहुंचें और आवश्यक दस्तावेज़/आदेश साथ लाएं।"

@@ -38,6 +38,7 @@ from core.translations.patient_identity import (
 from core.translations.booking import (
     APPOINTMENT_TYPES_SECTION_TITLE,
     ASK_PATIENT_NAME,
+    ASK_RESERVATION_DATE_FOR_PARTY,
     AVAILABLE_DATES_SECTION_TITLE,
     AVAILABLE_SLOTS_SECTION_TITLE,
     AVAILABLE_TIMES_SECTION_TITLE,
@@ -93,6 +94,7 @@ from flows.booking.state import (
     MAIN_MENU_RESCHEDULE, STATE_AWAITING_APPOINTMENT_TYPE, STATE_AWAITING_COLLECTION_METHOD, STATE_AWAITING_DATE,
     STATE_AWAITING_PROCEDURE, STATE_AWAITING_PROCEDURE_REQUEST_CONFIRM,
     STATE_AWAITING_DEPARTMENT, STATE_AWAITING_DIAGNOSTIC_TEST, STATE_AWAITING_DIAGNOSTIC_VARIANT,
+    STATE_AWAITING_PARTY_SIZE, STATE_AWAITING_TABLE_SECTION,
     STATE_AWAITING_FOLLOWUP_SELECTION, STATE_AWAITING_LAB_TEST,
     STATE_AWAITING_LAB_TEST_VARIANT,
     STATE_AWAITING_DOCTOR, STATE_AWAITING_PATIENT_NAME, STATE_AWAITING_PATIENT_SELECTION,
@@ -431,7 +433,7 @@ async def _send_slot_menu(
 async def _send_date_menu(
     wa: WhatsAppClient, phone: str, hospital_id: int, doctor_id: str | None, doctor_name: str, connector: Connector,
     language: str = "en", min_date: str | None = None, resource_id: str | None = None,
-    procedure_id: int | None = None,
+    procedure_id: int | None = None, party_size: int | None = None, table_department_id: str | None = None,
 ) -> None:
     """Section 12.12, booking flow's step 1 of the date/time split: the
     distinct dates (soonest first, since get_available_slots() is already
@@ -452,8 +454,14 @@ async def _send_date_menu(
     that same param, by callers that set resource_id).
 
     procedure_id (Daycare/Procedure rebuild): an instant-booking procedure's
-    own multi-resource-constraint availability, same override shape."""
-    if procedure_id is not None:
+    own multi-resource-constraint availability, same override shape.
+
+    party_size (Stage 4, table-availability): same override shape -- the
+    body text differs too (no "Table X selected" framing, since which table
+    gets assigned isn't known until confirmation)."""
+    if party_size is not None:
+        slots = connector.get_available_table_slots(hospital_id, party_size, table_department_id)
+    elif procedure_id is not None:
         slots = connector.get_procedure_available_slots(hospital_id, procedure_id)
     elif resource_id is not None:
         slots = connector.get_available_resource_slots(hospital_id, resource_id)
@@ -466,9 +474,13 @@ async def _send_date_menu(
             dates_seen.append(s["date"])
     rows = [{"id": d, "title": _date_label(d)} for d in dates_seen]
     rows = _cap_rows(rows, f"date menu for doctor {doctor_id}")
+    body_text = (
+        t(ASK_RESERVATION_DATE_FOR_PARTY, language, party_size=party_size) if party_size is not None
+        else t(DOCTOR_SELECTED_ASK_DATE, language, doctor_name=doctor_name)
+    )
     await wa.send_list(
         to=phone,
-        body_text=t(DOCTOR_SELECTED_ASK_DATE, language, doctor_name=doctor_name),
+        body_text=body_text,
         button_text=t(VIEW_DATES_BUTTON, language),
         sections=[{"title": t(AVAILABLE_DATES_SECTION_TITLE, language), "rows": rows}],
     )
@@ -478,6 +490,7 @@ async def _send_date_menu(
 async def _send_time_menu(
     wa: WhatsAppClient, phone: str, hospital_id: int, doctor_id: str | None, date_str: str, connector: Connector,
     language: str = "en", resource_id: str | None = None, procedure_id: int | None = None,
+    party_size: int | None = None, table_department_id: str | None = None,
 ) -> None:
     """Section 12.12, step 2 of the date/time split: just this doctor's slots
     ON date_str, row title is the bare time (the date's already been picked,
@@ -487,8 +500,11 @@ async def _send_time_menu(
     inheriting whatever headroom the date cap left.
 
     resource_id (Diagnostic/Lab Phase 2)/procedure_id (Daycare/Procedure
-    rebuild): same override as _send_date_menu."""
-    if procedure_id is not None:
+    rebuild)/party_size (Stage 4, table-availability): same override as
+    _send_date_menu."""
+    if party_size is not None:
+        slots = connector.get_available_table_slots(hospital_id, party_size, table_department_id)
+    elif procedure_id is not None:
         slots = connector.get_procedure_available_slots(hospital_id, procedure_id)
     elif resource_id is not None:
         slots = connector.get_available_resource_slots(hospital_id, resource_id)
@@ -549,14 +565,18 @@ async def _handle_slot_taken(
     doctor_id = context.get("doctor_id")
     resource_id = context.get("resource_id")
     procedure_id = context.get("procedure_id")
+    party_size = context.get("party_size")
+    table_department_id = context.get("department_id") if party_size is not None else None
     doctor_name = context.get("doctor_name", "")
-    if doctor_id is None and resource_id is None and procedure_id is None:
+    if doctor_id is None and resource_id is None and procedure_id is None and party_size is None:
         # Corrupted/stale context -- nothing to recover a slot list for.
         sessions.reset(hospital_id, phone)
         await _send_main_menu(wa, phone, "the hospital", language=language)
         return
-    logger.info("Double-booking race: hospital=%s doctor=%s resource=%s procedure=%s slot=%s already taken", hospital_id, doctor_id, resource_id, procedure_id, context.get("slot_id"))
-    if procedure_id is not None:
+    logger.info("Double-booking race: hospital=%s doctor=%s resource=%s procedure=%s party_size=%s slot=%s already taken", hospital_id, doctor_id, resource_id, procedure_id, party_size, context.get("slot_id"))
+    if party_size is not None:
+        available = connector.get_available_table_slots(hospital_id, party_size, table_department_id)
+    elif procedure_id is not None:
         available = connector.get_procedure_available_slots(hospital_id, procedure_id)
     elif resource_id is not None:
         available = connector.get_available_resource_slots(hospital_id, resource_id)
@@ -583,6 +603,7 @@ async def _handle_slot_taken(
         await _send_time_menu(
             wa, phone, hospital_id, doctor_id, date_str, connector, language=language,
             resource_id=resource_id, procedure_id=procedure_id,
+            party_size=party_size, table_department_id=table_department_id,
         )
         return
     await _send_slot_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language)
@@ -722,16 +743,29 @@ async def _resend_menu_for_state(
             wa, phone, hospital_id, context["department_id"], context["department_name"], connector,
             language=language,
         )
+    elif state == STATE_AWAITING_PARTY_SIZE:
+        # Stage 4 (table-availability): lazy import, same cycle-avoidance
+        # reason STATE_AWAITING_PROCEDURE's own case above uses.
+        from flows.booking.types.table_reservation import _send_party_size_menu
+        await _send_party_size_menu(wa, phone, language=language)
+    elif state == STATE_AWAITING_TABLE_SECTION:
+        from flows.booking.types.table_reservation import _send_table_section_menu
+        await _send_table_section_menu(wa, phone, hospital_id, connector, language=language)
     elif state == STATE_AWAITING_DATE:
+        party_size = context.get("party_size")
         await _send_date_menu(
-            wa, phone, hospital_id, context.get("doctor_id"), context["doctor_name"], connector, language=language,
+            wa, phone, hospital_id, context.get("doctor_id"), context.get("doctor_name", ""), connector,
+            language=language,
             min_date=context.get("followup_previous_visit_date"), resource_id=context.get("resource_id"),
             procedure_id=context.get("procedure_id"),
+            party_size=party_size, table_department_id=context.get("department_id") if party_size is not None else None,
         )
     elif state == STATE_AWAITING_TIME_SLOT:
+        party_size = context.get("party_size")
         await _send_time_menu(
             wa, phone, hospital_id, context.get("doctor_id"), context["date"], connector, language=language,
             resource_id=context.get("resource_id"), procedure_id=context.get("procedure_id"),
+            party_size=party_size, table_department_id=context.get("department_id") if party_size is not None else None,
         )
     elif state == STATE_AWAITING_PROCEDURE:
         # Lazy import: avoids this module -> types.registry -> procedure cycle,
