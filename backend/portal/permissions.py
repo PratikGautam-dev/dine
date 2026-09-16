@@ -35,10 +35,20 @@ PAGE_SCHEDULE = "schedule"  # a doctor's own working hours/breaks/leave editor
 # Diagnostic Tests management page (tests/variants + resources/machines) --
 # same weight as PAGE_DOCTORS, off by default for receptionist/doctor.
 PAGE_DIAGNOSTIC_TESTS = "diagnostic_tests"
+# Food ordering plan, Sub-stage 4: menu-item CRUD and the orders list/detail
+# + status-action page, split into two page keys (unlike manage_food_ordering
+# being one tenant-level capability) since a role reasonably might need one
+# without the other (e.g. a kitchen-facing role that only touches orders,
+# never edits the menu) -- same granularity PAGE_DOCTORS/PAGE_SCHEDULE
+# already split for an analogous "manage the catalog" vs. "work the
+# day-to-day" distinction.
+PAGE_FOOD_MENU = "food_menu"
+PAGE_FOOD_ORDERS = "food_orders"
 
 ALL_PAGES = {
     PAGE_DASHBOARD, PAGE_APPOINTMENTS, PAGE_PATIENTS, PAGE_DOCTORS,
     PAGE_MESSAGES, PAGE_SETTINGS, PAGE_STAFF, PAGE_ROLES, PAGE_SCHEDULE, PAGE_DIAGNOSTIC_TESTS,
+    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS,
 }
 ACTIONS = ("view", "write", "delete")
 
@@ -68,6 +78,8 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_ROLES: dict(_NONE),
         PAGE_SCHEDULE: dict(_NONE),
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
+        PAGE_FOOD_MENU: dict(_VIEW_WRITE),
+        PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
     },
     "doctor": {
         PAGE_DASHBOARD: dict(_VIEW_ONLY),
@@ -84,6 +96,8 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         # through /portal/doctors regardless.
         PAGE_SCHEDULE: dict(_VIEW_WRITE),
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
+        PAGE_FOOD_MENU: dict(_NONE),
+        PAGE_FOOD_ORDERS: dict(_NONE),
     },
 }
 

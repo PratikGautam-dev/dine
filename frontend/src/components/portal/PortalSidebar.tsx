@@ -3,12 +3,14 @@
 import {
   CalendarCheck,
   CalendarClock,
+  ClipboardList,
   LayoutDashboard,
   LogOut,
   MessageCircle,
   Settings,
   ShieldCheck,
-  Stethoscope,
+  Soup,
+  UtensilsCrossed,
   Users,
   X,
 } from "lucide-react";
@@ -27,7 +29,12 @@ const NAV_ITEMS = [
   { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments" },
   { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients" },
   { key: "schedule", label: "Schedule", icon: CalendarClock, href: "/portal/schedule", pageKey: "schedule" },
-  { key: "doctors", label: "Tables", icon: Stethoscope, href: "/portal/doctors", pageKey: "doctors" },
+  { key: "doctors", label: "Tables", icon: UtensilsCrossed, href: "/portal/doctors", pageKey: "doctors" },
+  // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,
+  // portal/permissions.py) since a role reasonably might need one without
+  // the other -- same split PAGE_DOCTORS/PAGE_SCHEDULE already use.
+  { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu" },
+  { key: "food-orders", label: "Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders" },
   { key: "messages", label: "Messages", icon: MessageCircle, href: "/portal/messages", pageKey: "messages" },
   { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings" },
   { key: "staff", label: "Staff", icon: Users, href: "/portal/settings/staff", pageKey: "staff" },

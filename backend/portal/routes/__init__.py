@@ -9,6 +9,7 @@ from portal.routes.auth import router as auth_router
 from portal.routes.bookings import router as bookings_router
 from portal.routes.dashboard import router as dashboard_router
 from portal.routes.doctors import router as doctors_router
+from portal.routes.food_ordering import router as food_ordering_router
 from portal.routes.handoffs import router as handoffs_router
 from portal.routes.patients import router as patients_router
 from portal.routes.procedures import router as procedures_router
@@ -25,6 +26,7 @@ router.include_router(bookings_router)
 router.include_router(doctors_router)
 router.include_router(appointment_types_router)
 router.include_router(procedures_router)
+router.include_router(food_ordering_router)
 router.include_router(settings_router)
 router.include_router(handoffs_router)
 # RBAC (docs/rbac-redis-plan.md): unified staff login + the roles/permissions

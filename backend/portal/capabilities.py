@@ -29,10 +29,20 @@ MANAGE_STAFF = "manage_staff"
 # from catalog-only edits. Hospital-tier only, same default tier as
 # MANAGE_DOCTORS/MANAGE_DEPARTMENTS.
 MANAGE_PROCEDURES = "manage_procedures"
+# Food ordering plan, Sub-stage 4: menu-item CRUD, order-status-transition
+# actions, and daily stock reset -- one capability covering all three, not
+# split further (they're one tightly-coupled admin surface, unlike
+# MANAGE_PROCEDURES' own deliberate split from MANAGE_APPOINTMENT_TYPES for
+# a genuinely distinct resource-pool concern). Default for BOTH tenant
+# types (unlike MANAGE_DOCTORS/MANAGE_PROCEDURES, hospital-tier only) --
+# food ordering is a core restaurant capability, not a bigger-tenant-only
+# admin surface, the same reasoning MANAGE_BOOKINGS/MANAGE_SETTINGS are
+# already on both tiers' default set.
+MANAGE_FOOD_ORDERING = "manage_food_ordering"
 
 ALL_CAPABILITIES = {
     MANAGE_DOCTORS, MANAGE_DEPARTMENTS, MANAGE_APPOINTMENT_TYPES,
-    MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES,
+    MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES, MANAGE_FOOD_ORDERING,
 }
 
 # Single source of truth for both the onboarding-time default AND
@@ -42,9 +52,9 @@ ALL_CAPABILITIES = {
 DEFAULT_CAPABILITIES_BY_TYPE: dict[str, set[str]] = {
     "hospital": {
         MANAGE_DOCTORS, MANAGE_DEPARTMENTS, MANAGE_APPOINTMENT_TYPES,
-        MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES,
+        MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES, MANAGE_FOOD_ORDERING,
     },
-    "clinic": {MANAGE_BOOKINGS, MANAGE_SETTINGS},
+    "clinic": {MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_FOOD_ORDERING},
 }
 
 
