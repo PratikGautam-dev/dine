@@ -434,3 +434,54 @@ def update_hospital(
     return updated
 
 
+# --- Razorpay credentials (food ordering, migration 0031) ---
+# New standalone functions, same "don't touch update_hospital()'s existing
+# signature/callers" discipline update_restaurant_hours() already established
+# for hospital_settings -- Razorpay credentials aren't part of the
+# onboarding/tenant-edit form's existing field set.
+
+def set_razorpay_credentials(hospital_id: int, key_id: str, key_secret: str, webhook_secret: str) -> None:
+    """key_secret/webhook_secret are encrypted at rest via core/crypto.py
+    (RAZORPAY_TOKEN_ENCRYPTION_KEY) before being stored in
+    razorpay_key_secret_ref/razorpay_webhook_secret_ref -- key_id itself is
+    NOT a secret (Razorpay's own public identifier, analogous to a client
+    id) and is stored as plain text, same as whatsapp_phone_number_id."""
+    from core.config import get_settings
+    from core.crypto import encrypt_secret
+
+    encryption_key = get_settings().RAZORPAY_TOKEN_ENCRYPTION_KEY
+    session = get_session()
+    session.execute(
+        update(HospitalRow).where(HospitalRow.id == hospital_id).values(
+            razorpay_key_id=key_id,
+            razorpay_key_secret_ref=encrypt_secret(key_secret, encryption_key),
+            razorpay_webhook_secret_ref=encrypt_secret(webhook_secret, encryption_key),
+        )
+    )
+    session.commit()
+
+
+def get_razorpay_credentials(hospital_id: int) -> dict | None:
+    """Returns {"key_id", "key_secret", "webhook_secret"} (decrypted) or None
+    if the hospital hasn't configured Razorpay yet (any of the three columns
+    still NULL) -- same "unconfigured, not a crash" discipline every other
+    optional-integration read point in this codebase uses (e.g. Google
+    Calendar's own connection-status check)."""
+    from core.config import get_settings
+    from core.crypto import decrypt_secret
+
+    session = get_session()
+    row = session.execute(
+        select(HospitalRow.razorpay_key_id, HospitalRow.razorpay_key_secret_ref, HospitalRow.razorpay_webhook_secret_ref)
+        .where(HospitalRow.id == hospital_id)
+    ).first()
+    if row is None or row.razorpay_key_id is None or row.razorpay_key_secret_ref is None or row.razorpay_webhook_secret_ref is None:
+        return None
+    encryption_key = get_settings().RAZORPAY_TOKEN_ENCRYPTION_KEY
+    return {
+        "key_id": row.razorpay_key_id,
+        "key_secret": decrypt_secret(row.razorpay_key_secret_ref, encryption_key),
+        "webhook_secret": decrypt_secret(row.razorpay_webhook_secret_ref, encryption_key),
+    }
+
+

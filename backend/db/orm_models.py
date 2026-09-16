@@ -281,6 +281,116 @@ class DoctorRow(Base):
     password_hash: Mapped[str | None]
 
 
+class TableRow(Base):
+    """db/schema.sql's tables table (migration 0030, Stage 4) -- a single-
+    pool bookable resource, unlike DoctorRow/ProcedureResource: no
+    working_days/working_hours/slot_duration_minutes/max_bookings_per_slot
+    columns, since restaurant operating hours are shared across every table
+    (see hospital_settings' own new columns) rather than scheduled per-table,
+    and a table holds exactly one party at a time by definition. Named
+    TableRow, not Table, to leave that name free for a future dataclass (same
+    precedent DoctorRow/AppointmentRow's own docstrings establish) and to
+    avoid colliding with sqlalchemy's own Table construct."""
+    __tablename__ = "tables"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    department_id: Mapped[str] = mapped_column(ForeignKey("departments.id"))
+    name: Mapped[str]
+    capacity: Mapped[int]
+    is_active: Mapped[bool]
+
+
+class TableLeave(Base):
+    """db/schema.sql's table_leave table (migration 0030) -- mirrors
+    ProcedureResourceLeave: a one-off date a specific table is unavailable
+    (maintenance, a private buyout), on top of the shared restaurant
+    operating hours every table otherwise follows."""
+    __tablename__ = "table_leave"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    table_id: Mapped[str] = mapped_column(ForeignKey("tables.id"))
+    date: Mapped[str]
+    reason: Mapped[str | None]
+
+
+class MenuItem(Base):
+    """db/schema.sql's menu_items table (migration 0031, food ordering
+    Sub-stage 1) -- id follows TableRow's own opaque "h{hospital_id}_{uuid8}"
+    TEXT id convention (create_table()/create_department()), assigned in
+    application code, not this model. stock_count is nullable = unlimited;
+    v1's "sold out today" design is a plain atomic decrement/reset on this
+    column (confirmed with the user), not a time-window/capacity concept."""
+    __tablename__ = "menu_items"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    name: Mapped[str]
+    description: Mapped[str | None]
+    price_paise: Mapped[int]
+    category: Mapped[str | None]
+    is_available: Mapped[bool]
+    stock_count: Mapped[int | None]
+    created_at: Mapped[str]
+    updated_at: Mapped[str]
+
+
+class FoodOrder(Base):
+    """db/schema.sql's food_orders table (migration 0031, food ordering
+    Sub-stage 1) -- NOT a resource-pool booking (no doctor/table/procedure
+    slot is reserved), so it's a standalone table, not another row shape
+    packed into appointments. patient_id reuses the existing patients/
+    patient_links guest-identity system directly (confirmed with the user)
+    -- no parallel "customers" table. reference_id is ORD-<DDMMYY>-<NNN>,
+    its own independent daily counter (db/display_ids.py, reference_id_
+    counters widened to (hospital_id, day, prefix) by this same migration)
+    so it can never collide with or be confused for an appointment's
+    APT-<DDMMYY>-<NNN> reference_id. status transitions (Sub-stage 2) use a
+    guarded UPDATE ... WHERE status = '<prior-state>', not this repo's
+    advisory-lock pattern -- there's no shared resource pool being
+    contended over for a food order."""
+    __tablename__ = "food_orders"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    patient_id: Mapped[int | None] = mapped_column(ForeignKey("patients.id"))
+    phone: Mapped[str]
+    status: Mapped[str]
+    fulfillment_type: Mapped[str | None]
+    delivery_address: Mapped[str | None]
+    subtotal_paise: Mapped[int]
+    delivery_fee_paise: Mapped[int | None]
+    total_paise: Mapped[int]
+    razorpay_order_id: Mapped[str | None]
+    razorpay_payment_id: Mapped[str | None]
+    # migration 0032 -- the actual Payment Links URL sent to the guest (see
+    # modules/payments/razorpay_client.py's create_payment_link() docstring
+    # for why the Orders API's own id alone isn't enough for this product's
+    # WhatsApp-text delivery mechanism).
+    razorpay_payment_link_url: Mapped[str | None]
+    reference_id: Mapped[str | None]
+    created_at: Mapped[str]
+    updated_at: Mapped[str]
+
+
+class FoodOrderItem(Base):
+    """db/schema.sql's food_order_items table (migration 0031) --
+    item_name_snapshot/unit_price_paise_snapshot are captured AT ORDER TIME,
+    not read live off MenuItem, so editing a menu item's name/price later
+    never retroactively changes an already-placed order -- same "don't
+    reinterpret a historical booking" precedent appointments.
+    turnover_minutes established (migration 0030)."""
+    __tablename__ = "food_order_items"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    order_id: Mapped[int] = mapped_column(ForeignKey("food_orders.id"))
+    menu_item_id: Mapped[str] = mapped_column(ForeignKey("menu_items.id"))
+    item_name_snapshot: Mapped[str]
+    unit_price_paise_snapshot: Mapped[int]
+    quantity: Mapped[int]
+
+
 class AppointmentRow(Base):
     """db/schema.sql's appointments table -- the FULL, authoritative mapping,
     per appointments.py's own migration (closing the "partial, extend later"
@@ -331,6 +441,14 @@ class AppointmentRow(Base):
     procedure_estimated_price_max: Mapped[float | None] = mapped_column(Numeric(10, 2))
     procedure_order_reference: Mapped[str | None]
     procedure_reschedule_requested_at: Mapped[str | None]
+    # Stage 4 (migration 0030): which table this reservation is assigned to
+    # (None for every other appointment type -- see the doctor_or_resource_
+    # or_procedure_or_table check constraint), the party size, and the
+    # turnover duration stamped at booking time (not dynamically read from
+    # hospital_settings.default_turnover_minutes on every read).
+    table_id: Mapped[str | None] = mapped_column(ForeignKey("tables.id"))
+    party_size: Mapped[int | None]
+    turnover_minutes: Mapped[int | None]
 
 
 class AppointmentReminder(Base):
@@ -433,6 +551,13 @@ class HospitalRow(Base):
     # patients. Nullable at the DB level for the same reason
     # CareConnectAccount.display_id is -- see that model's own comment.
     display_id: Mapped[str | None]
+    # migration 0031 (food ordering) -- same per-tenant credential-storage
+    # shape as whatsapp_phone_number_id/meta_access_token_ref/app_secret_ref
+    # above; "_ref" suffix on the two secret-bearing columns matches that
+    # existing naming (a secret-store reference, not the raw secret).
+    razorpay_key_id: Mapped[str | None]
+    razorpay_key_secret_ref: Mapped[str | None]
+    razorpay_webhook_secret_ref: Mapped[str | None]
 
 
 class PatientRow(Base):
@@ -697,6 +822,16 @@ class HospitalSettings(Base):
     # Test booking's price review, same "unset omits the line" convention as
     # the two fees above.
     home_collection_charge: Mapped[float | None] = mapped_column(Numeric(10, 2))
+    # Stage 4 (migration 0030): restaurant-wide operating hours/turnover --
+    # shared across every table (confirmed with the user), not scheduled
+    # per-table the way a doctor's working_days/working_hours are. NULL
+    # operating_days/operating_hours means "not configured yet" (no code
+    # reads these until Stage 2's availability logic exists); the two
+    # duration columns have real DB defaults so they're never NULL.
+    operating_days: Mapped[str | None]
+    operating_hours: Mapped[str | None]
+    default_turnover_minutes: Mapped[int]
+    booking_interval_minutes: Mapped[int]
 
 
 # Dine Connect fork: GoogleCalendarConnection (google_calendar_connections

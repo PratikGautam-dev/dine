@@ -100,6 +100,18 @@ class Settings(BaseSettings):
     # itself is blocked with a clean error until this is set.
     CALENDAR_TOKEN_ENCRYPTION_KEY: str = ""
 
+    # Food ordering (Razorpay) -- per-tenant credentials live on hospitals.
+    # razorpay_key_id/razorpay_key_secret_ref/razorpay_webhook_secret_ref
+    # (migration 0031); this key encrypts the two secret-bearing columns at
+    # rest via core/crypto.py, same pattern/same reasoning as
+    # CALENDAR_TOKEN_ENCRYPTION_KEY above -- a deliberately SEPARATE key, not
+    # reused, so a leaked Calendar key can never decrypt Razorpay credentials
+    # or vice versa. Unset means unconfigured, not a crash: nothing
+    # encrypts/decrypts until a hospital admin actually saves Razorpay
+    # credentials, which is itself blocked with a clean error until this is
+    # set.
+    RAZORPAY_TOKEN_ENCRYPTION_KEY: str = ""
+
     # core/storage.py -- omit S3_BUCKET and uploads fall back to local disk.
     S3_BUCKET: str | None = None
     S3_REGION: str | None = None
