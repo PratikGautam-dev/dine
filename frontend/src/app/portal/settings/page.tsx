@@ -12,6 +12,7 @@ import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggl
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
+import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
 
 function PortalSettingsPageContent() {
   const { hospital, ready } = usePortalGuard();
@@ -21,6 +22,7 @@ function PortalSettingsPageContent() {
   // section) while hospital hasn't loaded yet.
   const canManageAppointmentTypes = !hospital || hospital.admin_capabilities?.includes("manage_appointment_types");
   const { settings, setSettings, error, saving, saved, handleSave } = usePortalSettings(ready);
+  const hoursForm = useRestaurantHours(ready);
 
   return (
     <PortalShell hospital={hospital} active="settings">
@@ -244,6 +246,63 @@ function PortalSettingsPageContent() {
             </Card>
           </div>
         )}
+
+        <div className="mt-space-5 grid grid-cols-1 gap-space-5 lg:grid-cols-2">
+          <Card className="p-space-5">
+            <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Table booking hours</h2>
+            <p className="mb-space-3 text-[12.5px] text-ink-400">
+              When guests can book a table via WhatsApp. Table booking shows no availability at all until
+              this is set.
+            </p>
+            <form onSubmit={hoursForm.handleSave} className="flex flex-col gap-space-3">
+              <Field label="Open days">
+                <div className="flex flex-wrap gap-space-3">
+                  {OPERATING_DAYS.map((day) => (
+                    <CheckboxRow
+                      key={day}
+                      checked={hoursForm.form.operating_days.includes(day)}
+                      onChange={() => hoursForm.toggleDay(day)}
+                    >
+                      {day}
+                    </CheckboxRow>
+                  ))}
+                </div>
+              </Field>
+              <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                <Field label="Opens at" htmlFor="rh-start">
+                  <Input
+                    id="rh-start" type="time" value={hoursForm.form.start_time}
+                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, start_time: e.target.value })}
+                  />
+                </Field>
+                <Field label="Closes at" htmlFor="rh-end">
+                  <Input
+                    id="rh-end" type="time" value={hoursForm.form.end_time}
+                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, end_time: e.target.value })}
+                  />
+                </Field>
+              </div>
+              <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                <Field label="Turnover per table (minutes)" htmlFor="rh-turnover" hint="How long a party typically occupies a table.">
+                  <Input
+                    id="rh-turnover" type="number" min="1" value={hoursForm.form.default_turnover_minutes}
+                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, default_turnover_minutes: e.target.value })}
+                  />
+                </Field>
+                <Field label="Booking interval (minutes)" htmlFor="rh-interval" hint="How far apart bookable time slots are.">
+                  <Input
+                    id="rh-interval" type="number" min="1" value={hoursForm.form.booking_interval_minutes}
+                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, booking_interval_minutes: e.target.value })}
+                  />
+                </Field>
+              </div>
+              {hoursForm.error && <p className="text-[12.5px] font-medium text-error">{hoursForm.error}</p>}
+              <Button type="submit" disabled={hoursForm.saving} className="self-start">
+                {hoursForm.saving ? "Saving…" : "Save table hours"}
+              </Button>
+            </form>
+          </Card>
+        </div>
     </PortalShell>
   );
 }

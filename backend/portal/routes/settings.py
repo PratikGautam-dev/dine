@@ -1,3 +1,5 @@
+import re
+
 from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
@@ -9,6 +11,16 @@ from db.repositories.hospital_settings import DEFAULT_FOLLOWUP_VALIDITY_DAYS
 from portal.deps import _authenticate, get_current_staff, require_capability, require_permission
 
 router = APIRouter()
+
+# Table reservations: same day-abbreviation set
+# db/repositories/tables.py's own _WEEKDAY_ABBREVS uses -- kept as a literal
+# copy here (not imported) since that module is WhatsApp-flow-facing and
+# this is a portal-only validation concern, same "each layer owns its own
+# copy of a small fixed set" precedent this codebase already has elsewhere
+# (e.g. appointment_types.py's own DEFAULT_APPOINTMENT_TYPES vs. onboarding's).
+_VALID_OPERATING_DAYS = {"Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"}
+
+_TIME_RANGE_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$")
 
 # Section 12.13: minutes bounds mirror db/schema.sql's session_timeout_minutes
 # CHECK constraint exactly -- validated here too so a bad value gets a clear
@@ -72,6 +84,16 @@ async def portal_get_settings(authorization: str | None = Header(default=None)):
             # Lab Test Phase 2 follow-up: flat fee added to a home-collection
             # Lab Test booking's price review.
             "home_collection_charge": hospital_settings["home_collection_charge"],
+            # Table reservations (migration 0030): restaurant-wide operating
+            # hours/turnover -- get_available_table_slots() returns [] with
+            # these unset, which is what made a freshly onboarded hospital's
+            # WhatsApp table booking silently unbookable until this portal
+            # form existed (only the seeded dev/test hospitals had this data,
+            # via db/seed.py's own hardcoded values).
+            "operating_days": hospital_settings["operating_days"],
+            "operating_hours": hospital_settings["operating_hours"],
+            "default_turnover_minutes": hospital_settings["default_turnover_minutes"],
+            "booking_interval_minutes": hospital_settings["booking_interval_minutes"],
         },
         # Settings-not-updating bug follow-up (Spec.md Section 0): defensive
         # -- rules out any browser/CDN-level HTTP caching of this
@@ -208,6 +230,57 @@ async def portal_update_settings(payload: dict, authorization: str | None = Head
         entity_type="hospital", entity_id=str(hospital.id),
         before={"default_language": hospital.default_language, "session_timeout_minutes": hospital.session_timeout_minutes},
         after={"default_language": default_language, "session_timeout_minutes": session_timeout_minutes},
+    )
+    return JSONResponse({"ok": True})
+
+
+@router.post("/api/portal/settings/restaurant-hours")
+async def portal_update_restaurant_hours(payload: dict, authorization: str | None = Header(default=None)):
+    """Table reservations (migration 0030): a separate route from
+    portal_update_settings() above, matching update_restaurant_hours()'s own
+    "separate write path, this group has no portal UI yet" docstring --
+    that existing route's full-object-save body needs zero changes. Minimal
+    on purpose: a single operating_hours range, not multiple (the repository
+    function itself supports a list, but one range is enough to unblock a
+    freshly onboarded hospital's WhatsApp table booking, which is the actual
+    gap this closes)."""
+    hospital = _authenticate(authorization)
+    if hospital is None:
+        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    forbidden = require_capability(hospital, "manage_settings")
+    if forbidden:
+        return forbidden
+
+    operating_days = payload.get("operating_days") or []
+    if not isinstance(operating_days, list) or any(d not in _VALID_OPERATING_DAYS for d in operating_days):
+        return JSONResponse({"error": f"operating_days must be a list drawn from {sorted(_VALID_OPERATING_DAYS)}."}, status_code=400)
+
+    operating_hours = payload.get("operating_hours") or []
+    if not isinstance(operating_hours, list) or any(not _TIME_RANGE_RE.match(h) for h in operating_hours):
+        return JSONResponse({"error": "operating_hours must be a list of \"HH:MM-HH:MM\" ranges."}, status_code=400)
+    for time_range in operating_hours:
+        start, end = time_range.split("-")
+        if start >= end:
+            return JSONResponse({"error": f"Invalid time range {time_range!r}: start must be before end."}, status_code=400)
+
+    try:
+        default_turnover_minutes = int(payload.get("default_turnover_minutes"))
+        booking_interval_minutes = int(payload.get("booking_interval_minutes"))
+    except (TypeError, ValueError):
+        return JSONResponse({"error": "default_turnover_minutes and booking_interval_minutes must be whole numbers."}, status_code=400)
+    if default_turnover_minutes <= 0 or booking_interval_minutes <= 0:
+        return JSONResponse({"error": "default_turnover_minutes and booking_interval_minutes must both be positive."}, status_code=400)
+
+    db.update_restaurant_hours(
+        hospital.id, operating_days, operating_hours, default_turnover_minutes, booking_interval_minutes,
+    )
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "restaurant_hours.update",
+        entity_type="hospital", entity_id=str(hospital.id),
+        after={
+            "operating_days": operating_days, "operating_hours": operating_hours,
+            "default_turnover_minutes": default_turnover_minutes, "booking_interval_minutes": booking_interval_minutes,
+        },
     )
     return JSONResponse({"ok": True})
 
