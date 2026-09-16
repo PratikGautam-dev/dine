@@ -91,6 +91,16 @@ def _create_approval_procedure(hospital_id, resource_types=("bed_chair", "staff"
 
 
 async def _start_procedure_booking(wa, sessions, hospital_id, phone: str = PHONE):
+    # Migration 0030 (Stage 4, table-availability) deactivated every
+    # appointment_types row except "new" (Table Reservation) by default --
+    # "procedure" has no restaurant-tenant equivalent to a real booking type
+    # (it's kept only as flows/booking/types/procedure.py's resource-pool
+    # CODE TEMPLATE, per that migration's own docstring), so it's no longer
+    # active out of the box. Explicitly reactivated here, same fix already
+    # applied to test_followup_validity.py's own followup-type tests, so
+    # this file's tests are self-sufficient regardless of what any other
+    # test in the same run left "procedure"'s is_active state as.
+    db.set_appointment_type_active(hospital_id, "procedure", True)
     sessions.set(hospital_id, phone, "AWAITING_APPOINTMENT_TYPE", {"patient_name": "Abhi Sharma", "patient_age": 41})
     await handle_incoming(wa, sessions, phone, hospital_id, tap("procedure"))
 
