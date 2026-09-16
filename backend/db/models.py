@@ -96,12 +96,14 @@ _APPOINTMENT_SELECT = """
            a.created_at, a.followup_override_until,
            a.procedure_id, proc.name AS procedure_name, a.procedure_status,
            a.procedure_estimated_price_min, a.procedure_estimated_price_max,
-           a.procedure_order_reference, a.procedure_reschedule_requested_at
+           a.procedure_order_reference, a.procedure_reschedule_requested_at,
+           a.table_id, tbl.name AS table_name, a.party_size, a.turnover_minutes
     FROM appointments a
     JOIN departments d ON d.id = a.department_id
     LEFT JOIN doctors doc ON doc.id = a.doctor_id
     LEFT JOIN patients p ON p.id = a.patient_id
     LEFT JOIN procedures proc ON proc.id = a.procedure_id
+    LEFT JOIN tables tbl ON tbl.id = a.table_id
     WHERE a.deleted_at IS NULL
 """
 # Item 3 (Spec.md Section 0): every normal read of an appointment excludes a
@@ -258,6 +260,14 @@ class Appointment:
     procedure_estimated_price_max: float | None = None
     procedure_order_reference: str | None = None
     procedure_reschedule_requested_at: str | None = None
+    # Stage 4 (migration 0030): which table this reservation is assigned to
+    # (None for every other appointment type), its denormalized name (same
+    # "name joined in, not looked up separately" treatment as doctor_name),
+    # the party size, and the turnover duration stamped at booking time.
+    table_id: str | None = None
+    table_name: str | None = None
+    party_size: int | None = None
+    turnover_minutes: int | None = None
 
 
 def _row_to_appointment(row) -> Appointment:
@@ -291,6 +301,10 @@ def _row_to_appointment(row) -> Appointment:
         ),
         procedure_order_reference=row["procedure_order_reference"],
         procedure_reschedule_requested_at=row["procedure_reschedule_requested_at"],
+        table_id=row["table_id"],
+        table_name=row["table_name"],
+        party_size=row["party_size"],
+        turnover_minutes=row["turnover_minutes"],
     )
 
 

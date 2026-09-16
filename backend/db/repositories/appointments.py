@@ -19,7 +19,7 @@ from db.models import (
 )
 from db.orm_models import (
     AppointmentProcedureResource, AppointmentReminder, AppointmentRow, Department,
-    DoctorRow, PatientLink, PatientRow, Procedure,
+    DoctorRow, PatientLink, PatientRow, Procedure, TableRow,
 )
 
 
@@ -43,12 +43,15 @@ def _appointment_select_stmt():
             AppointmentRow.procedure_id, Procedure.name.label("procedure_name"), AppointmentRow.procedure_status,
             AppointmentRow.procedure_estimated_price_min, AppointmentRow.procedure_estimated_price_max,
             AppointmentRow.procedure_order_reference, AppointmentRow.procedure_reschedule_requested_at,
+            AppointmentRow.table_id, TableRow.name.label("table_name"),
+            AppointmentRow.party_size, AppointmentRow.turnover_minutes,
         )
         .select_from(AppointmentRow)
         .join(Department, Department.id == AppointmentRow.department_id)
         .outerjoin(DoctorRow, DoctorRow.id == AppointmentRow.doctor_id)
         .outerjoin(PatientRow, PatientRow.id == AppointmentRow.patient_id)
         .outerjoin(Procedure, Procedure.id == AppointmentRow.procedure_id)
+        .outerjoin(TableRow, TableRow.id == AppointmentRow.table_id)
         .where(AppointmentRow.deleted_at.is_(None))
     )
 
