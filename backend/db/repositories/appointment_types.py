@@ -18,7 +18,7 @@ from db.orm_models import AppointmentType
 # validating a hospital-provided id elsewhere, same role
 # RELATIONSHIP_OPTIONS plays for patient_links.relationship_label.
 DEFAULT_APPOINTMENT_TYPES = (
-    {"id": "new", "label": "New Consultation", "requires_consent": False, "requires_doctor_selection": True},
+    {"id": "new", "label": "Table Reservation", "requires_consent": False, "requires_doctor_selection": True},
     {"id": "followup", "label": "Follow-up Consultation", "requires_consent": False, "requires_doctor_selection": True},
     {"id": "procedure", "label": "Procedure", "requires_consent": False, "requires_doctor_selection": False},
 )
@@ -34,14 +34,25 @@ PROCEDURE_CATEGORY = frozenset({"procedure"})
 # (tenant-capability-gating-plan.md's same "default-by-type, editable later"
 # shape as DEFAULT_CAPABILITIES_BY_TYPE in portal/capabilities.py). A row is
 # still created for every type on every tenant regardless -- only is_active
-# differs -- so a clinic that later upgrades to hospital (or just wants one
-# hospital-only type turned on) is a pure is_active flip via the portal, never
-# a re-seed/backfill. "procedure" is the one hospital-only type today; unknown
-# tenant types fall back to the (fully-active) hospital default, same
-# fallback DEFAULT_CAPABILITIES_BY_TYPE uses.
+# differs -- so turning one on later is a pure is_active flip via the portal,
+# never a re-seed/backfill.
+#
+# Stage 4 (table-availability, confirmed with the user): "new" (Table
+# Reservation) is the only type with a real Dine Connect implementation --
+# "followup" has no restaurant-tenant equivalent to a medical follow-up
+# visit, and "procedure" is kept only as flows/booking/types/procedure.py's
+# resource-pool CODE TEMPLATE (ARCHITECTURE_REFERENCE_FOR_FORKING.md Section
+# 4), not a real bookable feature for a restaurant with no procedures
+# configured -- showing either as a live guest-facing menu option would
+# produce exactly the "awkward placeholder-data workaround" the doc's own
+# history warns against (Section 14.0's forced fake "General Enquiries"
+# department/doctor data). Both stay toggleable later if a real use for
+# either ever exists (e.g. procedure repurposed for private-dining/large-
+# event bookings). Migration 0030 handles the equivalent one-time fix for
+# EXISTING rows already seeded before this default changed.
 DEFAULT_ACTIVE_TYPES_BY_TENANT_TYPE: dict[str, set[str]] = {
-    "hospital": {t["id"] for t in DEFAULT_APPOINTMENT_TYPES},
-    "clinic": {t["id"] for t in DEFAULT_APPOINTMENT_TYPES if t["id"] != "procedure"},
+    "hospital": {"new"},
+    "clinic": {"new"},
 }
 
 

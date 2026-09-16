@@ -480,6 +480,21 @@ def _backfill_procedures_capability(conn) -> None:
     conn.commit()
 
 
+def _backfill_food_ordering_capability(conn) -> None:
+    """Food ordering plan, Sub-stage 4: same "append into the raw JSON
+    array" backfill _backfill_procedures_capability above uses, for the new
+    manage_food_ordering capability -- BOTH tenant types (unlike
+    manage_procedures, hospital-only), matching portal/capabilities.py's own
+    DEFAULT_CAPABILITIES_BY_TYPE for this capability."""
+    conn.execute(
+        "UPDATE hospitals SET admin_capabilities = "
+        "REPLACE(admin_capabilities, ']', ',\"manage_food_ordering\"]') "
+        "WHERE admin_capabilities IS NOT NULL AND admin_capabilities != '[]' "
+        "AND admin_capabilities NOT LIKE '%%manage_food_ordering%%'"
+    )
+    conn.commit()
+
+
 def _backfill_handoff_messages(conn) -> None:
     """Handoff two-way threading follow-up (Spec.md Section 0): every
     pre-existing handoff_requests row's own message_text becomes that
@@ -1127,6 +1142,229 @@ def init_db_on_connection(conn) -> int:
         "ALTER TABLE appointments ADD CONSTRAINT appointments_doctor_or_resource_or_procedure_chk "
         "CHECK (doctor_id IS NOT NULL OR resource_id IS NOT NULL OR procedure_id IS NOT NULL)"
     )
+
+    # Migration 0030 (Stage 4, Stage 1 of 4 -- data model + migration only,
+    # confirmed with the user before building): `tables`, a single-pool
+    # resource unlike `procedure_resources`' multi-type pool -- a
+    # reservation only ever needs ONE free table. No per-table working_days/
+    # working_hours/slot_duration_minutes/max_bookings_per_slot columns
+    # (unlike doctors/procedure_resources): restaurant operating hours are
+    # shared across every table (confirmed with the user), so they live once
+    # on hospital_settings below instead of being duplicated onto every
+    # table row, and a table holds exactly one party at a time by
+    # definition. table_leave mirrors procedure_resource_leave for the real
+    # per-table exception case (closed for maintenance, a private buyout).
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS tables ("
+        "id TEXT PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "department_id TEXT NOT NULL REFERENCES departments(id), "
+        "name TEXT NOT NULL, "
+        "capacity INTEGER NOT NULL, "
+        "is_active BOOLEAN NOT NULL DEFAULT TRUE"
+        ")"
+    )
+    conn.execute("ALTER TABLE tables DROP CONSTRAINT IF EXISTS tables_capacity_check")
+    conn.execute("ALTER TABLE tables ADD CONSTRAINT tables_capacity_check CHECK (capacity > 0)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS table_leave ("
+        "id SERIAL PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "table_id TEXT NOT NULL REFERENCES tables(id), date TEXT NOT NULL, reason TEXT, "
+        "UNIQUE(table_id, date)"
+        ")"
+    )
+
+    # Availability is computed on the fly from these (confirmed with the
+    # user), not via a pre-generated grid table like procedure_resource_slots
+    # -- procedure resources need that because each one's schedule varies
+    # independently; table hours are shared and simple, so there's no
+    # staleness/regeneration concern to design around.
+    conn.execute("ALTER TABLE hospital_settings ADD COLUMN IF NOT EXISTS operating_days TEXT")
+    conn.execute("ALTER TABLE hospital_settings ADD COLUMN IF NOT EXISTS operating_hours TEXT")
+    conn.execute(
+        "ALTER TABLE hospital_settings ADD COLUMN IF NOT EXISTS default_turnover_minutes INTEGER NOT NULL DEFAULT 90"
+    )
+    conn.execute(
+        "ALTER TABLE hospital_settings ADD COLUMN IF NOT EXISTS booking_interval_minutes INTEGER NOT NULL DEFAULT 30"
+    )
+    conn.execute(
+        "ALTER TABLE hospital_settings DROP CONSTRAINT IF EXISTS hospital_settings_default_turnover_minutes_check"
+    )
+    conn.execute(
+        "ALTER TABLE hospital_settings ADD CONSTRAINT hospital_settings_default_turnover_minutes_check "
+        "CHECK (default_turnover_minutes > 0)"
+    )
+    conn.execute(
+        "ALTER TABLE hospital_settings DROP CONSTRAINT IF EXISTS hospital_settings_booking_interval_minutes_check"
+    )
+    conn.execute(
+        "ALTER TABLE hospital_settings ADD CONSTRAINT hospital_settings_booking_interval_minutes_check "
+        "CHECK (booking_interval_minutes > 0)"
+    )
+
+    # table_id/party_size nullable like doctor_id/resource_id/procedure_id --
+    # only one of the four is ever set (constraint extended below).
+    # turnover_minutes is stamped onto the row AT BOOKING TIME, not
+    # dynamically read from hospital_settings.default_turnover_minutes on
+    # every read, so a later change to the restaurant's default doesn't
+    # retroactively reinterpret an already-booked reservation's duration --
+    # same precedent procedure_estimated_price_min/max already set above.
+    conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS table_id TEXT REFERENCES tables(id)")
+    conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS party_size INTEGER")
+    conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS turnover_minutes INTEGER")
+    conn.execute("ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_doctor_or_resource_or_procedure_chk")
+    conn.execute(
+        "ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_doctor_or_resource_or_procedure_or_table_chk"
+    )
+    conn.execute(
+        "ALTER TABLE appointments ADD CONSTRAINT appointments_doctor_or_resource_or_procedure_or_table_chk "
+        "CHECK (doctor_id IS NOT NULL OR resource_id IS NOT NULL OR procedure_id IS NOT NULL OR table_id IS NOT NULL)"
+    )
+
+    # Real, live gap found while building this (confirmed against actual
+    # local Postgres data): _backfill_appointment_types() below is purely
+    # additive (INSERT ... WHERE NOT EXISTS), so it never deactivates a type
+    # that's since been dropped from DEFAULT_APPOINTMENT_TYPES --
+    # second_opinion/daycare/diagnostic/lab/tele were all still
+    # is_active=true from before the Stage 1 fork cleanup deleted their flow
+    # code entirely. followup and procedure are deactivated here too, one-
+    # time, for any hospital already seeded before DEFAULT_ACTIVE_TYPES_BY_
+    # TENANT_TYPE changed to make "new" (Table Reservation) the only default-
+    # active type (see that constant's own comment for why) -- rows are
+    # kept, not deleted, preserving FK integrity for any historical
+    # appointment still referencing that type id.
+    conn.execute("UPDATE appointment_types SET is_active = FALSE WHERE id <> 'new'")
+
+    # Migration 0031 (food ordering plan, Sub-stage 1 of 4 -- data model +
+    # migration only, confirmed with the user before building): widen
+    # reference_id_counters to (hospital_id, day, prefix) so food_orders gets
+    # its own independent daily per-hospital sequence (ORD-<DDMMYY>-<NNN>),
+    # never colliding with or confusable with appointments' own
+    # APT-<DDMMYY>-<NNN> sequence. Existing rows backfilled to prefix='APT'
+    # so appointment numbering is unaffected.
+    conn.execute("ALTER TABLE reference_id_counters ADD COLUMN IF NOT EXISTS prefix TEXT")
+    conn.execute("UPDATE reference_id_counters SET prefix = 'APT' WHERE prefix IS NULL")
+    conn.execute("ALTER TABLE reference_id_counters ALTER COLUMN prefix SET NOT NULL")
+    conn.execute("ALTER TABLE reference_id_counters DROP CONSTRAINT IF EXISTS reference_id_counters_pkey")
+    conn.execute("ALTER TABLE reference_id_counters ADD PRIMARY KEY (hospital_id, day, prefix)")
+
+    # Razorpay per-tenant credentials -- same "_ref" storage-key-not-raw-
+    # secret shape as meta_access_token_ref/app_secret_ref above.
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS razorpay_key_id TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS razorpay_key_secret_ref TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS razorpay_webhook_secret_ref TEXT")
+
+    # menu_items/food_orders/food_order_items are new tables, not a
+    # repurposing of appointments -- a food order isn't a resource-pool
+    # booking, so it stays out of the doctor_or_resource_or_procedure_or_
+    # table_chk family entirely. menu_items.id follows the same opaque
+    # "h{hospital_id}_{uuid8}" TEXT id convention create_table() uses;
+    # food_orders/food_order_items use SERIAL ids like appointments.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS menu_items ("
+        "id TEXT PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "name TEXT NOT NULL, "
+        "description TEXT, "
+        "price_paise INTEGER NOT NULL, "
+        "category TEXT, "
+        "is_available BOOLEAN NOT NULL DEFAULT TRUE, "
+        "stock_count INTEGER, "
+        "created_at TEXT NOT NULL DEFAULT (now()::text), "
+        "updated_at TEXT NOT NULL DEFAULT (now()::text)"
+        ")"
+    )
+    # created_at/updated_at corrected to TEXT (ISO-8601), same DEFAULT
+    # (now()::text) shape every other table's own timestamp columns already
+    # use (db/migrations/versions/0001_baseline_schema.py) -- a real
+    # TIMESTAMPTZ column here was an oversight (caught via a live 500,
+    # json.dumps() can't serialize a raw datetime object, while visually
+    # verifying Sub-stage 4's portal pages). Self-healing for any DB that
+    # already ran the buggy CREATE TABLE above.
+    conn.execute("ALTER TABLE menu_items ALTER COLUMN created_at TYPE TEXT USING created_at::text")
+    conn.execute("ALTER TABLE menu_items ALTER COLUMN updated_at TYPE TEXT USING updated_at::text")
+    conn.execute("ALTER TABLE menu_items ALTER COLUMN created_at SET DEFAULT (now()::text)")
+    conn.execute("ALTER TABLE menu_items ALTER COLUMN updated_at SET DEFAULT (now()::text)")
+    conn.execute("ALTER TABLE menu_items DROP CONSTRAINT IF EXISTS menu_items_price_paise_check")
+    conn.execute("ALTER TABLE menu_items ADD CONSTRAINT menu_items_price_paise_check CHECK (price_paise >= 0)")
+    conn.execute("ALTER TABLE menu_items DROP CONSTRAINT IF EXISTS menu_items_stock_count_check")
+    conn.execute(
+        "ALTER TABLE menu_items ADD CONSTRAINT menu_items_stock_count_check "
+        "CHECK (stock_count IS NULL OR stock_count >= 0)"
+    )
+
+    # food_orders.status: cart -> pending_payment -> paid -> accepted ->
+    # preparing -> ready_for_pickup | out_for_delivery -> completed, or
+    # cancelled from cart/pending_payment/accepted/preparing -- kitchen-
+    # facing states beyond the reference doc's browsing/pending_payment/
+    # paid/fulfilled, confirmed with the user. Sub-stage 2 will drive every
+    # transition through a guarded UPDATE ... WHERE status = '<prior-state>'
+    # (rowcount-checked) rather than this repo's advisory-lock pattern --
+    # there's no shared resource pool being contended over here.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS food_orders ("
+        "id SERIAL PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "patient_id INTEGER REFERENCES patients(id), "
+        "phone TEXT NOT NULL, "
+        "status TEXT NOT NULL DEFAULT 'cart', "
+        "fulfillment_type TEXT, "
+        "delivery_address TEXT, "
+        "subtotal_paise INTEGER NOT NULL DEFAULT 0, "
+        "delivery_fee_paise INTEGER, "
+        "total_paise INTEGER NOT NULL DEFAULT 0, "
+        "razorpay_order_id TEXT, "
+        "razorpay_payment_id TEXT, "
+        "reference_id TEXT, "
+        "created_at TEXT NOT NULL DEFAULT (now()::text), "
+        "updated_at TEXT NOT NULL DEFAULT (now()::text)"
+        ")"
+    )
+    # Same TIMESTAMPTZ -> TEXT correction as menu_items' own created_at/
+    # updated_at above -- see that block's comment for why.
+    conn.execute("ALTER TABLE food_orders ALTER COLUMN created_at TYPE TEXT USING created_at::text")
+    conn.execute("ALTER TABLE food_orders ALTER COLUMN updated_at TYPE TEXT USING updated_at::text")
+    conn.execute("ALTER TABLE food_orders ALTER COLUMN created_at SET DEFAULT (now()::text)")
+    conn.execute("ALTER TABLE food_orders ALTER COLUMN updated_at SET DEFAULT (now()::text)")
+    conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_status_check")
+    conn.execute(
+        "ALTER TABLE food_orders ADD CONSTRAINT food_orders_status_check CHECK ("
+        "status IN ('cart', 'pending_payment', 'paid', 'accepted', 'preparing', "
+        "'ready_for_pickup', 'out_for_delivery', 'completed', 'cancelled'))"
+    )
+    conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_fulfillment_type_check")
+    conn.execute(
+        "ALTER TABLE food_orders ADD CONSTRAINT food_orders_fulfillment_type_check "
+        "CHECK (fulfillment_type IN ('pickup', 'delivery'))"
+    )
+
+    # food_order_items snapshots item_name/unit_price_paise at order time so
+    # editing a menu item later never retroactively changes an already-
+    # placed order -- same "don't reinterpret a historical booking"
+    # precedent as appointments.turnover_minutes (migration 0030).
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS food_order_items ("
+        "id SERIAL PRIMARY KEY, "
+        "order_id INTEGER NOT NULL REFERENCES food_orders(id), "
+        "menu_item_id TEXT NOT NULL REFERENCES menu_items(id), "
+        "item_name_snapshot TEXT NOT NULL, "
+        "unit_price_paise_snapshot INTEGER NOT NULL, "
+        "quantity INTEGER NOT NULL"
+        ")"
+    )
+    conn.execute("ALTER TABLE food_order_items DROP CONSTRAINT IF EXISTS food_order_items_quantity_check")
+    conn.execute(
+        "ALTER TABLE food_order_items ADD CONSTRAINT food_order_items_quantity_check CHECK (quantity > 0)"
+    )
+
+    # Migration 0032 (food ordering, Sub-stage 3) -- Razorpay integration
+    # corrected from the Orders API to the Payment Links API (see
+    # modules/payments/razorpay_client.py's create_payment_link() docstring);
+    # create_razorpay_payment()'s idempotent retry needs the actual link
+    # persisted, not just the Razorpay-side id.
+    conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS razorpay_payment_link_url TEXT")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME
@@ -1154,6 +1392,7 @@ def init_db_on_connection(conn) -> int:
     _backfill_book_doctor_tests_diagnostics_split(conn)
     _backfill_admin_capabilities(conn)
     _backfill_procedures_capability(conn)
+    _backfill_food_ordering_capability(conn)
     _backfill_handoff_messages(conn)
     return hospital_id
 
