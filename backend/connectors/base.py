@@ -201,6 +201,62 @@ class Connector(abc.ABC):
     @abc.abstractmethod
     def get_pending_procedure_request(self, hospital_id: int, phone: str, procedure_id: int) -> Appointment | None: ...
 
+    # Stage 4 (table-availability): a table reservation only ever needs ONE
+    # free table (capacity >= party_size), unlike a procedure's AND-across-
+    # several-resource-TYPE-pools -- structurally simpler, closer to a
+    # single-pool version of the procedure pattern above. The guest never
+    # picks a specific table by name -- get_available_table_slots() offers a
+    # TIME only if some qualifying table is free for it; which table gets
+    # assigned is resolved inside create_table_reservation()'s own advisory
+    # lock, same "caller never picks which pool member" shape
+    # get_procedure_available_slots()/reserve_procedure_resources() already
+    # establish.
+    @abc.abstractmethod
+    def get_tables(self, hospital_id: int, department_id: str | None = None) -> list[dict]: ...
+
+    @abc.abstractmethod
+    def get_available_table_slots(
+        self, hospital_id: int, party_size: int, department_id: str | None = None,
+    ) -> list[dict]: ...
+
+    @abc.abstractmethod
+    def create_table_reservation(
+        self, hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
+        department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
+        patient_id: int | None = None, appointment_type_id: str | None = None,
+    ) -> Appointment: ...
+
+    # Food ordering plan, Sub-stage 2: cart itself lives in the WhatsApp
+    # session's own context dict (Sub-stage 3), not behind a connector method
+    # -- these cover browse (get_menu_items), checkout (create_food_order,
+    # called once with the full item list), payment initiation
+    # (create_food_order_payment), the guarded-UPDATE status-transition
+    # mechanism (advance_food_order_status), and portal reads.
+    @abc.abstractmethod
+    def get_menu_items(
+        self, hospital_id: int, category: str | None = None, available_only: bool = True,
+    ) -> list[dict]: ...
+
+    @abc.abstractmethod
+    def create_food_order(
+        self, hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
+        delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
+    ) -> dict: ...
+
+    @abc.abstractmethod
+    async def create_food_order_payment(self, hospital_id: int, order_id: int) -> dict: ...
+
+    @abc.abstractmethod
+    def advance_food_order_status(
+        self, hospital_id: int, order_id: int, new_status: str, expected_status: str,
+    ) -> dict | None: ...
+
+    @abc.abstractmethod
+    def get_food_order(self, hospital_id: int, order_id: int) -> dict | None: ...
+
+    @abc.abstractmethod
+    def list_food_orders(self, hospital_id: int, status: str | None = None) -> list[dict]: ...
+
     @abc.abstractmethod
     def reschedule_booking(
         self,
@@ -311,6 +367,33 @@ class _UnimplementedTierConnector(Connector):
 
     def get_pending_procedure_request(self, hospital_id, phone, procedure_id):
         self._not_implemented("get_pending_procedure_request")
+
+    def get_tables(self, hospital_id, department_id=None):
+        self._not_implemented("get_tables")
+
+    def get_available_table_slots(self, hospital_id, party_size, department_id=None):
+        self._not_implemented("get_available_table_slots")
+
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None):
+        self._not_implemented("create_table_reservation")
+
+    def get_menu_items(self, hospital_id, category=None, available_only=True):
+        self._not_implemented("get_menu_items")
+
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None):
+        self._not_implemented("create_food_order")
+
+    async def create_food_order_payment(self, hospital_id, order_id):
+        self._not_implemented("create_food_order_payment")
+
+    def advance_food_order_status(self, hospital_id, order_id, new_status, expected_status):
+        self._not_implemented("advance_food_order_status")
+
+    def get_food_order(self, hospital_id, order_id):
+        self._not_implemented("get_food_order")
+
+    def list_food_orders(self, hospital_id, status=None):
+        self._not_implemented("list_food_orders")
 
     def get_active_appointments_for_patient(self, hospital_id, patient_id):
         self._not_implemented("get_active_appointments_for_patient")

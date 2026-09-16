@@ -119,6 +119,40 @@ class Tier1Connector(Connector):
     def get_pending_procedure_request(self, hospital_id, phone, procedure_id):
         return repo.get_pending_procedure_request(hospital_id, phone, procedure_id)
 
+    def get_tables(self, hospital_id, department_id=None):
+        return repo.get_tables(hospital_id, department_id)
+
+    def get_available_table_slots(self, hospital_id, party_size, department_id=None):
+        return repo.get_available_table_slots(hospital_id, party_size, department_id)
+
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None):
+        return repo.create_table_reservation(
+            hospital_id, phone, party_size, scheduled_at, department_id=department_id,
+            patient_name=patient_name, patient_age=patient_age, patient_id=patient_id,
+            appointment_type_id=appointment_type_id,
+        )
+
+    def get_menu_items(self, hospital_id, category=None, available_only=True):
+        return repo.get_menu_items(hospital_id, category=category, available_only=available_only)
+
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None):
+        return repo.create_food_order(
+            hospital_id, phone, items, fulfillment_type, delivery_address=delivery_address,
+            patient_name=patient_name, patient_id=patient_id,
+        )
+
+    async def create_food_order_payment(self, hospital_id, order_id):
+        return await repo.create_razorpay_payment(hospital_id, order_id)
+
+    def advance_food_order_status(self, hospital_id, order_id, new_status, expected_status):
+        return repo.advance_order_status(hospital_id, order_id, new_status, expected_status)
+
+    def get_food_order(self, hospital_id, order_id):
+        return repo.get_food_order(hospital_id, order_id)
+
+    def list_food_orders(self, hospital_id, status=None):
+        return repo.list_food_orders(hospital_id, status=status)
+
     def reschedule_booking(self, hospital_id, old_appointment_id, phone, department_id, doctor_id, scheduled_at, patient_id=None, resource_id=None):
         """Books the new slot BEFORE marking the old appointment rescheduled:
         if someone else grabbed this exact doctor+slot first (IntegrityError,

@@ -61,6 +61,7 @@ init_db()
 
 from webhook.cron_routes import router as cron_router
 from webhook.routes import router as webhook_router
+from webhook.razorpay_routes import router as razorpay_webhook_router
 
 
 @asynccontextmanager
@@ -211,6 +212,7 @@ app.include_router(super_auth_router)
 app.include_router(portal_api_router)
 app.include_router(user_auth_router)
 app.include_router(webhook_router)
+app.include_router(razorpay_webhook_router)
 app.include_router(cron_router)
 
 # RBAC (docs/rbac-redis-plan.md): a background subscriber on the
