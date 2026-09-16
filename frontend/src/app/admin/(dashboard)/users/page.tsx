@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Stethoscope, UserCog, Users as UsersIcon } from "lucide-react";
+import { IdCard, Search, UserCog, Users as UsersIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
@@ -102,7 +102,7 @@ function UsersOverview() {
                   <span className="text-[13px] text-ink-700">{h.admin_count} admin{h.admin_count === 1 ? "" : "s"}</span>
                 </div>
                 <div className="flex items-center gap-space-1.5">
-                  <Stethoscope size={14} className="text-ink-400" />
+                  <IdCard size={14} className="text-ink-400" />
                   <span className="text-[13px] text-ink-700">{h.doctor_count} staff member{h.doctor_count === 1 ? "" : "s"}</span>
                 </div>
                 <div className="flex items-center gap-space-1.5">

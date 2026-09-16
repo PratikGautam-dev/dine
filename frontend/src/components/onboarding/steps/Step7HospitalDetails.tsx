@@ -1,4 +1,4 @@
-import { Building2, Plus, Stethoscope } from "lucide-react";
+import { Building2, Plus, Store } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -12,7 +12,7 @@ type Props = { state: WizardState; dispatch: WizardDispatch; error?: string };
 
 const TENANT_TYPE_OPTIONS: { value: TenantType; label: string; description: string; icon: typeof Building2 }[] = [
   { value: "hospital", label: "Restaurant", description: "Multiple sections and tables.", icon: Building2 },
-  { value: "clinic", label: "Venue", description: "A single venue with its own tables.", icon: Stethoscope },
+  { value: "clinic", label: "Venue", description: "A single venue with its own tables.", icon: Store },
 ];
 
 export function Step7HospitalDetails({ state, dispatch, error }: Props) {

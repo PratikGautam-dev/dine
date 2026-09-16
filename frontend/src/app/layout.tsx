@@ -5,10 +5,10 @@ import "./globals.css";
 
 // Plus Jakarta Sans: a warm, slightly rounded geometric sans for display/
 // headings -- distinct from the Inter/Geist "safe default" look, still reads
-// as clean and modern rather than quirky, which suits a healthcare-ops
-// product. IBM Plex Sans for body/UI text: excellent legibility at small
-// sizes (dashboards, tables, form labels), a bit more technical/precise than
-// Jakarta, which is exactly the contrast a display/body pairing wants.
+// as clean and modern rather than quirky. IBM Plex Sans for body/UI text:
+// excellent legibility at small sizes (dashboards, tables, form labels), a
+// bit more technical/precise than Jakarta, which is exactly the contrast a
+// display/body pairing wants.
 const displayFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
   variable: "--font-display",
