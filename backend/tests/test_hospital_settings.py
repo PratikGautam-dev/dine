@@ -131,7 +131,7 @@ async def test_closing_message_appended_after_booking_confirmed(hospital_id):
     kind, kwargs = wa.sent[-1]
     # Item 3 (Spec.md Section 0): success message is now buttons, not text.
     assert kind == "buttons"
-    assert "appointment confirmed" in kwargs["body_text"].lower()
+    assert "reservation confirmed" in kwargs["body_text"].lower()
     assert kwargs["body_text"].endswith("Thank you for choosing City Hospital. For emergencies, call 102.")
 
 
@@ -435,7 +435,7 @@ async def test_configured_new_consultation_fee_shows_on_confirm_card(hospital_id
     wa = FakeWhatsAppClient()
     await _send_confirmation(wa, PHONE, hospital_id, _confirmation_context(), language="en")
     kind, kwargs = wa.sent[-1]
-    assert "💰 Consultation Fee: ₹500" in kwargs["body_text"]
+    assert "💰 Deposit / Minimum Spend: ₹500" in kwargs["body_text"]
 
 
 @pytest.mark.asyncio

@@ -1,20 +1,27 @@
 # tests/test_booking_back_navigation.py
 """
-Section 3.3 follow-up: "Go back" navigation at each of the booking flow's 5
-interactive states (department, doctor, date, time slot, confirmation).
+Section 3.3 follow-up: "Go back" navigation at each of the booking flow's
+interactive states. Stage 4 rebuild: the "new" type's own steps changed
+from department -> doctor -> date -> time to party size -> table section ->
+date -> time (ARCHITECTURE_REFERENCE_FOR_FORKING.md Section 4/7), so this
+whole file's helpers/assertions were rewritten to drive the new steps --
+structurally identical shape (still 4 interactive steps before
+confirmation), same underlying history-stack mechanism (_push_history/
+_HISTORY_KEY/_history_pop/_history_pop_to), only the two hospital-specific
+steps changed to their restaurant equivalents.
 
 Covers, per the task's own request:
   - Back from each state returns to the right prior state with the right
     data preserved (name/age never re-collected).
   - Back-then-forward-again produces a consistent, non-broken flow.
   - Back doesn't leak stale data into a fresh path forward (a different
-    doctor picked after Back correctly re-queries that doctor's own slots).
+    section picked after Back correctly re-scopes availability to it).
   - Composability with the reset-keyword escape hatch and the
     free-text-resends-current-message behavior.
 """
 import db.repository as db
 from flows.booking import (
-    BACK_ID, CHANGE_APPOINTMENT_TYPE, CHANGE_DATE, CHANGE_DEPARTMENT, CHANGE_DOCTOR, CHANGE_TIME, GOTO_MAIN_MENU,
+    BACK_ID, CHANGE_APPOINTMENT_TYPE, CHANGE_DATE, CHANGE_TIME, GOTO_MAIN_MENU,
     handle_incoming,
 )
 from core.session_store import InMemorySessionStore
@@ -58,90 +65,102 @@ def _last_list(wa):
     raise AssertionError("no list message was sent")
 
 
+def _first_section_id(hospital_id):
+    return db.get_departments(hospital_id)[0]["id"]
+
+
 async def _start_booking(wa, sessions, hospital_id, name="Ravi Kumar", age="34"):
     """Patient identity/UX follow-up (Spec.md Section 0), confirmed with the
-    user: name/age is now collected FIRST, right after "Book Appointment" is
-    tapped -- before department selection. Drives through both plus the
-    appointment type step, landing on AWAITING_DEPARTMENT."""
+    user: name/age is collected FIRST, right after "Book Appointment" is
+    tapped -- before party size. Drives through both plus the appointment
+    type step, landing on AWAITING_PARTY_SIZE."""
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("menu_book"))
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply(name))
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply(age))
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_APPOINTMENT_TYPE"
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("new"))
-    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DEPARTMENT"
+    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_PARTY_SIZE"
 
 
-async def _book_to_time_slot(wa, sessions, hospital_id):
-    """Drives a fresh session through name/age -> department -> doctor ->
-    date, landing on AWAITING_TIME_SLOT. Returns (doctor_id, date_str)."""
+async def _book_to_time_slot(wa, sessions, hospital_id, section_id=None):
+    """Drives a fresh session through name/age -> party size -> section ->
+    date, landing on AWAITING_TIME_SLOT. Returns date_str -- which table
+    gets assigned isn't known until confirmation, so there's no table_id
+    equivalent to return here (see create_table_reservation())."""
     await _start_booking(wa, sessions, hospital_id)
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("cardiology"))
-    doctor_id = db.get_doctors(hospital_id, "cardiology")[0]["id"]
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(doctor_id))
-    date_str = db.get_slots(hospital_id, doctor_id)[0]["date"]
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("2"))
+    section_row = section_id or "no_section_preference"
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(section_row))
+    date_str = db.get_available_table_slots(hospital_id, 2, section_id)[0]["date"]
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(date_str))
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_TIME_SLOT"
-    return doctor_id, date_str
+    return date_str
 
 
 async def _book_to_confirmation(wa, sessions, hospital_id):
     """Name/age were already collected up front by _book_to_time_slot ->
     picking a slot now goes straight to AWAITING_CONFIRMATION."""
-    doctor_id, date_str = await _book_to_time_slot(wa, sessions, hospital_id)
-    slot_id = [s for s in db.get_slots(hospital_id, doctor_id) if s["date"] == date_str][0]["id"]
+    date_str = await _book_to_time_slot(wa, sessions, hospital_id)
+    slot_id = [s for s in db.get_available_table_slots(hospital_id, 2) if s["date"] == date_str][0]["id"]
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(slot_id))
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_CONFIRMATION"
-    return doctor_id, date_str, slot_id
+    return date_str, slot_id
 
 
-async def test_back_from_doctor_returns_to_department_list(hospital_id):
+async def test_back_from_table_section_returns_to_party_size(hospital_id):
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
     await _start_booking(wa, sessions, hospital_id)
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("cardiology"))
-    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DOCTOR"
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("2"))
+    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_TABLE_SECTION"
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
     session = sessions.get(hospital_id, PHONE)
-    assert session["state"] == "AWAITING_DEPARTMENT"
+    assert session["state"] == "AWAITING_PARTY_SIZE"
     kwargs = _last_list(wa)
-    assert _row_ids(kwargs) == {d["id"] for d in db.get_departments(hospital_id)}
+    assert {str(n) for n in range(1, 9)} <= _row_ids(kwargs)
     assert wa.sent[-1][0] == "buttons"  # the follow-up Back button
 
 
-async def test_back_from_date_returns_to_doctor_list_same_department(hospital_id):
+async def test_back_from_date_returns_to_table_section_same_choice(hospital_id):
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
+    section_id = _first_section_id(hospital_id)
     await _start_booking(wa, sessions, hospital_id)
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("cardiology"))
-    doctor_id = db.get_doctors(hospital_id, "cardiology")[0]["id"]
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(doctor_id))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("2"))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(section_id))
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DATE"
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
     session = sessions.get(hospital_id, PHONE)
-    assert session["state"] == "AWAITING_DOCTOR"
-    assert session["context"]["department_id"] == "cardiology"
+    assert session["state"] == "AWAITING_TABLE_SECTION"
+    assert session["context"]["party_size"] == 2
     kwargs = _last_list(wa)
-    assert _row_ids(kwargs) == {d["id"] for d in db.get_doctors(hospital_id, "cardiology")}
+    assert "no_section_preference" in _row_ids(kwargs)
+    assert section_id in _row_ids(kwargs)
     assert wa.sent[-1][0] == "buttons"  # the follow-up Back button
 
 
-async def test_back_from_time_slot_returns_to_date_list_same_doctor(hospital_id):
+async def test_back_from_time_slot_returns_to_date_list_same_party_size(hospital_id):
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
-    doctor_id, date_str = await _book_to_time_slot(wa, sessions, hospital_id)
+    date_str = await _book_to_time_slot(wa, sessions, hospital_id)
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
     session = sessions.get(hospital_id, PHONE)
     assert session["state"] == "AWAITING_DATE"
-    assert session["context"]["doctor_id"] == doctor_id
+    assert session["context"]["party_size"] == 2
     assert "date" not in session["context"]
     _last_list(wa)  # confirms a list was actually sent
     assert wa.sent[-1][0] == "buttons"  # the follow-up Back button
 
 
 async def test_back_from_confirmation_offers_change_submenu(hospital_id):
+    """Table reservation has no department/doctor step (flow.has_step(
+    STATE_AWAITING_DEPARTMENT) is False) -- _send_change_selection_menu's
+    own existing single_choice logic already omits Change Department/Change
+    Doctor for exactly this reason (the same path diagnostic/lab/followup
+    already exercise), no new code needed for this to be correct."""
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
     await _book_to_confirmation(wa, sessions, hospital_id)
@@ -152,105 +171,79 @@ async def test_back_from_confirmation_offers_change_submenu(hospital_id):
     kind, kwargs = wa.sent[-1]
     assert kind == "list"
     row_ids = _row_ids(kwargs)
-    assert row_ids == {
-        CHANGE_APPOINTMENT_TYPE, CHANGE_DEPARTMENT, CHANGE_DOCTOR, CHANGE_DATE, CHANGE_TIME, GOTO_MAIN_MENU,
-    }
+    assert row_ids == {CHANGE_APPOINTMENT_TYPE, CHANGE_DATE, CHANGE_TIME, GOTO_MAIN_MENU}
 
 
 async def test_change_time_from_submenu_returns_to_time_list_preserving_name_age(hospital_id):
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
-    doctor_id, date_str, _slot_id = await _book_to_confirmation(wa, sessions, hospital_id)
+    date_str, _slot_id = await _book_to_confirmation(wa, sessions, hospital_id)
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(CHANGE_TIME))
     session = sessions.get(hospital_id, PHONE)
     assert session["state"] == "AWAITING_TIME_SLOT"
-    assert session["context"]["doctor_id"] == doctor_id
+    assert session["context"]["party_size"] == 2
     assert session["context"]["date"] == date_str
     # Back must never re-trigger name/age collection.
     assert session["context"]["patient_name"] == "Ravi Kumar"
     assert session["context"]["patient_age"] == 34
 
 
-async def test_change_department_from_submenu_returns_to_department_list_preserving_name_age(hospital_id):
-    wa = FakeWhatsAppClient()
-    sessions = InMemorySessionStore()
-    await _book_to_confirmation(wa, sessions, hospital_id)
-
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(CHANGE_DEPARTMENT))
-    session = sessions.get(hospital_id, PHONE)
-    assert session["state"] == "AWAITING_DEPARTMENT"
-    assert session["context"]["patient_name"] == "Ravi Kumar"
-    assert session["context"]["patient_age"] == 34
-    kwargs = _last_list(wa)
-    assert _row_ids(kwargs) == {d["id"] for d in db.get_departments(hospital_id)}
-    assert wa.sent[-1][0] == "buttons"  # the follow-up Back button
-
-
 async def test_back_then_forward_again_is_consistent(hospital_id):
-    """Back from date to doctor, then re-pick the SAME doctor again -> lands
-    back on a working date list, not a broken/duplicated state."""
+    """Back from date to table section, then re-pick the SAME (no-
+    preference) section again -> lands back on a working date list, not a
+    broken/duplicated state."""
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
     await _start_booking(wa, sessions, hospital_id)
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("cardiology"))
-    doctor_id = db.get_doctors(hospital_id, "cardiology")[0]["id"]
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(doctor_id))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("2"))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("no_section_preference"))
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
-    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DOCTOR"
+    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_TABLE_SECTION"
 
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(doctor_id))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("no_section_preference"))
     session = sessions.get(hospital_id, PHONE)
     assert session["state"] == "AWAITING_DATE"
-    assert session["context"]["doctor_id"] == doctor_id
+    assert session["context"]["party_size"] == 2
     kwargs = _last_list(wa)
-    date_str = db.get_slots(hospital_id, doctor_id)[0]["date"]
+    date_str = db.get_available_table_slots(hospital_id, 2)[0]["date"]
     assert date_str in _row_ids(kwargs)
 
 
-async def test_back_does_not_leak_stale_slots_when_picking_a_different_doctor(hospital_id):
-    """Back from time-slot to date, then back again to doctor, then pick a
-    DIFFERENT doctor -> the resulting date list must be that new doctor's
-    own availability, not a stale copy of the first doctor's dates."""
+async def test_back_does_not_leak_stale_slots_when_picking_a_different_section(hospital_id):
+    """Back from table-section to party-size, then forward through a
+    DIFFERENT section -> the resulting date list must be scoped to that new
+    section's own tables, not a stale copy of the first section's dates."""
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
-    doctors = db.get_doctors(hospital_id, "cardiology")
-    assert len(doctors) >= 1
-    first_doctor_id = doctors[0]["id"]
-    # A second doctor in the same department, so the comparison is
-    # apples-to-apples (department unchanged, only the doctor differs).
-    second_doctor = db.create_doctor(
-        hospital_id, "cardiology", "Dr. Second Opinion",
-        working_days=["Mon", "Tue", "Wed", "Thu", "Fri"],
-        working_hours=["09:00-17:00"],
-        slot_duration_minutes=30,
-    )
-    second_doctor_id = second_doctor["id"]
+    sections = db.get_departments(hospital_id)
+    assert len(sections) >= 2
+    first_section_id, second_section_id = sections[0]["id"], sections[1]["id"]
+    db.create_table(hospital_id, second_section_id, "T-Second", 4)
 
     await _start_booking(wa, sessions, hospital_id)
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("cardiology"))
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(first_doctor_id))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("2"))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(first_section_id))
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DATE"
 
-    # Back to doctor list, then pick the DIFFERENT doctor.
+    # Back to table-section list, then pick the DIFFERENT section.
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(BACK_ID))
-    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DOCTOR"
-    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(second_doctor_id))
+    assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_TABLE_SECTION"
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap(second_section_id))
     session = sessions.get(hospital_id, PHONE)
     assert session["state"] == "AWAITING_DATE"
-    assert session["context"]["doctor_id"] == second_doctor_id
+    assert session["context"]["department_id"] == second_section_id
 
     kwargs = _last_list(wa)
-    expected_dates = {s["date"] for s in db.get_slots(hospital_id, second_doctor_id)}
+    expected_dates = {s["date"] for s in db.get_available_table_slots(hospital_id, 2, second_section_id)}
     assert _row_ids(kwargs) <= expected_dates
 
 
-async def test_back_at_department_returns_to_appointment_type(hospital_id):
-    """Department is no longer the very first interactive booking step --
-    appointment type (added later) now precedes it, so Back at department
+async def test_back_at_party_size_returns_to_appointment_type(hospital_id):
+    """Party size is no longer the very first interactive booking step --
+    appointment type (added later) now precedes it, so Back at party size
     returns there instead of falling all the way back to the main menu."""
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()

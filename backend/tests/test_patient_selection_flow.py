@@ -603,7 +603,7 @@ async def test_remove_patient_with_nothing_linked_shows_a_message_and_reprompts(
 
     kind, kwargs = wa.sent[-2]
     assert kind == "text"
-    assert "no patients to remove" in kwargs["text"].lower()
+    assert "no guests to remove" in kwargs["text"].lower()
     assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_MANAGE_PATIENTS_ACTION
 
 

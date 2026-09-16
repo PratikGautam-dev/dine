@@ -84,17 +84,22 @@ def _sign(body: bytes) -> str:
 # --- Departments never leak across hospitals ---
 
 @pytest.mark.asyncio
-async def test_department_menu_isolated_between_hospitals(hospital_id, second_hospital_id):
+async def test_table_section_menu_isolated_between_hospitals(hospital_id, second_hospital_id):
+    """Stage 4 rebuild: "new" no longer shows a department list right after
+    the type is picked -- party size comes first, then the table-section
+    list (the direct successor concept to the old department list, and
+    still backed by the same per-hospital `departments` table/isolation)."""
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
 
     # Patient identity/UX follow-up (Spec.md Section 0): name/age is asked
-    # first now -- drive through it to reach the department list.
+    # first now -- drive through it, plus party size, to reach the section list.
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("menu_book"))
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Ravi Kumar"))
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("34"))
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("new"))
-    hospital_a_depts = _row_ids(_last_list(wa))
+    await handle_incoming(wa, sessions, PHONE, hospital_id, tap("2"))
+    hospital_a_sections = _row_ids(_last_list(wa)) - {"no_section_preference"}
 
     wa2 = FakeWhatsAppClient()
     sessions2 = InMemorySessionStore()
@@ -102,11 +107,12 @@ async def test_department_menu_isolated_between_hospitals(hospital_id, second_ho
     await handle_incoming(wa2, sessions2, PHONE, second_hospital_id, text_reply("Ravi Kumar"))
     await handle_incoming(wa2, sessions2, PHONE, second_hospital_id, text_reply("34"))
     await handle_incoming(wa2, sessions2, PHONE, second_hospital_id, tap("new"))
-    hospital_b_depts = _row_ids(_last_list(wa2))
+    await handle_incoming(wa2, sessions2, PHONE, second_hospital_id, tap("2"))
+    hospital_b_sections = _row_ids(_last_list(wa2)) - {"no_section_preference"}
 
-    assert hospital_a_depts == {"cardiology", "orthopedics", "general_medicine", "pediatrics"}
-    assert hospital_b_depts == {"t2_neurology", "t2_dermatology"}
-    assert hospital_a_depts.isdisjoint(hospital_b_depts)
+    assert hospital_a_sections == {"cardiology", "orthopedics", "general_medicine", "pediatrics"}
+    assert hospital_b_sections == {"t2_neurology", "t2_dermatology"}
+    assert hospital_a_sections.isdisjoint(hospital_b_sections)
 
 
 @pytest.mark.asyncio

@@ -6,15 +6,20 @@ Dine Connect fork: tele/second_opinion/diagnostic/lab types (and their
 TypeFlow modules) were deleted (ARCHITECTURE_REFERENCE_FOR_FORKING.md
 Section 5) -- only new/followup/procedure survive."""
 from flows.booking.state import (
-    STATE_AWAITING_CONFIRMATION, STATE_AWAITING_DATE, STATE_AWAITING_DEPARTMENT, STATE_AWAITING_PROCEDURE,
-    STATE_AWAITING_TIME_SLOT,
+    STATE_AWAITING_CONFIRMATION, STATE_AWAITING_DATE, STATE_AWAITING_DEPARTMENT, STATE_AWAITING_PARTY_SIZE,
+    STATE_AWAITING_PROCEDURE, STATE_AWAITING_TABLE_SECTION, STATE_AWAITING_TIME_SLOT,
 )
 from flows.booking.types.base import FULL_FLOW, NO_DOCTOR_FLOW
 from flows.booking.types.registry import get_type_flow
 
 
 def test_known_types_resolve_to_their_own_flow():
-    assert get_type_flow("new").steps == FULL_FLOW
+    # Stage 4 (table-availability): "new" no longer runs FULL_FLOW --
+    # party size -> table section replaces department -> doctor (see
+    # flows/booking/types/table_reservation.py's own _STEPS comment).
+    assert get_type_flow("new").steps == (STATE_AWAITING_PARTY_SIZE, STATE_AWAITING_TABLE_SECTION, STATE_AWAITING_DATE)
+    assert not get_type_flow("new").has_step(STATE_AWAITING_DEPARTMENT)
+    assert get_type_flow("new").on_selected is not None
     # docs/per-appointment-type-flow-plan.md Phase 2 Step 2: Follow-up
     # auto-selects department/doctor via its own on_selected hook (the
     # patient's last attended appointment) instead of asking -- `steps`
@@ -49,9 +54,10 @@ def test_none_type_id_falls_back_to_full_flow():
 
 
 def test_first_step_and_has_step():
-    full = get_type_flow("new")
-    assert full.first_step() == STATE_AWAITING_DEPARTMENT
-    assert full.has_step(STATE_AWAITING_DEPARTMENT)
+    table_reservation = get_type_flow("new")
+    assert table_reservation.first_step() == STATE_AWAITING_PARTY_SIZE
+    assert table_reservation.has_step(STATE_AWAITING_PARTY_SIZE)
+    assert not table_reservation.has_step(STATE_AWAITING_DEPARTMENT)
 
     # followup.py's own steps are still NO_DOCTOR_FLOW verbatim.
     no_doctor = get_type_flow("followup")
