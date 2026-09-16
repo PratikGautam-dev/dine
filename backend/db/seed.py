@@ -26,6 +26,53 @@ _DEFAULT_WORKING_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
 _DEFAULT_WORKING_HOURS = ["10:00-11:00", "15:00-16:00"]
 _DEFAULT_SLOT_DURATION_MINUTES = 60
 
+# Stage 4 (table-availability): every seeded department also gets a couple
+# of tables of varying capacity (so nearest-fit assignment has something
+# real to pick between), and the hospital gets real operating hours/
+# turnover -- mirrors the doctor-seeding precedent above (same working days,
+# generous hours) so db.get_available_table_slots() returns real slots for
+# every test using the standard hospital_id fixture, exactly like
+# db.get_slots() already does for doctors.
+_TABLE_OPERATING_DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+_TABLE_OPERATING_HOURS = ["10:00-23:00"]
+_DEFAULT_TURNOVER_MINUTES = 90
+_DEFAULT_BOOKING_INTERVAL_MINUTES = 30
+
+TABLES_BY_DEPARTMENT = {
+    "cardiology": [{"name": "Table C1", "capacity": 2}, {"name": "Table C2", "capacity": 4}],
+    "orthopedics": [{"name": "Table O1", "capacity": 2}, {"name": "Table O2", "capacity": 6}],
+    "general_medicine": [{"name": "Table G1", "capacity": 2}, {"name": "Table G2", "capacity": 4}],
+    "pediatrics": [{"name": "Table P1", "capacity": 2}, {"name": "Table P2", "capacity": 8}],
+}
+
+TEST_HOSPITAL_2_TABLES_BY_DEPARTMENT = {
+    "t2_neurology": [{"name": "T2 Table N1", "capacity": 2}],
+    "t2_dermatology": [{"name": "T2 Table D1", "capacity": 4}],
+}
+
+
+def _seed_tables_and_hours(conn, hospital_id: int, tables_by_department: dict) -> None:
+    import uuid
+
+    for department_id, tables in tables_by_department.items():
+        for tbl in tables:
+            table_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
+            conn.execute(
+                "INSERT INTO tables (id, hospital_id, department_id, name, capacity) VALUES (?, ?, ?, ?, ?)",
+                (table_id, hospital_id, department_id, tbl["name"], tbl["capacity"]),
+            )
+    # No ON CONFLICT needed -- both callers (seed_default_hospital()/
+    # seed_test_hospital()) already early-return before reaching here if the
+    # hospital row exists, so this only ever runs once per hospital.
+    conn.execute(
+        "INSERT INTO hospital_settings (hospital_id, operating_days, operating_hours, "
+        "default_turnover_minutes, booking_interval_minutes) VALUES (?, ?, ?, ?, ?)",
+        (
+            hospital_id, ",".join(_TABLE_OPERATING_DAYS), ",".join(_TABLE_OPERATING_HOURS),
+            _DEFAULT_TURNOVER_MINUTES, _DEFAULT_BOOKING_INTERVAL_MINUTES,
+        ),
+    )
+
 DEPARTMENTS = [
     {"id": "cardiology", "name": "Cardiology"},
     {"id": "orthopedics", "name": "Orthopedics"},
@@ -112,6 +159,7 @@ def seed_default_hospital(
                  ",".join(_DEFAULT_WORKING_DAYS), ",".join(_DEFAULT_WORKING_HOURS), _DEFAULT_SLOT_DURATION_MINUTES),
             )
             generate_slots_for_doctor(hospital_id, doc["id"], conn=conn)
+    _seed_tables_and_hours(conn, hospital_id, TABLES_BY_DEPARTMENT)
     conn.commit()
     return hospital_id
 
@@ -173,6 +221,7 @@ def seed_test_hospital(
                  ",".join(_DEFAULT_WORKING_DAYS), ",".join(_DEFAULT_WORKING_HOURS), _DEFAULT_SLOT_DURATION_MINUTES),
             )
             generate_slots_for_doctor(hospital_id, doc["id"], conn=conn)
+    _seed_tables_and_hours(conn, hospital_id, TEST_HOSPITAL_2_TABLES_BY_DEPARTMENT)
     _seed_appointment_types(conn, hospital_id)
     conn.commit()
     return hospital_id

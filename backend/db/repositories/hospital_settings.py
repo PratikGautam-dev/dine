@@ -40,7 +40,50 @@ def get_hospital_settings(hospital_id: int) -> dict:
         "home_collection_charge": (
             float(row.home_collection_charge) if row.home_collection_charge is not None else None
         ),
+        # Stage 4 (migration 0030): restaurant-wide operating hours/turnover
+        # -- comma-separated day abbreviations/"HH:MM-HH:MM" ranges, same
+        # storage convention as doctors.working_days/working_hours, just
+        # parsed to a list here rather than left as a raw string (nothing
+        # else reads these columns yet, so this is the one place to get the
+        # parsing right rather than every future caller re-parsing).
+        "operating_days": [d for d in (row.operating_days or "").split(",") if d],
+        "operating_hours": [h for h in (row.operating_hours or "").split(",") if h],
+        "default_turnover_minutes": row.default_turnover_minutes,
+        "booking_interval_minutes": row.booking_interval_minutes,
     }
+
+
+def update_restaurant_hours(
+    hospital_id: int, operating_days: list[str] | None, operating_hours: list[str] | None,
+    default_turnover_minutes: int, booking_interval_minutes: int,
+) -> dict:
+    """Stage 4 (migration 0030): a separate write path from
+    update_hospital_settings() below rather than widening that function's
+    signature -- this table's existing portal route (portal/routes/
+    settings.py) always does a full-object save of ITS OWN fields, and this
+    group has no portal UI yet (Stage 4's own portal-UI stage), so keeping
+    them on a dedicated function means that existing route/call site needs
+    zero changes. Same "full-object save, bounds validation is the caller's
+    job" discipline as update_hospital_settings()."""
+    session = get_session()
+    session.execute(
+        pg_insert(HospitalSettings)
+        .values(
+            hospital_id=hospital_id,
+            operating_days=",".join(operating_days or []), operating_hours=",".join(operating_hours or []),
+            default_turnover_minutes=default_turnover_minutes, booking_interval_minutes=booking_interval_minutes,
+        )
+        .on_conflict_do_update(
+            index_elements=["hospital_id"],
+            set_={
+                "operating_days": ",".join(operating_days or []), "operating_hours": ",".join(operating_hours or []),
+                "default_turnover_minutes": default_turnover_minutes,
+                "booking_interval_minutes": booking_interval_minutes,
+            },
+        )
+    )
+    session.commit()
+    return get_hospital_settings(hospital_id)
 
 
 def get_followup_validity_days(hospital_id: int) -> int:
