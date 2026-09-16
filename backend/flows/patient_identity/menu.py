@@ -3,6 +3,7 @@
 "Patient: X / Patient Code: Y" header once a patient has been resolved."""
 from flows.common import cap_rows
 from core.translations import t
+from core.translations.food_ordering import FEATURE_ORDER_FOOD
 from core.translations.menu import (
     BOOK_APPOINTMENT_SHORT,
     FEATURE_CANCEL,
@@ -26,6 +27,10 @@ from flows.patient_identity.state import MAIN_MENU_BACK_ROW
 # the order rows appear in the main menu.
 _FEATURE_MENU = {
     "book_appointment": ("menu_book", BOOK_APPOINTMENT_SHORT),
+    # Food ordering plan, Sub-stage 3: a genuinely new top-level feature, a
+    # peer to book_appointment/faq/manage_patients -- not nested inside the
+    # booking TypeFlow system (confirmed in the approved plan).
+    "order_food": ("menu_order_food", FEATURE_ORDER_FOOD),
     "reschedule": ("menu_reschedule", FEATURE_RESCHEDULE),
     "cancel": ("menu_cancel", FEATURE_CANCEL),
     "view_appointments": ("menu_view_appointments", FEATURE_VIEW_APPOINTMENTS),

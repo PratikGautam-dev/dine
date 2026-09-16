@@ -37,7 +37,8 @@ Kept short here on purpose; if you lengthen one, check it against a real
 send.
 """
 from core.translations import (
-    booking, cancel_reschedule, common, dpdp_consent, faq, manage_patients, menu, my_details, patient_identity,
+    booking, cancel_reschedule, common, dpdp_consent, faq, food_ordering, manage_patients, menu, my_details,
+    patient_identity,
 )
 from core.translations._common import DEFAULT_LANGUAGE, Language, SUPPORTED_LANGUAGES
 
@@ -51,6 +52,7 @@ STRINGS: dict[str, dict[Language, str]] = {
     **dpdp_consent.STRINGS,
     **faq.STRINGS,
     **common.STRINGS,
+    **food_ordering.STRINGS,
 }
 
 

@@ -63,6 +63,11 @@ import logging
 
 import db.repository as db
 import flows.patient_identity as patient_identity
+from flows.food_ordering import (
+    HANDLERS as _FOOD_ORDERING_HANDLERS,
+    start_food_ordering_flow,
+    FREE_TEXT_INPUT_STATES as _FOOD_ORDERING_FREE_TEXT_INPUT_STATES,
+)
 from flows.booking import (
     HANDLERS as _BOOKING_STATE_HANDLERS,
     manage_cancel_id,
@@ -113,7 +118,9 @@ logger = logging.getLogger(__name__)
 
 _DEFAULT_CONNECTOR = Tier1Connector()
 
-FREE_TEXT_INPUT_STATES = _BOOKING_FREE_TEXT_INPUT_STATES | patient_identity.FREE_TEXT_INPUT_STATES
+FREE_TEXT_INPUT_STATES = (
+    _BOOKING_FREE_TEXT_INPUT_STATES | patient_identity.FREE_TEXT_INPUT_STATES | _FOOD_ORDERING_FREE_TEXT_INPUT_STATES
+)
 
 STATE_AWAITING_LANGUAGE = "AWAITING_LANGUAGE"
 LANGUAGE_ROW_EN = "lang_en"
@@ -347,6 +354,11 @@ async def _start_feature(
         await start_booking_flow(
             wa, sessions, phone, hospital_id, connector, language=language, active_patient_id=active_patient_id,
             category=db.BOOK_DOCTOR_APPOINTMENT_CATEGORY,
+        )
+        return
+    if key == "order_food":
+        await start_food_ordering_flow(
+            wa, sessions, phone, hospital_id, connector, language=language, active_patient_id=active_patient_id,
         )
         return
     if key == "reschedule":
@@ -596,6 +608,14 @@ async def handle_incoming(
     booking_handler = _BOOKING_STATE_HANDLERS.get(state)
     if booking_handler is not None:
         await booking_handler(
+            wa, sessions, phone, hospital_id, reply, context, connector,
+            language=language or "en", closing_message_text=closing_message_text,
+        )
+        return
+
+    food_ordering_handler = _FOOD_ORDERING_HANDLERS.get(state)
+    if food_ordering_handler is not None:
+        await food_ordering_handler(
             wa, sessions, phone, hospital_id, reply, context, connector,
             language=language or "en", closing_message_text=closing_message_text,
         )
