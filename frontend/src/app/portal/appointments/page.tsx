@@ -26,6 +26,8 @@ export default function PortalAppointmentsPage() {
     rDepartmentId, setRDepartmentId, rDoctorId, setRDoctorId, rDate, setRDate, rSlotId, setRSlotId,
     rDoctors, rDatesForDoctor, rSlotsForDate,
     openReschedulePanel, closeReschedulePanel, handleReschedule,
+    reassignPanelId, reassigningId, reassignTables, reassignTableId, setReassignTableId, reassignErrors,
+    openReassignPanel, closeReassignPanel, handleReassignTable,
     markingAttendanceId, handleAttendance,
     deletingId, handleDelete,
     selected, toggleSelected, toggleSelectAll, deletableAppointments, selectedAppointments, allSelected,
@@ -38,14 +40,15 @@ export default function PortalAppointmentsPage() {
         selected, toggleSelected, toggleSelectAll, allSelected,
         deletableCount: deletableAppointments.length,
         markingAttendanceId, onAttendance: handleAttendance,
-        cancelPanelId, reschedulePanelId,
-        onOpenReschedule: openReschedulePanel, onOpenCancel: openCancelPanel,
+        cancelPanelId, reschedulePanelId, reassignPanelId,
+        onOpenReschedule: openReschedulePanel, onOpenCancel: openCancelPanel, onOpenReassign: openReassignPanel,
         deletingId, onDelete: handleDelete,
       }),
     [
       selected, toggleSelected, toggleSelectAll, allSelected, deletableAppointments.length,
       markingAttendanceId, handleAttendance,
-      cancelPanelId, reschedulePanelId, openReschedulePanel, openCancelPanel, deletingId, handleDelete,
+      cancelPanelId, reschedulePanelId, reassignPanelId,
+      openReschedulePanel, openCancelPanel, openReassignPanel, deletingId, handleDelete,
     ],
   );
 
@@ -196,6 +199,58 @@ export default function PortalAppointmentsPage() {
       );
     }
 
+    if (reassignPanelId === a.id) {
+      const tablesForDepartment = (reassignTables || []).filter(
+        (t) => t.is_active && (!a.table_id || t.department_id === reassignTables?.find((rt) => rt.id === a.table_id)?.department_id),
+      );
+      return (
+        <div className="rounded-lg border border-line bg-paper p-space-3">
+          <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">
+            Move to table
+          </label>
+          {!reassignTables ? (
+            <p className="mb-space-2 text-[12.5px] text-ink-400">Loading tables…</p>
+          ) : (
+            <select
+              value={reassignTableId}
+              onChange={(e) => setReassignTableId(e.target.value)}
+              className="mb-space-2 h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+            >
+              <option value="">Choose…</option>
+              {tablesForDepartment
+                .filter((t) => t.id !== a.table_id)
+                .map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name} (seats {t.capacity})
+                  </option>
+                ))}
+            </select>
+          )}
+
+          {reassignErrors.length > 0 && (
+            <div className="mb-space-2 rounded-md border border-error bg-error-tint p-space-2 text-[12px] text-error">
+              <ul className="list-disc pl-space-4">
+                {reassignErrors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex gap-space-2">
+            <Button
+              size="md"
+              onClick={() => handleReassignTable(a.id)}
+              disabled={reassigningId === a.id || !reassignTableId}
+            >
+              {reassigningId === a.id ? "Moving…" : "Move reservation"}
+            </Button>
+            <Button size="md" variant="secondary" onClick={closeReassignPanel} disabled={reassigningId === a.id}>
+              <X size={13} /> Dismiss
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     return null;
   }
 
@@ -286,7 +341,7 @@ export default function PortalAppointmentsPage() {
               columns={columns}
               data={filteredAppointments || []}
               getRowId={(a) => String(a.id)}
-              isRowExpanded={(a) => reschedulePanelId === a.id || cancelPanelId === a.id}
+              isRowExpanded={(a) => reschedulePanelId === a.id || cancelPanelId === a.id || reassignPanelId === a.id}
               renderRowDetail={renderRowDetail}
             />
           )}

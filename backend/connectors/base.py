@@ -241,8 +241,11 @@ class Connector(abc.ABC):
     def create_table_reservation(
         self, hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
         department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
-        patient_id: int | None = None, appointment_type_id: str | None = None,
+        patient_id: int | None = None, appointment_type_id: str | None = None, source: str = "whatsapp",
     ) -> Appointment: ...
+
+    @abc.abstractmethod
+    def reassign_table(self, hospital_id: int, appointment_id: int, new_table_id: str) -> Appointment: ...
 
     # Food ordering plan, Sub-stage 2: cart itself lives in the WhatsApp
     # session's own context dict (Sub-stage 3), not behind a connector method
@@ -401,8 +404,11 @@ class _UnimplementedTierConnector(Connector):
     def get_available_table_slots(self, hospital_id, party_size, department_id=None):
         self._not_implemented("get_available_table_slots")
 
-    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None):
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp"):
         self._not_implemented("create_table_reservation")
+
+    def reassign_table(self, hospital_id, appointment_id, new_table_id):
+        self._not_implemented("reassign_table")
 
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         self._not_implemented("get_menu_items")

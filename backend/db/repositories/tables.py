@@ -22,7 +22,7 @@ from sqlalchemy import select
 
 from db.connection import IntegrityError, get_connection, get_session
 from db.display_ids import _generate_reference_id
-from db.models import Appointment, _row_to_appointment
+from db.models import SOURCE_WHATSAPP, STATUS_BOOKED, Appointment, _row_to_appointment
 from db.orm_models import TableRow
 
 # Same rolling-window length doctors.py's own SLOT_DAYS_AHEAD uses --
@@ -237,15 +237,24 @@ def find_table_slot(hospital_id: int, party_size: int, slot_id: str, department_
 
 # --- Reservation (advisory-lock-protected, mirrors reserve_procedure_resources) ---
 
-def _table_free_for_span_conn(conn, hospital_id: int, table_id: str, start: datetime, end: datetime) -> bool:
+def _table_free_for_span_conn(
+    conn, hospital_id: int, table_id: str, start: datetime, end: datetime, exclude_appointment_id: int | None = None,
+) -> bool:
     """Raw-connection counterpart of _table_free_for_span -- must run INSIDE
     the caller's own advisory-locked transaction, same reasoning
-    reserve_procedure_resources' own docstring gives."""
-    rows = conn.execute(
-        "SELECT scheduled_at, turnover_minutes FROM appointments "
-        "WHERE hospital_id = ? AND table_id = ? AND status = 'booked'",
-        (hospital_id, table_id),
-    ).fetchall()
+    reserve_procedure_resources' own docstring gives.
+
+    exclude_appointment_id (reassign_table()'s own use): a reservation being
+    MOVED onto a table it already occupies must not see its own still-
+    current row as a conflict with itself -- irrelevant for
+    create_table_reservation()'s brand-new-row case, so it defaults to None
+    there."""
+    query = "SELECT scheduled_at, turnover_minutes FROM appointments WHERE hospital_id = ? AND table_id = ? AND status = 'booked'"
+    params: tuple = (hospital_id, table_id)
+    if exclude_appointment_id is not None:
+        query += " AND id != ?"
+        params += (exclude_appointment_id,)
+    rows = conn.execute(query, params).fetchall()
     for row in rows:
         existing_start = datetime.fromisoformat(row["scheduled_at"])
         existing_end = existing_start + timedelta(minutes=row["turnover_minutes"] or 0)
@@ -257,7 +266,7 @@ def _table_free_for_span_conn(conn, hospital_id: int, table_id: str, start: date
 def create_table_reservation(
     hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
     department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
-    patient_id: int | None = None, appointment_type_id: str | None = None,
+    patient_id: int | None = None, appointment_type_id: str | None = None, source: str = SOURCE_WHATSAPP,
 ) -> Appointment:
     """The table-reservation counterpart to create_procedure_appointment():
     same advisory-lock-protected BEGIN/COMMIT shape, re-checks candidate
@@ -307,7 +316,7 @@ def create_table_reservation(
             "booking_ordinal, source, reference_id, patient_id, patient_name, patient_phone, patient_age, "
             "appointment_type_id, table_id, party_size, turnover_minutes) "
             "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
-            (hospital_id, phone, resolved_department_id, None, scheduled_at_iso, 0, "whatsapp",
+            (hospital_id, phone, resolved_department_id, None, scheduled_at_iso, 0, source,
              _generate_reference_id(conn, hospital_id), patient["id"], patient["name"], phone, patient["age"],
              appointment_type_id, chosen["id"], party_size, turnover_minutes),
         )
@@ -325,3 +334,74 @@ def create_table_reservation(
     created = get_appointment(hospital_id, new_id)
     assert created is not None
     return created
+
+
+def reassign_table(hospital_id: int, appointment_id: int, new_table_id: str) -> Appointment:
+    """Staff-facing "Reassign Table" action (portal reservation detail) --
+    moves an existing BOOKED table reservation onto a different table, e.g.
+    resolving a walk-in conflict. Same advisory-lock-protected BEGIN/COMMIT
+    shape as create_table_reservation(): re-checks the TARGET table's actual
+    freeness for this reservation's own [scheduled_at, scheduled_at +
+    turnover_minutes) span under the lock, not a blind UPDATE trusting
+    whatever the portal's own stale table list showed -- a second staff
+    member (or a WhatsApp guest landing on the same table+time via a brand
+    new reservation) racing this exact call is exactly what the lock
+    protects against. Raises ValueError for a not-found/wrong-tenant/
+    non-table-reservation/non-booked appointment or a not-found/wrong-tenant
+    target table (caller's job to turn into a clean 4xx, same convention
+    create_table_reservation()'s own patient_id ValueError already
+    follows) -- raises IntegrityError specifically for the lost-race case
+    (caller already treats that as "pick another slot/table")."""
+    from db.repositories.appointments import get_appointment
+
+    conn = get_connection()
+    appointment = get_appointment(hospital_id, appointment_id)
+    if appointment is None:
+        raise ValueError(f"appointment {appointment_id} not found for hospital {hospital_id}")
+    if appointment.table_id is None:
+        raise ValueError(f"appointment {appointment_id} is not a table reservation")
+    if appointment.status != STATUS_BOOKED:
+        raise ValueError(f"appointment {appointment_id} is not booked (status={appointment.status!r})")
+
+    target_table = find_table(hospital_id, new_table_id)
+    if target_table is None:
+        raise ValueError(f"table {new_table_id} not found for hospital {hospital_id}")
+    party_size = appointment.party_size or 1
+    if target_table["capacity"] < party_size:
+        raise ValueError(f"table {new_table_id} (capacity {target_table['capacity']}) can't seat a party of {party_size}")
+
+    turnover_minutes = appointment.turnover_minutes or 0
+    scheduled_at = appointment.scheduled_at
+    scheduled_at_iso = scheduled_at.isoformat()
+    span_end = scheduled_at + timedelta(minutes=turnover_minutes)
+
+    conn.execute("BEGIN")
+    try:
+        # Same lock key create_table_reservation() uses for this hospital+
+        # time -- a reassignment onto a table genuinely contends with a
+        # brand-new reservation being created for that same slot, so both
+        # paths must serialize against each other, not just against other
+        # reassignments.
+        conn.execute(
+            "SELECT pg_advisory_xact_lock(hashtext(?))",
+            (f"table_reservation|{hospital_id}|{scheduled_at_iso}",),
+        )
+        if not _table_free_for_span_conn(
+            conn, hospital_id, new_table_id, scheduled_at, span_end, exclude_appointment_id=appointment_id,
+        ):
+            raise IntegrityError(f"Table {new_table_id} is not free for party at {scheduled_at_iso}")
+        conn.execute(
+            "UPDATE appointments SET table_id = ?, department_id = ? WHERE hospital_id = ? AND id = ?",
+            (new_table_id, target_table["department_id"], hospital_id, appointment_id),
+        )
+        conn.execute("COMMIT")
+    except BaseException:
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        raise
+
+    updated = get_appointment(hospital_id, appointment_id)
+    assert updated is not None
+    return updated

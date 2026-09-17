@@ -445,6 +445,47 @@ async def portal_cancel_booking(
     return JSONResponse({"ok": True})
 
 
+@router.post("/api/portal/bookings/{appointment_id}/reassign-table")
+async def portal_reassign_table(
+    appointment_id: int, payload: dict, authorization: str | None = Header(default=None)
+):
+    """Staff-facing "Reassign Table" action (reservation detail view) --
+    moves an existing table reservation onto a different table, e.g.
+    resolving a walk-in conflict. Goes through connector.reassign_table(),
+    same "never bypass the connector interface" discipline cancel/reschedule
+    above already follow -- db/repositories/tables.py::reassign_table() does
+    the actual re-check-under-lock work."""
+    hospital = _authenticate(authorization)
+    if hospital is None:
+        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+
+    new_table_id = (payload.get("table_id") or "").strip()
+    if not new_table_id:
+        return JSONResponse({"errors": ["Choose a table to reassign to."]}, status_code=400)
+
+    appointment = db.get_appointment(hospital.id, appointment_id)
+    if appointment is None:
+        return JSONResponse({"error": "No such appointment."}, status_code=404)
+
+    connector = connectors.get_connector_for_hospital(hospital)
+    try:
+        updated = connector.reassign_table(hospital.id, appointment_id, new_table_id)
+    except ValueError as e:
+        return JSONResponse({"errors": [str(e)]}, status_code=400)
+    except IntegrityError:
+        return JSONResponse({"errors": ["That table isn't free for this reservation's time — pick another."]}, status_code=400)
+    except connectors.ConnectorNotImplementedError as e:
+        return JSONResponse({"errors": [str(e)]}, status_code=501)
+
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "booking.reassign_table",
+        entity_type="appointment", entity_id=str(appointment_id),
+        before={"table_id": appointment.table_id}, after={"table_id": new_table_id},
+    )
+
+    return JSONResponse({"ok": True, "table_id": updated.table_id, "table_name": updated.table_name})
+
+
 @router.post("/api/portal/bookings/{appointment_id}/reschedule")
 async def portal_reschedule_booking(
     appointment_id: int, payload: dict, authorization: str | None = Header(default=None)
@@ -543,12 +584,93 @@ async def portal_new_booking_context(authorization: str | None = Header(default=
     })
 
 
+@router.get("/api/portal/new-booking/table-slots")
+async def portal_new_booking_table_slots(
+    party_size: int, department_id: str | None = None, authorization: str | None = Header(default=None),
+):
+    """Party size (and optional section preference) -> available slots, the
+    staff-booking counterpart to flows/booking/types/table_reservation.py's
+    WhatsApp date/time menus -- same connector.get_available_table_slots()
+    read, so a slot offered here is exactly as real as one WhatsApp would
+    offer. Unlike the WhatsApp flow, no _MAX_PARTY_SIZE cap: that limit
+    exists to hand LARGE parties off to a human via a handoff request --
+    staff creating the booking directly already ARE that human."""
+    hospital = _authenticate(authorization)
+    if hospital is None:
+        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    if party_size < 1:
+        return JSONResponse({"error": "party_size must be at least 1."}, status_code=400)
+    connector = connectors.get_connector_for_hospital(hospital)
+    slots = connector.get_available_table_slots(hospital.id, party_size, department_id or None)
+    return JSONResponse({"slots": slots})
+
+
 @router.post("/api/portal/new-booking")
 async def portal_create_new_booking(payload: dict, authorization: str | None = Header(default=None)):
     hospital = _authenticate(authorization)
     if hospital is None:
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
 
+    # Defaults to "doctor" (unchanged pre-existing behavior) when omitted --
+    # the new frontend always sends this explicitly now (Table Reservation
+    # is its own default there), but any other/older caller that posts
+    # without it keeps getting the original department/doctor flow.
+    booking_type = payload.get("booking_type") or "doctor"
+    if booking_type == "table":
+        return await _portal_create_table_reservation(hospital, payload)
+    return await _portal_create_doctor_booking(hospital, payload)
+
+
+async def _portal_create_table_reservation(hospital, payload: dict) -> JSONResponse:
+    """Staff-created table reservation -- reuses connector.get_available_
+    table_slots()/create_table_reservation() exactly as the WhatsApp flow
+    does (flows/booking/types/table_reservation.py), so it gets the same
+    advisory-lock race protection and nearest-fit table assignment. Which
+    table gets assigned isn't known (or requested) here, same as the
+    WhatsApp confirm step -- create_table_reservation() resolves that itself."""
+    patient_name = (payload.get("patient_name") or "").strip()
+    patient_phone = (payload.get("patient_phone") or "").strip()
+    department_id = payload.get("department_id") or None
+    party_size = payload.get("party_size")
+    slot_id = payload.get("slot_id") or ""
+
+    errors = []
+    if not db.is_valid_phone(patient_phone):
+        errors.append("Guest phone is required and must contain at least one digit.")
+    if not isinstance(party_size, int) or party_size < 1:
+        errors.append("Choose a valid party size.")
+    scheduled_at = None
+    if not slot_id:
+        errors.append("Choose an available slot.")
+    else:
+        try:
+            scheduled_at = datetime.fromisoformat(slot_id)
+        except ValueError:
+            errors.append("That slot is no longer valid — pick another.")
+
+    if errors:
+        return JSONResponse({"errors": errors}, status_code=400)
+    assert scheduled_at is not None  # only left None when "Choose an available slot." was added above
+
+    connector = connectors.get_connector_for_hospital(hospital)
+    try:
+        created = connector.create_table_reservation(
+            hospital.id, patient_phone, party_size, scheduled_at,
+            department_id=department_id, patient_name=patient_name or None, source=db.SOURCE_STAFF,
+        )
+    except IntegrityError:
+        return JSONResponse({"errors": ["That slot was just taken — please pick another."]}, status_code=400)
+
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "booking.create",
+        entity_type="appointment", entity_id=str(created.id),
+        after={"party_size": party_size, "department_id": department_id, "scheduled_at": scheduled_at.isoformat()},
+    )
+
+    return JSONResponse({"ok": True})
+
+
+async def _portal_create_doctor_booking(hospital, payload: dict) -> JSONResponse:
     patient_name = (payload.get("patient_name") or "").strip()
     patient_phone = (payload.get("patient_phone") or "").strip()
     department_id = payload.get("department_id") or ""

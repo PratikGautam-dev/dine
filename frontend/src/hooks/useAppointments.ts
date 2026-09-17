@@ -85,6 +85,12 @@ export function useAppointments(ready: boolean) {
   const [rDoctorId, setRDoctorId] = useState("");
   const [rDate, setRDate] = useState("");
   const [rSlotId, setRSlotId] = useState("");
+  const [reassignPanelId, setReassignPanelId] = useState<number | null>(null);
+  const [reassigningId, setReassigningId] = useState<number | null>(null);
+  const [reassignTables, setReassignTables] = useState<{ id: string; name: string; department_id: string; capacity: number; is_active: boolean }[] | null>(null);
+  const [reassignTableId, setReassignTableId] = useState("");
+  const [reassignErrors, setReassignErrors] = useState<string[]>([]);
+
   const [markingAttendanceId, setMarkingAttendanceId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -346,6 +352,45 @@ export function useAppointments(ready: boolean) {
     load();
   }
 
+  async function openReassignPanel(id: number) {
+    setCancelPanelId(null);
+    setReschedulePanelId(null);
+    setReassignPanelId(id);
+    setReassignTableId("");
+    setReassignErrors([]);
+    if (!reassignTables) {
+      const result = await portalFetch("/api/portal/tables");
+      if (result.ok) setReassignTables((result.data as { tables: typeof reassignTables }).tables);
+    }
+  }
+
+  function closeReassignPanel() {
+    setReassignPanelId(null);
+  }
+
+  async function handleReassignTable(id: number) {
+    setReassigningId(id);
+    setReassignErrors([]);
+    const result = await portalFetch(`/api/portal/bookings/${id}/reassign-table`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ table_id: reassignTableId }),
+    });
+    setReassigningId(null);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else setReassignErrors([result.error]);
+      return;
+    }
+    const data = result.data as { errors?: string[] };
+    if (data.errors?.length) {
+      setReassignErrors(data.errors);
+      return;
+    }
+    setReassignPanelId(null);
+    load();
+  }
+
   const rDoctors = rDepartmentId && rescheduleCtx ? rescheduleCtx.doctors_by_department[rDepartmentId] || [] : [];
   const rDatesForDoctor = rDoctorId && rescheduleCtx ? Object.keys(rescheduleCtx.slots_by_doctor[rDoctorId] || {}).sort() : [];
   const rSlotsForDate = rDoctorId && rDate && rescheduleCtx ? rescheduleCtx.slots_by_doctor[rDoctorId]?.[rDate] || [] : [];
@@ -361,6 +406,8 @@ export function useAppointments(ready: boolean) {
     rDepartmentId, setRDepartmentId, rDoctorId, setRDoctorId, rDate, setRDate, rSlotId, setRSlotId,
     rDoctors, rDatesForDoctor, rSlotsForDate,
     openReschedulePanel, closeReschedulePanel, handleReschedule,
+    reassignPanelId, reassigningId, reassignTables, reassignTableId, setReassignTableId, reassignErrors,
+    openReassignPanel, closeReassignPanel, handleReassignTable,
     markingAttendanceId, handleAttendance,
     procedureActionId, handleApproveProcedureRequest, handleRejectProcedureRequest,
     handleAdvanceProcedureStatus, handleApproveProcedureReschedule, handleRejectProcedureReschedule,

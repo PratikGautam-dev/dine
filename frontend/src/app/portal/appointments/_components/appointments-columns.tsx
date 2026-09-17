@@ -30,8 +30,10 @@ type CreateAppointmentColumnsOptions = {
   onAttendance: (id: number, attended: boolean) => void;
   cancelPanelId: number | null;
   reschedulePanelId: number | null;
+  reassignPanelId: number | null;
   onOpenReschedule: (id: number) => void;
   onOpenCancel: (id: number) => void;
+  onOpenReassign: (id: number) => void;
   deletingId: number | null;
   onDelete: (id: number) => void;
 };
@@ -43,7 +45,7 @@ type CreateAppointmentColumnsOptions = {
 export function createAppointmentColumns({
   selected, toggleSelected, toggleSelectAll, allSelected, deletableCount,
   markingAttendanceId, onAttendance,
-  cancelPanelId, reschedulePanelId, onOpenReschedule, onOpenCancel,
+  cancelPanelId, reschedulePanelId, reassignPanelId, onOpenReschedule, onOpenCancel, onOpenReassign,
   deletingId, onDelete,
 }: CreateAppointmentColumnsOptions): ColumnDef<Appointment>[] {
   return [
@@ -220,8 +222,10 @@ export function createAppointmentColumns({
             appointment={row.original}
             cancelPanelId={cancelPanelId}
             reschedulePanelId={reschedulePanelId}
+            reassignPanelId={reassignPanelId}
             onOpenReschedule={onOpenReschedule}
             onOpenCancel={onOpenCancel}
+            onOpenReassign={onOpenReassign}
             deletingId={deletingId}
             onDelete={onDelete}
           />

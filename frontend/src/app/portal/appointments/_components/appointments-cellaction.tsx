@@ -8,27 +8,32 @@ type AppointmentCellActionProps = {
   appointment: Appointment;
   cancelPanelId: number | null;
   reschedulePanelId: number | null;
+  reassignPanelId: number | null;
   onOpenReschedule: (id: number) => void;
   onOpenCancel: (id: number) => void;
+  onOpenReassign: (id: number) => void;
   deletingId: number | null;
   onDelete: (id: number) => void;
 };
 
-/** Trailing actions cell -- Reschedule/Cancel for a still-'booked' row
- * (hidden while either inline panel is already open for this row), or
- * Delete for a resolved one (Item 3: only ever offered for a non-'booked'
- * appointment, matching the backend's own guard). */
+/** Trailing actions cell -- Reschedule/Cancel (+ Reassign Table for a table
+ * reservation) for a still-'booked' row (hidden while any inline panel is
+ * already open for this row), or Delete for a resolved one (Item 3: only
+ * ever offered for a non-'booked' appointment, matching the backend's own
+ * guard). */
 export function AppointmentCellAction({
   appointment: a,
   cancelPanelId,
   reschedulePanelId,
+  reassignPanelId,
   onOpenReschedule,
   onOpenCancel,
+  onOpenReassign,
   deletingId,
   onDelete,
 }: AppointmentCellActionProps) {
   if (a.status === "booked") {
-    if (cancelPanelId === a.id || reschedulePanelId === a.id) return null;
+    if (cancelPanelId === a.id || reschedulePanelId === a.id || reassignPanelId === a.id) return null;
     return (
       <span className="inline-flex gap-space-3 whitespace-nowrap">
         <button
@@ -38,6 +43,15 @@ export function AppointmentCellAction({
         >
           Reschedule
         </button>
+        {a.table_id && (
+          <button
+            type="button"
+            onClick={() => onOpenReassign(a.id)}
+            className="text-[12.5px] font-semibold text-brand-600 hover:underline"
+          >
+            Reassign Table
+          </button>
+        )}
         <button
           type="button"
           onClick={() => onOpenCancel(a.id)}

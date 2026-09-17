@@ -134,12 +134,15 @@ class Tier1Connector(Connector):
     def get_available_table_slots(self, hospital_id, party_size, department_id=None):
         return repo.get_available_table_slots(hospital_id, party_size, department_id)
 
-    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None):
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp"):
         return repo.create_table_reservation(
             hospital_id, phone, party_size, scheduled_at, department_id=department_id,
             patient_name=patient_name, patient_age=patient_age, patient_id=patient_id,
-            appointment_type_id=appointment_type_id,
+            appointment_type_id=appointment_type_id, source=source,
         )
+
+    def reassign_table(self, hospital_id, appointment_id, new_table_id):
+        return repo.reassign_table(hospital_id, appointment_id, new_table_id)
 
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         return repo.get_menu_items(hospital_id, category=category, available_only=available_only)
