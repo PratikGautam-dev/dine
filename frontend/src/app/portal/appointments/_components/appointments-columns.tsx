@@ -19,15 +19,6 @@ export const STATUS_LABELS: Record<string, string> = {
   attended: "Attended", no_show: "No-show",
 };
 const SOURCE_LABELS: Record<string, string> = { whatsapp: "WhatsApp", staff: "Walk-in" };
-// Lab Test Phase 2 follow-up's report lifecycle -- report_ready is never
-// advanced from here (only automatically, by uploading a lab_report
-// document against the appointment), so it has no "next" label.
-const LAB_STATUS_LABELS: Record<string, string> = {
-  booked: "Booked", sample_collected: "Sample Collected", processing: "Processing", report_ready: "Report Ready",
-};
-const LAB_STATUS_NEXT_LABEL: Record<string, string> = {
-  booked: "Mark Sample Collected", sample_collected: "Mark Processing",
-};
 
 type CreateAppointmentColumnsOptions = {
   selected: Set<number>;
@@ -37,8 +28,6 @@ type CreateAppointmentColumnsOptions = {
   deletableCount: number;
   markingAttendanceId: number | null;
   onAttendance: (id: number, attended: boolean) => void;
-  advancingLabStatusId: number | null;
-  onAdvanceLabStatus: (id: number) => void;
   cancelPanelId: number | null;
   reschedulePanelId: number | null;
   onOpenReschedule: (id: number) => void;
@@ -54,7 +43,6 @@ type CreateAppointmentColumnsOptions = {
 export function createAppointmentColumns({
   selected, toggleSelected, toggleSelectAll, allSelected, deletableCount,
   markingAttendanceId, onAttendance,
-  advancingLabStatusId, onAdvanceLabStatus,
   cancelPanelId, reschedulePanelId, onOpenReschedule, onOpenCancel,
   deletingId, onDelete,
 }: CreateAppointmentColumnsOptions): ColumnDef<Appointment>[] {
@@ -126,14 +114,31 @@ export function createAppointmentColumns({
       },
     },
     {
-      id: "doctor_name",
+      // Table reservations (migration 0030): table_name (the real assigned
+      // table) takes priority when present; doctor_name is the fallback for
+      // any non-table-reservation appointment (a legacy doctor appointment
+      // fixture, if one still exists) -- additive, the two are never both
+      // set on the same row. Neither is a lie about "Table" anymore: a
+      // doctor-appointment row showing a doctor's name here is pre-existing
+      // Stage 2 behavior, unchanged; a table-reservation row now shows its
+      // actual table instead of rendering blank.
+      id: "table_or_doctor_name",
       header: "Table",
-      cell: ({ row }) => <span className="text-ink-600">{row.original.doctor_name}</span>,
+      cell: ({ row }) => (
+        <span className="text-ink-600">{row.original.table_name || row.original.doctor_name || "—"}</span>
+      ),
+    },
+    {
+      id: "party_size",
+      header: "Party Size",
+      cell: ({ row }) => (
+        <span className="tabular-nums text-ink-600">{row.original.party_size ?? "—"}</span>
+      ),
     },
     {
       id: "department_name",
       header: "Section",
-      cell: ({ row }) => <span className="text-ink-600">{row.original.department_name}</span>,
+      cell: ({ row }) => <span className="text-ink-600">{row.original.department_name || "—"}</span>,
     },
     {
       id: "type",
@@ -202,36 +207,6 @@ export function createAppointmentColumns({
             >
               No
             </button>
-          </span>
-        );
-      },
-    },
-    {
-      id: "lab_status",
-      header: "Lab Status",
-      cell: ({ row }) => {
-        const a = row.original;
-        if (!a.lab_status) return <span className="text-[12.5px] text-ink-300">—</span>;
-        return (
-          <span className="inline-flex items-center gap-space-2 whitespace-nowrap">
-            <span
-              className={cn(
-                "rounded-full px-space-2 py-0.5 text-[11px] font-semibold",
-                a.lab_status === "report_ready" ? "bg-success-tint text-success" : "bg-black/[0.04] text-ink-600",
-              )}
-            >
-              {LAB_STATUS_LABELS[a.lab_status] || a.lab_status}
-            </span>
-            {LAB_STATUS_NEXT_LABEL[a.lab_status] && (
-              <button
-                type="button"
-                onClick={() => onAdvanceLabStatus(a.id)}
-                disabled={advancingLabStatusId === a.id}
-                className="text-[12px] font-semibold text-brand-600 hover:underline disabled:opacity-50"
-              >
-                {LAB_STATUS_NEXT_LABEL[a.lab_status]}
-              </button>
-            )}
           </span>
         );
       },

@@ -15,11 +15,32 @@ function capabilitiesMatch(a: string[], b: string[]): boolean {
   return sortedA.length === sortedB.length && sortedA.every((v, i) => v === sortedB[i]);
 }
 
+// Vocabulary audit follow-up: a naive split/title-case rendered
+// "Manage Doctors"/"Manage Departments"/"Manage Appointment Types" verbatim
+// to the platform admin -- the raw capability key names are internal
+// identifiers (portal/capabilities.py), never meant to be displayed as-is.
+// Explicit label per key, same "internal identifier vs. user-facing label"
+// split every other part of this remap already follows.
+const CAPABILITY_LABELS: Record<string, string> = {
+  manage_doctors: "Manage Team",
+  manage_departments: "Manage Sections",
+  manage_appointment_types: "Manage Reservation Types",
+  manage_bookings: "Manage Bookings",
+  manage_settings: "Manage Settings",
+  manage_staff: "Manage Staff",
+  manage_procedures: "Manage Procedures",
+  manage_food_ordering: "Manage Food Ordering",
+  manage_tables: "Manage Tables",
+};
+
 function titleCaseCapability(key: string): string {
-  return key
-    .split("_")
-    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-    .join(" ");
+  return (
+    CAPABILITY_LABELS[key] ||
+    key
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
+  );
 }
 
 function EditTenantForm({ tenantId }: { tenantId: number }) {

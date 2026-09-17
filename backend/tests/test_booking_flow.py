@@ -1001,7 +1001,7 @@ async def test_followup_with_no_previous_visit_sends_back_to_appointment_type(ho
     assert wa.sent[-1][0] == "buttons"
     list_kind, list_kwargs = wa.sent[-2]
     assert list_kind == "list"
-    assert "no previous consultation found" in list_kwargs["body_text"].lower()
+    assert "no previous visit found" in list_kwargs["body_text"].lower()
     assert "ravi kumar" in list_kwargs["body_text"].lower()
     row_ids = {row["id"] for row in list_kwargs["sections"][0]["rows"]}
     assert "followup" in row_ids

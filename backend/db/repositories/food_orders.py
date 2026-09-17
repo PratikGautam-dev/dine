@@ -92,18 +92,33 @@ def create_food_order(
             })
             subtotal_paise += menu_row["price_paise"] * quantity
 
-        # No delivery-radius/fee check in v1 (confirmed with the user, flagged
-        # as future scope in the approved plan) -- delivery_fee_paise stays
-        # unset, total is just the subtotal, regardless of fulfillment_type.
-        total_paise = subtotal_paise
+        # Vocabulary audit follow-up: the flat delivery fee was previously
+        # unwired (flagged as future scope in the original plan) --
+        # hospital_settings.home_collection_charge (the DB/repository
+        # identifier stays as-is per this project's own "internal
+        # identifiers unchanged, only user-facing labels remapped"
+        # convention; the portal now shows it as "Delivery fee") is applied
+        # here for a delivery order, still no delivery-radius/distance
+        # calculation (that's still real future scope, just the flat-fee
+        # half of it is live now). Omitted (not a fake ₹0) for pickup or
+        # when the hospital hasn't configured a fee, same discipline every
+        # other optional fee line in this codebase already follows.
+        from db.repositories.hospital_settings import get_hospital_settings
+
+        delivery_fee_paise = None
+        if fulfillment_type == "delivery":
+            fee = get_hospital_settings(hospital_id)["home_collection_charge"]
+            if fee is not None:
+                delivery_fee_paise = round(fee * 100)
+        total_paise = subtotal_paise + (delivery_fee_paise or 0)
 
         reference_id = _generate_reference_id(conn, hospital_id, prefix=ORDER_REFERENCE_ID_PREFIX)
         cur = conn.execute(
             "INSERT INTO food_orders (hospital_id, patient_id, phone, status, fulfillment_type, "
-            "delivery_address, subtotal_paise, total_paise, reference_id, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id, created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             (hospital_id, resolved_patient_id, phone, STATUS_PENDING_PAYMENT, fulfillment_type,
-             delivery_address, subtotal_paise, total_paise, reference_id,
+             delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id,
              datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat()),
         )
         order_id_row = cur.fetchone()

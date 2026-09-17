@@ -58,11 +58,11 @@ STRINGS: dict[str, dict[Language, str]] = {
         # "hi": "{patient_name} को इस नंबर से हटा दिया गया है।",
         "en": (
             "✅ {patient_name} has been removed from this WhatsApp number.\n\n"
-            "Their Guest ID, medical records, and reservation history remain unchanged."
+            "Their Guest ID and reservation history remain unchanged."
         ),
         "hi": (
             "✅ {patient_name} को इस व्हाट्सएप नंबर से हटा दिया गया है।\n\n"
-            "उनकी अतिथि आईडी, मेडिकल रिकॉर्ड और रिज़र्वेशन इतिहास अपरिवर्तित रहेंगे।"
+            "उनकी अतिथि आईडी और रिज़र्वेशन इतिहास अपरिवर्तित रहेंगे।"
         ),
     },
     PATIENT_REMOVAL_CANCELLED: {

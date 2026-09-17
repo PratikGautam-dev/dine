@@ -66,39 +66,6 @@ STATE_AWAITING_PROCEDURE_RESCHEDULE_DATE = "AWAITING_PROCEDURE_RESCHEDULE_DATE"
 STATE_AWAITING_PROCEDURE_RESCHEDULE_SLOT = "AWAITING_PROCEDURE_RESCHEDULE_SLOT"
 
 
-# Diagnostic/Lab Phase 2 (docs/per-appointment-type-flow-plan.md Step 5):
-# picking which test, then which variant, before date/time -- see
-# flows/booking/types/_diagnostic_shared.py.
-STATE_AWAITING_DIAGNOSTIC_TEST = "AWAITING_DIAGNOSTIC_TEST"
-
-
-STATE_AWAITING_DIAGNOSTIC_VARIANT = "AWAITING_DIAGNOSTIC_VARIANT"
-
-
-# Lab Test Phase 2 follow-up (business spec Sections 4.1-4.4): unlike
-# Diagnostic Test above, Lab Test is a multi-test BASKET (this state repeats,
-# once per test added) with its own collection-method/home-collection steps
-# before date/time -- see flows/booking/types/lab.py.
-STATE_AWAITING_LAB_TEST = "AWAITING_LAB_TEST"
-
-
-# A dedicated state, not a reuse of STATE_AWAITING_DIAGNOSTIC_VARIANT -- that
-# one's handler (_handle_awaiting_diagnostic_variant) assigns a SINGLE
-# variant onto context and proceeds straight to date selection; Lab Test's
-# own variant pick instead appends to the growing basket and loops back to
-# "add another?", a genuinely different behavior that can't share one state.
-STATE_AWAITING_LAB_TEST_VARIANT = "AWAITING_LAB_TEST_VARIANT"
-
-
-STATE_AWAITING_COLLECTION_METHOD = "AWAITING_COLLECTION_METHOD"
-
-
-STATE_AWAITING_COLLECTION_PINCODE = "AWAITING_COLLECTION_PINCODE"
-
-
-STATE_AWAITING_COLLECTION_ADDRESS = "AWAITING_COLLECTION_ADDRESS"
-
-
 STATE_AWAITING_PATIENT_NAME = "AWAITING_PATIENT_NAME"
 
 
@@ -132,29 +99,12 @@ CHANGE_DATE = "change_date"
 CHANGE_TIME = "change_time"
 
 
-CHANGE_DIAGNOSTIC_TEST = "change_diagnostic_test"
-
-
-CHANGE_DIAGNOSTIC_VARIANT = "change_diagnostic_variant"
-
-
-# Lab Test Phase 2 follow-up: jumps back to the collection-method step only
-# -- there's no single "change test" target for a basket (which of N items?),
-# so re-picking the basket from confirmation isn't offered; a patient who
-# wants a different set of tests uses "Change Appointment Type" instead
-# (restarts test selection from scratch).
-CHANGE_COLLECTION_METHOD = "change_collection_method"
-
-
 _CHANGE_TARGETS = {
     CHANGE_APPOINTMENT_TYPE: STATE_AWAITING_APPOINTMENT_TYPE,
     CHANGE_DEPARTMENT: STATE_AWAITING_DEPARTMENT,
     CHANGE_DOCTOR: STATE_AWAITING_DOCTOR,
     CHANGE_DATE: STATE_AWAITING_DATE,
     CHANGE_TIME: STATE_AWAITING_TIME_SLOT,
-    CHANGE_DIAGNOSTIC_TEST: STATE_AWAITING_DIAGNOSTIC_TEST,
-    CHANGE_DIAGNOSTIC_VARIANT: STATE_AWAITING_DIAGNOSTIC_VARIANT,
-    CHANGE_COLLECTION_METHOD: STATE_AWAITING_COLLECTION_METHOD,
 }
 
 
@@ -175,11 +125,6 @@ MAX_PATIENT_AGE = 120
 
 FREE_TEXT_INPUT_STATES = {
     STATE_AWAITING_PATIENT_NAME, STATE_AWAITING_PATIENT_AGE,
-    # Lab Test Phase 2 follow-up: PIN code and address are free-text replies,
-    # same reset-keyword-exemption reasoning as patient name/age above (a
-    # PIN code or a street address could itself start with a word this app
-    # treats as a reset keyword).
-    STATE_AWAITING_COLLECTION_PINCODE, STATE_AWAITING_COLLECTION_ADDRESS,
 }
 
 

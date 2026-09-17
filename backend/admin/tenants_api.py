@@ -191,7 +191,7 @@ async def update_tenant(
     name = payload.name.strip()
     whatsapp_phone_number_id = payload.whatsapp_phone_number_id.strip()
     if not name:
-        errors.append("Hospital name is required.")
+        errors.append("Restaurant name is required.")
     if not whatsapp_phone_number_id:
         errors.append("WhatsApp phone_number_id is required.")
     if payload.data_tier not in _VALID_TIERS:
@@ -284,8 +284,8 @@ async def update_tenant(
     except IntegrityError:
         return JSONResponse({
             "errors": [
-                f'A hospital with WhatsApp phone_number_id "{whatsapp_phone_number_id}" already exists — '
-                "each hospital must have its own phone_number_id for message routing to work correctly."
+                f'A restaurant with WhatsApp phone_number_id "{whatsapp_phone_number_id}" already exists — '
+                "each restaurant must have its own phone_number_id for message routing to work correctly."
             ]
         }, status_code=400)
 

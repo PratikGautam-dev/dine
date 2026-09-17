@@ -45,14 +45,14 @@ router = APIRouter()
 async def landing_page():
     return f"""<!doctype html>
 <html>
-<head><title>CareConnect</title>{_STYLE}</head>
+<head><title>Dine Connect</title>{_STYLE}</head>
 <body>
 <div class="ok-page">
   <div class="brand">
     <div class="brand-mark">H</div>
-    <span class="brand-name">DAAP CareConnect</span>
+    <span class="brand-name">Dine Connect</span>
   </div>
-  <h1>CareConnect backend</h1>
+  <h1>Dine Connect backend</h1>
   <p class="hint">This is the API backend. The product itself lives on the deployed frontend.</p>
   <p>
     <a class="btn-secondary" style="background: var(--sage-deep); color: #fff; border: none;" href="/admin/onboard-hospital">Admin</a>

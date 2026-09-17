@@ -72,9 +72,6 @@ def test_button_and_row_title_strings_respect_whatsapp_length_limits():
         "duplicate_link_button", "ask_relationship_button",
         "manage_patients_short", "back_to_menu_option",
         "consent_marketing_enable", "consent_marketing_disable",
-        # WhatsApp menu restructuring: Reports & Prescriptions' own submenu
-        # list uses this as its button_text.
-        "reports_menu_button",
     ]
     for key in button_keys:
         for lang in SUPPORTED_LANGUAGES:
@@ -95,10 +92,6 @@ def test_button_and_row_title_strings_respect_whatsapp_length_limits():
         "feature_consent_privacy",
         "relationship_self", "relationship_mother", "relationship_father", "relationship_son",
         "relationship_daughter", "relationship_spouse", "relationship_guardian", "relationship_other",
-        # Reports & Prescriptions' submenu is deliberately still relegated to
-        # a "coming soon" row for the surviving unified menu surface.
-        "reports_menu_view_prescriptions", "reports_menu_view_lab_reports",
-        "reports_menu_view_diagnostic_reports", "reports_menu_book_report_review",
     ]
     for key in row_title_keys:
         for lang in SUPPORTED_LANGUAGES:

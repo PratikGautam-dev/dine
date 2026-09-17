@@ -115,7 +115,7 @@ async def _start_reschedule_flow_for_patient(
         # Item 9: nothing to reschedule is a dead end without a menu offered.
         sessions.reset(hospital_id, phone)
         await wa.send_text(phone, t(NO_UPCOMING_TO_RESCHEDULE, language))
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_SELECTION, {"active_patient_id": active_patient_id})
     await _send_appointment_selection_menu(
@@ -160,7 +160,7 @@ async def _handle_awaiting_reschedule_date(
     doctor_name = context.get("doctor_name", "")
     if (not doctor_id and not resource_id) or context.get("reschedule_appointment_id") is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
 
     def _slots() -> list[dict]:
@@ -203,7 +203,7 @@ async def _handle_awaiting_reschedule_slot(
     date_str = context.get("date")
     if (not doctor_id and not resource_id) or not date_str or context.get("reschedule_appointment_id") is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
 
     def _slots() -> list[dict]:

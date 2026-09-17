@@ -168,7 +168,7 @@ async def submit_onboarding(
     # OnboardingSubmission's own field docstring for why.
     user = authenticate_user(authorization)
     if user is None:
-        return JSONResponse({"errors": ["You must be signed in with Google to onboard a hospital."]}, status_code=401)
+        return JSONResponse({"errors": ["You must be signed in with Google to onboard a restaurant."]}, status_code=401)
     if get_current_super_admin(f"Bearer {payload.super_admin_token}") is None:
         return JSONResponse({"errors": ["Not authenticated as a super admin."]}, status_code=403)
 
@@ -177,7 +177,7 @@ async def submit_onboarding(
     admin_email = payload.admin_email.strip()
     errors: list[str] = []
     if not name:
-        errors.append("Hospital name is required.")
+        errors.append("Restaurant name is required.")
     if not whatsapp_phone_number_id:
         errors.append("WhatsApp phone_number_id is required.")
     # RBAC: every new hospital gets its first staff_users admin row created
@@ -191,9 +191,9 @@ async def submit_onboarding(
 
     unknown_features = [f for f in payload.enabled_features if f not in flows.ALL_FEATURES]
     if unknown_features:
-        errors.append(f'Unrecognized patient-experience option(s): {", ".join(unknown_features)}.')
+        errors.append(f'Unrecognized guest-experience option(s): {", ".join(unknown_features)}.')
     if not payload.enabled_features:
-        errors.append("At least one patient-experience option is required.")
+        errors.append("At least one guest-experience option is required.")
 
     if payload.data_tier not in _VALID_TIERS:
         errors.append(f'Unrecognized data connection tier "{payload.data_tier}".')
@@ -248,8 +248,8 @@ async def submit_onboarding(
         return JSONResponse(
             {
                 "errors": [
-                    f'A hospital with WhatsApp phone_number_id "{whatsapp_phone_number_id}" already exists — '
-                    "each hospital must have its own phone_number_id for message routing to work correctly."
+                    f'A restaurant with WhatsApp phone_number_id "{whatsapp_phone_number_id}" already exists — '
+                    "each restaurant must have its own phone_number_id for message routing to work correctly."
                 ]
             },
             status_code=400,

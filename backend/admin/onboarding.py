@@ -99,10 +99,10 @@ def _build_departments(
         try:
             dept_idx = int(idx_raw)
         except ValueError:
-            errors.append(f"Doctor #{i + 1} is missing a valid department assignment.")
+            errors.append(f"Table #{i + 1} is missing a valid section assignment.")
             continue
         if not (0 <= dept_idx < len(departments)):
-            errors.append(f"Doctor #{i + 1} references an invalid department.")
+            errors.append(f"Table #{i + 1} references an invalid section.")
             continue
 
         doctor, doc_errors, doc_warnings = _validate_doctor_fields(
@@ -122,7 +122,7 @@ def _build_departments(
 
     for i, dept in enumerate(departments):
         if dept["doctors"] and not dept["name"]:
-            errors.append(f"Department #{i + 1} has doctors listed but no department name.")
+            errors.append(f"Section #{i + 1} has tables listed but no section name.")
 
     departments = [d for d in departments if d["name"] and d["doctors"]]
     return departments, errors, warnings
@@ -170,7 +170,7 @@ def _button_page(eyebrow: str, title: str, description: str, button_label: str, 
     data) lives entirely in the Next.js frontend these buttons link to."""
     return f"""<!doctype html>
 <html>
-<head><title>{title} \u2014 CareConnect</title>{_STYLE}</head>
+<head><title>{title} \u2014 Dine Connect</title>{_STYLE}</head>
 <body>
 <div class="ok-page">
   <div class="brand">
@@ -192,7 +192,7 @@ async def admin_page(request: Request):
     there's nothing sensitive on this page, only a link onward to where the
     real gates are enforced."""
     return _button_page(
-        "DAAP CareConnect", "Admin", "Onboard a new hospital through the guided setup wizard.",
+        "Dine Connect", "Admin", "Onboard a new restaurant through the guided setup wizard.",
         "Open onboarding wizard", f"{FRONTEND_ORIGIN}/auth",
     )
 
@@ -204,6 +204,6 @@ async def superadmin_page(request: Request):
     {FRONTEND_ORIGIN}/admin/tenants. Ungated here for the same reason as
     admin_page() above -- this page itself shows nothing sensitive."""
     return _button_page(
-        "DAAP CareConnect", "Super Admin", "View and edit every onboarded hospital's configuration.",
+        "Dine Connect", "Super Admin", "View and edit every onboarded restaurant's configuration.",
         "Open tenant admin", f"{FRONTEND_ORIGIN}/admin/tenants",
     )

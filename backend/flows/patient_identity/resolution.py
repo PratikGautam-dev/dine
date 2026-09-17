@@ -36,7 +36,7 @@ from flows.patient_identity.state import (
 async def get_or_prompt_for_active_patient(
     wa: WhatsAppClient, sessions, phone: str, hospital_id: int, connector: Connector,
     language: str = "en", require_patient_confirmation: bool = False,
-    hospital_name: str = "the hospital", enabled_features: list[str] | None = None,
+    hospital_name: str = "the restaurant", enabled_features: list[str] | None = None,
     feature_labels: dict[str, str] | None = None,
 ) -> dict | None:
     """Called once per conversation, before the main menu is ever shown.

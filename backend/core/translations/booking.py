@@ -88,44 +88,6 @@ FOLLOWUP_CONFIRMATION_SUMMARY = "followup_confirmation_summary"
 FOLLOWUP_APPOINTMENT_CONFIRMED = "followup_appointment_confirmed"
 MANAGE_APPOINTMENT_PROMPT = "manage_appointment_prompt"
 
-# --- Diagnostic/Lab Phase 2 (docs/per-appointment-type-flow-plan.md Step 5) ---
-SELECT_DIAGNOSTIC_TEST = "select_diagnostic_test"
-VIEW_TESTS_BUTTON = "view_tests_button"
-DIAGNOSTIC_TESTS_SECTION_TITLE = "diagnostic_tests_section_title"
-SELECT_DIAGNOSTIC_VARIANT = "select_diagnostic_variant"
-VIEW_VARIANTS_BUTTON = "view_variants_button"
-DIAGNOSTIC_VARIANTS_SECTION_TITLE = "diagnostic_variants_section_title"
-NO_DIAGNOSTIC_TESTS_CONFIGURED = "no_diagnostic_tests_configured"
-CHANGE_DIAGNOSTIC_TEST_OPTION = "change_diagnostic_test_option"
-CHANGE_DIAGNOSTIC_VARIANT_OPTION = "change_diagnostic_variant_option"
-DIAGNOSTIC_CONFIRMATION_SUMMARY = "diagnostic_confirmation_summary"
-DIAGNOSTIC_BOOKING_CONFIRMED = "diagnostic_booking_confirmed"
-DIAGNOSTIC_AMOUNT_LINE = "diagnostic_amount_line"
-DIAGNOSTIC_PREPARATION_LINE = "diagnostic_preparation_line"
-
-# --- Lab Test Phase 2 follow-up (business spec Sections 4.1-4.4): unlike
-# Diagnostic Test above, a Lab Test booking is a multi-test BASKET with its
-# own collection-method (visit vs. home sample)/serviceability/address steps
-# before date/time. See flows/booking/types/lab.py. ---
-SELECT_LAB_TEST = "select_lab_test"
-LAB_TEST_ADDED_PROMPT = "lab_test_added_prompt"
-LAB_DONE_BUTTON = "lab_done_button"
-SELECT_COLLECTION_METHOD = "select_collection_method"
-COLLECTION_VISIT_BUTTON = "collection_visit_button"
-COLLECTION_HOME_BUTTON = "collection_home_button"
-ASK_COLLECTION_PINCODE = "ask_collection_pincode"
-NOT_SERVICEABLE_PINCODE = "not_serviceable_pincode"
-TRY_ANOTHER_PINCODE_BUTTON = "try_another_pincode_button"
-ASK_COLLECTION_ADDRESS = "ask_collection_address"
-ASK_COLLECTION_ADDRESS_WITH_SUGGESTION = "ask_collection_address_with_suggestion"
-CHANGE_COLLECTION_METHOD_OPTION = "change_collection_method_option"
-LAB_CONFIRMATION_SUMMARY = "lab_confirmation_summary"
-LAB_TEST_CHARGES_LINE = "lab_test_charges_line"
-LAB_HOME_COLLECTION_LINE = "lab_home_collection_line"
-LAB_TOTAL_LINE = "lab_total_line"
-LAB_FASTING_LINE = "lab_fasting_line"
-LAB_BOOKING_CONFIRMED = "lab_booking_confirmed"
-
 # --- Daycare/Procedure rebuild (Step 1's catalog through the approval
 # workflow and "Request Reschedule") ---
 SELECT_PROCEDURE = "select_procedure"
@@ -520,14 +482,14 @@ STRINGS: dict[str, dict[Language, str]] = {
         # "en": "We couldn't find any previous completed appointment for you, so Follow-up isn't available yet. Please choose New Consultation instead.",
         # "hi": "हमें आपकी कोई पिछली पूर्ण अपॉइंटमेंट नहीं मिली, इसलिए फॉलो-अप अभी उपलब्ध नहीं है। कृपया इसके बजाय नई परामर्श चुनें।",
         "en": (
-            "No Previous Consultation Found\n"
-            "We couldn't find any completed consultation for {name}.\n\n"
-            "A follow-up reservation can only be booked after a previous consultation. Please book a New Consultation instead."
+            "No Previous Visit Found\n"
+            "We couldn't find any completed visit for {name}.\n\n"
+            "A follow-up reservation can only be booked after a previous visit. Please book a Table Reservation instead."
         ),
         "hi": (
-            "कोई पिछला परामर्श नहीं मिला\n"
-            "हमें {name} के लिए कोई पूर्ण परामर्श नहीं मिला।\n\n"
-            "फॉलो-अप रिज़र्वेशन केवल पिछले परामर्श के बाद ही बुक की जा सकती है। कृपया इसके बजाय नई परामर्श बुक करें।"
+            "कोई पिछली मुलाकात नहीं मिली\n"
+            "हमें {name} के लिए कोई पूर्ण मुलाकात नहीं मिली।\n\n"
+            "फॉलो-अप रिज़र्वेशन केवल पिछली मुलाकात के बाद ही बुक की जा सकती है। कृपया इसके बजाय टेबल रिज़र्वेशन बुक करें।"
         ),
     },
     # docs/per-appointment-type-flow-plan.md Phase 2 Step 2 follow-up: the
@@ -535,20 +497,20 @@ STRINGS: dict[str, dict[Language, str]] = {
     # ATTENDED appointment still within the hospital's eligibility window.
     FOLLOWUP_ELIGIBLE_LIST_PROMPT: {
         "en": (
-            "✅ *Follow-up Consultation Available*\n\n"
-            "Below are {patient_name}'s latest eligible consultations for follow-up.\n"
-            "For each department, only the most recent consultation is shown.\n\n"
-            "Please select the consultation you would like to continue with."
+            "✅ *Follow-up Reservation Available*\n\n"
+            "Below are {patient_name}'s latest eligible visits for follow-up.\n"
+            "For each section, only the most recent visit is shown.\n\n"
+            "Please select the visit you would like to continue with."
         ),
         "hi": (
-            "✅ *फॉलो-अप परामर्श उपलब्ध है*\n\n"
-            "नीचे {patient_name} के फॉलो-अप के लिए नवीनतम योग्य परामर्श दिए गए हैं।\n"
-            "प्रत्येक विभाग के लिए, केवल सबसे हालिया परामर्श दिखाया गया है।\n\n"
-            "कृपया वह परामर्श चुनें जिसके साथ आप आगे बढ़ना चाहेंगे।"
+            "✅ *फॉलो-अप रिज़र्वेशन उपलब्ध है*\n\n"
+            "नीचे {patient_name} के फॉलो-अप के लिए नवीनतम योग्य मुलाकातें दी गई हैं।\n"
+            "प्रत्येक सेक्शन के लिए, केवल सबसे हालिया मुलाकात दिखाई गई है।\n\n"
+            "कृपया वह मुलाकात चुनें जिसके साथ आप आगे बढ़ना चाहेंगे।"
         ),
     },
     VIEW_FOLLOWUP_OPTIONS_BUTTON: {"en": "View Options", "hi": "विकल्प देखें"},
-    FOLLOWUP_ELIGIBLE_SECTION_TITLE: {"en": "Eligible Consultations", "hi": "योग्य परामर्श"},
+    FOLLOWUP_ELIGIBLE_SECTION_TITLE: {"en": "Eligible Visits", "hi": "योग्य मुलाकातें"},
     # fee_line: CONSULTATION_FEE_LINE-shaped ("💰 ...Fee: ₹{amount}\n\n") when
     # hospital_settings.followup_fee is configured, "" otherwise -- same
     # omit-rather-than-fake-₹0 discipline CONFIRM_BOOKING_SUMMARY's own
@@ -584,7 +546,7 @@ STRINGS: dict[str, dict[Language, str]] = {
     FOLLOWUP_APPOINTMENT_CONFIRMED: {
         "en": (
             "✅ *Follow-up Reservation Confirmed*\n\n"
-            "Your follow-up consultation has been successfully booked.\n\n"
+            "Your follow-up reservation has been successfully booked.\n\n"
             "🆔 Reservation ID: {reference_id}\n"
             "👤 Guest: {patient_name}\n"
             "🪑 Table: {doctor_name}\n"
@@ -596,7 +558,7 @@ STRINGS: dict[str, dict[Language, str]] = {
         ),
         "hi": (
             "✅ *फॉलो-अप रिज़र्वेशन की पुष्टि हो गई*\n\n"
-            "आपका फॉलो-अप परामर्श सफलतापूर्वक बुक हो गया है।\n\n"
+            "आपका फॉलो-अप रिज़र्वेशन सफलतापूर्वक बुक हो गया है।\n\n"
             "🆔 रिज़र्वेशन आईडी: {reference_id}\n"
             "👤 अतिथि: {patient_name}\n"
             "🪑 टेबल: {doctor_name}\n"
@@ -614,189 +576,6 @@ STRINGS: dict[str, dict[Language, str]] = {
         "hi": "{doctor_name} के साथ आपका रिज़र्वेशन — आप क्या करना चाहेंगे?",
     },
 
-    # --- Diagnostic/Lab Phase 2 (docs/per-appointment-type-flow-plan.md
-    # Step 5): test selection -> variant selection -> date/time (resource-
-    # linked when the test has one) -> confirm, with prep instructions
-    # folded into the confirmation card. ---
-    SELECT_DIAGNOSTIC_TEST: {
-        "en": "Please select the test you would like to book.",
-        "hi": "कृपया वह जांच चुनें जिसे आप बुक करना चाहते हैं।",
-    },
-    VIEW_TESTS_BUTTON: {"en": "View Tests", "hi": "जांच देखें"},
-    DIAGNOSTIC_TESTS_SECTION_TITLE: {"en": "Tests", "hi": "जांच"},
-    SELECT_DIAGNOSTIC_VARIANT: {
-        "en": "Please select the specific type of {test_name}.",
-        "hi": "कृपया {test_name} का विशिष्ट प्रकार चुनें।",
-    },
-    VIEW_VARIANTS_BUTTON: {"en": "View Options", "hi": "विकल्प देखें"},
-    DIAGNOSTIC_VARIANTS_SECTION_TITLE: {"en": "Options", "hi": "विकल्प"},
-    NO_DIAGNOSTIC_TESTS_CONFIGURED: {
-        "en": "Sorry, no tests are available to book right now. Please check back later.",
-        "hi": "क्षमा करें, अभी बुक करने के लिए कोई जांच उपलब्ध नहीं है। कृपया बाद में फिर से देखें।",
-    },
-    CHANGE_DIAGNOSTIC_TEST_OPTION: {"en": "Test", "hi": "जांच"},
-    CHANGE_DIAGNOSTIC_VARIANT_OPTION: {"en": "Test Option", "hi": "जांच विकल्प"},
-    DIAGNOSTIC_AMOUNT_LINE: {"en": "💰 Amount: ₹{amount}\n", "hi": "💰 राशि: ₹{amount}\n"},
-    DIAGNOSTIC_PREPARATION_LINE: {
-        "en": "📝 *Preparation:* {instructions}\n\n",
-        "hi": "📝 *तैयारी:* {instructions}\n\n",
-    },
-    # amount_line/prep_line: built by _diagnostic_shared.py, "" when unset --
-    # same omit-rather-than-fake-value discipline as fee_line elsewhere.
-    DIAGNOSTIC_CONFIRMATION_SUMMARY: {
-        "en": (
-            "🔬 *Review {appointment_type_label} Booking*\n\n"
-            "👤 Guest: {patient_name}\n"
-            "🆔 Guest ID: {patient_code}\n"
-            "🧪 Test: {test_name}\n"
-            "🧾 Option: {variant_label}\n"
-            "🏥 Location: {hospital_name}\n"
-            "📅 Date: {date_label}\n"
-            "🕐 Time: {time_label}\n"
-            "{amount_line}"
-            "{prep_line}"
-            "Please review the details and preparation instructions before confirming."
-        ),
-        "hi": (
-            "🔬 *{appointment_type_label} बुकिंग की समीक्षा करें*\n\n"
-            "👤 अतिथि: {patient_name}\n"
-            "🆔 अतिथि आईडी: {patient_code}\n"
-            "🧪 जांच: {test_name}\n"
-            "🧾 विकल्प: {variant_label}\n"
-            "🏥 स्थान: {hospital_name}\n"
-            "📅 तारीख: {date_label}\n"
-            "🕐 समय: {time_label}\n"
-            "{amount_line}"
-            "{prep_line}"
-            "कृपया पुष्टि करने से पहले विवरण और तैयारी निर्देशों की समीक्षा करें।"
-        ),
-    },
-    DIAGNOSTIC_BOOKING_CONFIRMED: {
-        "en": (
-            "✅ *{appointment_type_label} Booked*\n\n"
-            "🆔 Booking ID: {reference_id}\n"
-            "👤 Guest: {patient_name}\n"
-            "🧪 Test: {test_name}\n"
-            "🧾 Option: {variant_label}\n"
-            "📅 Date: {date_label}\n"
-            "🕐 Time: {time_label}\n\n"
-            "Please arrive at the instructed time and follow the preparation guidance provided."
-        ),
-        "hi": (
-            "✅ *{appointment_type_label} बुक हो गई*\n\n"
-            "🆔 बुकिंग आईडी: {reference_id}\n"
-            "👤 अतिथि: {patient_name}\n"
-            "🧪 जांच: {test_name}\n"
-            "🧾 विकल्प: {variant_label}\n"
-            "📅 तारीख: {date_label}\n"
-            "🕐 समय: {time_label}\n\n"
-            "कृपया निर्देशित समय पर पहुंचें और दी गई तैयारी संबंधी जानकारी का पालन करें।"
-        ),
-    },
-
-    # --- Lab Test Phase 2 follow-up: multi-test basket -> collection method
-    # (visit vs. home sample, serviceability-gated) -> date/time -> confirm,
-    # with an itemized price review and a conditional fasting/prep paragraph. ---
-    SELECT_LAB_TEST: {
-        "en": "Please select a test to add to your booking.",
-        "hi": "कृपया अपनी बुकिंग में जोड़ने के लिए एक जांच चुनें।",
-    },
-    # WhatsApp menu restructuring follow-up (confirmed with the user): shown
-    # as the remaining-tests LIST's own body text, not a separate "would you
-    # like to add another test?" buttons detour -- picking another test
-    # happens straight from that list, with "Done, Continue" offered
-    # alongside "Back" underneath once the basket has at least one item.
-    LAB_TEST_ADDED_PROMPT: {
-        "en": "Added *{item_label}* to your booking.\n\nSelect another test below, or tap \"Done, Continue\" when you're finished.",
-        "hi": "*{item_label}* आपकी बुकिंग में जोड़ दी गई है।\n\nनीचे से एक और जांच चुनें, या पूरा होने पर \"हो गया, आगे बढ़ें\" पर टैप करें।",
-    },
-    LAB_DONE_BUTTON: {"en": "Done, Continue", "hi": "हो गया, आगे बढ़ें"},
-    SELECT_COLLECTION_METHOD: {
-        "en": "How would you like to provide your sample?",
-        "hi": "आप अपना सैंपल कैसे देना चाहेंगे?",
-    },
-    COLLECTION_VISIT_BUTTON: {"en": "Visit Restaurant/Lab", "hi": "रेस्तरां/लैब जाएं"},
-    COLLECTION_HOME_BUTTON: {"en": "Home Collection", "hi": "होम कलेक्शन"},
-    ASK_COLLECTION_PINCODE: {
-        "en": "Please enter your area PIN code so we can check home-collection availability.",
-        "hi": "कृपया अपना क्षेत्र पिन कोड दर्ज करें ताकि हम होम कलेक्शन की उपलब्धता जांच सकें।",
-    },
-    NOT_SERVICEABLE_PINCODE: {
-        "en": "Sorry, home sample collection isn't available in your area yet. "
-              "You can visit the restaurant/lab instead, or try a different PIN code.",
-        "hi": "क्षमा करें, आपके क्षेत्र में अभी होम सैंपल कलेक्शन उपलब्ध नहीं है। "
-              "आप इसके बजाय रेस्तरां/लैब जा सकते हैं, या कोई अन्य पिन कोड आज़मा सकते हैं।",
-    },
-    TRY_ANOTHER_PINCODE_BUTTON: {"en": "Try Another PIN", "hi": "अन्य पिन आज़माएं"},
-    ASK_COLLECTION_ADDRESS: {
-        "en": "Please enter the full address where the sample should be collected.",
-        "hi": "कृपया वह पूरा पता दर्ज करें जहां सैंपल एकत्र किया जाना चाहिए।",
-    },
-    ASK_COLLECTION_ADDRESS_WITH_SUGGESTION: {
-        "en": "Please enter the full address where the sample should be collected, "
-              "or reply \"same\" to use your address on file:\n{address}",
-        "hi": "कृपया वह पूरा पता दर्ज करें जहां सैंपल एकत्र किया जाना चाहिए, "
-              "या अपने दर्ज पते का उपयोग करने के लिए \"same\" लिखें:\n{address}",
-    },
-    CHANGE_COLLECTION_METHOD_OPTION: {"en": "Collection Method", "hi": "कलेक्शन तरीका"},
-    # tests_block/collection_line/amount_block/fasting_block: built by
-    # flows/booking/types/lab.py, "" when not applicable -- same
-    # omit-rather-than-fake-value discipline every other card in this file uses.
-    LAB_CONFIRMATION_SUMMARY: {
-        "en": (
-            "🔬 *Review {appointment_type_label} Booking*\n\n"
-            "👤 Guest: {patient_name}\n"
-            "🆔 Guest ID: {patient_code}\n"
-            "{tests_block}"
-            "{collection_line}"
-            "📅 Date: {date_label}\n"
-            "🕐 Time: {time_label}\n"
-            "{amount_block}"
-            "{fasting_block}"
-            "Please review the details before confirming your booking."
-        ),
-        "hi": (
-            "🔬 *{appointment_type_label} बुकिंग की समीक्षा करें*\n\n"
-            "👤 अतिथि: {patient_name}\n"
-            "🆔 अतिथि आईडी: {patient_code}\n"
-            "{tests_block}"
-            "{collection_line}"
-            "📅 तारीख: {date_label}\n"
-            "🕐 समय: {time_label}\n"
-            "{amount_block}"
-            "{fasting_block}"
-            "कृपया पुष्टि करने से पहले विवरण की समीक्षा करें।"
-        ),
-    },
-    LAB_TEST_CHARGES_LINE: {"en": "💰 Test Charges: ₹{amount}\n", "hi": "💰 जांच शुल्क: ₹{amount}\n"},
-    LAB_HOME_COLLECTION_LINE: {"en": "🏠 Home Collection: ₹{amount}\n", "hi": "🏠 होम कलेक्शन: ₹{amount}\n"},
-    LAB_TOTAL_LINE: {"en": "🧾 Total: ₹{amount}\n\n", "hi": "🧾 कुल: ₹{amount}\n\n"},
-    LAB_FASTING_LINE: {
-        "en": "📝 *Preparation:* {instructions}\n\n",
-        "hi": "📝 *तैयारी:* {instructions}\n\n",
-    },
-    LAB_BOOKING_CONFIRMED: {
-        "en": (
-            "✅ *{appointment_type_label} Booked*\n\n"
-            "🆔 Booking ID: {reference_id}\n"
-            "👤 Guest: {patient_name}\n"
-            "🧪 Tests: {test_count}\n"
-            "{collection_line}"
-            "📅 Date: {date_label}\n"
-            "🕐 Time: {time_label}\n\n"
-            "We'll notify you here on WhatsApp the moment your report is ready."
-        ),
-        "hi": (
-            "✅ *{appointment_type_label} बुक हो गई*\n\n"
-            "🆔 बुकिंग आईडी: {reference_id}\n"
-            "👤 अतिथि: {patient_name}\n"
-            "🧪 जांच: {test_count}\n"
-            "{collection_line}"
-            "📅 तारीख: {date_label}\n"
-            "🕐 समय: {time_label}\n\n"
-            "आपकी रिपोर्ट तैयार होते ही हम आपको यहीं WhatsApp पर सूचित करेंगे।"
-        ),
-    },
     SELECT_PROCEDURE: {
         "en": "Please select the treatment or procedure recommended by your doctor.",
         "hi": "कृपया अपने डॉक्टर द्वारा सुझाई गई उपचार या प्रक्रिया चुनें।",

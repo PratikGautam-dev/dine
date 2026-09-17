@@ -26,9 +26,16 @@ export type Visit = {
   id: number;
   phone: string;
   department_id: string;
-  department_name: string;
-  doctor_id: string;
-  doctor_name: string;
+  department_name: string | null;
+  doctor_id: string | null;
+  // Table reservations (migration 0030): additive alongside doctor_id/
+  // doctor_name -- a table reservation visit has these null and
+  // table_id/table_name/party_size set instead, never both. Same nullable
+  // correction useAppointments.ts's own Appointment type just got.
+  doctor_name: string | null;
+  table_id: string | null;
+  table_name: string | null;
+  party_size: number | null;
   scheduled_at: string;
   status: string;
   source: string;
@@ -237,8 +244,9 @@ export function usePatientDetail(patientId: string, ready: boolean) {
       if (visitStatusFilter !== "all" && v.status !== visitStatusFilter) return false;
       if (!q) return true;
       return (
-        v.doctor_name.toLowerCase().includes(q) ||
-        v.department_name.toLowerCase().includes(q) ||
+        (v.doctor_name || "").toLowerCase().includes(q) ||
+        (v.table_name || "").toLowerCase().includes(q) ||
+        (v.department_name || "").toLowerCase().includes(q) ||
         (v.reference_id || "").toLowerCase().includes(q)
       );
     });

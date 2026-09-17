@@ -355,7 +355,7 @@ async def _handle_awaiting_procedure_reschedule_date(
     procedure_id = context.get("procedure_id")
     if procedure_id is None or context.get("reschedule_appointment_id") is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
     if reply["type"] == "interactive_reply":
         available_dates = {s["date"] for s in connector.get_procedure_available_slots(hospital_id, procedure_id)}
@@ -386,7 +386,7 @@ async def _handle_awaiting_procedure_reschedule_slot(
     date_str = context.get("date")
     if procedure_id is None or appointment_id is None or not date_str:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
     if reply["type"] == "interactive_reply":
         slot = _find_by_id(connector.get_procedure_available_slots(hospital_id, procedure_id), reply["id"])

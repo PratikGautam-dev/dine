@@ -46,9 +46,9 @@ def _validate_doctor_fields(
     errors = []
     warnings = []
     name = name.strip()
-    label = f"Doctor #{index + 1}" + (f" ({name})" if name else "")
+    label = f"Table #{index + 1}" + (f" ({name})" if name else "")
     if not name:
-        errors.append(f"Doctor #{index + 1}: name is required.")
+        errors.append(f"Table #{index + 1}: name is required.")
 
     working_days = [d.strip() for d in days_raw.split(",") if d.strip()]
     if not working_days:

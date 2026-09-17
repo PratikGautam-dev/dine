@@ -117,7 +117,7 @@ async def handle_incoming(
     phone: str,
     hospital_id: int,
     reply: dict,
-    hospital_name: str = "the hospital",
+    hospital_name: str = "the restaurant",
     connector: Connector | None = None,
     closing_message_text: str | None = None,
 ) -> None:

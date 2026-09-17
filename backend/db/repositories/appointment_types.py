@@ -19,7 +19,7 @@ from db.orm_models import AppointmentType
 # RELATIONSHIP_OPTIONS plays for patient_links.relationship_label.
 DEFAULT_APPOINTMENT_TYPES = (
     {"id": "new", "label": "Table Reservation", "requires_consent": False, "requires_doctor_selection": True},
-    {"id": "followup", "label": "Follow-up Consultation", "requires_consent": False, "requires_doctor_selection": True},
+    {"id": "followup", "label": "Follow-up Reservation", "requires_consent": False, "requires_doctor_selection": True},
     {"id": "procedure", "label": "Procedure", "requires_consent": False, "requires_doctor_selection": False},
 )
 

@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
 import { TYPE_LABELS, type Appointment, useAppointments } from "@/hooks/useAppointments";
 import { createAppointmentColumns, STATUS_LABELS } from "./_components/appointments-columns";
 
-const TYPE_TAB_ORDER = ["all", "new", "followup", "tele", "second_opinion", "diagnostic", "lab", "daycare", "other"];
+const TYPE_TAB_ORDER = ["all", "new", "followup", "other"];
 
 export default function PortalAppointmentsPage() {
   const { hospital, ready } = usePortalGuard();
@@ -27,7 +27,6 @@ export default function PortalAppointmentsPage() {
     rDoctors, rDatesForDoctor, rSlotsForDate,
     openReschedulePanel, closeReschedulePanel, handleReschedule,
     markingAttendanceId, handleAttendance,
-    advancingLabStatusId, handleAdvanceLabStatus,
     deletingId, handleDelete,
     selected, toggleSelected, toggleSelectAll, deletableAppointments, selectedAppointments, allSelected,
     pendingDelete, setPendingDelete, bulkDeleting, runBulkDelete,
@@ -39,14 +38,13 @@ export default function PortalAppointmentsPage() {
         selected, toggleSelected, toggleSelectAll, allSelected,
         deletableCount: deletableAppointments.length,
         markingAttendanceId, onAttendance: handleAttendance,
-        advancingLabStatusId, onAdvanceLabStatus: handleAdvanceLabStatus,
         cancelPanelId, reschedulePanelId,
         onOpenReschedule: openReschedulePanel, onOpenCancel: openCancelPanel,
         deletingId, onDelete: handleDelete,
       }),
     [
       selected, toggleSelected, toggleSelectAll, allSelected, deletableAppointments.length,
-      markingAttendanceId, handleAttendance, advancingLabStatusId, handleAdvanceLabStatus,
+      markingAttendanceId, handleAttendance,
       cancelPanelId, reschedulePanelId, openReschedulePanel, openCancelPanel, deletingId, handleDelete,
     ],
   );

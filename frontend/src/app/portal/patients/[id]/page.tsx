@@ -82,11 +82,16 @@ export default function PatientDetailPage() {
 
             <div className="border-t border-line pt-space-3">
               <p className="mb-space-2 text-[12px] font-semibold text-ink-600">
-                Or book this reservation now (table {v.doctor_name}, {v.department_name})
+                Or book this reservation now (table {v.table_name || v.doctor_name}, {v.department_name})
               </p>
               {(() => {
-                const dates = bookCtx ? Object.keys(bookCtx.slots_by_doctor[v.doctor_id] || {}).sort() : [];
-                const slots = bookCtx && bookDate ? bookCtx.slots_by_doctor[v.doctor_id]?.[bookDate] || [] : [];
+                // Table reservations (migration 0030): v.doctor_id is null
+                // for a table-reservation visit -- this doctor-slot rebook
+                // panel has no equivalent for one (no per-doctor schedule to
+                // look up), so it falls back to "no available dates" rather
+                // than indexing with a null key.
+                const dates = bookCtx && v.doctor_id ? Object.keys(bookCtx.slots_by_doctor[v.doctor_id] || {}).sort() : [];
+                const slots = bookCtx && v.doctor_id && bookDate ? bookCtx.slots_by_doctor[v.doctor_id]?.[bookDate] || [] : [];
                 return (
                   <>
                     {dates.length === 0 ? (
@@ -169,11 +174,6 @@ export default function PatientDetailPage() {
               {patient.patient_display_id && (
                 <span className="rounded-full bg-brand-50 px-space-2 py-0.5 font-mono text-[11.5px] font-semibold text-brand-700">
                   {patient.patient_display_id}
-                </span>
-              )}
-              {patient.mrn && (
-                <span className="rounded-full bg-ink-50 px-space-2 py-0.5 font-mono text-[11.5px] font-semibold text-ink-600">
-                  MRN {patient.mrn}
                 </span>
               )}
               {patient.status !== "active" && (

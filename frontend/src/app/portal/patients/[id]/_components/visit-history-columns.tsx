@@ -60,14 +60,25 @@ export function createVisitHistoryColumns({
       ),
     },
     {
-      id: "doctor_name",
+      // Table reservations (migration 0030): same table_name-priority-over-
+      // doctor_name shape appointments-columns.tsx's own "Table" column uses.
+      id: "table_or_doctor_name",
       header: "Table",
-      cell: ({ row }) => <span className="text-ink-600">{row.original.doctor_name}</span>,
+      cell: ({ row }) => (
+        <span className="text-ink-600">{row.original.table_name || row.original.doctor_name || "—"}</span>
+      ),
+    },
+    {
+      id: "party_size",
+      header: "Party Size",
+      cell: ({ row }) => (
+        <span className="tabular-nums text-ink-600">{row.original.party_size ?? "—"}</span>
+      ),
     },
     {
       id: "department_name",
       header: "Section",
-      cell: ({ row }) => <span className="text-ink-600">{row.original.department_name}</span>,
+      cell: ({ row }) => <span className="text-ink-600">{row.original.department_name || "—"}</span>,
     },
     {
       id: "type",

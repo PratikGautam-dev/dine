@@ -208,9 +208,9 @@ function PortalSettingsPageContent() {
                     />
                   </Field>
                   <Field
-                    label="Home sample collection charge (₹)"
+                    label="Delivery fee (₹)"
                     htmlFor="home_collection_charge"
-                    hint="Added for home sample collection."
+                    hint="Added to WhatsApp food orders placed for delivery. Leave blank for no delivery fee."
                   >
                     <Input
                       id="home_collection_charge"

@@ -937,7 +937,7 @@ async def test_language_persists_across_a_full_booking_flow_in_hindi(hospital_id
     assert session["state"] == "IDLE"
     assert session["language"] == "hi"
     kwargs = _last_list(wa)
-    assert kwargs["body_text"].endswith(translate(WELCOME_MENU, "hi", hospital_name="the hospital"))
+    assert kwargs["body_text"].endswith(translate(WELCOME_MENU, "hi", hospital_name="the restaurant"))
 
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap("menu_book"), connector=connector, enabled_features=["book_doctor_appointment"])
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_APPOINTMENT_TYPE"

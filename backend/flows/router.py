@@ -430,7 +430,7 @@ async def handle_incoming(
     phone: str,
     hospital_id: int,
     reply: dict,
-    hospital_name: str = "the hospital",
+    hospital_name: str = "the restaurant",
     connector: Connector | None = None,
     enabled_features: list[str] | None = None,
     feature_labels: dict[str, str] | None = None,

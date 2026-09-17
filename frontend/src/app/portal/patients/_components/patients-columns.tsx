@@ -60,11 +60,6 @@ export function createPatientColumns({
       ),
     },
     {
-      id: "mrn",
-      header: "MRN",
-      cell: ({ row }) => <span className="whitespace-nowrap font-mono text-[12px] text-ink-600">{row.original.mrn || "—"}</span>,
-    },
-    {
       id: "name",
       header: "Name",
       cell: ({ row }) => (

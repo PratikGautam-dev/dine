@@ -487,7 +487,7 @@ def test_platform_admin_can_revoke_and_restore_an_appointment_type_allowlist(hos
     )
     assert resp.status_code == 200, resp.text
     assert resp.json()["appointment_type"] == {
-        "id": "followup", "label": "Follow-up Consultation", "is_active": False, "is_allowed": False,
+        "id": "followup", "label": "Follow-up Reservation", "is_active": False, "is_allowed": False,
         "requires_consent": False, "requires_doctor_selection": True,
     }
 

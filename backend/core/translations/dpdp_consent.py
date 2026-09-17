@@ -5,15 +5,13 @@ resolved, for a hospital that has turned this on. Only "I Agree" is ever
 persisted (db/schema.sql's own comment on dpdp_consents explains why).
 
 Dine Connect fork (ARCHITECTURE_REFERENCE_FOR_FORKING.md Section 5): the
-*mechanism* (an extra consent tap before certain flows) is reusable, but the
-copy below is still the original CareConnect health-data/hospital-specific
-wording ("healthcare-related services", "doctor preference", medical
-reminders) -- left in place, NOT rewritten, per this fork's own instruction
-not to invent new dining-consent content in this stage. TODO(stage 4 or
-later): replace with real dining/ToS consent copy (or drop the gate
-entirely if not needed) before this is ever turned on for a live tenant --
-dpdp_consent_required defaults to False, so this is currently inert for
-every tenant unless a platform admin explicitly opts one in.
+*mechanism* (an extra consent tap before certain flows) is reusable, and the
+copy below has already been genericized (booking/communication/reminders
+wording, no health-specific language) -- see the PLACEHOLDER comment on
+STRINGS below for the fuller caveat (it's still generic-consent boilerplate,
+not real reviewed legal copy). dpdp_consent_required defaults to False, so
+this stays inert for every tenant unless a platform admin explicitly opts
+one in.
 
 Also holds Section 20's "Consent & Privacy" menu item -- kept intentionally
 minimal (a real status display + one genuine toggle, not a full legal
@@ -37,8 +35,8 @@ CONSENT_MARKETING_DISABLE = "consent_marketing_disable"
 STRINGS: dict[str, dict[Language, str]] = {
     # PLACEHOLDER copy (health-specific wording stripped for the Dine Connect
     # fork -- generic data-processing language only, no dining-specific
-    # claims invented either; see this module's docstring TODO). Needs real
-    # legal review/content before dpdp_consent_required is ever turned on.
+    # claims invented either). Needs real legal review/content before
+    # dpdp_consent_required is ever turned on.
     DPDP_CONSENT_BODY: {
         "en": (
             "🔐 Your Privacy Matters\n\n"

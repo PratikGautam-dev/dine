@@ -145,7 +145,7 @@ def test_doctor_with_invalid_working_day_rejected(hospital_id, user_auth_header,
 def test_no_features_selected_rejected(hospital_id, user_auth_header, super_admin_token):
     resp = client.post("/api/onboarding", json=_payload(super_admin_token, enabled_features=[], departments=[]), headers=user_auth_header)
     assert resp.status_code == 400
-    assert any("patient-experience" in e.lower() for e in resp.json()["errors"])
+    assert any("guest-experience" in e.lower() for e in resp.json()["errors"])
 
 
 def test_unrecognized_feature_rejected(hospital_id, user_auth_header, super_admin_token):

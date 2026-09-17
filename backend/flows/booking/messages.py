@@ -44,11 +44,8 @@ from core.translations.booking import (
     AVAILABLE_TIMES_SECTION_TITLE,
     CANCEL_BUTTON,
     CHANGE_APPOINTMENT_TYPE_OPTION,
-    CHANGE_COLLECTION_METHOD_OPTION,
     CHANGE_DATE_OPTION,
     CHANGE_DEPARTMENT_OPTION,
-    CHANGE_DIAGNOSTIC_TEST_OPTION,
-    CHANGE_DIAGNOSTIC_VARIANT_OPTION,
     CHANGE_DOCTOR_OPTION,
     CHANGE_OPTIONS_SECTION_TITLE,
     CHANGE_TIME_OPTION,
@@ -87,16 +84,15 @@ from core.translations.cancel_reschedule import (
 from core.whatsapp import WhatsAppClient
 
 from flows.booking.state import (
-    ADD_PATIENT_ROW_ID, ALL_PATIENTS_ROW_ID, BACK_ID, CHANGE_APPOINTMENT_TYPE, CHANGE_COLLECTION_METHOD, CHANGE_DATE,
+    ADD_PATIENT_ROW_ID, ALL_PATIENTS_ROW_ID, BACK_ID, CHANGE_APPOINTMENT_TYPE, CHANGE_DATE,
     CHANGE_DEPARTMENT, GOTO_MAIN_MENU,
-    CHANGE_DIAGNOSTIC_TEST, CHANGE_DIAGNOSTIC_VARIANT, CHANGE_DOCTOR, CHANGE_TIME, CONFIRM_NO, CONFIRM_YES,
+    CHANGE_DOCTOR, CHANGE_TIME, CONFIRM_NO, CONFIRM_YES,
     MAIN_MENU_BOOK, MAIN_MENU_CANCEL, MAIN_MENU_FAQ,
-    MAIN_MENU_RESCHEDULE, STATE_AWAITING_APPOINTMENT_TYPE, STATE_AWAITING_COLLECTION_METHOD, STATE_AWAITING_DATE,
+    MAIN_MENU_RESCHEDULE, STATE_AWAITING_APPOINTMENT_TYPE, STATE_AWAITING_DATE,
     STATE_AWAITING_PROCEDURE, STATE_AWAITING_PROCEDURE_REQUEST_CONFIRM,
-    STATE_AWAITING_DEPARTMENT, STATE_AWAITING_DIAGNOSTIC_TEST, STATE_AWAITING_DIAGNOSTIC_VARIANT,
+    STATE_AWAITING_DEPARTMENT,
     STATE_AWAITING_PARTY_SIZE, STATE_AWAITING_TABLE_SECTION,
-    STATE_AWAITING_FOLLOWUP_SELECTION, STATE_AWAITING_LAB_TEST,
-    STATE_AWAITING_LAB_TEST_VARIANT,
+    STATE_AWAITING_FOLLOWUP_SELECTION,
     STATE_AWAITING_DOCTOR, STATE_AWAITING_PATIENT_NAME, STATE_AWAITING_PATIENT_SELECTION,
     STATE_AWAITING_RESCHEDULE_SLOT, STATE_AWAITING_TIME_SLOT,
     _CHANGE_TARGETS, _MAX_LIST_ROWS, _appointment_row_id, _cap_rows, _date_label, _history_pop, _history_pop_to,
@@ -301,7 +297,7 @@ async def _select_patient_and_continue(
     else:
         logger.warning("No _select_patient_and_continue branch for next_action %r -- falling back to main menu", next_action)
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
 
 
 async def _send_patient_selector(
@@ -532,11 +528,11 @@ async def _notify_no_doctors_available(
     # message again from scratch -- the main menu is the recovery path for
     # every negative-outcome case that ISN'T specifically "pick another
     # slot" (that's item 1's own alternate-slot recovery, _handle_slot_taken
-    # above). "the hospital" matches this file's own existing fallback
+    # above). "the restaurant" matches this file's own existing fallback
     # wording at every other deep-handler-bails-to-main-menu site (e.g.
     # _handle_awaiting_doctor's corrupted-context guard) -- none of these
     # state handlers carry the real hospital_name down this far.
-    await _send_main_menu(wa, phone, "the hospital", language=language)
+    await _send_main_menu(wa, phone, "the restaurant", language=language)
 
 
 async def _notify_no_slots_available(
@@ -544,7 +540,7 @@ async def _notify_no_slots_available(
 ) -> None:
     sessions.reset(hospital_id, phone)
     await wa.send_text(phone, t(NO_SLOTS_AVAILABLE, language, doctor_name=doctor_name))
-    await _send_main_menu(wa, phone, "the hospital", language=language)
+    await _send_main_menu(wa, phone, "the restaurant", language=language)
 
 
 async def _handle_slot_taken(
@@ -571,7 +567,7 @@ async def _handle_slot_taken(
     if doctor_id is None and resource_id is None and procedure_id is None and party_size is None:
         # Corrupted/stale context -- nothing to recover a slot list for.
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
     logger.info("Double-booking race: hospital=%s doctor=%s resource=%s procedure=%s party_size=%s slot=%s already taken", hospital_id, doctor_id, resource_id, procedure_id, party_size, context.get("slot_id"))
     if party_size is not None:
@@ -589,7 +585,7 @@ async def _handle_slot_taken(
         # _notify_no_slots_available above.
         sessions.reset(hospital_id, phone)
         await wa.send_text(phone, t(SLOT_TAKEN_NO_ALTERNATIVES, language, doctor_name=doctor_name))
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
     sessions.set(hospital_id, phone, target_state, context)
     await wa.send_text(phone, t(SLOT_TAKEN_CHOOSE_ANOTHER, language))
@@ -598,7 +594,7 @@ async def _handle_slot_taken(
         if date_str is None:
             # Corrupted/stale context -- nothing to recover a time list for.
             sessions.reset(hospital_id, phone)
-            await _send_main_menu(wa, phone, "the hospital", language=language)
+            await _send_main_menu(wa, phone, "the restaurant", language=language)
             return
         await _send_time_menu(
             wa, phone, hospital_id, doctor_id, date_str, connector, language=language,
@@ -692,19 +688,6 @@ async def _send_change_selection_menu(
         rows.append({"id": CHANGE_DOCTOR, "title": t(CHANGE_DOCTOR_OPTION, language)})
     rows.append({"id": CHANGE_DATE, "title": t(CHANGE_DATE_OPTION, language)})
     rows.append({"id": CHANGE_TIME, "title": t(CHANGE_TIME_OPTION, language)})
-    if flow.has_step(STATE_AWAITING_DIAGNOSTIC_TEST):
-        rows.append({"id": CHANGE_DIAGNOSTIC_TEST, "title": t(CHANGE_DIAGNOSTIC_TEST_OPTION, language)})
-        # "Change Test Option" only when the currently-selected test actually
-        # HAS more than one active variant -- re-queried live, never trusted
-        # from a stashed list (same discipline followup.py's eligibility
-        # re-check uses).
-        ctx = context or {}
-        tests = connector.get_diagnostic_tests(hospital_id, ctx.get("appointment_type_id"))
-        current_test = next((t_ for t_ in tests if t_["id"] == ctx.get("diagnostic_test_id")), None)
-        if current_test and len(current_test["variants"]) > 1:
-            rows.append({"id": CHANGE_DIAGNOSTIC_VARIANT, "title": t(CHANGE_DIAGNOSTIC_VARIANT_OPTION, language)})
-    if flow.has_step(STATE_AWAITING_COLLECTION_METHOD):
-        rows.append({"id": CHANGE_COLLECTION_METHOD, "title": t(CHANGE_COLLECTION_METHOD_OPTION, language)})
     # Previously a dead end -- every row here picked a field to change, with
     # no way out except actually picking one. GOTO_MAIN_MENU is intercepted
     # globally (flows/router.py's handle_incoming, before any state
@@ -775,29 +758,14 @@ async def _resend_menu_for_state(
     elif state == STATE_AWAITING_PROCEDURE_REQUEST_CONFIRM:
         from flows.booking.types.procedure import _send_procedure_request_confirm
         await _send_procedure_request_confirm(wa, phone, hospital_id, context, language=language)
-    elif state == STATE_AWAITING_DIAGNOSTIC_TEST:
-        # Lazy import: avoids this module -> types.registry -> diagnostic cycle.
-        from flows.booking.types._diagnostic_shared import _send_test_menu
-        category = context["appointment_type_id"]  # always set by the time this state is reached
-        await _send_test_menu(wa, phone, hospital_id, category, connector, language=language)
-    elif state == STATE_AWAITING_DIAGNOSTIC_VARIANT:
-        from flows.booking.types._diagnostic_shared import _send_variant_menu
-        tests = connector.get_diagnostic_tests(hospital_id, context["appointment_type_id"])
-        test = next((t_ for t_ in tests if t_["id"] == context.get("diagnostic_test_id")), None)
-        if test is not None:
-            await _send_variant_menu(wa, phone, test, language=language)
-    elif state == STATE_AWAITING_LAB_TEST:
-        from flows.booking.types.lab import _send_lab_test_menu
-        await _send_lab_test_menu(wa, phone, hospital_id, connector, context.get("lab_basket") or [], language=language)
-    elif state == STATE_AWAITING_LAB_TEST_VARIANT:
-        from flows.booking.types.lab import _send_lab_variant_menu
-        tests = connector.get_diagnostic_tests(hospital_id, "lab")
-        test = next((t_ for t_ in tests if t_["id"] == context.get("_lab_pending_test_id")), None)
-        if test is not None:
-            await _send_lab_variant_menu(wa, phone, test, language=language)
-    elif state == STATE_AWAITING_COLLECTION_METHOD:
-        from flows.booking.types.lab import _send_collection_method_menu
-        await _send_collection_method_menu(wa, phone, language=language)
+    # Vocabulary audit follow-up: the diagnostic/lab elif branches that used
+    # to live here (STATE_AWAITING_DIAGNOSTIC_TEST/_VARIANT, STATE_AWAITING_
+    # LAB_TEST/_VARIANT, STATE_AWAITING_COLLECTION_METHOD) were already dead
+    # -- they lazy-imported flows/booking/types/_diagnostic_shared.py and
+    # flows/booking/types/lab.py, both deleted in Stage 1, and no currently-
+    # registered TypeFlow ever has these as one of its own _STEPS, so none of
+    # these states could ever actually be reached. Removed along with the
+    # now-deleted diagnostic/lab translation block those branches rendered.
 
 
 async def _handle_back_navigation(
@@ -813,7 +781,7 @@ async def _handle_back_navigation(
     popped = _history_pop(context)
     if popped is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the hospital", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language)
         return
     state, restored_context = popped
     sessions.set(hospital_id, phone, state, restored_context)

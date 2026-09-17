@@ -9,8 +9,18 @@ const DEFAULT_RESCHEDULE_MESSAGE = "Your reservation has been rescheduled.";
 export type Appointment = {
   id: number;
   phone: string;
-  department_name: string;
-  doctor_name: string;
+  department_name: string | null;
+  // Table reservations (migration 0030): doctor_id/doctor_name are null for
+  // a table reservation (create_table_reservation() never sets doctor_id),
+  // and table_id/table_name/party_size are null for every other appointment
+  // type -- additive, never both populated at once. Both were already
+  // possible today; doctor_name/department_name's old non-nullable typing
+  // here was simply wrong (a table reservation row already existed with
+  // doctor_name: null before this fix, untyped).
+  doctor_name: string | null;
+  table_id: string | null;
+  table_name: string | null;
+  party_size: number | null;
   scheduled_at: string;
   status: string;
   source: string;
@@ -19,8 +29,6 @@ export type Appointment = {
   appointment_type_id: string | null;
   video_link: string | null;
   created_at: string | null;
-  // Lab Test Phase 2 follow-up: null for every non-Lab-Test appointment.
-  lab_status: string | null;
   // Daycare/Procedure rebuild: null for every non-procedure appointment.
   // scheduled_at above is a PLACEHOLDER (request creation time) until
   // procedure_status reaches "CONFIRMED" -- don't display it as a real
@@ -144,8 +152,9 @@ export function useAppointments(ready: boolean) {
       if (!q) return true;
       return (
         a.phone.toLowerCase().includes(q) ||
-        a.doctor_name.toLowerCase().includes(q) ||
-        a.department_name.toLowerCase().includes(q) ||
+        (a.doctor_name || "").toLowerCase().includes(q) ||
+        (a.table_name || "").toLowerCase().includes(q) ||
+        (a.department_name || "").toLowerCase().includes(q) ||
         (a.reference_id || "").toLowerCase().includes(q) ||
         (a.patient_display_id || "").toLowerCase().includes(q)
       );
@@ -165,18 +174,6 @@ export function useAppointments(ready: boolean) {
     });
     setMarkingAttendanceId(null);
     if (afterAction(result, attended ? "Marked as attended" : "Marked as no-show", "Couldn't update attendance")) load();
-  }
-
-  // Lab Test Phase 2 follow-up: advances booked -> sample_collected ->
-  // processing one step at a time -- report_ready is never set from here,
-  // only automatically, by uploading a lab_report document against the
-  // appointment (the Patients page's document upload, not this list).
-  const [advancingLabStatusId, setAdvancingLabStatusId] = useState<number | null>(null);
-  async function handleAdvanceLabStatus(id: number) {
-    setAdvancingLabStatusId(id);
-    const result = await portalFetch(`/api/portal/bookings/${id}/lab-status`, { method: "POST" });
-    setAdvancingLabStatusId(null);
-    if (afterAction(result, "Lab status updated", "Couldn't update lab status")) load();
   }
 
   // Daycare/Procedure rebuild: approve/reject a pending request, or advance
@@ -365,7 +362,6 @@ export function useAppointments(ready: boolean) {
     rDoctors, rDatesForDoctor, rSlotsForDate,
     openReschedulePanel, closeReschedulePanel, handleReschedule,
     markingAttendanceId, handleAttendance,
-    advancingLabStatusId, handleAdvanceLabStatus,
     procedureActionId, handleApproveProcedureRequest, handleRejectProcedureRequest,
     handleAdvanceProcedureStatus, handleApproveProcedureReschedule, handleRejectProcedureReschedule,
     deletingId, handleDelete,
