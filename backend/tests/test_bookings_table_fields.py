@@ -108,7 +108,7 @@ def test_legacy_doctor_appointment_still_displays_correctly_with_null_table_fiel
     row = next(a for a in resp.json()["appointments"] if a["id"] == appointment.id)
 
     assert row["doctor_id"] == "doc_card_1"
-    assert row["doctor_name"] == "Dr. Anjali Rao"
+    assert row["doctor_name"] == "Anjali Rao"
     assert row["department_id"] == "cardiology"
     assert row["department_name"] == "Cardiology"
     # Additive, not replacing -- a doctor appointment genuinely has no table.
@@ -145,5 +145,5 @@ def test_a_single_list_response_correctly_shows_both_shapes_side_by_side(hospita
     assert table_row["doctor_name"] is None
 
     doctor_row = by_id[doctor_appointment.id]
-    assert doctor_row["doctor_name"] == "Dr. Vikram Sethi"
+    assert doctor_row["doctor_name"] == "Vikram Sethi"
     assert doctor_row["table_name"] is None

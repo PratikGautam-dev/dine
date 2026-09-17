@@ -577,8 +577,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     },
 
     SELECT_PROCEDURE: {
-        "en": "Please select the treatment or procedure recommended by your doctor.",
-        "hi": "कृपया अपने डॉक्टर द्वारा सुझाई गई उपचार या प्रक्रिया चुनें।",
+        "en": "Please select the service you'd like to book.",
+        "hi": "कृपया वह सेवा चुनें जिसे आप बुक करना चाहते हैं।",
     },
     VIEW_PROCEDURES_BUTTON: {"en": "View Procedures", "hi": "प्रक्रियाएं देखें"},
     PROCEDURES_SECTION_TITLE: {"en": "Procedures", "hi": "प्रक्रियाएं"},

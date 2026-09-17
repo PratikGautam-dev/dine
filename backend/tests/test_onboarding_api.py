@@ -36,7 +36,7 @@ def _valid_departments():
     return [{
         "name": "Pediatrics",
         "doctors": [
-            {"name": "Dr. Meera Nair", "specialization": "Pediatrician", "qualification": "MBBS, MD",
+            {"name": "Meera Nair", "specialization": "Pediatrician", "qualification": "MBBS, MD",
              "years_experience": "10", "working_days": ["Mon", "Tue", "Wed", "Thu", "Fri"],
              "working_hours": ["09:00-13:00"], "slot_duration_minutes": "20"},
             {"name": "Dr. Arjun Singh", "specialization": "Pediatrician", "qualification": "MBBS",
@@ -83,7 +83,7 @@ def test_successful_onboarding_creates_real_rows_and_links_owner(hospital_id, us
     departments = db.get_departments(hospital.id)
     assert len(departments) == 1
     doctors = db.get_doctors(hospital.id, departments[0]["id"])
-    assert sorted(d["name"] for d in doctors) == ["Dr. Arjun Singh", "Dr. Meera Nair"]
+    assert sorted(d["name"] for d in doctors) == ["Dr. Arjun Singh", "Meera Nair"]
 
     # Section 15: the signed-in user must actually be linked as an admin.
     # Two admins now exist for this hospital -- the signed-in Google user

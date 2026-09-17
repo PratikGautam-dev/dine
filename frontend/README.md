@@ -1,6 +1,6 @@
-# DAAP CareConnect — Frontend
+# Dine Connect — Frontend
 
-The Next.js app for [DAAP CareConnect](../README.md): the public landing page, the guided hospital-onboarding wizard, the hospital-staff booking portal, and the platform-admin tenant pages. Talks to the FastAPI backend (`../core/main.py` and friends) entirely over JSON — `portal_api.py` for the staff portal, `admin/onboarding_api.py` for onboarding, `admin/tenants_api.py` for platform admin.
+The Next.js app for [Dine Connect](../README.md): the public landing page, the guided restaurant-onboarding wizard, the restaurant-staff booking portal, and the platform-admin tenant pages. Talks to the FastAPI backend (`../backend/main.py` and friends) entirely over JSON — `portal/routes/` for the staff portal, `admin/onboarding_api.py` for onboarding, `admin/tenants_api.py` for platform admin.
 
 Built with Next.js 16 (App Router) / React 19 / TypeScript / Tailwind v4.
 
@@ -22,16 +22,18 @@ Point at a different backend by setting `NEXT_PUBLIC_API_BASE_URL` (see `.env.lo
 | Route | What it is |
 |---|---|
 | `/` | Public landing page |
-| `/admin/onboard-hospital` | Guided multi-step wizard for onboarding a new hospital (WhatsApp setup, departments/doctors, feature selection) |
+| `/admin/onboard-hospital` | Guided multi-step wizard for onboarding a new restaurant (WhatsApp setup, sections/tables, feature selection) |
 | `/admin/tenants`, `/admin/edit-tenant/[id]` | Platform-admin tenant list/edit, gated by `TENANTS_ADMIN_SECRET` — separate credential from onboarding's `ADMIN_SECRET` |
-| `/portal/login` | Hospital-staff login |
-| `/portal/dashboard` | Stat tiles, weekly trend, department breakdown, recent activity |
-| `/portal/appointments` | List + cancel (with an optional patient-facing message) |
-| `/portal/doctors` | Add/manage doctors and departments — schedule, breaks, quotas, leave, CSV bulk import |
-| `/portal/patients`, `/portal/patients/[id]` | Patient directory + record (visit history, notes, document upload sent straight to the patient's WhatsApp chat) |
-| `/portal/messages` | The human-handoff inbox — reply to a patient who escalated from the bot |
-| `/portal/new-booking` | Staff-created bookings, through the exact same connector path a WhatsApp patient's booking uses |
-| `/portal/settings` | Self-serve bot customization: menu labels, closing message, business hours, default language, session timeout |
+| `/portal/login` | Restaurant-staff login |
+| `/portal/dashboard` | Stat tiles, weekly trend, section breakdown, recent activity |
+| `/portal/appointments` | Reservation list + cancel/reschedule/reassign-table (with an optional guest-facing WhatsApp message) |
+| `/portal/tables` | Add/manage physical tables and sections |
+| `/portal/doctors`, `/portal/schedule` | Staff/"Team" management (kept for RBAC and self-service scheduling, not a guest-facing booking concept) |
+| `/portal/food-menu`, `/portal/food-orders` | Food-ordering menu management and order tracking |
+| `/portal/patients`, `/portal/patients/[id]` | Guest directory + record (visit history, notes) |
+| `/portal/messages` | The human-handoff inbox — reply to a guest who escalated from the bot |
+| `/portal/new-booking` | Staff-created table reservations (or a doctor-appointment fallback), through the exact same connector path a WhatsApp guest's reservation uses |
+| `/portal/settings` | Self-serve bot customization: menu labels, closing message, business/operating hours, default language, session timeout |
 
 ## Design system
 

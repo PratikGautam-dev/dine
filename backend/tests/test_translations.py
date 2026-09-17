@@ -150,7 +150,7 @@ def test_confirmation_card_renders_structured_markdown_in_both_languages():
 
     confirmed_en = t(
         BOOKING_CONFIRMED, "en", reference_id="apt_1754650184123", patient_name="Ravi Kumar",
-        department_name="Cardiology", doctor_name="Dr. Anjali Rao", date_label="Saturday, 08 August 2026",
+        department_name="Cardiology", doctor_name="Anjali Rao", date_label="Saturday, 08 August 2026",
         time_label="10:00 AM",
     )
     assert "✅ *Reservation Confirmed*" in confirmed_en
@@ -158,7 +158,7 @@ def test_confirmation_card_renders_structured_markdown_in_both_languages():
 
     confirmed_hi = t(
         BOOKING_CONFIRMED, "hi", reference_id="apt_1754650184123", patient_name="Ravi Kumar",
-        department_name="Cardiology", doctor_name="Dr. Anjali Rao", date_label="Saturday, 08 August 2026",
+        department_name="Cardiology", doctor_name="Anjali Rao", date_label="Saturday, 08 August 2026",
         time_label="10:00 AM",
     )
     assert "✅" in confirmed_hi and "apt_1754650184123" in confirmed_hi

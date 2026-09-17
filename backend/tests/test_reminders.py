@@ -67,7 +67,7 @@ async def test_reminder_message_mentions_doctor_and_department(hospital_id):
     await send_reminders(wa, hospital_id, offsets_hours=[24])
 
     message = wa.send_text.call_args[0][1]
-    assert "Dr. Anjali Rao" in message
+    assert "Anjali Rao" in message
     assert "Cardiology" in message
 
 

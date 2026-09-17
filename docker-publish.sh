@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Builds and pushes both CareConnect images to a container registry --
+# Builds and pushes both Dine Connect images to a container registry --
 # Option A manual deployment (build locally, push, `docker pull` on the
 # VPS), not Coolify's auto-build. Exists so the two-image build+tag+push
 # sequence is never typed out by hand (and therefore never half-done or
@@ -42,8 +42,8 @@ fi
 
 VERSION="$(git describe --tags --always --dirty 2>/dev/null || date +%Y%m%d%H%M%S)"
 
-BACKEND_IMAGE="${REGISTRY}/careconnect-backend"
-FRONTEND_IMAGE="${REGISTRY}/careconnect-frontend"
+BACKEND_IMAGE="${REGISTRY}/dine-connect-backend"
+FRONTEND_IMAGE="${REGISTRY}/dine-connect-frontend"
 
 echo "==> Building ${BACKEND_IMAGE}:${VERSION} (and :latest)"
 docker build \
@@ -61,7 +61,7 @@ docker build \
 echo
 echo "==> Image sizes"
 docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" \
-  | grep -E "REPOSITORY|careconnect-(backend|frontend)"
+  | grep -E "REPOSITORY|dine-connect-(backend|frontend)"
 
 if [[ "$PUSH" -eq 0 ]]; then
   echo

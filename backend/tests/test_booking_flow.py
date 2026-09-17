@@ -251,7 +251,7 @@ async def test_reset_keyword_escapes_a_stuck_mid_flow_state(hospital_id):
     sessions = InMemorySessionStore()
     sessions.set(hospital_id, PHONE, "AWAITING_DATE", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": "doc_card_1", "doctor_name": "Anjali Rao",
     })
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Hi"), hospital_name="City Hospital")
@@ -273,7 +273,7 @@ async def test_cancel_free_text_is_a_recognized_reset_keyword(hospital_id):
     sessions = InMemorySessionStore()
     sessions.set(hospital_id, PHONE, "AWAITING_DATE", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": "doc_card_1", "doctor_name": "Anjali Rao",
     })
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("cancel"), hospital_name="City Hospital")
@@ -327,7 +327,7 @@ async def test_non_reset_text_mid_flow_still_reprompts_the_same_state(hospital_i
     sessions = InMemorySessionStore()
     sessions.set(hospital_id, PHONE, "AWAITING_DATE", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": "doc_card_1", "doctor_name": "Anjali Rao",
     })
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("whatever"))
@@ -336,7 +336,7 @@ async def test_non_reset_text_mid_flow_still_reprompts_the_same_state(hospital_i
     # Section 0's UX follow-up).
     assert len(wa.sent) == 2
     assert wa.sent[0][0] == "list"
-    assert "Dr. Anjali Rao" in wa.sent[0][1]["body_text"]
+    assert "Anjali Rao" in wa.sent[0][1]["body_text"]
     assert wa.sent[1][0] == "buttons"
     assert sessions.get(hospital_id, PHONE)["state"] == "AWAITING_DATE"
 
@@ -353,7 +353,7 @@ async def test_free_text_in_awaiting_time_slot_resends_the_real_time_list(hospit
     date_str = db.get_slots(hospital_id, doctor_id)[0]["date"]
     sessions.set(hospital_id, PHONE, "AWAITING_TIME_SLOT", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
         "date": date_str, "date_label": "Sat, Aug 8",
     })
 
@@ -601,7 +601,7 @@ async def test_confirmation_cancel_resets_to_idle(hospital_id):
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore()
     sessions.set(hospital_id, PHONE, "AWAITING_CONFIRMATION", {
-        "department_name": "Cardiology", "doctor_name": "Dr. Anjali Rao", "slot_label": "Mon 01 Jan 10:00",
+        "department_name": "Cardiology", "doctor_name": "Anjali Rao", "slot_label": "Mon 01 Jan 10:00",
     })
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("cancel"))
@@ -650,7 +650,7 @@ async def test_unrecognized_tap_id_in_awaiting_doctor_reprompts_same_state(hospi
 async def test_expired_session_resets_to_idle_instead_of_resuming(hospital_id):
     wa = FakeWhatsAppClient()
     sessions = InMemorySessionStore(timeout_seconds=0)
-    sessions.set(hospital_id, PHONE, "AWAITING_DATE", {"doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao"})
+    sessions.set(hospital_id, PHONE, "AWAITING_DATE", {"doctor_id": "doc_card_1", "doctor_name": "Anjali Rao"})
     import time
     time.sleep(0.01)  # ensure the 0-second timeout has definitely elapsed
 
@@ -696,7 +696,7 @@ async def test_cancel_flow_one_appointment_happy_path(hospital_id):
     kind, kwargs = wa.sent[-1]
     assert kind == "buttons"
     assert {b["id"] for b in kwargs["buttons"]} == {"confirm", "cancel"}
-    assert "Dr. Anjali Rao" in kwargs["body_text"]
+    assert "Anjali Rao" in kwargs["body_text"]
     session = sessions.get(hospital_id, PHONE)
     assert session["state"] == "AWAITING_CANCEL_CONFIRM"
     assert session["context"]["appointment_id"] == appt.id

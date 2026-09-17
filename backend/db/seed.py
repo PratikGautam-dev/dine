@@ -82,22 +82,22 @@ DEPARTMENTS = [
 
 DOCTORS_BY_DEPARTMENT = {
     "cardiology": [
-        {"id": "doc_card_1", "name": "Dr. Anjali Rao"},
-        {"id": "doc_card_2", "name": "Dr. Vikram Sethi"},
+        {"id": "doc_card_1", "name": "Anjali Rao"},
+        {"id": "doc_card_2", "name": "Vikram Sethi"},
     ],
     "orthopedics": [
-        {"id": "doc_ortho_1", "name": "Dr. Rajesh Kumar"},
-        {"id": "doc_ortho_2", "name": "Dr. Meera Nair"},
-        {"id": "doc_ortho_3", "name": "Dr. Sanjay Gupta"},
+        {"id": "doc_ortho_1", "name": "Rajesh Kumar"},
+        {"id": "doc_ortho_2", "name": "Meera Nair"},
+        {"id": "doc_ortho_3", "name": "Sanjay Gupta"},
     ],
     "general_medicine": [
-        {"id": "doc_gen_1", "name": "Dr. Priya Sharma"},
-        {"id": "doc_gen_2", "name": "Dr. Arjun Mehta"},
+        {"id": "doc_gen_1", "name": "Priya Sharma"},
+        {"id": "doc_gen_2", "name": "Arjun Mehta"},
     ],
     "pediatrics": [
-        {"id": "doc_ped_1", "name": "Dr. Kavita Iyer"},
-        {"id": "doc_ped_2", "name": "Dr. Rohan Desai"},
-        {"id": "doc_ped_3", "name": "Dr. Neha Kapoor"},
+        {"id": "doc_ped_1", "name": "Kavita Iyer"},
+        {"id": "doc_ped_2", "name": "Rohan Desai"},
+        {"id": "doc_ped_3", "name": "Neha Kapoor"},
     ],
 }
 
@@ -113,10 +113,10 @@ TEST_HOSPITAL_2_DEPARTMENTS = [
 
 TEST_HOSPITAL_2_DOCTORS_BY_DEPARTMENT = {
     "t2_neurology": [
-        {"id": "t2_doc_neuro_1", "name": "Dr. Isabel Cruz"},
+        {"id": "t2_doc_neuro_1", "name": "Isabel Cruz"},
     ],
     "t2_dermatology": [
-        {"id": "t2_doc_derm_1", "name": "Dr. Marcus Webb"},
+        {"id": "t2_doc_derm_1", "name": "Marcus Webb"},
     ],
 }
 

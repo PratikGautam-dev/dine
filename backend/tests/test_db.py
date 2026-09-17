@@ -209,7 +209,7 @@ def test_create_appointment_returns_populated_record(hospital_id):
     appt = db.create_appointment(hospital_id, "5491112345678", "cardiology", doctor_id, datetime(2026, 1, 1, 10, 0))
     assert appt.phone == "5491112345678"
     assert appt.department_name == "Cardiology"
-    assert appt.doctor_name == "Dr. Anjali Rao"
+    assert appt.doctor_name == "Anjali Rao"
     assert appt.status == db.STATUS_BOOKED
     assert db.get_reminded_offsets(hospital_id, appt.id) == []
     assert appt.id is not None

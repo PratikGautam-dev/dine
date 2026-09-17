@@ -72,7 +72,7 @@ async def test_confirm_race_second_patient_gets_taken_message_and_updated_slot_l
     slot = db.get_slots(hospital_id, doctor_id)[0]
     shared_context = {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
         "date": slot["date"], "date_label": "Sat, Aug 8",
         "slot_id": slot["id"], "slot_date": slot["date"], "slot_time": slot["time"],
         "patient_name": "Test Patient",
@@ -124,7 +124,7 @@ async def test_reschedule_race_leaves_original_appointment_intact(hospital_id):
     sessions.set(hospital_id, PHONE, "AWAITING_RESCHEDULE_CONFIRM", {
         "reschedule_appointment_id": original.id,
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
         "slot_id": contested_slot["id"], "slot_label": contested_slot["label"],
         "slot_date": contested_slot["date"], "slot_time": contested_slot["time"],
     })
@@ -171,7 +171,7 @@ async def test_confirm_race_when_doctor_has_no_other_slots_left(hospital_id):
 
     sessions.set(hospital_id, PHONE, "AWAITING_CONFIRMATION", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
         "date": last_slot["date"], "date_label": "Sat, Aug 8",
         "slot_id": last_slot["id"], "slot_date": last_slot["date"], "slot_time": last_slot["time"],
         "patient_name": "Test Patient",
@@ -209,7 +209,7 @@ async def test_confirm_race_loser_picks_alternate_slot_without_being_reasked_nam
 
     shared_context = {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
         "date": contested["date"], "date_label": "Sat, Aug 8",
         "slot_id": contested["id"], "slot_date": contested["date"], "slot_time": contested["time"],
         "patient_name": "Race Loser", "patient_age": 41,
@@ -260,18 +260,18 @@ async def test_confirm_race_loser_picks_alternate_slot_without_being_reasked_nam
     ("AWAITING_DEPARTMENT", {}),
     ("AWAITING_DOCTOR", {"department_id": "cardiology", "department_name": "Cardiology"}),
     ("AWAITING_DATE", {"department_id": "cardiology", "department_name": "Cardiology",
-                        "doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao"}),
+                        "doctor_id": "doc_card_1", "doctor_name": "Anjali Rao"}),
     ("AWAITING_TIME_SLOT", {"department_id": "cardiology", "department_name": "Cardiology",
-                             "doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao", "date": "2026-08-08"}),
-    ("AWAITING_PATIENT_NAME", {"department_name": "Cardiology", "doctor_name": "Dr. Anjali Rao"}),
-    ("AWAITING_PATIENT_AGE", {"department_name": "Cardiology", "doctor_name": "Dr. Anjali Rao", "patient_name": "x"}),
-    ("AWAITING_CONFIRMATION", {"department_name": "Cardiology", "doctor_name": "Dr. Anjali Rao", "date_label": "x",
+                             "doctor_id": "doc_card_1", "doctor_name": "Anjali Rao", "date": "2026-08-08"}),
+    ("AWAITING_PATIENT_NAME", {"department_name": "Cardiology", "doctor_name": "Anjali Rao"}),
+    ("AWAITING_PATIENT_AGE", {"department_name": "Cardiology", "doctor_name": "Anjali Rao", "patient_name": "x"}),
+    ("AWAITING_CONFIRMATION", {"department_name": "Cardiology", "doctor_name": "Anjali Rao", "date_label": "x",
                                 "slot_time": "x", "patient_name": "x", "patient_age": 30}),
     ("AWAITING_CANCEL_SELECTION", {}),
     ("AWAITING_CANCEL_CONFIRM", {"appointment_id": 1}),
     ("AWAITING_RESCHEDULE_SELECTION", {}),
-    ("AWAITING_RESCHEDULE_SLOT", {"doctor_id": "doc_card_1", "doctor_name": "Dr. Anjali Rao", "reschedule_appointment_id": 1}),
-    ("AWAITING_RESCHEDULE_CONFIRM", {"doctor_name": "Dr. Anjali Rao", "slot_label": "x", "reschedule_appointment_id": 1}),
+    ("AWAITING_RESCHEDULE_SLOT", {"doctor_id": "doc_card_1", "doctor_name": "Anjali Rao", "reschedule_appointment_id": 1}),
+    ("AWAITING_RESCHEDULE_CONFIRM", {"doctor_name": "Anjali Rao", "slot_label": "x", "reschedule_appointment_id": 1}),
 ])
 @pytest.mark.asyncio
 async def test_stale_session_in_every_state_resets_to_idle_and_shows_main_menu(hospital_id, state, context):
@@ -368,7 +368,7 @@ async def test_awaiting_slot_fallback_rechecks_availability_if_slots_emptied_mid
         db.create_appointment(hospital_id, "000", "cardiology", doctor_id, datetime.fromisoformat(f"{slot['date']}T{slot['time']}:00"))
     sessions.set(hospital_id, PHONE, "AWAITING_DATE", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
     })
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("whatever"))
@@ -400,7 +400,7 @@ async def test_duplicate_booking_with_same_doctor_and_age_is_blocked_with_quick_
     sessions2 = InMemorySessionStore()
     sessions2.set(hospital_id, PHONE, "AWAITING_CONFIRMATION", {
         "department_id": "cardiology", "department_name": "Cardiology",
-        "doctor_id": doctor_id, "doctor_name": "Dr. Anjali Rao",
+        "doctor_id": doctor_id, "doctor_name": "Anjali Rao",
         "date": slots[1]["date"], "date_label": "Sat, Aug 8",
         "slot_id": slots[1]["id"], "slot_date": slots[1]["date"], "slot_time": slots[1]["time"],
         "patient_name": "Ravi Kumar", "patient_age": 34,

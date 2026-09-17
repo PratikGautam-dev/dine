@@ -1,24 +1,35 @@
 # Deployment
 
-## Status: Railway + Vercel is the live deployment. Docker/VPS is prepared, not active.
+## Status: Render + Vercel is the live deployment. Docker/VPS is prepared, not active.
 
-**CareConnect currently runs on Railway (backend) + Vercel (frontend) —
-that is the real, live deployment as of this writing.** The Docker/VPS/
-Coolify material in this document (images, `docker-compose*.yml`,
-`docker-publish.sh`) was built and verified (both images build clean, boot
-clean, pass a request round-trip) but **deliberately not deployed** — it's
-parked for a later self-hosted VPS move, expected to matter once the ERP
-products need it, not something currently serving traffic. If you're
-reading this in a future session trying to figure out "which deployment is
-actually live," it's Railway/Vercel; treat any Docker/VPS section below as
-documentation-in-waiting until this status line is updated to say
-otherwise.
+**Dine Connect currently runs on Render (backend) + Vercel (frontend) —
+that is the real, live deployment as of this writing.** (An earlier Railway
+deploy, and this document's Docker/VPS/Coolify material below, both predate
+the move to Render -- `railway.toml` is a leftover from that earlier setup.)
+The Docker/VPS/Coolify material in this document (images,
+`docker-compose*.yml`, `docker-publish.sh`) was built and verified (both
+images build clean, boot clean, pass a request round-trip) but
+**deliberately not deployed** — it's parked for a later self-hosted VPS
+move, not something currently serving traffic. If you're reading this in a
+future session trying to figure out "which deployment is actually live," it's
+Render/Vercel; treat any Docker/VPS section below as documentation-in-waiting
+until this status line is updated to say otherwise.
 
 The two setups don't conflict — see "Coexistence with Railway/Vercel"
 below for exactly why nothing in the Docker work could have broken the
 live deployment.
 
-## Current deployment: Railway + Vercel
+## Current deployment: Render + Vercel
+
+- **Backend (Render)**: a Render Web Service, Docker runtime, root directory
+  `backend`, building from the existing `backend/Dockerfile` (the same image
+  the Docker/VPS path below already builds and verifies) rather than a
+  separate buildpack config. Health check: `/health`. Env vars are set in
+  Render's dashboard (Environment tab) — see the tables further down for the
+  full list; they're read identically regardless of which platform runs the
+  process, since they're plain `os.environ` reads in `main.py`/`webhook/`/etc.
+
+### Former deployment: Railway (superseded by Render above, config kept below for reference)
 
 - **Backend (Railway)**: `railway.toml` at the repo root pins
   `builder = "NIXPACKS"` explicitly — Railway builds from source via
@@ -125,13 +136,13 @@ move off Railway/Vercel is decided.
 Images publish to:
 
 ```
-daaprime/careconnect-backend
-daaprime/careconnect-frontend
+daaprime/dine-connect-backend
+daaprime/dine-connect-frontend
 ```
 
 No registry hostname prefix needed in image references — `docker.io` is
-the Docker CLI's default registry, so `daaprime/careconnect-backend` and
-`docker.io/daaprime/careconnect-backend` refer to the same image.
+the Docker CLI's default registry, so `daaprime/dine-connect-backend` and
+`docker.io/daaprime/dine-connect-backend` refer to the same image.
 
 **Authenticating**: use a Docker Hub **Access Token**, not your real account
 password — Docker Hub → Account Settings → Security → New Access Token
@@ -145,7 +156,7 @@ docker login -u daaprime
 
 By default a newly pushed Docker Hub repository under a personal namespace
 is **private** on the free plan up to a small number of private repos —
-confirm `daaprime/careconnect-backend` and `daaprime/careconnect-frontend`
+confirm `daaprime/dine-connect-backend` and `daaprime/dine-connect-frontend`
 are set to the visibility you want in Docker Hub's own repository settings;
 if private, the VPS's `docker login` above is what authorizes it to pull.
 
@@ -360,14 +371,14 @@ IMAGE_TAG=latest docker compose -f docker-compose.prod.yml up -d
 see `docker-publish.sh`'s printed output for the exact tag after each
 publish)
 
-**Container names** are fixed (`careconnect-backend`, `careconnect-frontend`
+**Container names** are fixed (`dine-connect-backend`, `dine-connect-frontend`
 — set via `container_name` in `docker-compose.prod.yml`) specifically so
 day-to-day operations don't need to be looked up:
 
 ```bash
-docker logs -f careconnect-backend
-docker restart careconnect-backend
-docker stop careconnect-backend careconnect-frontend
+docker logs -f dine-connect-backend
+docker restart dine-connect-backend
+docker stop dine-connect-backend dine-connect-frontend
 ```
 
 **Env vars on the VPS**: there's no Coolify dashboard injecting them here —
@@ -381,13 +392,13 @@ before the first `up`. If you'd rather run containers directly instead of
 through Compose, the equivalent is:
 
 ```bash
-docker run -d --name careconnect-backend --restart unless-stopped \
+docker run -d --name dine-connect-backend --restart unless-stopped \
   -p 8000:8000 --env-file .env \
-  daaprime/careconnect-backend:latest
+  daaprime/dine-connect-backend:latest
 
-docker run -d --name careconnect-frontend --restart unless-stopped \
+docker run -d --name dine-connect-frontend --restart unless-stopped \
   -p 3000:3000 \
-  daaprime/careconnect-frontend:latest
+  daaprime/dine-connect-frontend:latest
 ```
 
 `--restart unless-stopped` on both is what survives a VPS reboot — without
@@ -421,7 +432,7 @@ Install (Ubuntu/Debian, the common DigitalOcean base image):
 sudo apt update && sudo apt install -y nginx certbot python3-certbot-nginx
 ```
 
-Two server blocks, `/etc/nginx/sites-available/careconnect`:
+Two server blocks, `/etc/nginx/sites-available/dine-connect`:
 
 ```nginx
 server {
@@ -452,7 +463,7 @@ server {
 ```
 
 ```bash
-sudo ln -s /etc/nginx/sites-available/careconnect /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/dine-connect /etc/nginx/sites-enabled/
 sudo nginx -t && sudo systemctl reload nginx
 
 # issues certs for both server_names and rewrites the config above to

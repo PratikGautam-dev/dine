@@ -1,4 +1,4 @@
-# CareConnect deployment compose -- backend (FastAPI) + frontend (Next.js),
+# Dine Connect deployment compose -- backend (FastAPI) + frontend (Next.js),
 # for a self-hosted DigitalOcean VPS behind Coolify. See DEPLOYMENT.md for
 # the full env var reference and deploy walkthrough.
 #
