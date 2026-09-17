@@ -38,7 +38,7 @@ export default function PortalDoctorsPage() {
   return (
     <PortalShell hospital={hospital} active="doctors">
         <PageHeader
-          title="Tables & sections"
+          title="Team & sections"
           actions={
             canManageDoctors && departments && departments.length > 0 && (
               <>
@@ -46,7 +46,7 @@ export default function PortalDoctorsPage() {
                   <Upload size={14} /> Bulk import
                 </Button>
                 <Button size="md" onClick={openAddDoctorForm}>
-                  <Plus size={14} /> Add table
+                  <Plus size={14} /> Add team member
                 </Button>
               </>
             )
@@ -55,7 +55,7 @@ export default function PortalDoctorsPage() {
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
         {!canManageDoctors && (
           <p className="mb-space-4 text-[13px] text-ink-400">
-            Table and section management isn&apos;t available for your account type. Contact support if you need
+            Team and section management isn&apos;t available for your account type. Contact support if you need
             changes made.
           </p>
         )}
@@ -74,7 +74,7 @@ export default function PortalDoctorsPage() {
                   activeTab === "doctors" ? "bg-brand-600 text-white" : "text-ink-600 hover:text-ink-900"
                 }`}
               >
-                Tables
+                Team
               </button>
               <button
                 type="button"
@@ -93,7 +93,7 @@ export default function PortalDoctorsPage() {
             <div className="space-y-space-4">
               {departments.length === 0 && (
                 <Card className="p-space-4">
-                  <p className="text-[12.5px] text-ink-400">Add a section first, then you can add tables to it.</p>
+                  <p className="text-[12.5px] text-ink-400">Add a section first, then you can add team members to it.</p>
                 </Card>
               )}
 
@@ -102,7 +102,7 @@ export default function PortalDoctorsPage() {
               {showDoctorForm && (
                 <>
                   <p className="text-label -mb-space-2 font-bold text-ink-900">
-                    {editingDoctorId ? "Edit table" : "Add table"}
+                    {editingDoctorId ? "Edit team member" : "Add team member"}
                   </p>
                   <DoctorScheduleForm
                     departments={departments}
@@ -117,7 +117,7 @@ export default function PortalDoctorsPage() {
               )}
 
               <Card className="p-space-4">
-                <h3 className="text-label mb-space-3 font-bold text-ink-900">Tables</h3>
+                <h3 className="text-label mb-space-3 font-bold text-ink-900">Team</h3>
                 {doctors.length > 0 && (
                   <div className="mb-space-3 flex flex-wrap gap-space-2">
                     <div className="relative min-w-[200px] flex-1">
@@ -135,16 +135,16 @@ export default function PortalDoctorsPage() {
                       onChange={(e) => setActiveFilter(e.target.value)}
                       className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
                     >
-                      <option value="all">All tables</option>
+                      <option value="all">All team members</option>
                       <option value="active">Available only</option>
                       <option value="inactive">Unavailable only</option>
                     </select>
                   </div>
                 )}
                 {doctors.length === 0 ? (
-                  <p className="py-space-4 text-center text-[13px] text-ink-400">No tables yet.</p>
+                  <p className="py-space-4 text-center text-[13px] text-ink-400">No team members yet.</p>
                 ) : filteredDoctors.length === 0 ? (
-                  <p className="py-space-4 text-center text-[13px] text-ink-400">No tables match your search/filter.</p>
+                  <p className="py-space-4 text-center text-[13px] text-ink-400">No team members match your search/filter.</p>
                 ) : (
                   <ul className="divide-y divide-line">
                     {filteredDoctors.map((doc) => {
@@ -168,7 +168,7 @@ export default function PortalDoctorsPage() {
                                   onClick={() => handleEditDoctor(doc)}
                                   disabled={loadingDoctorForEdit === doc.id}
                                   className="text-ink-400 hover:text-ink-700 disabled:opacity-50"
-                                  title="Edit table"
+                                  title="Edit team member"
                                 >
                                   <Pencil size={15} />
                                 </button>

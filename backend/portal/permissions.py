@@ -44,11 +44,16 @@ PAGE_DIAGNOSTIC_TESTS = "diagnostic_tests"
 # day-to-day" distinction.
 PAGE_FOOD_MENU = "food_menu"
 PAGE_FOOD_ORDERS = "food_orders"
+# Table reservations, portal follow-up: the real tables (physical dining
+# tables) CRUD page -- a separate page key from PAGE_DOCTORS, which stays
+# the staff/schedule entity's own page (see PortalSidebar.tsx's own comment
+# on why "doctors" wasn't deleted).
+PAGE_TABLES = "tables"
 
 ALL_PAGES = {
     PAGE_DASHBOARD, PAGE_APPOINTMENTS, PAGE_PATIENTS, PAGE_DOCTORS,
     PAGE_MESSAGES, PAGE_SETTINGS, PAGE_STAFF, PAGE_ROLES, PAGE_SCHEDULE, PAGE_DIAGNOSTIC_TESTS,
-    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS,
+    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES,
 }
 ACTIONS = ("view", "write", "delete")
 
@@ -80,6 +85,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
         PAGE_FOOD_MENU: dict(_VIEW_WRITE),
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
+        PAGE_TABLES: dict(_VIEW_WRITE),
     },
     "doctor": {
         PAGE_DASHBOARD: dict(_VIEW_ONLY),
@@ -98,6 +104,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
         PAGE_FOOD_MENU: dict(_NONE),
         PAGE_FOOD_ORDERS: dict(_NONE),
+        PAGE_TABLES: dict(_NONE),
     },
 }
 

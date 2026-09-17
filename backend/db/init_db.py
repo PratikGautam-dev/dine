@@ -495,6 +495,21 @@ def _backfill_food_ordering_capability(conn) -> None:
     conn.commit()
 
 
+def _backfill_tables_capability(conn) -> None:
+    """Table reservations, portal follow-up: same "append into the raw JSON
+    array" backfill _backfill_food_ordering_capability above uses, for the
+    new manage_tables capability -- BOTH tenant types, matching
+    portal/capabilities.py's own DEFAULT_CAPABILITIES_BY_TYPE for this
+    capability."""
+    conn.execute(
+        "UPDATE hospitals SET admin_capabilities = "
+        "REPLACE(admin_capabilities, ']', ',\"manage_tables\"]') "
+        "WHERE admin_capabilities IS NOT NULL AND admin_capabilities != '[]' "
+        "AND admin_capabilities NOT LIKE '%%manage_tables%%'"
+    )
+    conn.commit()
+
+
 def _backfill_handoff_messages(conn) -> None:
     """Handoff two-way threading follow-up (Spec.md Section 0): every
     pre-existing handoff_requests row's own message_text becomes that
@@ -1393,6 +1408,7 @@ def init_db_on_connection(conn) -> int:
     _backfill_admin_capabilities(conn)
     _backfill_procedures_capability(conn)
     _backfill_food_ordering_capability(conn)
+    _backfill_tables_capability(conn)
     _backfill_handoff_messages(conn)
     return hospital_id
 

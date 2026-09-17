@@ -39,10 +39,20 @@ MANAGE_PROCEDURES = "manage_procedures"
 # admin surface, the same reasoning MANAGE_BOOKINGS/MANAGE_SETTINGS are
 # already on both tiers' default set.
 MANAGE_FOOD_ORDERING = "manage_food_ordering"
+# Table reservations, portal follow-up: the real tables (physical dining
+# tables, migration 0030) CRUD surface -- a dedicated capability, not
+# folded into MANAGE_DOCTORS, since "doctors" (kept as the staff/schedule
+# entity, see flows/router.py's own PortalSidebar comment on why it wasn't
+# deleted) and "tables" are two genuinely distinct admin surfaces for this
+# product, same split MANAGE_PROCEDURES already established from
+# MANAGE_APPOINTMENT_TYPES. Default for BOTH tenant types, same reasoning
+# MANAGE_FOOD_ORDERING already gives -- table management is core to every
+# restaurant tenant, not a bigger-tenant-only surface.
+MANAGE_TABLES = "manage_tables"
 
 ALL_CAPABILITIES = {
     MANAGE_DOCTORS, MANAGE_DEPARTMENTS, MANAGE_APPOINTMENT_TYPES,
-    MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES, MANAGE_FOOD_ORDERING,
+    MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES, MANAGE_FOOD_ORDERING, MANAGE_TABLES,
 }
 
 # Single source of truth for both the onboarding-time default AND
@@ -52,9 +62,9 @@ ALL_CAPABILITIES = {
 DEFAULT_CAPABILITIES_BY_TYPE: dict[str, set[str]] = {
     "hospital": {
         MANAGE_DOCTORS, MANAGE_DEPARTMENTS, MANAGE_APPOINTMENT_TYPES,
-        MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES, MANAGE_FOOD_ORDERING,
+        MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_STAFF, MANAGE_PROCEDURES, MANAGE_FOOD_ORDERING, MANAGE_TABLES,
     },
-    "clinic": {MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_FOOD_ORDERING},
+    "clinic": {MANAGE_BOOKINGS, MANAGE_SETTINGS, MANAGE_FOOD_ORDERING, MANAGE_TABLES},
 }
 
 

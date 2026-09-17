@@ -48,7 +48,14 @@ def create_table(hospital_id: int, department_id: str, name: str, capacity: int)
         )
     )
     session.commit()
-    return {"id": table_id, "name": name, "capacity": capacity}
+    # Portal table-management (Sub-stage 4 follow-up): full row shape
+    # (department_id/is_active included), not just the 3 fields the WhatsApp
+    # flow's own create_table_reservation() ever needed -- same
+    # "create returns via a find_*() read-back" convention
+    # create_menu_item()/create_department() already use.
+    created = find_table(hospital_id, table_id)
+    assert created is not None
+    return created
 
 
 def get_tables(hospital_id: int, department_id: str | None = None) -> list[dict]:

@@ -122,6 +122,15 @@ class Tier1Connector(Connector):
     def get_tables(self, hospital_id, department_id=None):
         return repo.get_tables(hospital_id, department_id)
 
+    def get_all_tables_for_hospital(self, hospital_id):
+        return repo.get_all_tables_for_hospital(hospital_id)
+
+    def create_table(self, hospital_id, department_id, name, capacity):
+        return repo.create_table(hospital_id, department_id, name, capacity)
+
+    def update_table(self, hospital_id, table_id, name, department_id, capacity, is_active):
+        return repo.update_table(hospital_id, table_id, name, department_id, capacity, is_active)
+
     def get_available_table_slots(self, hospital_id, party_size, department_id=None):
         return repo.get_available_table_slots(hospital_id, party_size, department_id)
 

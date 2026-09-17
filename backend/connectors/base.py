@@ -214,6 +214,24 @@ class Connector(abc.ABC):
     @abc.abstractmethod
     def get_tables(self, hospital_id: int, department_id: str | None = None) -> list[dict]: ...
 
+    # Portal table management (Sub-stage 4 follow-up): db/repositories/
+    # tables.py's create_table()/update_table()/get_all_tables_for_hospital()
+    # existed since Stage 4 Sub-stage 2 but were never wired to a connector
+    # method or portal route -- get_tables() above stayed WhatsApp-flow-only
+    # (active tables only, read-only). These three are the portal's own
+    # management surface: get_all_tables_for_hospital() intentionally still
+    # shows inactive tables (the management list, not the booking-flow read).
+    @abc.abstractmethod
+    def get_all_tables_for_hospital(self, hospital_id: int) -> list[dict]: ...
+
+    @abc.abstractmethod
+    def create_table(self, hospital_id: int, department_id: str, name: str, capacity: int) -> dict: ...
+
+    @abc.abstractmethod
+    def update_table(
+        self, hospital_id: int, table_id: str, name: str, department_id: str, capacity: int, is_active: bool,
+    ) -> dict | None: ...
+
     @abc.abstractmethod
     def get_available_table_slots(
         self, hospital_id: int, party_size: int, department_id: str | None = None,
@@ -370,6 +388,15 @@ class _UnimplementedTierConnector(Connector):
 
     def get_tables(self, hospital_id, department_id=None):
         self._not_implemented("get_tables")
+
+    def get_all_tables_for_hospital(self, hospital_id):
+        self._not_implemented("get_all_tables_for_hospital")
+
+    def create_table(self, hospital_id, department_id, name, capacity):
+        self._not_implemented("create_table")
+
+    def update_table(self, hospital_id, table_id, name, department_id, capacity, is_active):
+        self._not_implemented("update_table")
 
     def get_available_table_slots(self, hospital_id, party_size, department_id=None):
         self._not_implemented("get_available_table_slots")

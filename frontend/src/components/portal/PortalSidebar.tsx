@@ -24,12 +24,25 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // -- Calendar had no backend and no near-term plan to build one; Departments
 // duplicated Doctors (same /portal/doctors page manages both) so it was a
 // second sidebar entry pointing at a page already reachable via "Doctors."
+//
+// Table reservations, portal follow-up: the "doctors" entry below used to be
+// labeled "Tables" (Stage 2's vocabulary-only remap, before real tables
+// existed) -- relabeled "Team" now that /portal/tables is a genuine, separate
+// interface to the `tables` table (physical dining tables, migration 0030).
+// "doctors" itself was deliberately NOT deleted: it's still the live
+// staff/schedule entity (working hours/breaks/leave, RBAC's own "doctor"
+// role, appointment_reminders/staff_details FKs) -- just functionally
+// unused by the actual guest-facing table-reservation/food-ordering flows,
+// which never reference doctor_id. "Team" avoids colliding with the
+// existing "Staff" entry below (/portal/settings/staff, login ACCOUNTS --
+// a different concept from a scheduled team member/doctor row).
 const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard" },
   { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments" },
   { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients" },
   { key: "schedule", label: "Schedule", icon: CalendarClock, href: "/portal/schedule", pageKey: "schedule" },
-  { key: "doctors", label: "Tables", icon: UtensilsCrossed, href: "/portal/doctors", pageKey: "doctors" },
+  { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables" },
+  { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors" },
   // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,
   // portal/permissions.py) since a role reasonably might need one without
   // the other -- same split PAGE_DOCTORS/PAGE_SCHEDULE already use.

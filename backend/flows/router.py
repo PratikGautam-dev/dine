@@ -350,7 +350,7 @@ async def _start_feature(
     patient-scoped branch now threads `active_patient_id` (resolved once,
     up front, by _enter_idle() -- Section 13's "Active Patient Context")
     into the sub-flow instead of letting it re-derive identity itself."""
-    if key == "book_doctor_appointment":
+    if key == "book_appointment":
         await start_booking_flow(
             wa, sessions, phone, hospital_id, connector, language=language, active_patient_id=active_patient_id,
             category=db.BOOK_DOCTOR_APPOINTMENT_CATEGORY,
