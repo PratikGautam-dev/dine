@@ -58,7 +58,7 @@ def _payload(super_admin_token, **overrides):
         "portal_password": "bookings-pw",
         "admin_email": "admin@stjude.example",
         "admin_password": "stjude-admin-pw",
-        "enabled_features": ["book_doctor_appointment"],
+        "enabled_features": ["book_appointment"],
         "data_tier": "tier1",
         "departments": _valid_departments(),
         "topics": [],
@@ -149,7 +149,7 @@ def test_no_features_selected_rejected(hospital_id, user_auth_header, super_admi
 
 
 def test_unrecognized_feature_rejected(hospital_id, user_auth_header, super_admin_token):
-    resp = client.post("/api/onboarding", json=_payload(super_admin_token, enabled_features=["book_doctor_appointment", "teleporting"]), headers=user_auth_header)
+    resp = client.post("/api/onboarding", json=_payload(super_admin_token, enabled_features=["book_appointment", "teleporting"]), headers=user_auth_header)
     assert resp.status_code == 400
 
 
@@ -207,13 +207,65 @@ def test_booking_and_faq_both_enabled_creates_both(hospital_id, user_auth_header
     resp = client.post(
         "/api/onboarding",
         json=_payload(super_admin_token,
-            enabled_features=["book_doctor_appointment", "faq"], whatsapp_phone_number_id="BOTH_PHONE_ID",
+            enabled_features=["book_appointment", "faq"], whatsapp_phone_number_id="BOTH_PHONE_ID",
             topics=[{"topic_label": "Hours", "answer_text": "Mon-Sat, 9-6."}],
         ),
         headers=user_auth_header,
     )
     assert resp.status_code == 200, resp.text
     hospital = db.find_hospital_by_phone_number_id("BOTH_PHONE_ID")
-    assert set(hospital.enabled_features) == {"book_doctor_appointment", "faq"}
+    assert set(hospital.enabled_features) == {"book_appointment", "faq"}
     assert len(db.get_departments(hospital.id)) == 1
     assert len(db.get_faq_topics(hospital.id)) == 1
+
+
+# --- Feature-key alignment: the wizard's keys must match flows' real ones ---
+
+def test_wizard_default_feature_keys_are_accepted_and_stored(hospital_id, user_auth_header, super_admin_token):
+    """The onboarding wizard's default selection (frontend types.ts) -- these
+    exact keys used to be rejected outright as 'Unrecognized' because the
+    wizard still sent pre-_FEATURE_MENU names."""
+    features = ["book_appointment", "reschedule", "cancel", "view_appointments", "faq"]
+    resp = client.post(
+        "/api/onboarding",
+        json=_payload(super_admin_token, enabled_features=features, topics=[{"topic_label": "Hours", "answer_text": "9-5"}]),
+        headers=user_auth_header,
+    )
+    assert resp.status_code == 200, resp.text
+    hospital = db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID")
+    assert hospital.enabled_features == features
+    assert len(db.get_departments(hospital.id)) == 1  # booking on -> the department/table rows were created too
+
+
+def test_legacy_feature_keys_from_an_old_frontend_are_mapped_not_rejected(hospital_id, user_auth_header, super_admin_token):
+    legacy = ["book_doctor_appointment", "tests_diagnostics", "reschedule", "hospital_info", "reception_handoff"]
+    resp = client.post("/api/onboarding", json=_payload(super_admin_token, enabled_features=legacy), headers=user_auth_header)
+    assert resp.status_code == 200, resp.text
+    hospital = db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID")
+    assert hospital.enabled_features == ["book_appointment", "reschedule"]
+
+
+def test_backfill_rewrites_stale_stored_feature_keys(hospital_id):
+    import json
+
+    from db.connection import get_connection
+    from db.init_db import _backfill_stale_feature_keys
+
+    conn = get_connection()
+    conn.execute(
+        "UPDATE hospitals SET enabled_features = ?, feature_labels = ? WHERE id = ?",
+        (
+            json.dumps(["book_doctor_appointment", "tests_diagnostics", "cancel", "hospital_info"]),
+            json.dumps({"book_doctor_appointment": "Reserve", "hospital_info": "Info", "cancel": "Cancel it"}),
+            hospital_id,
+        ),
+    )
+    conn.commit()
+
+    _backfill_stale_feature_keys(conn)
+    hospital = db.get_hospital(hospital_id)
+    assert hospital.enabled_features == ["book_appointment", "cancel"]
+    assert hospital.feature_labels == {"book_appointment": "Reserve", "cancel": "Cancel it"}
+
+    _backfill_stale_feature_keys(conn)  # idempotent
+    assert db.get_hospital(hospital_id).enabled_features == ["book_appointment", "cancel"]

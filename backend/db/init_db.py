@@ -416,14 +416,52 @@ def _backfill_book_doctor_tests_diagnostics_split(conn) -> None:
     same as every other one-time JSON-literal backfill in this file."""
     conn.execute(
         "UPDATE hospitals SET enabled_features = "
-        "REPLACE(enabled_features, '\"booking\"', '\"book_doctor_appointment\"') "
+        "REPLACE(enabled_features, '\"booking\"', '\"book_appointment\"') "
         "WHERE enabled_features LIKE '%%booking%%'"
     )
     conn.execute(
         "UPDATE hospitals SET feature_labels = "
-        "REPLACE(feature_labels, '\"booking\"', '\"book_doctor_appointment\"') "
+        "REPLACE(feature_labels, '\"booking\"', '\"book_appointment\"') "
         "WHERE feature_labels LIKE '%%booking%%'"
     )
+    conn.commit()
+
+
+def _backfill_stale_feature_keys(conn) -> None:
+    """Rewrites any tenant's stored enabled_features/feature_labels still
+    carrying pre-_FEATURE_MENU keys (db/feature_keys.py): "book_doctor_appointment"
+    -> "book_appointment", and dead keys (tests_diagnostics, hospital_info,
+    reception_handoff, reports_prescriptions) dropped. Without this, such a
+    tenant's WhatsApp main menu matches nothing and guests see an empty menu.
+    Only writes rows that actually change, so it's idempotent on every startup."""
+    import json
+
+    from db.feature_keys import DEAD_FEATURE_KEYS, LEGACY_FEATURE_ALIASES, normalize_feature_keys
+
+    rows = conn.execute("SELECT id, enabled_features, feature_labels FROM hospitals").fetchall()
+    for row in rows:
+        if row["enabled_features"]:
+            try:
+                features = json.loads(row["enabled_features"])
+            except ValueError:
+                features = None
+            if isinstance(features, list):
+                fixed = normalize_feature_keys(features)
+                if fixed != features:
+                    conn.execute("UPDATE hospitals SET enabled_features = ? WHERE id = ?", (json.dumps(fixed), row["id"]))
+        if row["feature_labels"]:
+            try:
+                labels = json.loads(row["feature_labels"])
+            except ValueError:
+                labels = None
+            if isinstance(labels, dict):
+                fixed_labels = {}
+                for key, value in labels.items():
+                    if key in DEAD_FEATURE_KEYS:
+                        continue
+                    fixed_labels[LEGACY_FEATURE_ALIASES.get(key, key)] = value
+                if fixed_labels != labels:
+                    conn.execute("UPDATE hospitals SET feature_labels = ? WHERE id = ?", (json.dumps(fixed_labels), row["id"]))
     conn.commit()
 
 
@@ -1405,6 +1443,7 @@ def init_db_on_connection(conn) -> int:
     _backfill_procedures(conn)
     _backfill_reports_prescriptions_feature(conn)
     _backfill_book_doctor_tests_diagnostics_split(conn)
+    _backfill_stale_feature_keys(conn)
     _backfill_admin_capabilities(conn)
     _backfill_procedures_capability(conn)
     _backfill_food_ordering_capability(conn)

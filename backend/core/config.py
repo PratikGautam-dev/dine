@@ -42,6 +42,7 @@ such a setdefault() runs, silently breaking that ordering. get_settings()
 below re-reads env on every call instead, so each consumer still effectively
 gets a "read live at my own import time" value, exactly like before.
 """
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -82,6 +83,13 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_ID: str = ""
     GOOGLE_CLIENT_SECRET: str = ""
     FRONTEND_ORIGIN: str = "http://localhost:3000"
+
+    @field_validator("FRONTEND_ORIGIN")
+    @classmethod
+    def _strip_frontend_origin(cls, value: str) -> str:
+        # Redirects are built as f"{FRONTEND_ORIGIN}/auth/callback"; a trailing
+        # slash would produce "//auth/callback".
+        return value.strip().rstrip("/")
 
     # Google Meet integration (alongside the existing Jitsi tele-consultation
     # link, not replacing it) -- a SEPARATE OAuth client from GOOGLE_CLIENT_ID/

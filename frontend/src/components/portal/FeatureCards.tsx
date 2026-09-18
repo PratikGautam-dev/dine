@@ -1,15 +1,13 @@
-import { Calendar, CalendarClock, CalendarX, FlaskConical, HelpCircle, Info, Languages, ListChecks, UserRound } from "lucide-react";
+import { Calendar, CalendarClock, CalendarX, HelpCircle, Languages, ListChecks, UtensilsCrossed } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
 const FEATURE_META: Record<string, { label: string; Icon: typeof Calendar }> = {
-  book_doctor_appointment: { label: "Book a Table", Icon: Calendar },
-  tests_diagnostics: { label: "Tests & Diagnostics", Icon: FlaskConical },
+  book_appointment: { label: "Book a Table", Icon: Calendar },
+  order_food: { label: "Order Food", Icon: UtensilsCrossed },
   reschedule: { label: "Reschedule Reservation", Icon: CalendarClock },
   cancel: { label: "Cancel Reservation", Icon: CalendarX },
   view_appointments: { label: "View Reservations", Icon: ListChecks },
   manage_language: { label: "Manage Language", Icon: Languages },
-  hospital_info: { label: "Restaurant Information", Icon: Info },
-  reception_handoff: { label: "Talk to a Host", Icon: UserRound },
   faq: { label: "FAQ / Information", Icon: HelpCircle },
 };
 

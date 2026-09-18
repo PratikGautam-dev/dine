@@ -57,8 +57,7 @@ type Props = {
 };
 
 export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting, submitErrors }: Props) {
-  const bookingEnabled =
-    state.enabledFeatures.includes("book_doctor_appointment") || state.enabledFeatures.includes("tests_diagnostics");
+  const bookingEnabled = state.enabledFeatures.includes("book_appointment");
   const faqEnabled = state.enabledFeatures.includes("faq");
   const isClinic = state.tenantType === "clinic";
   const namedDepartments = state.departments.filter((d) => d.name.trim() || d.doctors.length > 0);

@@ -176,9 +176,17 @@ async def _rollback_shared_session_on_error(request, call_next):
 # same-origin server-rendered page or a webhook Meta calls server-to-server,
 # neither of which needed this before. FRONTEND_ORIGIN lets the deployed
 # Vercel URL be added without another code change.
+# Browsers send Origin with no trailing slash and CORS matches it exactly, so a
+# FRONTEND_ORIGIN pasted as "https://app.vercel.app/" (or with stray spaces)
+# would silently never match -- normalize both. CORS_EXTRA_ORIGINS is a
+# comma-separated list for additional allowed origins (e.g. a second Vercel
+# domain); FRONTEND_ORIGIN stays a single URL because OAuth redirects are
+# built from it.
 _frontend_origins = ["http://localhost:3000"]
-if os.environ.get("FRONTEND_ORIGIN"):
-    _frontend_origins.append(os.environ["FRONTEND_ORIGIN"])
+for _raw in [os.environ.get("FRONTEND_ORIGIN", ""), *os.environ.get("CORS_EXTRA_ORIGINS", "").split(",")]:
+    _origin = _raw.strip().rstrip("/")
+    if _origin and _origin not in _frontend_origins:
+        _frontend_origins.append(_origin)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_frontend_origins,

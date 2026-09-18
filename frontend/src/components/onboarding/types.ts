@@ -31,18 +31,17 @@ export type TopicForm = {
   answerText: string;
 };
 
+// Must match backend flows.patient_identity.menu's _FEATURE_MENU keys exactly --
+// the onboarding API rejects any key not in that set.
 export type FeatureKey =
-  | "book_doctor_appointment"
-  | "tests_diagnostics"
+  | "book_appointment"
+  | "order_food"
   | "reschedule"
   | "cancel"
   | "view_appointments"
-  | "reports_prescriptions"
   | "manage_patients"
   | "consent_privacy"
   | "manage_language"
-  | "hospital_info"
-  | "reception_handoff"
   | "faq";
 
 export type WizardState = {
@@ -108,10 +107,7 @@ export function initialWizardState(): WizardState {
     accessToken: "",
     whatsappPhoneNumberId: "",
     appSecret: "",
-    enabledFeatures: [
-      "book_doctor_appointment", "tests_diagnostics", "reschedule", "cancel", "view_appointments", "hospital_info",
-      "reception_handoff",
-    ],
+    enabledFeatures: ["book_appointment", "reschedule", "cancel", "view_appointments", "faq"],
     tenantType: "hospital",
     name: "",
     welcomeMessageText: "",
@@ -138,17 +134,14 @@ export const RAIL_TITLES = [
 ];
 
 export const FEATURE_LABELS: Record<FeatureKey, string> = {
-  book_doctor_appointment: "Book a Table",
-  tests_diagnostics: "Tests & Diagnostics",
+  book_appointment: "Book a Table",
+  order_food: "Order Food",
   reschedule: "Reschedule Reservation",
   cancel: "Cancel Reservation",
   view_appointments: "View My Reservations",
-  reports_prescriptions: "Order Ahead",
   manage_patients: "Manage Guests",
   consent_privacy: "Consent & Privacy",
   manage_language: "Manage Language",
-  hospital_info: "Restaurant Information",
-  reception_handoff: "Talk to a Host",
   faq: "FAQ / Information",
 };
 

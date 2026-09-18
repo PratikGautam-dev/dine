@@ -11,19 +11,21 @@ straight from admin.onboarding so the two entry points can never drift apart.
 """
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 import db.repository as db
 import flows
 from admin.onboarding import _VALID_TIERS
 from admin.validation import _parse_offsets, _validate_doctor_fields
 from db.connection import IntegrityError
+from db.feature_keys import normalize_feature_keys
 from auth.google_oauth import authenticate_user
 from portal.capabilities import DEFAULT_CAPABILITIES_BY_TYPE, resolve_default_capabilities
 from portal.deps import get_current_super_admin
 from portal.permissions import DEFAULT_PERMISSIONS_BY_ROLE, resolve_default_permissions
 
 _VALID_TENANT_TYPES = set(DEFAULT_CAPABILITIES_BY_TYPE.keys())
+
 
 router = APIRouter()
 
@@ -83,6 +85,12 @@ class OnboardingSubmission(BaseModel):
     admin_email: str = ""
     admin_password: str = ""
     enabled_features: list[str] = Field(default_factory=list)
+
+    @field_validator("enabled_features")
+    @classmethod
+    def _normalize_enabled_features(cls, value: list[str]) -> list[str]:
+        return normalize_feature_keys(value)
+
     data_tier: str = "tier1"
     api_base_url: str = ""
     api_key: str = ""
@@ -206,7 +214,7 @@ async def submit_onboarding(
     departments, dept_errors, dept_warnings = _validate_departments(payload.departments)
     topics, topic_errors = _validate_topics(payload.topics)
 
-    if "book_doctor_appointment" in payload.enabled_features or "tests_diagnostics" in payload.enabled_features:
+    if "book_appointment" in payload.enabled_features:
         errors.extend(dept_errors)
         if not departments:
             errors.append("At least one department with at least one doctor is required.")
@@ -281,7 +289,7 @@ async def submit_onboarding(
     ])
 
     created_departments = []
-    if "book_doctor_appointment" in payload.enabled_features or "tests_diagnostics" in payload.enabled_features:
+    if "book_appointment" in payload.enabled_features:
         for dept in departments:
             created_dept = db.create_department(hospital.id, dept["name"])
             created_doctors = [

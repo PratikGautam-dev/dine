@@ -2,14 +2,11 @@ import {
   Calendar,
   CalendarClock,
   CalendarX,
-  FlaskConical,
   HelpCircle,
-  IdCard,
-  Info,
   Languages,
   ListChecks,
   ShieldCheck,
-  UserRound,
+  UtensilsCrossed,
   Users,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
@@ -17,32 +14,26 @@ import { FEATURE_LABELS, FeatureKey, WizardState } from "../types";
 import type { WizardDispatch } from "../useWizardState";
 
 const FEATURE_ICONS: Record<FeatureKey, typeof Calendar> = {
-  book_doctor_appointment: Calendar,
-  tests_diagnostics: FlaskConical,
+  book_appointment: Calendar,
+  order_food: UtensilsCrossed,
   reschedule: CalendarClock,
   cancel: CalendarX,
   view_appointments: ListChecks,
-  reports_prescriptions: IdCard,
   manage_patients: Users,
   consent_privacy: ShieldCheck,
   manage_language: Languages,
-  hospital_info: Info,
-  reception_handoff: UserRound,
   faq: HelpCircle,
 };
 
 const FEATURE_DESCRIPTIONS: Record<FeatureKey, string> = {
-  book_doctor_appointment: "Guests choose a section, table, and seating time for a reservation.",
-  tests_diagnostics: "Guests can request a special seating arrangement or large-party reservation, depending on your setup.",
+  book_appointment: "Guests pick a party size, section, and seating time; a table is assigned automatically.",
+  order_food: "Guests browse your menu and order for pickup or delivery over WhatsApp (add menu items and payment details in the portal).",
   reschedule: "Move an existing reservation to a new time.",
   cancel: "Cancel an existing reservation.",
   view_appointments: "See a list of upcoming reservations.",
-  reports_prescriptions: "Guests can browse ordering-ahead options when that feature is available.",
   manage_patients: "One phone can link up to 5 guests, each with their own profile.",
   consent_privacy: "Privacy notice, consent status, and a marketing-messages opt-in/out.",
   manage_language: "Guests can switch their conversation language at any time from the main menu.",
-  hospital_info: "Hours, location, parking, and general restaurant information.",
-  reception_handoff: "Hand off to a host or staff member through the portal's Messages inbox.",
   faq: "Guests pick a topic (hours, location, pricing...) and get an instant answer.",
 };
 
