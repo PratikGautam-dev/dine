@@ -28,7 +28,7 @@ A restaurant's guests reserve a table, order food, reschedule, cancel, and get r
 | **Resilient state**           | Redis-backed session/history/rate-limiting with an automatic in-memory fallback — runs with zero extra infrastructure locally                                                                                                                              |
 | **Tiered data access**        | A fixed connector interface (`connectors/`) abstracts "where booking data lives" — Tier 1 (this app's own Postgres) is fully built; Tiers 2/3 (a restaurant's existing system) are a defined extension point, not built speculatively ahead of a real need |
 
-**Deliberately not here:** no AI/LLM anywhere in the booking flow (a fixed, auditable state machine instead — see [docs/Spec.md](docs/Spec.md) for the reasoning), no Google Calendar dependency for reservations (they live in this app's own database).
+**Deliberately not here:** no AI/LLM anywhere in the booking flow (a fixed, auditable state machine instead — see [docs/Spec.md](docs/Spec.md) for the original reasoning; note that file is a historical build log from the original CareConnect (hospital) product and has not been rewritten for Dine Connect, so treat the code itself, plus [ARCHITECTURE_REFERENCE_FOR_FORKING.md](ARCHITECTURE_REFERENCE_FOR_FORKING.md) for the CareConnect-to-Dine-Connect mapping, as the current source of truth), no Google Calendar dependency for reservations (they live in this app's own database).
 
 ---
 

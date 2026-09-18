@@ -44,11 +44,11 @@ from db.orm_models import Identity, StaffDetail, SuperAdminDetail
 from db.repositories.hospitals import hash_portal_password
 from portal.permissions import DEFAULT_PERMISSIONS_BY_ROLE, resolve_default_permissions
 
-SUPER_ADMIN_EMAIL = "super@careconnect.com"
+SUPER_ADMIN_EMAIL = "super@dineconnect.com"
 SUPER_ADMIN_PASSWORD = "Super@123"
 SUPER_ADMIN_NAME = "Dev Super Admin"
 
-HOSPITAL_ADMIN_EMAIL = "admin@careconnect.com"
+HOSPITAL_ADMIN_EMAIL = "admin@dineconnect.com"
 HOSPITAL_ADMIN_PASSWORD = "admin@123"
 HOSPITAL_ADMIN_NAME = "Dev Hospital Admin"
 

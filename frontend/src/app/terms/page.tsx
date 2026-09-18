@@ -13,9 +13,9 @@ const CONTACT_EMAIL = "info@daaprimeprojects.com";
 
 const SECTIONS = [
   { id: "agreement", title: "1. Agreement to these terms" },
-  { id: "what-is-careconnect", title: "2. What Dine Connect is" },
-  { id: "hospital-accounts", title: "3. Restaurant accounts" },
-  { id: "patients-whatsapp", title: "4. Guests using WhatsApp" },
+  { id: "what-is-dine-connect", title: "2. What Dine Connect is" },
+  { id: "restaurant-accounts", title: "3. Restaurant accounts" },
+  { id: "guests-whatsapp", title: "4. Guests using WhatsApp" },
   { id: "google-calendar", title: "5. Google Calendar integration" },
   { id: "fees", title: "6. Fees" },
   { id: "acceptable-use", title: "7. Acceptable use" },
@@ -90,7 +90,7 @@ export default function TermsOfServicePage() {
               </p>
             </Section>
 
-            <Section id="what-is-careconnect" title="2. What Dine Connect is">
+            <Section id="what-is-dine-connect" title="2. What Dine Connect is">
               <p>
                 Dine Connect is a WhatsApp-based table reservation booking and reminder platform for restaurants and
                 venues (&ldquo;Restaurants&rdquo;). Guests interact with their Restaurant&apos;s own WhatsApp number
@@ -105,7 +105,7 @@ export default function TermsOfServicePage() {
               </p>
             </Section>
 
-            <Section id="hospital-accounts" title="3. Restaurant accounts">
+            <Section id="restaurant-accounts" title="3. Restaurant accounts">
               <p>
                 A Restaurant is responsible for the accuracy of the section, table, and scheduling information
                 it configures on the Platform, for obtaining any consent required from its own guests before
@@ -115,7 +115,7 @@ export default function TermsOfServicePage() {
               </p>
             </Section>
 
-            <Section id="patients-whatsapp" title="4. Guests using WhatsApp">
+            <Section id="guests-whatsapp" title="4. Guests using WhatsApp">
               <p>
                 Using Dine Connect via WhatsApp is free for guests, though your mobile carrier&apos;s standard
                 messaging/data rates may apply, and WhatsApp messaging costs charged by Meta may apply to the

@@ -666,7 +666,7 @@ CREATE INDEX IF NOT EXISTS idx_appointment_procedure_resources_resource ON appoi
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS appointment_type_id TEXT;
 ALTER TABLE appointments ADD COLUMN IF NOT EXISTS consent_given_at TEXT;
 -- Tele-consultation Phase 2 (docs/per-appointment-type-flow-plan.md): a
--- per-booking Jitsi Meet URL (https://meet.jit.si/CareConnect-<random-token>),
+-- per-booking Jitsi Meet URL (https://meet.jit.si/DineConnect-<random-token>),
 -- generated at confirmation time by flows/booking/types/tele_consultation.py
 -- via TypeFlow.on_booking_confirmed -- the room name IS the access control
 -- (Jitsi has no auth of its own), so the token must stay high-entropy

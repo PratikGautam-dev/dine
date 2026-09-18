@@ -159,13 +159,13 @@ async def test_tele_appointment_reminder_includes_video_link(hospital_id):
         hospital_id, "5491112345678", "cardiology", "doc_card_1", now + timedelta(hours=5),
         appointment_type_id="tele",
     )
-    db.set_appointment_video_link(hospital_id, appt.id, "https://meet.jit.si/CareConnect-abc123")
+    db.set_appointment_video_link(hospital_id, appt.id, "https://meet.jit.si/DineConnect-abc123")
     wa = _fake_wa()
 
     await send_reminders(wa, hospital_id, offsets_hours=[24])
 
     message = wa.send_text.call_args[0][1]
-    assert "https://meet.jit.si/CareConnect-abc123" in message
+    assert "https://meet.jit.si/DineConnect-abc123" in message
     assert "🎥" in message
 
 

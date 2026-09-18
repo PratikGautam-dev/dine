@@ -224,7 +224,7 @@ type's notification untouched.
 - `connectors/base.py` / `connectors/tier1.py` — `set_appointment_video_link` added to the
   `Connector` protocol and `Tier1Connector` implementation.
 - `flows/booking/types/tele_consultation.py` — `_on_tele_booking_confirmed` (the
-  `on_booking_confirmed` hook): builds a Jitsi Meet URL (`https://meet.jit.si/CareConnect-<token>`)
+  `on_booking_confirmed` hook): builds a Jitsi Meet URL (`https://meet.jit.si/DineConnect-<token>`)
   with a fresh `secrets.token_urlsafe(24)` CSPRNG token per booking (never derived from appointment
   id/timestamp/patient info, so it can't be guessed or enumerated — Jitsi has no auth, the room
   name itself is the access control), persists it via `set_appointment_video_link`, and returns

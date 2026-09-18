@@ -9,7 +9,7 @@ admin/onboarding.py as `_STYLE`; pulled out here once a second module
 would inevitably drift from it.
 
 Design reference (current, replacing the earlier sage/clay/Fraunces pass):
-14 reference mockups (design-reference/ — "DAAP CareConnect") — deep forest
+14 reference mockups (an external design-reference set, not checked into this repo) — deep forest
 green + off-white/cream, clean single-family sans-serif (no serif anywhere),
 rounded white cards on a warm off-white page background, green checklist
 checkmarks, a numbered vertical step-rail, dark-green primary buttons,
