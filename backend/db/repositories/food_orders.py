@@ -25,13 +25,16 @@ from sqlalchemy import select
 from db.connection import IntegrityError, get_connection, get_session
 from db.display_ids import ORDER_REFERENCE_ID_PREFIX, _generate_reference_id
 from db.orm_models import FoodOrder, FoodOrderItem
-from db.repositories.menu_items import decrement_stock
+from db.repositories.menu_items import decrement_stock, restore_stock
 
 _CURRENCY = "INR"
 
 # food_orders.status -- mirrors the migration's CHECK constraint exactly.
 STATUS_CART = "cart"
 STATUS_PENDING_PAYMENT = "pending_payment"
+# A confirmed pay-at-restaurant order waiting for the kitchen: the role STATUS_PAID
+# plays for an online order.
+STATUS_PLACED = "placed"
 STATUS_PAID = "paid"
 STATUS_ACCEPTED = "accepted"
 STATUS_PREPARING = "preparing"
@@ -40,10 +43,28 @@ STATUS_OUT_FOR_DELIVERY = "out_for_delivery"
 STATUS_COMPLETED = "completed"
 STATUS_CANCELLED = "cancelled"
 
+# food_orders.payment_method -- mirrors migration 0033's CHECK constraint.
+PAYMENT_ONLINE = "online"
+PAYMENT_AT_RESTAURANT = "pay_at_restaurant"
+
+
+def get_delivery_fee_paise(hospital_id: int, fulfillment_type: str) -> int | None:
+    """The flat delivery fee for this restaurant, in paise -- None (not a fake
+    0) for takeaway or when no fee is configured. The one place the fee is
+    computed, so the guest's order review shows exactly what create_food_order()
+    will later charge."""
+    if fulfillment_type != "delivery":
+        return None
+    from db.repositories.hospital_settings import get_hospital_settings
+
+    fee = get_hospital_settings(hospital_id)["home_collection_charge"]
+    return round(fee * 100) if fee is not None else None
+
 
 def create_food_order(
     hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
     delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
+    payment_method: str = PAYMENT_ONLINE,
 ) -> dict:
     """Checkout. `items` is [{"menu_item_id": str, "quantity": int}, ...] --
     every item's current name/price is read and snapshotted here (not passed
@@ -58,6 +79,8 @@ def create_food_order(
         raise ValueError("create_food_order() requires at least one item")
     if fulfillment_type not in ("pickup", "delivery"):
         raise ValueError(f"Invalid fulfillment_type: {fulfillment_type!r}")
+    if payment_method not in (PAYMENT_ONLINE, PAYMENT_AT_RESTAURANT):
+        raise ValueError(f"Invalid payment_method: {payment_method!r}")
 
     conn = get_connection()
 
@@ -92,33 +115,21 @@ def create_food_order(
             })
             subtotal_paise += menu_row["price_paise"] * quantity
 
-        # Vocabulary audit follow-up: the flat delivery fee was previously
-        # unwired (flagged as future scope in the original plan) --
-        # hospital_settings.home_collection_charge (the DB/repository
-        # identifier stays as-is per this project's own "internal
-        # identifiers unchanged, only user-facing labels remapped"
-        # convention; the portal now shows it as "Delivery fee") is applied
-        # here for a delivery order, still no delivery-radius/distance
-        # calculation (that's still real future scope, just the flat-fee
-        # half of it is live now). Omitted (not a fake ₹0) for pickup or
-        # when the hospital hasn't configured a fee, same discipline every
-        # other optional fee line in this codebase already follows.
-        from db.repositories.hospital_settings import get_hospital_settings
-
-        delivery_fee_paise = None
-        if fulfillment_type == "delivery":
-            fee = get_hospital_settings(hospital_id)["home_collection_charge"]
-            if fee is not None:
-                delivery_fee_paise = round(fee * 100)
+        # Flat delivery fee (hospital_settings.home_collection_charge, shown in the
+        # portal as "Delivery fee"); no distance-based pricing.
+        delivery_fee_paise = get_delivery_fee_paise(hospital_id, fulfillment_type)
         total_paise = subtotal_paise + (delivery_fee_paise or 0)
 
         reference_id = _generate_reference_id(conn, hospital_id, prefix=ORDER_REFERENCE_ID_PREFIX)
         cur = conn.execute(
             "INSERT INTO food_orders (hospital_id, patient_id, phone, status, fulfillment_type, "
-            "delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id, created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
-            (hospital_id, resolved_patient_id, phone, STATUS_PENDING_PAYMENT, fulfillment_type,
-             delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id,
+            "delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id, payment_method, "
+            "created_at, updated_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            (hospital_id, resolved_patient_id, phone,
+             STATUS_PLACED if payment_method == PAYMENT_AT_RESTAURANT else STATUS_PENDING_PAYMENT,
+             fulfillment_type, delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id,
+             payment_method,
              datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat()),
         )
         order_id_row = cur.fetchone()
@@ -207,6 +218,13 @@ def advance_order_status(hospital_id: int, order_id: int, new_status: str, expec
     ).fetchone()
     if row is None:
         return None
+    if new_status == STATUS_CANCELLED:
+        # The transition above is guarded, so this runs exactly once per order:
+        # a cancelled order gives its stock back.
+        for item in conn.execute(
+            "SELECT menu_item_id, quantity FROM food_order_items WHERE order_id = ?", (order_id,)
+        ).fetchall():
+            restore_stock(conn, item["menu_item_id"], item["quantity"])
     return get_food_order(hospital_id, order_id)
 
 
@@ -214,7 +232,8 @@ _ORDER_COLUMNS = (
     FoodOrder.id, FoodOrder.hospital_id, FoodOrder.patient_id, FoodOrder.phone, FoodOrder.status,
     FoodOrder.fulfillment_type, FoodOrder.delivery_address, FoodOrder.subtotal_paise,
     FoodOrder.delivery_fee_paise, FoodOrder.total_paise, FoodOrder.razorpay_order_id,
-    FoodOrder.razorpay_payment_id, FoodOrder.razorpay_payment_link_url, FoodOrder.reference_id,
+    FoodOrder.razorpay_payment_id, FoodOrder.razorpay_payment_link_url, FoodOrder.payment_method,
+    FoodOrder.reference_id,
     FoodOrder.created_at, FoodOrder.updated_at,
 )
 

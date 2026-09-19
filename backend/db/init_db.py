@@ -1383,7 +1383,7 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_status_check")
     conn.execute(
         "ALTER TABLE food_orders ADD CONSTRAINT food_orders_status_check CHECK ("
-        "status IN ('cart', 'pending_payment', 'paid', 'accepted', 'preparing', "
+        "status IN ('cart', 'pending_payment', 'placed', 'paid', 'accepted', 'preparing', "
         "'ready_for_pickup', 'out_for_delivery', 'completed', 'cancelled'))"
     )
     conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_fulfillment_type_check")
@@ -1417,6 +1417,16 @@ def init_db_on_connection(conn) -> int:
     # create_razorpay_payment()'s idempotent retry needs the actual link
     # persisted, not just the Razorpay-side id.
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS razorpay_payment_link_url TEXT")
+
+    # Migration 0033 -- menu photos (pasted link) and pay-at-restaurant orders
+    # (payment_method + the 'placed' status, whose CHECK is widened above).
+    conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url TEXT")
+    conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'online'")
+    conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_payment_method_check")
+    conn.execute(
+        "ALTER TABLE food_orders ADD CONSTRAINT food_orders_payment_method_check "
+        "CHECK (payment_method IN ('pay_at_restaurant', 'online'))"
+    )
 
     conn.commit()
     _settings = get_settings()

@@ -332,6 +332,8 @@ class MenuItem(Base):
     category: Mapped[str | None]
     is_available: Mapped[bool]
     stock_count: Mapped[int | None]
+    # migration 0033 -- merchant-pasted photo link; NULL = text-only item.
+    image_url: Mapped[str | None]
     created_at: Mapped[str]
     updated_at: Mapped[str]
 
@@ -369,6 +371,8 @@ class FoodOrder(Base):
     # for why the Orders API's own id alone isn't enough for this product's
     # WhatsApp-text delivery mechanism).
     razorpay_payment_link_url: Mapped[str | None]
+    # migration 0033 -- 'pay_at_restaurant' | 'online'.
+    payment_method: Mapped[str]
     reference_id: Mapped[str | None]
     created_at: Mapped[str]
     updated_at: Mapped[str]

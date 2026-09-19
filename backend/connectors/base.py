@@ -268,7 +268,17 @@ class Connector(abc.ABC):
     def create_food_order(
         self, hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
         delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
+        payment_method: str = "online",
     ) -> dict: ...
+
+    @abc.abstractmethod
+    def get_menu_item(self, hospital_id: int, menu_item_id: str) -> dict | None: ...
+
+    @abc.abstractmethod
+    def get_delivery_fee_paise(self, hospital_id: int, fulfillment_type: str) -> int | None: ...
+
+    @abc.abstractmethod
+    def has_online_payment(self, hospital_id: int) -> bool: ...
 
     @abc.abstractmethod
     async def create_food_order_payment(self, hospital_id: int, order_id: int) -> dict: ...
@@ -422,8 +432,17 @@ class _UnimplementedTierConnector(Connector):
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         self._not_implemented("get_menu_items")
 
-    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None):
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online"):
         self._not_implemented("create_food_order")
+
+    def get_menu_item(self, hospital_id, menu_item_id):
+        self._not_implemented("get_menu_item")
+
+    def get_delivery_fee_paise(self, hospital_id, fulfillment_type):
+        self._not_implemented("get_delivery_fee_paise")
+
+    def has_online_payment(self, hospital_id):
+        self._not_implemented("has_online_payment")
 
     async def create_food_order_payment(self, hospital_id, order_id):
         self._not_implemented("create_food_order_payment")

@@ -29,7 +29,7 @@ export default function PortalFoodMenuPage() {
     <PortalShell hospital={hospital} active="food-menu">
       <PageHeader
         title="Menu"
-        description="What guests can order for pickup or delivery through WhatsApp."
+        description="What guests can order for takeaway or delivery through WhatsApp."
         actions={canManage && <Button size="md" onClick={openAddForm}><Plus size={14} /> Add item</Button>}
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
@@ -78,6 +78,24 @@ export default function PortalFoodMenuPage() {
                 onChange={(e) => setForm({ ...form, stock_count: e.target.value })}
               />
             </Field>
+            <Field
+              label="Photo link" htmlFor="mi-image"
+              hint="Optional. Paste a public https:// link to a photo of the dish; guests see it when they open the item on WhatsApp."
+            >
+              <Input
+                id="mi-image" type="url" inputMode="url" placeholder="https://…" value={form.image_url}
+                onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+              />
+            </Field>
+            {form.image_url.trim().startsWith("https://") && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={form.image_url.trim()} alt="Photo preview"
+                className="mb-space-3 h-32 w-32 rounded-md object-cover"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+                onLoad={(e) => { e.currentTarget.style.display = ""; }}
+              />
+            )}
             <CheckboxRow
               checked={form.is_available}
               onChange={(checked) => setForm({ ...form, is_available: checked })}
@@ -101,6 +119,14 @@ export default function PortalFoodMenuPage() {
         <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3">
           {items.map((item) => (
             <Card key={item.id} elevation="interactive" onClick={() => canManage && openEditForm(item)} className="p-space-4">
+              {item.image_url && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={item.image_url} alt={item.name} loading="lazy"
+                  className="mb-space-2 h-28 w-full rounded-md object-cover"
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                />
+              )}
               <div className="mb-space-2 flex items-start justify-between gap-space-2">
                 <h3 className="text-body-lg font-semibold">{item.name}</h3>
                 <Badge tone={item.is_available ? "success" : "neutral"}>

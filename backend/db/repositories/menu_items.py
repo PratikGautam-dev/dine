@@ -20,14 +20,16 @@ from db.orm_models import MenuItem
 
 def create_menu_item(
     hospital_id: int, name: str, price_paise: int, description: str | None = None,
-    category: str | None = None, stock_count: int | None = None,
+    category: str | None = None, stock_count: int | None = None, image_url: str | None = None,
+    is_available: bool = True,
 ) -> dict:
     item_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
     session.execute(
         MenuItem.__table__.insert().values(
             id=item_id, hospital_id=hospital_id, name=name, description=description,
-            price_paise=price_paise, category=category, is_available=True, stock_count=stock_count,
+            price_paise=price_paise, category=category, is_available=is_available, stock_count=stock_count,
+            image_url=image_url,
         )
     )
     session.commit()
@@ -37,6 +39,7 @@ def create_menu_item(
 def update_menu_item(
     hospital_id: int, menu_item_id: str, name: str, price_paise: int, description: str | None = None,
     category: str | None = None, is_available: bool = True, stock_count: int | None = None,
+    image_url: str | None = None,
 ) -> dict | None:
     """stock_count set here is a direct portal correction (e.g. the daily
     "reset stock" action, or a manual count adjustment) -- distinct from
@@ -46,7 +49,8 @@ def update_menu_item(
     session.execute(
         update(MenuItem).where(MenuItem.hospital_id == hospital_id, MenuItem.id == menu_item_id).values(
             name=name, description=description, price_paise=price_paise, category=category,
-            is_available=is_available, stock_count=stock_count, updated_at=datetime.now(timezone.utc).isoformat(),
+            is_available=is_available, stock_count=stock_count, image_url=image_url,
+            updated_at=datetime.now(timezone.utc).isoformat(),
         )
     )
     session.commit()
@@ -62,7 +66,7 @@ def get_menu_items(hospital_id: int, category: str | None = None, available_only
     session = get_session()
     stmt = select(
         MenuItem.id, MenuItem.name, MenuItem.description, MenuItem.price_paise, MenuItem.category,
-        MenuItem.is_available, MenuItem.stock_count,
+        MenuItem.is_available, MenuItem.stock_count, MenuItem.image_url,
     ).where(MenuItem.hospital_id == hospital_id)
     if category is not None:
         stmt = stmt.where(MenuItem.category == category)
@@ -79,7 +83,7 @@ def get_menu_item(hospital_id: int, menu_item_id: str) -> dict | None:
     row = session.execute(
         select(
             MenuItem.id, MenuItem.name, MenuItem.description, MenuItem.price_paise, MenuItem.category,
-            MenuItem.is_available, MenuItem.stock_count,
+            MenuItem.is_available, MenuItem.stock_count, MenuItem.image_url,
         ).where(MenuItem.hospital_id == hospital_id, MenuItem.id == menu_item_id)
     ).first()
     return dict(row._mapping) if row else None
@@ -104,3 +108,13 @@ def decrement_stock(conn, menu_item_id: str, quantity: int) -> bool:
         (quantity, menu_item_id, quantity),
     ).fetchone()
     return row is not None
+
+
+def restore_stock(conn, menu_item_id: str, quantity: int) -> None:
+    """The inverse of decrement_stock(): puts back what an order took when that
+    order is cancelled (or its payment link could not be created). Unlimited
+    items (stock_count IS NULL) are left NULL."""
+    conn.execute(
+        "UPDATE menu_items SET stock_count = stock_count + ? WHERE id = ? AND stock_count IS NOT NULL",
+        (quantity, menu_item_id),
+    )

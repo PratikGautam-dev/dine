@@ -13,6 +13,7 @@ import {
 
 const FILTERS = [
   { value: "", label: "All" },
+  { value: "placed", label: "New" },
   { value: "paid", label: "Paid" },
   { value: "accepted", label: "Accepted" },
   { value: "preparing", label: "Preparing" },
@@ -24,6 +25,7 @@ const FILTERS = [
 
 const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
   pending_payment: "neutral",
+  placed: "clay",
   paid: "clay",
   accepted: "clay",
   preparing: "brand",
@@ -32,6 +34,20 @@ const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
   completed: "success",
   cancelled: "neutral",
 };
+
+const rupees = (paise: number) => {
+  const whole = Math.floor(paise / 100);
+  const rest = paise % 100;
+  return rest === 0 ? `₹${whole}` : `₹${whole}.${String(rest).padStart(2, "0")}`;
+};
+
+/** How this guest settles the order, in the words staff use at the counter. */
+function paymentLine(order: FoodOrder): string {
+  if (order.payment_method === "pay_at_restaurant") {
+    return order.fulfillment_type === "delivery" ? "Guest pays on delivery" : "Guest pays at the restaurant";
+  }
+  return order.status === "pending_payment" ? "Awaiting online payment" : "Paid online";
+}
 
 function OrderCard({ order, actingId, runAction }: {
   order: FoodOrder; actingId: number | null; runAction: (order: FoodOrder, action: string) => void;
@@ -50,16 +66,22 @@ function OrderCard({ order, actingId, runAction }: {
         <Badge tone={STATUS_TONE[order.status] ?? "neutral"}>{STATUS_LABELS[order.status] ?? order.status}</Badge>
       </div>
       <p className="mb-space-1 text-[13px] text-ink-600">
-        {order.fulfillment_type === "delivery" ? `Delivery: ${order.delivery_address}` : "Pickup"}
+        {order.fulfillment_type === "delivery" ? `Delivery: ${order.delivery_address}` : "Takeaway"}
       </p>
       {order.items && order.items.length > 0 && (
         <ul className="mb-space-2 text-[13px] text-ink-600">
           {order.items.map((line) => (
-            <li key={line.menu_item_id}>{line.quantity}x {line.item_name_snapshot}</li>
+            <li key={line.menu_item_id}>
+              {line.quantity}x {line.item_name_snapshot} — {rupees(line.unit_price_paise_snapshot * line.quantity)}
+            </li>
           ))}
         </ul>
       )}
-      <p className="mb-space-3 text-[13px] font-semibold">Total: ₹{(order.total_paise / 100).toFixed(2)}</p>
+      {order.delivery_fee_paise ? (
+        <p className="mb-space-1 text-[13px] text-ink-600">Delivery fee: {rupees(order.delivery_fee_paise)}</p>
+      ) : null}
+      <p className="mb-space-1 text-[13px] font-semibold">Total: {rupees(order.total_paise)}</p>
+      <p className="mb-space-3 text-[12px] text-ink-400">{paymentLine(order)}</p>
       {(nextAction || canCancel) && (
         <div className="flex gap-space-2">
           {nextAction && (

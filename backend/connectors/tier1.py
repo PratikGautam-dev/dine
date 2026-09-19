@@ -152,11 +152,22 @@ class Tier1Connector(Connector):
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         return repo.get_menu_items(hospital_id, category=category, available_only=available_only)
 
-    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None):
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online"):
         return repo.create_food_order(
             hospital_id, phone, items, fulfillment_type, delivery_address=delivery_address,
-            patient_name=patient_name, patient_id=patient_id,
+            patient_name=patient_name, patient_id=patient_id, payment_method=payment_method,
         )
+
+    def get_menu_item(self, hospital_id, menu_item_id):
+        return repo.get_menu_item(hospital_id, menu_item_id)
+
+    def get_delivery_fee_paise(self, hospital_id, fulfillment_type):
+        return repo.get_delivery_fee_paise(hospital_id, fulfillment_type)
+
+    def has_online_payment(self, hospital_id):
+        """True only when this restaurant has saved Razorpay credentials -- the
+        online-payment choice is offered to guests only then."""
+        return repo.get_razorpay_credentials(hospital_id) is not None
 
     async def create_food_order_payment(self, hospital_id, order_id):
         return await repo.create_razorpay_payment(hospital_id, order_id)

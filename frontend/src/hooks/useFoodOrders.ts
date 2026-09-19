@@ -16,7 +16,9 @@ export type FoodOrder = {
   fulfillment_type: string | null;
   delivery_address: string | null;
   subtotal_paise: number;
+  delivery_fee_paise: number | null;
   total_paise: number;
+  payment_method: "online" | "pay_at_restaurant";
   reference_id: string | null;
   created_at: string;
   items?: FoodOrderItem[];
@@ -27,6 +29,7 @@ export type FoodOrder = {
 // (accept/start_preparing/mark_ready/complete/cancel), never a raw status
 // string picked freely by the UI.
 export const NEXT_ACTION_BY_STATUS: Record<string, { action: string; label: string } | undefined> = {
+  placed: { action: "accept", label: "Accept" },
   paid: { action: "accept", label: "Accept" },
   accepted: { action: "start_preparing", label: "Start Preparing" },
   preparing: { action: "mark_ready", label: "Mark Ready" },
@@ -34,14 +37,15 @@ export const NEXT_ACTION_BY_STATUS: Record<string, { action: string; label: stri
   out_for_delivery: { action: "complete", label: "Complete" },
 };
 
-export const CANCELLABLE_STATUSES = new Set(["paid", "accepted", "preparing"]);
+export const CANCELLABLE_STATUSES = new Set(["placed", "paid", "accepted", "preparing"]);
 
 export const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Awaiting Payment",
+  placed: "New order",
   paid: "Paid",
   accepted: "Accepted",
   preparing: "Preparing",
-  ready_for_pickup: "Ready for Pickup",
+  ready_for_pickup: "Ready for Takeaway",
   out_for_delivery: "Out for Delivery",
   completed: "Completed",
   cancelled: "Cancelled",

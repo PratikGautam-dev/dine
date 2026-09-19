@@ -25,19 +25,15 @@ import logging
 from fastapi import APIRouter, Request, Response
 
 import db.repository as db
+from core.money import format_price
 from core.translations import t
-from core.translations.food_ordering import DELIVERY_BUTTON, ORDER_CONFIRMED_TEXT, PICKUP_BUTTON
+from core.translations.food_ordering import ORDER_CONFIRMED_TEXT
+from flows.food_ordering.messages import fulfillment_line
 from webhook.dispatch import SESSIONS, _get_whatsapp_client
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
-
-
-def _fulfillment_line(order: dict, language: str) -> str:
-    if order["fulfillment_type"] == "delivery":
-        return f"{t(DELIVERY_BUTTON, language)}: {order['delivery_address']}\n"
-    return f"{t(PICKUP_BUTTON, language)}\n"
 
 
 @router.post("/webhook/razorpay")
@@ -75,7 +71,8 @@ async def receive_razorpay_webhook(request: Request):
     wa = _get_whatsapp_client(hospital)
     await wa.send_text(order["phone"], t(
         ORDER_CONFIRMED_TEXT, language, reference_id=order["reference_id"],
-        fulfillment_line=_fulfillment_line(order, language), total_rupees=order["total_paise"] // 100,
+        fulfillment_line=fulfillment_line(order["fulfillment_type"], order["delivery_address"], language),
+        total=format_price(order["total_paise"]),
     ))
     # The guest's session was left at STATE_AWAITING_PAYMENT (no further
     # action possible there) -- reset it now so their NEXT message starts a

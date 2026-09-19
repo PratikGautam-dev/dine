@@ -112,10 +112,15 @@ class WhatsAppClient:
         buttons: list[dict],
         header_text: str | None = None,
         footer_text: str | None = None,
-    ) -> None:
+        header_image_url: str | None = None,
+    ) -> bool:
         """
         Send a WhatsApp interactive reply-button message (max 3 buttons).
         buttons: [{"id": str, "title": str}], title <=20 chars.
+        header_image_url: an https image shown above the body (the menu item
+        card). Returns False when the send failed (Meta rejects a link it
+        can't fetch, for instance) so a caller can fall back to text; every
+        other caller may keep ignoring the return value.
         """
         to = normalize_phone(to)
         url = f"{WA_API_BASE}/{self._phone_number_id}/messages"
@@ -129,7 +134,9 @@ class WhatsAppClient:
                 ]
             },
         }
-        if header_text:
+        if header_image_url:
+            interactive["header"] = {"type": "image", "image": {"link": header_image_url}}
+        elif header_text:
             interactive["header"] = {"type": "text", "text": header_text}
         if footer_text:
             interactive["footer"] = {"text": footer_text}
@@ -144,11 +151,12 @@ class WhatsAppClient:
             resp = await self._client.post(url, json=payload, headers=self._headers)
         except httpx.HTTPError:
             logger.exception("WhatsApp send_buttons request to %s failed (network/transport error)", url)
-            return
+            return False
         if resp.is_success:
             logger.info("WhatsApp send_buttons: %s OK for %s", resp.status_code, to)
-        else:
-            logger.error("WhatsApp send_buttons error %s: %s", resp.status_code, resp.text)
+            return True
+        logger.error("WhatsApp send_buttons error %s: %s", resp.status_code, resp.text)
+        return False
 
     async def send_document(self, to: str, document_url: str, filename: str, caption: str | None = None) -> bool:
         """Section 12.10: the portal's "Send to WhatsApp" action on a patient

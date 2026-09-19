@@ -19,7 +19,7 @@ from pydantic import BaseModel
 import db.repository as db
 from db.repositories.food_orders import (
     STATUS_ACCEPTED, STATUS_CANCELLED, STATUS_COMPLETED, STATUS_OUT_FOR_DELIVERY, STATUS_PAID,
-    STATUS_PREPARING, STATUS_READY_FOR_PICKUP,
+    STATUS_PLACED, STATUS_PREPARING, STATUS_READY_FOR_PICKUP,
 )
 from portal.capabilities import MANAGE_FOOD_ORDERING
 from portal.deps import _authenticate, require_capability
@@ -34,6 +34,22 @@ class MenuItemPayload(BaseModel):
     category: str | None = None
     is_available: bool = True
     stock_count: int | None = None
+    image_url: str | None = None
+
+
+_MAX_IMAGE_URL_LENGTH = 2000
+
+
+def _clean_image_url(raw: str | None) -> tuple[str | None, str | None]:
+    """(url, error). Blank clears the photo. WhatsApp only fetches public https
+    links, so anything else is rejected here rather than failing silently at a
+    guest's phone."""
+    url = (raw or "").strip()
+    if not url:
+        return None, None
+    if len(url) > _MAX_IMAGE_URL_LENGTH or not url.lower().startswith("https://") or " " in url:
+        return None, "Photo link must be a public https:// web address (no spaces)."
+    return url, None
 
 
 def _require_food_ordering(authorization: str | None):
@@ -72,9 +88,13 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
         return JSONResponse({"error": "Item name is required."}, status_code=400)
     if payload.price_rupees < 0:
         return JSONResponse({"error": "Price cannot be negative."}, status_code=400)
+    image_url, image_error = _clean_image_url(payload.image_url)
+    if image_error:
+        return JSONResponse({"error": image_error}, status_code=400)
     item = db.create_menu_item(
         hospital.id, name, price_paise=round(payload.price_rupees * 100),
         description=payload.description, category=payload.category, stock_count=payload.stock_count,
+        image_url=image_url, is_available=payload.is_available,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.create",
@@ -98,10 +118,13 @@ async def portal_update_menu_item(
         return JSONResponse({"error": "Item name is required."}, status_code=400)
     if payload.price_rupees < 0:
         return JSONResponse({"error": "Price cannot be negative."}, status_code=400)
+    image_url, image_error = _clean_image_url(payload.image_url)
+    if image_error:
+        return JSONResponse({"error": image_error}, status_code=400)
     item = db.update_menu_item(
         hospital.id, menu_item_id, name=name, price_paise=round(payload.price_rupees * 100),
         description=payload.description, category=payload.category, is_available=payload.is_available,
-        stock_count=payload.stock_count,
+        stock_count=payload.stock_count, image_url=image_url,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.update",
@@ -134,11 +157,11 @@ def _ready_status_for(order: dict) -> str:
     return STATUS_OUT_FOR_DELIVERY if order["fulfillment_type"] == "delivery" else STATUS_READY_FOR_PICKUP
 
 
-# action name -> (expected_prior_status, new_status) for the three straight-
-# line transitions. "mark_ready"'s target depends on fulfillment_type, so
+# action name -> (expected_prior_status, new_status) for the straight-line
+# transitions ("accept" is handled separately: an online order arrives 'paid', a
+# pay-at-restaurant order arrives 'placed'). "mark_ready"'s target depends on fulfillment_type, so
 # it's handled separately below rather than forced into this table.
 _STRAIGHT_TRANSITIONS = {
-    "accept": (STATUS_PAID, STATUS_ACCEPTED),
     "start_preparing": (STATUS_ACCEPTED, STATUS_PREPARING),
     "complete": (None, STATUS_COMPLETED),  # expected_status resolved per-order below (pickup vs delivery ready state)
 }
@@ -147,7 +170,10 @@ _STRAIGHT_TRANSITIONS = {
 # takes exactly one expected_status, so cancel tries each candidate in turn;
 # the first one whose actual current status matches wins (there's only ever
 # one that can, since status is a single column).
-_CANCELLABLE_FROM = (STATUS_PAID, STATUS_ACCEPTED, STATUS_PREPARING)
+_CANCELLABLE_FROM = (STATUS_PLACED, STATUS_PAID, STATUS_ACCEPTED, STATUS_PREPARING)
+
+# the two "waiting for the kitchen" states an order can be accepted from
+_ACCEPTABLE_FROM = (STATUS_PLACED, STATUS_PAID)
 
 
 @router.post("/api/portal/food-orders/{order_id}/{action}")
@@ -163,6 +189,12 @@ async def portal_advance_food_order(order_id: int, action: str, authorization: s
         updated = None
         for expected in _CANCELLABLE_FROM:
             updated = db.advance_order_status(hospital.id, order_id, STATUS_CANCELLED, expected_status=expected)
+            if updated is not None:
+                break
+    elif action == "accept":
+        updated = None
+        for expected in _ACCEPTABLE_FROM:
+            updated = db.advance_order_status(hospital.id, order_id, STATUS_ACCEPTED, expected_status=expected)
             if updated is not None:
                 break
     elif action == "mark_ready":

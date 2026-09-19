@@ -10,6 +10,7 @@ export type MenuItem = {
   category: string | null;
   is_available: boolean;
   stock_count: number | null;
+  image_url: string | null;
 };
 
 export type MenuItemFormState = {
@@ -19,10 +20,11 @@ export type MenuItemFormState = {
   category: string;
   is_available: boolean;
   stock_count: string; // "" means unlimited (null)
+  image_url: string; // a public https link to a photo; "" means text-only
 };
 
 export function emptyMenuItemForm(): MenuItemFormState {
-  return { name: "", description: "", price_rupees: "", category: "", is_available: true, stock_count: "" };
+  return { name: "", description: "", price_rupees: "", category: "", is_available: true, stock_count: "", image_url: "" };
 }
 
 function formToPayload(form: MenuItemFormState) {
@@ -33,6 +35,7 @@ function formToPayload(form: MenuItemFormState) {
     category: form.category.trim() || null,
     is_available: form.is_available,
     stock_count: form.stock_count.trim() === "" ? null : Number(form.stock_count),
+    image_url: form.image_url.trim() || null,
   };
 }
 
@@ -79,6 +82,7 @@ export function useMenuItems(ready: boolean) {
       category: item.category ?? "",
       is_available: item.is_available,
       stock_count: item.stock_count === null ? "" : item.stock_count.toString(),
+      image_url: item.image_url ?? "",
     });
     setFormError(null);
     setShowForm(true);
