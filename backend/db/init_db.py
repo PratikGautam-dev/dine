@@ -1190,11 +1190,11 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS procedure_order_reference TEXT")
     conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS procedure_reschedule_requested_at TEXT")
     conn.execute("ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_doctor_or_resource_chk")
+    # The old three-way check is only dropped here. It used to be re-added on every
+    # startup and replaced by the table-aware check further below; once a table
+    # reservation (doctor/resource/procedure all NULL) existed, that re-add failed and
+    # the app could not boot.
     conn.execute("ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_doctor_or_resource_or_procedure_chk")
-    conn.execute(
-        "ALTER TABLE appointments ADD CONSTRAINT appointments_doctor_or_resource_or_procedure_chk "
-        "CHECK (doctor_id IS NOT NULL OR resource_id IS NOT NULL OR procedure_id IS NOT NULL)"
-    )
 
     # Migration 0030 (Stage 4, Stage 1 of 4 -- data model + migration only,
     # confirmed with the user before building): `tables`, a single-pool

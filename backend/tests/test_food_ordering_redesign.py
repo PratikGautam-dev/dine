@@ -649,3 +649,18 @@ def test_portal_cannot_touch_another_restaurants_orders_or_menu(hospital_id, sec
         f"/api/portal/menu-items/{other_ids['Theirs']}", headers=headers, json={"name": "x", "price_rupees": 1},
     ).status_code == 404
     assert db.get_food_order(second_hospital_id, other_order["id"])["status"] == "placed"
+
+
+# --- startup must survive existing table reservations ---------------------------
+
+def test_startup_schema_init_succeeds_when_table_reservations_exist(hospital_id):
+    """init_db() runs on every boot. It once re-added the old doctor/resource/procedure
+    check, which a table reservation (all three NULL) violates -- crashing the deploy."""
+    from datetime import datetime
+
+    from db.init_db import init_db_on_connection
+
+    slot = db.get_available_table_slots(hospital_id, 2)[0]
+    db.create_table_reservation(hospital_id, PHONE, 2, datetime.fromisoformat(slot["id"]), patient_name="Boot Guest")
+    init_db_on_connection(get_connection())  # must not raise
+    init_db_on_connection(get_connection())  # and stays idempotent
