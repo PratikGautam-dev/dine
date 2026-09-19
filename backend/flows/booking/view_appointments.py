@@ -133,9 +133,9 @@ async def _send_view_appointments(
         return
     rows = []
     for a in appointments:
-        title = a.doctor_name
+        title = a.row_title
         if patient_names and a.patient_id in patient_names:
-            title = f"{patient_names[a.patient_id]} — {a.doctor_name}"
+            title = f"{patient_names[a.patient_id]} — {a.row_title}"[:24]
         description = f"{a.department_name} — {a.scheduled_at.strftime('%a %d %b %Y, %H:%M')}"
         if range_ == "previous":
             # Mixed statuses in this view (unlike upcoming, which is always
@@ -205,7 +205,7 @@ async def _handle_awaiting_view_appointment_action(
     sessions.reset(hospital_id, phone)
     await wa.send_buttons(
         to=phone,
-        body_text=t(MANAGE_APPOINTMENT_PROMPT, language, doctor_name=appt.doctor_name),
+        body_text=t(MANAGE_APPOINTMENT_PROMPT, language, doctor_name=appt.place_label),
         buttons=[
             {"id": GOTO_MAIN_MENU, "title": t(MAIN_MENU_BUTTON, language)},
             {"id": _manage_cancel_id(appt.id), "title": t(CANCEL_BUTTON, language)},

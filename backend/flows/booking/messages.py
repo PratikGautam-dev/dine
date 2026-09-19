@@ -179,7 +179,25 @@ async def _send_post_action_menu(wa: WhatsAppClient, phone: str, language: str =
     )
 
 
-async def _send_main_menu(wa: WhatsAppClient, phone: str, hospital_name: str, language: str = "en") -> None:
+async def _send_main_menu(
+    wa: WhatsAppClient, phone: str, hospital_name: str, language: str = "en", hospital_id: int | None = None,
+) -> None:
+    """Fallback "go back to the menu" after a dead end (no tables, stale
+    session, ...). With hospital_id it sends the tenant's REAL main menu --
+    its own enabled features (Order Food, Reschedule, ...), labels and name --
+    exactly what the router shows on first contact; without it (a caller with
+    no tenant context, e.g. the standalone booking entry point) it falls back
+    to the fixed four-item menu below."""
+    if hospital_id is not None:
+        hospital = db.get_hospital(hospital_id)
+        if hospital is not None and hospital.enabled_features:
+            from flows.patient_identity.menu import _send_dynamic_menu
+
+            await _send_dynamic_menu(
+                wa, phone, hospital.name, hospital.enabled_features, language,
+                feature_labels=hospital.feature_labels,
+            )
+            return
     rows = [
         {"id": MAIN_MENU_BOOK, "title": t(BOOK_APPOINTMENT_SHORT, language)},
         {"id": MAIN_MENU_RESCHEDULE, "title": t(RESCHEDULE_SHORT, language)},
@@ -297,7 +315,7 @@ async def _select_patient_and_continue(
     else:
         logger.warning("No _select_patient_and_continue branch for next_action %r -- falling back to main menu", next_action)
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
 
 
 async def _send_patient_selector(
@@ -430,6 +448,7 @@ async def _send_date_menu(
     wa: WhatsAppClient, phone: str, hospital_id: int, doctor_id: str | None, doctor_name: str, connector: Connector,
     language: str = "en", min_date: str | None = None, resource_id: str | None = None,
     procedure_id: int | None = None, party_size: int | None = None, table_department_id: str | None = None,
+    exclude_appointment_id: int | None = None,
 ) -> None:
     """Section 12.12, booking flow's step 1 of the date/time split: the
     distinct dates (soonest first, since get_available_slots() is already
@@ -456,7 +475,9 @@ async def _send_date_menu(
     body text differs too (no "Table X selected" framing, since which table
     gets assigned isn't known until confirmation)."""
     if party_size is not None:
-        slots = connector.get_available_table_slots(hospital_id, party_size, table_department_id)
+        slots = connector.get_available_table_slots(
+            hospital_id, party_size, table_department_id, exclude_appointment_id=exclude_appointment_id,
+        )
     elif procedure_id is not None:
         slots = connector.get_procedure_available_slots(hospital_id, procedure_id)
     elif resource_id is not None:
@@ -487,6 +508,7 @@ async def _send_time_menu(
     wa: WhatsAppClient, phone: str, hospital_id: int, doctor_id: str | None, date_str: str, connector: Connector,
     language: str = "en", resource_id: str | None = None, procedure_id: int | None = None,
     party_size: int | None = None, table_department_id: str | None = None,
+    exclude_appointment_id: int | None = None,
 ) -> None:
     """Section 12.12, step 2 of the date/time split: just this doctor's slots
     ON date_str, row title is the bare time (the date's already been picked,
@@ -499,7 +521,9 @@ async def _send_time_menu(
     rebuild)/party_size (Stage 4, table-availability): same override as
     _send_date_menu."""
     if party_size is not None:
-        slots = connector.get_available_table_slots(hospital_id, party_size, table_department_id)
+        slots = connector.get_available_table_slots(
+            hospital_id, party_size, table_department_id, exclude_appointment_id=exclude_appointment_id,
+        )
     elif procedure_id is not None:
         slots = connector.get_procedure_available_slots(hospital_id, procedure_id)
     elif resource_id is not None:
@@ -532,7 +556,7 @@ async def _notify_no_doctors_available(
     # wording at every other deep-handler-bails-to-main-menu site (e.g.
     # _handle_awaiting_doctor's corrupted-context guard) -- none of these
     # state handlers carry the real hospital_name down this far.
-    await _send_main_menu(wa, phone, "the restaurant", language=language)
+    await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
 
 
 async def _notify_no_slots_available(
@@ -540,7 +564,7 @@ async def _notify_no_slots_available(
 ) -> None:
     sessions.reset(hospital_id, phone)
     await wa.send_text(phone, t(NO_SLOTS_AVAILABLE, language, doctor_name=doctor_name))
-    await _send_main_menu(wa, phone, "the restaurant", language=language)
+    await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
 
 
 async def _handle_slot_taken(
@@ -567,7 +591,7 @@ async def _handle_slot_taken(
     if doctor_id is None and resource_id is None and procedure_id is None and party_size is None:
         # Corrupted/stale context -- nothing to recover a slot list for.
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     logger.info("Double-booking race: hospital=%s doctor=%s resource=%s procedure=%s party_size=%s slot=%s already taken", hospital_id, doctor_id, resource_id, procedure_id, party_size, context.get("slot_id"))
     if party_size is not None:
@@ -585,7 +609,7 @@ async def _handle_slot_taken(
         # _notify_no_slots_available above.
         sessions.reset(hospital_id, phone)
         await wa.send_text(phone, t(SLOT_TAKEN_NO_ALTERNATIVES, language, doctor_name=doctor_name))
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     sessions.set(hospital_id, phone, target_state, context)
     await wa.send_text(phone, t(SLOT_TAKEN_CHOOSE_ANOTHER, language))
@@ -594,7 +618,7 @@ async def _handle_slot_taken(
         if date_str is None:
             # Corrupted/stale context -- nothing to recover a time list for.
             sessions.reset(hospital_id, phone)
-            await _send_main_menu(wa, phone, "the restaurant", language=language)
+            await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
             return
         await _send_time_menu(
             wa, phone, hospital_id, doctor_id, date_str, connector, language=language,
@@ -781,7 +805,7 @@ async def _handle_back_navigation(
     popped = _history_pop(context)
     if popped is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     state, restored_context = popped
     sessions.set(hospital_id, phone, state, restored_context)
@@ -799,9 +823,9 @@ async def _send_appointment_selection_menu(
     single-patient case, unchanged from before this section."""
     rows = []
     for a in appointments:
-        title = a.doctor_name
+        title = a.row_title
         if patient_names and a.patient_id in patient_names:
-            title = f"{patient_names[a.patient_id]} — {a.doctor_name}"
+            title = f"{patient_names[a.patient_id]} — {a.row_title}"[:24]
         rows.append({
             "id": _appointment_row_id(a.id),
             "title": title,
@@ -825,7 +849,7 @@ async def _send_cancel_confirm(wa: WhatsAppClient, phone: str, appointment, lang
     when = appointment.scheduled_at.strftime("%A, %d %B at %H:%M")
     await wa.send_buttons(
         to=phone,
-        body_text=t(CANCEL_CONFIRM_QUESTION, language, doctor_name=appointment.doctor_name, when=when),
+        body_text=t(CANCEL_CONFIRM_QUESTION, language, doctor_name=appointment.place_label, when=when),
         buttons=[
             {"id": CONFIRM_YES, "title": t(CONFIRM_BUTTON, language)},
             {"id": CONFIRM_NO, "title": t(CANCEL_BUTTON, language)},

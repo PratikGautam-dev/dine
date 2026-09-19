@@ -238,7 +238,7 @@ async def _start_booking_for_preselected_type(
     appt_type = _find_by_id(connector.get_appointment_types(hospital_id), appointment_type_id)
     if appt_type is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     new_context = {
         "active_patient_id": active_patient["id"], "patient_name": active_patient["name"],
@@ -263,7 +263,7 @@ async def _handle_awaiting_appointment_type(
     if reply["type"] == "interactive_reply":
         if reply["id"] == BACK_ID:
             sessions.reset(hospital_id, phone)
-            await _send_main_menu(wa, phone, "the restaurant", language=language)
+            await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
             return
         appt_type = _find_by_id(connector.get_appointment_types(hospital_id), reply["id"])
         if appt_type:
@@ -349,7 +349,7 @@ async def _handle_awaiting_doctor(
     if not department_id:
         # Corrupted/incomplete session context — fail safe back to the main menu.
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     if reply["type"] == "interactive_reply":
@@ -389,7 +389,7 @@ async def _handle_awaiting_date(
     doctor_name = context.get("doctor_name", "")
     if not doctor_id and not resource_id and not procedure_id and party_size is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     if reply["type"] == "interactive_reply":
@@ -441,7 +441,7 @@ async def _handle_awaiting_time_slot(
     date_str = context.get("date")
     if (not doctor_id and not resource_id and not procedure_id and party_size is None) or not date_str:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     if reply["type"] == "interactive_reply":
@@ -555,7 +555,7 @@ async def _handle_awaiting_patient_age(
             await _start_manage_patients_flow(wa, sessions, phone, hospital_id, connector, language=language)
         else:
             sessions.reset(hospital_id, phone)
-            await _send_main_menu(wa, phone, "the restaurant", language=language)
+            await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     await _select_patient_and_continue(
         wa, sessions, phone, hospital_id, connector, patient, next_action, language=language,
@@ -819,7 +819,7 @@ async def _handle_awaiting_change_selection(
             # every state on the path to confirmation pushes one) -- fail
             # safe back to the main menu rather than getting stuck.
             sessions.reset(hospital_id, phone)
-            await _send_main_menu(wa, phone, "the restaurant", language=language)
+            await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
             return
     sessions.set(hospital_id, phone, STATE_AWAITING_CHANGE_SELECTION, context)
     await _send_change_selection_menu(wa, phone, hospital_id, connector, language=language, context=context)

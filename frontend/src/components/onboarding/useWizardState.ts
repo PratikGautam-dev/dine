@@ -1,12 +1,11 @@
 import { useImmerReducer } from "use-immer";
 import {
-  DoctorForm,
   FeatureKey,
+  TableForm,
   TenantType,
-  TimeRange,
   WizardState,
   emptyDepartment,
-  emptyDoctor,
+  emptyTable,
   emptyTopic,
   initialWizardState,
 } from "./types";
@@ -18,17 +17,10 @@ type Action =
   | { type: "addDepartment" }
   | { type: "removeDepartment"; deptIndex: number }
   | { type: "setDepartmentName"; deptIndex: number; name: string }
-  | { type: "addDoctor"; deptIndex: number }
-  | { type: "removeDoctor"; deptIndex: number; docIndex: number }
-  | { type: "setDoctorField"; deptIndex: number; docIndex: number; field: keyof DoctorForm; value: unknown }
-  | { type: "toggleDoctorDay"; deptIndex: number; docIndex: number; day: string }
-  | { type: "selectAllWeekdays"; deptIndex: number; docIndex: number }
-  | { type: "addShift"; deptIndex: number; docIndex: number }
-  | { type: "removeShift"; deptIndex: number; docIndex: number; shiftIndex: number }
-  | { type: "setShift"; deptIndex: number; docIndex: number; shiftIndex: number; range: TimeRange }
-  | { type: "addBreak"; deptIndex: number; docIndex: number }
-  | { type: "removeBreak"; deptIndex: number; docIndex: number; breakIndex: number }
-  | { type: "setBreak"; deptIndex: number; docIndex: number; breakIndex: number; range: TimeRange }
+  | { type: "addTable"; deptIndex: number }
+  | { type: "removeTable"; deptIndex: number; tableIndex: number }
+  | { type: "setTableField"; deptIndex: number; tableIndex: number; field: keyof TableForm; value: string }
+  | { type: "toggleOperatingDay"; day: string }
   | { type: "addTopic" }
   | { type: "removeTopic"; topicIndex: number }
   | { type: "setTopicField"; topicIndex: number; field: "topicLabel" | "answerText"; value: string };
@@ -47,75 +39,51 @@ function reducer(draft: WizardState, action: Action) {
     }
     case "setTenantType": {
       draft.tenantType = action.value;
-      // A clinic is a single doctor with no department concept -- collapse
-      // (or seed) the departments array down to exactly one department with
-      // exactly one doctor, under a fixed internal name the backend's
-      // _validate_departments() contract requires but the clinic UI never
-      // shows. Switching back to "hospital" leaves whatever's there alone so
-      // no data the user already entered is silently thrown away.
+      // A single venue has no section concept -- collapse (or seed) the
+      // departments array to exactly one section under a fixed internal name
+      // the backend requires but the venue UI never shows, keeping its tables.
+      // Switching back to "restaurant" leaves whatever's there alone so no
+      // data already entered is silently thrown away.
       if (action.value === "clinic") {
         if (draft.departments.length === 0) draft.departments.push(emptyDepartment());
-        else if (draft.departments.length > 1) draft.departments.length = 1;
+        else if (draft.departments.length > 1) {
+          const [first, ...rest] = draft.departments;
+          first.tables.push(...rest.flatMap((d) => d.tables));
+          draft.departments.length = 1;
+        }
         const dept = draft.departments[0];
-        dept.name = "General";
-        if (dept.doctors.length === 0) dept.doctors.push(emptyDoctor());
-        else if (dept.doctors.length > 1) dept.doctors.length = 1;
+        dept.name = "Main";
+        if (dept.tables.length === 0) dept.tables.push(emptyTable());
       }
       return;
     }
-    case "addDepartment":
-      draft.departments.push(emptyDepartment());
+    case "addDepartment": {
+      const dept = emptyDepartment();
+      dept.tables.push(emptyTable());
+      draft.departments.push(dept);
       return;
+    }
     case "removeDepartment":
       draft.departments.splice(action.deptIndex, 1);
       return;
     case "setDepartmentName":
       draft.departments[action.deptIndex].name = action.name;
       return;
-    case "addDoctor":
-      draft.departments[action.deptIndex].doctors.push(emptyDoctor());
+    case "addTable":
+      draft.departments[action.deptIndex].tables.push(emptyTable());
       return;
-    case "removeDoctor":
-      draft.departments[action.deptIndex].doctors.splice(action.docIndex, 1);
+    case "removeTable":
+      draft.departments[action.deptIndex].tables.splice(action.tableIndex, 1);
       return;
-    case "setDoctorField": {
-      const doc = draft.departments[action.deptIndex].doctors[action.docIndex];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (doc as any)[action.field] = action.value;
+    case "setTableField":
+      draft.departments[action.deptIndex].tables[action.tableIndex][action.field] = action.value;
       return;
-    }
-    case "toggleDoctorDay": {
-      const doc = draft.departments[action.deptIndex].doctors[action.docIndex];
-      const i = doc.workingDays.indexOf(action.day);
-      if (i === -1) doc.workingDays.push(action.day);
-      else doc.workingDays.splice(i, 1);
+    case "toggleOperatingDay": {
+      const i = draft.operatingDays.indexOf(action.day);
+      if (i === -1) draft.operatingDays.push(action.day);
+      else draft.operatingDays.splice(i, 1);
       return;
     }
-    case "selectAllWeekdays": {
-      const doc = draft.departments[action.deptIndex].doctors[action.docIndex];
-      ["Mon", "Tue", "Wed", "Thu", "Fri"].forEach((day) => {
-        if (!doc.workingDays.includes(day)) doc.workingDays.push(day);
-      });
-      return;
-    }
-    case "addShift":
-      draft.departments[action.deptIndex].doctors[action.docIndex].shifts.push({ start: "", end: "" });
-      return;
-    case "removeShift":
-      draft.departments[action.deptIndex].doctors[action.docIndex].shifts.splice(action.shiftIndex, 1);
-      return;
-    case "setShift":
-      draft.departments[action.deptIndex].doctors[action.docIndex].shifts[action.shiftIndex] = action.range;
-      return;
-    case "addBreak":
-      draft.departments[action.deptIndex].doctors[action.docIndex].breaks.push({ start: "", end: "" });
-      return;
-    case "removeBreak":
-      draft.departments[action.deptIndex].doctors[action.docIndex].breaks.splice(action.breakIndex, 1);
-      return;
-    case "setBreak":
-      draft.departments[action.deptIndex].doctors[action.docIndex].breaks[action.breakIndex] = action.range;
-      return;
     case "addTopic":
       draft.topics.push(emptyTopic());
       return;

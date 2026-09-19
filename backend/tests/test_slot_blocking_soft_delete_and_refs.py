@@ -176,7 +176,7 @@ def test_reference_id_format_and_per_hospital_daily_sequence(hospital_id, second
     # Item 2 follow-up (Spec.md Section 0): date part switched from a
     # month-abbreviation (DDMMMYY) to fully numeric DDMMYY, confirmed with
     # the user directly.
-    assert re.fullmatch(r"APT-\d{6}-\d{3}", first.reference_id)
+    assert re.fullmatch(r"RSV-\d{6}-\d{3}", first.reference_id)
     first_seq = int(first.reference_id.rsplit("-", 1)[1])
     second_seq = int(second.reference_id.rsplit("-", 1)[1])
     assert second_seq == first_seq + 1

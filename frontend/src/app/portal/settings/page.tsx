@@ -169,35 +169,12 @@ function PortalSettingsPageContent() {
               </Card>
 
               <Card className="p-space-5 lg:col-span-2">
-                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Follow-up reservations</h2>
+                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Fees</h2>
                 <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  How long after a visit a guest can still book a Follow-up for it, and the fees shown on booking
-                  confirmation messages. Leave a fee blank to omit that line entirely rather than showing ₹0.
+                  Amounts shown on WhatsApp booking and order messages. Leave a fee blank to omit that line entirely
+                  rather than showing ₹0.
                 </p>
-                <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <Field
-                    label="Follow-up eligibility window (days)"
-                    htmlFor="followup_validity_days"
-                    hint="Between 1 and 365 days after the visit."
-                  >
-                    <Input
-                      id="followup_validity_days"
-                      type="number"
-                      min={1}
-                      max={365}
-                      value={settings.followup_validity_days}
-                      onChange={(e) => setSettings({ ...settings, followup_validity_days: Number(e.target.value) })}
-                    />
-                  </Field>
-                  <Field label="Follow-up fee (₹)" htmlFor="followup_fee">
-                    <Input
-                      id="followup_fee"
-                      type="number"
-                      min={0}
-                      value={settings.followup_fee}
-                      onChange={(e) => setSettings({ ...settings, followup_fee: e.target.value === "" ? "" : Number(e.target.value) })}
-                    />
-                  </Field>
+                <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
                   <Field label="New reservation deposit (₹)" htmlFor="new_consultation_fee" hint="Not shown to guests yet.">
                     <Input
                       id="new_consultation_fee"

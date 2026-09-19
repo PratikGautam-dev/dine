@@ -75,11 +75,11 @@ STRINGS: dict[str, dict[Language, str]] = {
     UNLINK_SELF_BLOCKED: {
         "en": (
             "⚠️ {patient_name} is the main guest linked to this number and can't be removed here.\n\n"
-            "If you need help with this, please use \"Talk to Reception\" from the main menu — our team can assist you further."
+            "If you need help with this, please contact the restaurant directly — our team can assist you further."
         ),
         "hi": (
             "⚠️ {patient_name} इस नंबर से जुड़ा मुख्य अतिथि है और इसे यहां से हटाया नहीं जा सकता।\n\n"
-            "इसमें मदद के लिए, कृपया मुख्य मेनू से \"रिसेप्शन से बात करें\" का उपयोग करें — हमारी टीम आपकी आगे सहायता करेगी।"
+            "इसमें मदद के लिए, कृपया रेस्टोरेंट से सीधे संपर्क करें — हमारी टीम आपकी आगे सहायता करेगी।"
         ),
     },
 }

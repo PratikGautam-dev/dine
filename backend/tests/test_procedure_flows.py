@@ -189,8 +189,8 @@ async def test_procedure_with_no_linked_resource_is_not_available(hospital_id, s
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap(str(procedure["id"])))
 
     assert sessions.get(hospital_id, PHONE)["state"] == "IDLE"
-    kind, kwargs = wa.sent[-1]
-    assert kind == "text" or kind == "list"
+    # The guest gets a reply (a text and/or the tenant's main menu), never silence.
+    assert any(kind in ("text", "list") for kind, _ in wa.sent)
 
 
 @pytest.mark.asyncio

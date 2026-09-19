@@ -11,7 +11,9 @@ type Appointment = {
   patient_name: string | null;
   patient_display_id: string | null;
   department_name: string;
-  doctor_name: string;
+  doctor_name: string | null;
+  table_name: string | null;
+  party_size: number | null;
   scheduled_at: string;
   status: string;
   source: string;
@@ -73,7 +75,12 @@ const columns: ColumnDef<Appointment>[] = [
   {
     id: "doctor_name",
     header: "Table",
-    cell: ({ row }) => <span className="text-ink-600">{row.original.doctor_name}</span>,
+    cell: ({ row }) => (
+      <span className="text-ink-600">
+        {row.original.table_name || row.original.doctor_name || "—"}
+        {row.original.party_size ? <span className="ml-space-1 text-ink-400">· {row.original.party_size} guests</span> : null}
+      </span>
+    ),
   },
   {
     id: "department_name",

@@ -269,6 +269,26 @@ class Appointment:
     party_size: int | None = None
     turnover_minutes: int | None = None
 
+    @property
+    def place_label(self) -> str:
+        """The guest-facing "where" for this booking, for use in sentences
+        ("...your reservation at {label} on Tuesday"). A table reservation
+        has no doctor (doctor_name is None), so it reads as its section plus
+        party size; everything else falls back to the doctor's name."""
+        if self.table_id is not None:
+            section = self.department_name or "our restaurant"
+            return f"{section} (table for {self.party_size})" if self.party_size else section
+        return self.doctor_name or self.department_name or "our restaurant"
+
+    @property
+    def row_title(self) -> str:
+        """Same, shortened for a WhatsApp list-row title (Meta's 24-char limit)."""
+        if self.table_id is not None:
+            title = f"Table for {self.party_size}" if self.party_size else "Table reservation"
+        else:
+            title = self.doctor_name or self.department_name or "Reservation"
+        return title[:24]
+
 
 def _row_to_appointment(row) -> Appointment:
     return Appointment(

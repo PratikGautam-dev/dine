@@ -2,11 +2,11 @@ import { ArrowLeft, BadgeCheck, Camera, Mic, MoreVertical, Signal, Wifi, Battery
 
 const MENU_ITEMS = [
   "Book a table",
+  "Order food",
   "Reschedule reservation",
   "Cancel reservation",
   "My reservations",
-  "Restaurant information",
-  "Talk to a host",
+  "FAQ / Information",
 ];
 
 export function PhoneMockup() {
@@ -30,7 +30,7 @@ export function PhoneMockup() {
         <div className="flex items-center gap-space-2 bg-brand-600 px-space-3 pb-space-2 text-white">
           <ArrowLeft size={18} strokeWidth={2} className="shrink-0 text-white/90" />
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white text-[13px] font-extrabold text-brand-600">
-            H
+            D
           </div>
           <div className="min-w-0 flex-1 leading-tight">
             <span className="flex items-center gap-1">

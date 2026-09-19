@@ -23,7 +23,9 @@ export type DashboardData = {
     patient_name: string | null;
     patient_display_id: string | null;
     department_name: string;
-    doctor_name: string;
+    doctor_name: string | null;
+    table_name: string | null;
+    party_size: number | null;
     scheduled_at: string;
     status: string;
     source: string;

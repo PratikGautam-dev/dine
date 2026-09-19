@@ -54,11 +54,22 @@ async def send_reminders(
             # Meta will reject the send. Swap this for a template send (SPEC Section
             # 3.2/3.5) before this goes anywhere near production — we don't have an
             # approved template yet.
-            message = (
-                f"Reminder: you have an appointment with {appt.doctor_name} "
-                f"({appt.department_name}) on {appt.scheduled_at.strftime('%A, %d %B at %H:%M')}. "
-                f"Message us here if you need to reschedule or cancel."
-            )
+            when = appt.scheduled_at.strftime('%A, %d %B at %H:%M')
+            if appt.table_id is not None:
+                # A table reservation has no doctor -- describe it by party
+                # size and section instead of printing "None".
+                party = f" for {appt.party_size}" if appt.party_size else ""
+                section = f" ({appt.department_name})" if appt.department_name else ""
+                message = (
+                    f"Reminder: you have a table reservation{party}{section} on {when}. "
+                    f"Message us here if you need to reschedule or cancel."
+                )
+            else:
+                message = (
+                    f"Reminder: you have an appointment with {appt.doctor_name} "
+                    f"({appt.department_name}) on {when}. "
+                    f"Message us here if you need to reschedule or cancel."
+                )
             # Tele-consultation Phase 2 (confirmed with the user directly):
             # the video link is deliberately withheld from the immediate
             # booking confirmation and only surfaces here, close to the

@@ -40,6 +40,8 @@ async def portal_dashboard(authorization: str | None = Header(default=None)):
                 "patient_display_id": a.patient_display_id,
                 "department_name": a.department_name,
                 "doctor_name": a.doctor_name,
+                "table_name": a.table_name,
+                "party_size": a.party_size,
                 "scheduled_at": a.scheduled_at.isoformat(),
                 "status": a.status,
                 "source": a.source,
@@ -54,6 +56,8 @@ async def portal_dashboard(authorization: str | None = Header(default=None)):
                 "label": item["label"],
                 "phone": item["phone"],
                 "doctor_name": item["doctor_name"],
+                "table_name": item["table_name"],
+                "party_size": item["party_size"],
                 "department_name": item["department_name"],
                 "at": item["at"].isoformat(),
             }

@@ -56,7 +56,7 @@ export function AdminSecretGate({ title, children }: { title: string; children: 
         <Card className="w-full max-w-sm p-space-6">
           <div className="mb-space-5 flex items-center gap-space-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-600 font-display text-[16px] font-extrabold text-white">
-              H
+              D
             </div>
             <div>
               <span className="block text-eyebrow">DAAP</span>

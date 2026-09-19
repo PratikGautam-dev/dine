@@ -314,7 +314,7 @@ def test_new_booking_via_api_cannot_target_another_hospitals_department_or_docto
         "slot_id": datetime(2099, 1, 1, 9, 0).isoformat(),
     }, headers=headers)
     assert resp.status_code == 400
-    assert any("valid department" in e.lower() for e in resp.json()["errors"])
+    assert any("valid section" in e.lower() for e in resp.json()["errors"])
     assert not any(a.phone == "5490001111" for a in db.get_all_appointments_for_hospital(hospital_id))
 
 

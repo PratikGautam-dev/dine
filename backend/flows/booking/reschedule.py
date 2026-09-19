@@ -7,7 +7,9 @@ from datetime import datetime
 
 from connectors import Connector
 from core.translations import t
+from core.translations.booking import NO_TABLES_AVAILABLE
 from core.translations.cancel_reschedule import (
+    APPOINTMENT_LOOKUP_ERROR,
     APPOINTMENT_RESCHEDULED,
     NO_UPCOMING_TO_RESCHEDULE,
     RESCHEDULE_ABORTED,
@@ -50,12 +52,11 @@ async def _start_reschedule_flow_for_appointment(
         from flows.booking.types.procedure import _start_procedure_reschedule_request
         await _start_procedure_reschedule_request(wa, sessions, phone, hospital_id, appt, connector, language=language)
         return
-    is_resource = appt.resource_id is not None
-    slots = (
-        connector.get_available_resource_slots(hospital_id, appt.resource_id) if is_resource
-        else connector.get_available_slots(hospital_id, appt.doctor_id)
-    )
-    display_name = appt.resource_name if is_resource else appt.doctor_name
+    if appt.table_id is not None:
+        await _start_table_reschedule(wa, sessions, phone, hospital_id, appt, connector, language=language)
+        return
+    slots = connector.get_available_slots(hospital_id, appt.doctor_id)
+    display_name = appt.doctor_name
     if not slots:
         await _notify_no_slots_available(wa, sessions, hospital_id, phone, display_name, language=language)
         return
@@ -65,7 +66,6 @@ async def _start_reschedule_flow_for_appointment(
         "department_name": appt.department_name,
         "doctor_id": appt.doctor_id,
         "doctor_name": display_name,
-        "resource_id": appt.resource_id,
         # Patient identity SEPARATION (Spec.md Section 0): carries the
         # ORIGINAL appointment's own patient through the reschedule -- without
         # this, a multi-patient phone rescheduling would have no way to know
@@ -73,9 +73,50 @@ async def _start_reschedule_flow_for_appointment(
         "active_patient_id": appt.patient_id,
     }
     sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_DATE, new_context)
+    await _send_date_menu(wa, phone, hospital_id, appt.doctor_id, display_name, connector, language=language)
+
+
+async def _start_table_reschedule(
+    wa: WhatsAppClient, sessions, phone: str, hospital_id: int, appt, connector: Connector, language: str = "en",
+) -> None:
+    """A table reservation has no doctor: rescheduling asks for a new
+    date/time for the SAME party size (the reservation itself is excluded
+    from availability so it can shift onto time it currently occupies), and
+    a table is re-assigned nearest-fit when the move is confirmed."""
+    party_size = appt.party_size or 1
+    slots = connector.get_available_table_slots(hospital_id, party_size, None, exclude_appointment_id=appt.id)
+    if not slots:
+        sessions.reset(hospital_id, phone)
+        await wa.send_text(phone, t(NO_TABLES_AVAILABLE, language))
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
+        return
+    new_context = {
+        "reschedule_appointment_id": appt.id,
+        "party_size": party_size,
+        "doctor_name": appt.place_label,
+        "active_patient_id": appt.patient_id,
+    }
+    sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_DATE, new_context)
     await _send_date_menu(
-        wa, phone, hospital_id, appt.doctor_id, display_name, connector, language=language, resource_id=appt.resource_id,
+        wa, phone, hospital_id, None, appt.place_label, connector, language=language,
+        party_size=party_size, exclude_appointment_id=appt.id,
     )
+
+
+def _reschedule_slots(connector: Connector, hospital_id: int, context: dict) -> list[dict]:
+    if context.get("party_size") is not None:
+        return connector.get_available_table_slots(
+            hospital_id, context["party_size"], None, exclude_appointment_id=context.get("reschedule_appointment_id"),
+        )
+    return connector.get_available_slots(hospital_id, context["doctor_id"])
+
+
+def _menu_kwargs(context: dict) -> dict:
+    """Extra date/time-menu args for a table reschedule (empty for the
+    original doctor flow)."""
+    if context.get("party_size") is None:
+        return {}
+    return {"party_size": context["party_size"], "exclude_appointment_id": context.get("reschedule_appointment_id")}
 
 
 async def _start_reschedule_flow(
@@ -115,7 +156,7 @@ async def _start_reschedule_flow_for_patient(
         # Item 9: nothing to reschedule is a dead end without a menu offered.
         sessions.reset(hospital_id, phone)
         await wa.send_text(phone, t(NO_UPCOMING_TO_RESCHEDULE, language))
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_SELECTION, {"active_patient_id": active_patient_id})
     await _send_appointment_selection_menu(
@@ -156,18 +197,14 @@ async def _handle_awaiting_reschedule_date(
     resource-bound reschedule -- same branch shape as the booking flow's own
     _handle_awaiting_date."""
     doctor_id = context.get("doctor_id")
-    resource_id = context.get("resource_id")
     doctor_name = context.get("doctor_name", "")
-    if (not doctor_id and not resource_id) or context.get("reschedule_appointment_id") is None:
+    if (not doctor_id and context.get("party_size") is None) or context.get("reschedule_appointment_id") is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     def _slots() -> list[dict]:
-        return (
-            connector.get_available_resource_slots(hospital_id, resource_id) if resource_id
-            else connector.get_available_slots(hospital_id, doctor_id)
-        )
+        return _reschedule_slots(connector, hospital_id, context)
 
     if reply["type"] == "interactive_reply":
         if reply["id"] == BACK_ID:
@@ -177,13 +214,13 @@ async def _handle_awaiting_reschedule_date(
         if reply["id"] in available_dates:
             new_context = {**context, "date": reply["id"], "date_label": _date_label(reply["id"])}
             sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_SLOT, new_context)
-            await _send_time_menu(wa, phone, hospital_id, doctor_id, reply["id"], connector, language=language, resource_id=resource_id)
+            await _send_time_menu(wa, phone, hospital_id, doctor_id, reply["id"], connector, language=language, **_menu_kwargs(context))
             return
     if not _slots():
         await _notify_no_slots_available(wa, sessions, hospital_id, phone, doctor_name, language=language)
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_DATE, context)
-    await _send_date_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language, resource_id=resource_id)
+    await _send_date_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language, **_menu_kwargs(context))
 
 
 async def _handle_awaiting_reschedule_slot(
@@ -198,24 +235,20 @@ async def _handle_awaiting_reschedule_slot(
     Diagnostic/Lab Phase 2: same context["resource_id"] branch as
     _handle_awaiting_reschedule_date above."""
     doctor_id = context.get("doctor_id")
-    resource_id = context.get("resource_id")
     doctor_name = context.get("doctor_name", "")
     date_str = context.get("date")
-    if (not doctor_id and not resource_id) or not date_str or context.get("reschedule_appointment_id") is None:
+    if (not doctor_id and context.get("party_size") is None) or not date_str or context.get("reschedule_appointment_id") is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     def _slots() -> list[dict]:
-        return (
-            connector.get_available_resource_slots(hospital_id, resource_id) if resource_id
-            else connector.get_available_slots(hospital_id, doctor_id)
-        )
+        return _reschedule_slots(connector, hospital_id, context)
 
     if reply["type"] == "interactive_reply":
         if reply["id"] == BACK_ID:
             sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_DATE, context)
-            await _send_date_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language, resource_id=resource_id)
+            await _send_date_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language, **_menu_kwargs(context))
             return
         slot = _find_by_id(_slots(), reply["id"])
         if slot and slot["date"] == date_str:
@@ -234,10 +267,10 @@ async def _handle_awaiting_reschedule_slot(
         # doctor) -- step back to date selection, same as the booking flow's
         # own _handle_awaiting_time_slot.
         sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_DATE, context)
-        await _send_date_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language, resource_id=resource_id)
+        await _send_date_menu(wa, phone, hospital_id, doctor_id, doctor_name, connector, language=language, **_menu_kwargs(context))
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_RESCHEDULE_SLOT, context)
-    await _send_time_menu(wa, phone, hospital_id, doctor_id, date_str, connector, language=language, resource_id=resource_id)
+    await _send_time_menu(wa, phone, hospital_id, doctor_id, date_str, connector, language=language, **_menu_kwargs(context))
 
 
 async def _handle_awaiting_reschedule_confirm(
@@ -247,17 +280,28 @@ async def _handle_awaiting_reschedule_confirm(
     if reply["type"] == "interactive_reply":
         rid = reply["id"]
         if rid == CONFIRM_YES:
+            scheduled_at = datetime.fromisoformat(f"{context['slot_date']}T{context['slot_time']}")
             try:
-                new_appointment = connector.reschedule_booking(
-                    hospital_id=hospital_id,
-                    old_appointment_id=context["reschedule_appointment_id"],
-                    phone=phone,
-                    department_id=context.get("department_id"),
-                    doctor_id=context.get("doctor_id"),
-                    scheduled_at=datetime.fromisoformat(f"{context['slot_date']}T{context['slot_time']}"),
-                    patient_id=context.get("active_patient_id"),
-                    resource_id=context.get("resource_id"),
-                )
+                if context.get("party_size") is not None:
+                    new_appointment = connector.reschedule_table_reservation(
+                        hospital_id, context["reschedule_appointment_id"], scheduled_at,
+                    )
+                else:
+                    new_appointment = connector.reschedule_booking(
+                        hospital_id=hospital_id,
+                        old_appointment_id=context["reschedule_appointment_id"],
+                        phone=phone,
+                        department_id=context.get("department_id"),
+                        doctor_id=context.get("doctor_id"),
+                        scheduled_at=scheduled_at,
+                        patient_id=context.get("active_patient_id"),
+                    )
+            except ValueError:
+                # Cancelled/changed between picking a time and confirming.
+                sessions.reset(hospital_id, phone)
+                await wa.send_text(phone, t(APPOINTMENT_LOOKUP_ERROR, language))
+                await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
+                return
             except IntegrityError:
                 # Someone else grabbed this exact doctor+slot first -- the connector's
                 # reschedule_booking() (Tier1Connector) books the new slot before

@@ -411,7 +411,7 @@ STRINGS: dict[str, dict[Language, str]] = {
     },
     VIEW_CHANGE_OPTIONS_BUTTON: {"en": "Choose", "hi": "चुनें"},
     CHANGE_OPTIONS_SECTION_TITLE: {"en": "Change", "hi": "बदलें"},
-    CHANGE_DEPARTMENT_OPTION: {"en": "Department", "hi": "विभाग"},
+    CHANGE_DEPARTMENT_OPTION: {"en": "Section", "hi": "सेक्शन"},
     CHANGE_DOCTOR_OPTION: {"en": "Table", "hi": "टेबल"},
     CHANGE_DATE_OPTION: {"en": "Date", "hi": "तारीख"},
     CHANGE_TIME_OPTION: {"en": "Time", "hi": "समय"},
@@ -468,8 +468,8 @@ STRINGS: dict[str, dict[Language, str]] = {
     # DEPARTMENT_APPOINTMENT_CONFLICT above already blocks this earlier, at
     # department selection.)
     NEW_CONSULTATION_DEPARTMENT_CONFLICT: {
-        "en": "You already have an active reservation in this department. Please cancel it first if you'd like to book again.",
-        "hi": "इस विभाग में आपकी पहले से ही एक सक्रिय रिज़र्वेशन है। दोबारा बुक करने के लिए कृपया पहले उसे रद्द करें।",
+        "en": "You already have an active reservation in this section. Please cancel it first if you'd like to book again.",
+        "hi": "इस सेक्शन में आपकी पहले से ही एक सक्रिय रिज़र्वेशन है। दोबारा बुक करने के लिए कृपया पहले उसे रद्द करें।",
     },
     NEW_CONSULTATION_SAME_DAY_CONFLICT: {
         "en": "You already have a reservation booked on this day. Please choose a different date, or manage your existing reservation first.",

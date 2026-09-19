@@ -76,7 +76,7 @@ async def _start_cancel_flow_for_patient(
         # Item 9: nothing to cancel is a dead end without a menu offered.
         sessions.reset(hospital_id, phone)
         await wa.send_text(phone, t(NO_UPCOMING_TO_CANCEL, language))
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_CANCEL_SELECTION, {"active_patient_id": active_patient_id})
     await _send_appointment_selection_menu(
@@ -113,7 +113,7 @@ async def _handle_awaiting_cancel_confirm(
         # patient a way forward" case, not item 1's alternate-slot recovery.
         sessions.reset(hospital_id, phone)
         await wa.send_text(phone, t(APPOINTMENT_LOOKUP_ERROR, language))
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     if reply["type"] == "interactive_reply":
@@ -121,7 +121,7 @@ async def _handle_awaiting_cancel_confirm(
         if rid == CONFIRM_YES:
             connector.cancel_booking(hospital_id, appt.id)
             when = appt.scheduled_at.strftime("%A, %d %B at %H:%M")
-            cancelled_text = t(APPOINTMENT_CANCELLED, language, doctor_name=appt.doctor_name, when=when)
+            cancelled_text = t(APPOINTMENT_CANCELLED, language, doctor_name=appt.place_label, when=when)
             await wa.send_text(phone, _append_closing_message(cancelled_text, closing_message_text))
             sessions.reset(hospital_id, phone)
             await _send_post_action_menu(wa, phone, language=language)

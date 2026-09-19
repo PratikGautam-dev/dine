@@ -5,7 +5,8 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { TenantType, WizardState } from "../types";
 import type { WizardDispatch } from "../useWizardState";
 import { DepartmentCard } from "./DepartmentCard";
-import { DoctorCard } from "./DoctorCard";
+import { OperatingHoursCard } from "./OperatingHoursCard";
+import { TableRows } from "./TableRows";
 import { TopicCard } from "./TopicCard";
 
 type Props = { state: WizardState; dispatch: WizardDispatch; error?: string };
@@ -138,20 +139,27 @@ export function Step7HospitalDetails({ state, dispatch, error }: Props) {
 
           {isClinic ? (
             <>
-              <p className="text-label mb-space-2 mt-space-5">Table details</p>
-              {state.departments[0]?.doctors[0] && (
-                <DoctorCard
-                  deptIndex={0}
-                  docIndex={0}
-                  doctor={state.departments[0].doctors[0]}
-                  dispatch={dispatch}
-                  hideActions
-                />
+              <p className="text-label mb-space-2 mt-space-5">Tables</p>
+              {state.departments[0] && (
+                <div className="mb-space-4 rounded-lg border border-line bg-card p-space-4 shadow-[var(--shadow-sm)]">
+                  <TableRows deptIndex={0} tables={state.departments[0].tables} dispatch={dispatch} keepAtLeastOne />
+                  <button
+                    type="button"
+                    onClick={() => dispatch({ type: "addTable", deptIndex: 0 })}
+                    className="mt-space-3 flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"
+                  >
+                    <Plus size={14} /> Add table
+                  </button>
+                </div>
               )}
             </>
           ) : (
             <>
               <p className="text-label mb-space-2 mt-space-5">Sections &amp; tables</p>
+              <p className="text-hint mb-space-3">
+                A section is an area of your restaurant (Main Hall, Patio…). Add each table with how many guests it
+                seats — guests are automatically given the smallest free table that fits their party.
+              </p>
               {state.departments.map((dept, i) => (
                 <DepartmentCard key={i} deptIndex={i} department={dept} dispatch={dispatch} />
               ))}
@@ -164,6 +172,9 @@ export function Step7HospitalDetails({ state, dispatch, error }: Props) {
               </button>
             </>
           )}
+
+          <p className="text-label mb-space-2 mt-space-5">Reservation hours</p>
+          <OperatingHoursCard state={state} dispatch={dispatch} />
         </>
       )}
 
@@ -196,11 +207,28 @@ export function validateStep7(state: WizardState): string | null {
   const isClinic = state.tenantType === "clinic";
   if (!state.name.trim()) return isClinic ? "Venue name is required." : "Restaurant name is required.";
   if (state.enabledFeatures.includes("book_appointment")) {
-    const doctorCount = state.departments.reduce((n, d) => n + d.doctors.length, 0);
-    if (doctorCount === 0) {
+    const filledTables = state.departments.flatMap((d) => d.tables.filter((t) => t.name.trim()));
+    if (filledTables.length === 0) {
       return isClinic
-        ? "Table booking is enabled, so your table details are required."
+        ? "Table booking is enabled, so add at least one table."
         : "Table booking is enabled, so at least one section with at least one table is required.";
+    }
+    for (const dept of state.departments) {
+      const named = dept.tables.filter((t) => t.name.trim());
+      if (named.length > 0 && !isClinic && !dept.name.trim()) return "Give each section that has tables a name.";
+      for (const table of named) {
+        const seats = Number(table.capacity);
+        if (!Number.isInteger(seats) || seats < 1 || seats > 50) {
+          return `Table "${table.name.trim()}" needs a seating capacity between 1 and 50.`;
+        }
+      }
+    }
+    if (state.operatingDays.length === 0) return "Choose at least one day you take reservations.";
+    if (!state.openTime || !state.closeTime) return "Set your opening and closing times.";
+    if (state.openTime >= state.closeTime) return "Opening time must be before closing time.";
+    const minutes = (t: string) => Number(t.slice(0, 2)) * 60 + Number(t.slice(3, 5));
+    if (minutes(state.closeTime) - minutes(state.openTime) < Number(state.turnoverMinutes)) {
+      return "Your opening hours are shorter than one table turnover — no seating time could be offered.";
     }
     if (!state.portalPassword.trim()) return "A reservations portal password is required.";
   }

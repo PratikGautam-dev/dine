@@ -24,7 +24,7 @@ export default function PortalAppointmentsPage() {
     cancellingId, cancelPanelId, cancelMessage, setCancelMessage, openCancelPanel, closeCancelPanel, handleCancel,
     reschedulePanelId, reschedulingId, rescheduleCtx, rescheduleErrors, rescheduleMessage, setRescheduleMessage,
     rDepartmentId, setRDepartmentId, rDoctorId, setRDoctorId, rDate, setRDate, rSlotId, setRSlotId,
-    rDoctors, rDatesForDoctor, rSlotsForDate,
+    rDoctors, rDatesForDoctor, rSlotsForDate, rTableSlots, rTableDates, rTableSlotsForDate,
     openReschedulePanel, closeReschedulePanel, handleReschedule,
     reassignPanelId, reassigningId, reassignTables, reassignTableId, setReassignTableId, reassignErrors,
     openReassignPanel, closeReassignPanel, handleReassignTable,
@@ -53,6 +53,88 @@ export default function PortalAppointmentsPage() {
   );
 
   function renderRowDetail(a: Appointment) {
+    if (reschedulePanelId === a.id && a.table_id) {
+      return (
+        <div className="rounded-lg border border-line bg-paper p-space-3">
+          <p className="mb-space-2 text-[12.5px] text-ink-600">
+            New date and time for {a.party_size ? `a party of ${a.party_size}` : "this reservation"} — a table is assigned automatically.
+          </p>
+          {rTableSlots === null ? (
+            <p className="mb-space-2 text-[12.5px] text-ink-400">Loading availability…</p>
+          ) : rTableDates.length === 0 ? (
+            <p className="mb-space-2 text-[12.5px] text-ink-400">No tables are available for this party size.</p>
+          ) : (
+            <>
+              <div className="mb-space-2">
+                <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Date</label>
+                <div className="flex flex-wrap gap-space-2">
+                  {rTableDates.map((d) => (
+                    <button
+                      type="button" key={d}
+                      onClick={() => { setRDate(d); setRSlotId(""); }}
+                      className={cn(
+                        "rounded-md border px-space-2 py-space-1 text-[12px] font-semibold",
+                        rDate === d ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-card text-ink-600",
+                      )}
+                    >
+                      {d}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {rDate && (
+                <div className="mb-space-3">
+                  <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Time</label>
+                  <div className="flex flex-wrap gap-space-2">
+                    {rTableSlotsForDate.map((s) => (
+                      <button
+                        type="button" key={s.id}
+                        onClick={() => setRSlotId(s.id)}
+                        className={cn(
+                          "rounded-md border px-space-2 py-space-1 text-[12px] font-semibold",
+                          rSlotId === s.id ? "border-brand-600 bg-brand-600 text-white" : "border-line bg-card text-ink-600",
+                        )}
+                      >
+                        {s.time}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          <label htmlFor={`reschedule-msg-${a.id}`} className="mb-space-2 block text-[12px] font-semibold text-ink-600">
+            Message to send {a.phone} on WhatsApp (optional)
+          </label>
+          <textarea
+            id={`reschedule-msg-${a.id}`}
+            value={rescheduleMessage}
+            onChange={(e) => setRescheduleMessage(e.target.value)}
+            rows={2}
+            className="mb-space-2 h-16 w-full resize-none rounded-md border border-line bg-card px-space-3 py-space-2 text-[13px] text-ink-900 outline-none focus:border-brand-400"
+          />
+
+          {rescheduleErrors.length > 0 && (
+            <div className="mb-space-2 rounded-md border border-error bg-error-tint p-space-2 text-[12px] text-error">
+              <ul className="list-disc pl-space-4">
+                {rescheduleErrors.map((e, i) => <li key={i}>{e}</li>)}
+              </ul>
+            </div>
+          )}
+
+          <div className="flex gap-space-2">
+            <Button size="md" onClick={() => handleReschedule(a.id)} disabled={reschedulingId === a.id || !rSlotId}>
+              <CalendarClock size={13} /> {reschedulingId === a.id ? "Rescheduling…" : "Send & reschedule"}
+            </Button>
+            <Button size="md" variant="secondary" onClick={closeReschedulePanel} disabled={reschedulingId === a.id}>
+              <X size={13} /> Dismiss
+            </Button>
+          </div>
+        </div>
+      );
+    }
+
     if (reschedulePanelId === a.id) {
       return (
         <div className="rounded-lg border border-line bg-paper p-space-3">
@@ -71,7 +153,7 @@ export default function PortalAppointmentsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Table</label>
+              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Doctor</label>
               <select
                 value={rDoctorId}
                 onChange={(e) => { setRDoctorId(e.target.value); setRDate(""); setRSlotId(""); }}

@@ -15,11 +15,16 @@ export function AppointmentTypeToggles({ canManage }: { canManage: boolean }) {
 
   if (types === null) return null;
 
+  // Follow-up (a repeat visit after a completed one) and Procedure (a
+  // clinical/daycare service) have no restaurant meaning and are off by
+  // default -- not offered as switches so a demo audience never sees them.
+  const visibleTypes = types.filter((type) => type.id !== "followup" && type.id !== "procedure");
+
   return (
     <div>
       {error && <p className="mb-space-3 text-[12.5px] font-medium text-error">{error}</p>}
       <ul className="divide-y divide-line">
-        {types.map((type) => (
+        {visibleTypes.map((type) => (
           <li key={type.id} className="flex flex-col gap-space-2 py-space-2 sm:flex-row sm:items-center sm:justify-between sm:gap-space-3">
             <p className={`text-[13.5px] font-semibold ${type.is_allowed ? "text-ink-900" : "text-ink-400"}`}>
               {type.label}

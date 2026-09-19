@@ -468,8 +468,8 @@ async def test_full_happy_path_through_confirmation(hospital_id):
     kind, kwargs = wa.sent[-1]
     assert kind == "buttons"
     assert "reservation confirmed" in kwargs["body_text"].lower()
-    # Item 8 (Spec.md Section 0): reference_id format is now APT-<DDMMYY>-<NNN>.
-    assert "Reservation ID: APT-" in kwargs["body_text"]
+    # Item 8 (Spec.md Section 0): reference_id format is now RSV-<DDMMYY>-<NNN>.
+    assert "Reservation ID: RSV-" in kwargs["body_text"]
     button_ids = {b["id"] for b in kwargs["buttons"]}
     assert GOTO_MAIN_MENU in button_ids
     assert any(bid.startswith(MANAGE_CANCEL_PREFIX) for bid in button_ids)
@@ -484,7 +484,7 @@ async def test_full_happy_path_through_confirmation(hospital_id):
     assert appt.party_size == 2
     assert appt.turnover_minutes == 90
     assert appt.scheduled_at.isoformat() == f"{slot['date']}T{slot['time']}:00"
-    assert appt.reference_id is not None and appt.reference_id.startswith("APT-")
+    assert appt.reference_id is not None and appt.reference_id.startswith("RSV-")
     assert f"Reservation ID: {appt.reference_id}" in kwargs["body_text"]
 
     # ...and saved the patient's name/age (Section 12.11's other half).
@@ -671,8 +671,7 @@ async def test_awaiting_doctor_with_missing_department_context_falls_back_to_mai
 
     await handle_incoming(wa, sessions, PHONE, hospital_id, tap("anything"))
 
-    kind, kwargs = wa.sent[-1]
-    assert kind == "list"
+    assert _last_list(wa)["sections"], "the tenant's main menu must be shown"
     assert sessions.get(hospital_id, PHONE) == {"state": "IDLE", "context": {}}
 
 

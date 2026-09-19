@@ -85,6 +85,8 @@ export function useAppointments(ready: boolean) {
   const [rDoctorId, setRDoctorId] = useState("");
   const [rDate, setRDate] = useState("");
   const [rSlotId, setRSlotId] = useState("");
+  // Table reservations reschedule against real table availability for the same party size, not doctor slots.
+  const [rTableSlots, setRTableSlots] = useState<{ id: string; date: string; time: string; label: string }[] | null>(null);
   const [reassignPanelId, setReassignPanelId] = useState<number | null>(null);
   const [reassigningId, setReassigningId] = useState<number | null>(null);
   const [reassignTables, setReassignTables] = useState<{ id: string; name: string; department_id: string; capacity: number; is_active: boolean }[] | null>(null);
@@ -312,6 +314,14 @@ export function useAppointments(ready: boolean) {
     setRDoctorId("");
     setRDate("");
     setRSlotId("");
+    setRTableSlots(null);
+    const appt = appointments?.find((a) => a.id === id);
+    if (appt?.table_id && appt.party_size) {
+      const params = new URLSearchParams({ party_size: String(appt.party_size), exclude_appointment_id: String(id) });
+      const result = await portalFetch(`/api/portal/new-booking/table-slots?${params.toString()}`);
+      setRTableSlots(result.ok ? (result.data as { slots: { id: string; date: string; time: string; label: string }[] }).slots : []);
+      return;
+    }
     if (!rescheduleCtx) {
       // Reuses the exact same context endpoint /portal/new-booking already
       // reads department/doctor/slot options from -- no separate endpoint,
@@ -332,10 +342,11 @@ export function useAppointments(ready: boolean) {
     const result = await portalFetch(`/api/portal/bookings/${id}/reschedule`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        department_id: rDepartmentId, doctor_id: rDoctorId, slot_id: rSlotId,
-        message: rescheduleMessage.trim(),
-      }),
+      body: JSON.stringify(
+        rTableSlots !== null
+          ? { slot_id: rSlotId, message: rescheduleMessage.trim() }
+          : { department_id: rDepartmentId, doctor_id: rDoctorId, slot_id: rSlotId, message: rescheduleMessage.trim() },
+      ),
     });
     setReschedulingId(null);
     if (!result.ok) {
@@ -391,6 +402,9 @@ export function useAppointments(ready: boolean) {
     load();
   }
 
+  const rTableDates = rTableSlots ? Array.from(new Set(rTableSlots.map((slot) => slot.date))).sort() : [];
+  const rTableSlotsForDate = rTableSlots && rDate ? rTableSlots.filter((slot) => slot.date === rDate) : [];
+
   const rDoctors = rDepartmentId && rescheduleCtx ? rescheduleCtx.doctors_by_department[rDepartmentId] || [] : [];
   const rDatesForDoctor = rDoctorId && rescheduleCtx ? Object.keys(rescheduleCtx.slots_by_doctor[rDoctorId] || {}).sort() : [];
   const rSlotsForDate = rDoctorId && rDate && rescheduleCtx ? rescheduleCtx.slots_by_doctor[rDoctorId]?.[rDate] || [] : [];
@@ -404,7 +418,7 @@ export function useAppointments(ready: boolean) {
     cancellingId, cancelPanelId, cancelMessage, setCancelMessage, openCancelPanel, closeCancelPanel, handleCancel,
     reschedulePanelId, reschedulingId, rescheduleCtx, rescheduleErrors, rescheduleMessage, setRescheduleMessage,
     rDepartmentId, setRDepartmentId, rDoctorId, setRDoctorId, rDate, setRDate, rSlotId, setRSlotId,
-    rDoctors, rDatesForDoctor, rSlotsForDate,
+    rDoctors, rDatesForDoctor, rSlotsForDate, rTableSlots, rTableDates, rTableSlotsForDate,
     openReschedulePanel, closeReschedulePanel, handleReschedule,
     reassignPanelId, reassigningId, reassignTables, reassignTableId, setReassignTableId, reassignErrors,
     openReassignPanel, closeReassignPanel, handleReassignTable,

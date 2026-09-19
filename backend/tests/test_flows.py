@@ -375,6 +375,7 @@ async def test_view_appointments_feature(hospital_id):
 
     appt = SimpleNamespace(
         id=501, doctor_name="Dr. Rao", department_name="Cardiology", scheduled_at=datetime(2026, 9, 1, 10, 0),
+        row_title="Dr. Rao", place_label="Dr. Rao",
     )
     wa = FakeWhatsAppClient()
     sessions = _sessions_with_english_chosen(hospital_id)
@@ -434,6 +435,7 @@ async def test_tapping_an_appointment_in_my_appointments_shows_quick_actions(hos
     appt = SimpleNamespace(
         id=502, doctor_name="Dr. Rao", department_name="Cardiology", doctor_id="doc1",
         department_id="cardiology", scheduled_at=datetime(2026, 9, 1, 10, 0),
+        row_title="Dr. Rao", place_label="Dr. Rao",
     )
     wa = FakeWhatsAppClient()
     sessions = _sessions_with_english_chosen(hospital_id)
@@ -993,8 +995,8 @@ async def test_language_persists_across_a_full_booking_flow_in_hindi(hospital_id
     # Item 3 (Spec.md Section 0): success message is now buttons, not text.
     assert kind == "buttons"
     assert "सफलतापूर्वक" in kwargs["body_text"]
-    # Item 8 (Spec.md Section 0): reference_id format is now APT-<DDMMYY>-<NNN>.
-    assert "APT-" in kwargs["body_text"]
+    # Item 8 (Spec.md Section 0): reference_id format is now RSV-<DDMMYY>-<NNN>.
+    assert "RSV-" in kwargs["body_text"]
     # Booked with the patient's name/age (Section 12.11's other half).
     patient = db.get_patient_by_phone(hospital_id, PHONE)
     assert patient["name"] == "Ravi Kumar"

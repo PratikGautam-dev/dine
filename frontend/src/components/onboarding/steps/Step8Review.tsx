@@ -60,7 +60,7 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
   const bookingEnabled = state.enabledFeatures.includes("book_appointment");
   const faqEnabled = state.enabledFeatures.includes("faq");
   const isClinic = state.tenantType === "clinic";
-  const namedDepartments = state.departments.filter((d) => d.name.trim() || d.doctors.length > 0);
+  const namedDepartments = state.departments.filter((d) => d.name.trim() || d.tables.some((t) => t.name.trim()));
   const filledTopics = state.topics.filter((t) => t.topicLabel.trim() || t.answerText.trim());
 
   return (
@@ -114,7 +114,15 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
             <Row label="Reminder template name" value={state.reminderTemplateName || "(not set)"} />
             <Row label="Reservations portal password" value={state.portalPassword ? "Set" : "Not set — can add later"} />
             {isClinic ? (
-              <Row label="Table" value={state.departments[0]?.doctors[0]?.name || "(not set)"} />
+              <Row
+                label="Tables"
+                value={
+                  state.departments[0]?.tables
+                    .filter((t) => t.name.trim())
+                    .map((t) => `${t.name} (${t.capacity})`)
+                    .join(", ") || "(not set)"
+                }
+              />
             ) : (
               <Row
                 label="Sections & tables"
@@ -126,7 +134,10 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
                       {namedDepartments.map((d, i) => (
                         <li key={i}>
                           {d.name || "(unnamed section)"}:{" "}
-                          {d.doctors.map((doc) => doc.name || "(unnamed table)").join(", ") || "(no tables)"}
+                          {d.tables
+                            .filter((t) => t.name.trim())
+                            .map((t) => `${t.name} (${t.capacity} seats)`)
+                            .join(", ") || "(no tables)"}
                         </li>
                       ))}
                     </ul>
@@ -134,6 +145,10 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
                 }
               />
             )}
+            <Row
+              label="Reservation hours"
+              value={`${state.operatingDays.join(", ") || "(no days)"} · ${state.openTime}–${state.closeTime} · ${state.turnoverMinutes}-min tables, new seating every ${state.bookingIntervalMinutes} min`}
+            />
           </>
         )}
         {faqEnabled && (

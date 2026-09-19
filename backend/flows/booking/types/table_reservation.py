@@ -138,7 +138,7 @@ async def _handle_awaiting_table_section(
     party_size = context.get("party_size")
     if party_size is None:
         sessions.reset(hospital_id, phone)
-        await _send_main_menu(wa, phone, "the restaurant", language=language)
+        await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
         return
 
     if reply["type"] == "interactive_reply":
@@ -158,7 +158,7 @@ async def _handle_awaiting_table_section(
             if not connector.get_available_table_slots(hospital_id, party_size, section_id):
                 sessions.reset(hospital_id, phone)
                 await wa.send_text(phone, t(NO_TABLES_AVAILABLE, language))
-                await _send_main_menu(wa, phone, "the restaurant", language=language)
+                await _send_main_menu(wa, phone, "the restaurant", language=language, hospital_id=hospital_id)
                 return
             sessions.set(hospital_id, phone, STATE_AWAITING_DATE, new_context)
             await _send_date_menu(

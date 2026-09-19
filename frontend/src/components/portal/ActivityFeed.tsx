@@ -5,7 +5,9 @@ import { formatTimeOnly } from "@/lib/formatDate";
 type ActivityItem = {
   label: string;
   phone: string;
-  doctor_name: string;
+  doctor_name: string | null;
+  table_name: string | null;
+  party_size: number | null;
   department_name: string;
   at: string;
 };
@@ -33,8 +35,10 @@ export function ActivityFeed({ items }: { items: ActivityItem[] }) {
                 </div>
                 <div className="min-w-0 flex-1 text-[12.5px]">
                   <p className="text-ink-900">
-                    <span className="font-semibold">{item.phone}</span> — {item.label.toLowerCase()} with{" "}
-                    Table {item.doctor_name} ({item.department_name})
+                    <span className="font-semibold">{item.phone}</span> — {item.label.toLowerCase()}
+                    {item.party_size ? ` for ${item.party_size}` : ""}
+                    {item.table_name ? ` at ${item.table_name}` : item.doctor_name ? ` with ${item.doctor_name}` : ""}{" "}
+                    ({item.department_name})
                   </p>
                   <p className="text-hint">{formatTimeOnly(item.at)}</p>
                 </div>

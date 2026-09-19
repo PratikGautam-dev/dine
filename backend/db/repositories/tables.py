@@ -143,7 +143,10 @@ def _candidate_start_times_for_date(
     return times
 
 
-def _booked_spans_by_table(hospital_id: int, table_ids: list[str], window_start: datetime, window_end: datetime) -> dict[str, list[tuple[datetime, datetime]]]:
+def _booked_spans_by_table(
+    hospital_id: int, table_ids: list[str], window_start: datetime, window_end: datetime,
+    exclude_appointment_id: int | None = None,
+) -> dict[str, list[tuple[datetime, datetime]]]:
     """One query for every candidate table's currently-booked spans across
     the whole search window, so get_available_table_slots() doesn't run a
     fresh query per (time, table) candidate pair -- same "fetch once, check
@@ -157,15 +160,16 @@ def _booked_spans_by_table(hospital_id: int, table_ids: list[str], window_start:
     from db.models import STATUS_BOOKED
 
     session = get_session()
-    rows = session.execute(
-        select(AppointmentRow.table_id, AppointmentRow.scheduled_at, AppointmentRow.turnover_minutes).where(
-            AppointmentRow.hospital_id == hospital_id,
-            AppointmentRow.table_id.in_(table_ids),
-            AppointmentRow.status == STATUS_BOOKED,
-            AppointmentRow.scheduled_at >= (window_start - timedelta(hours=12)).isoformat(),
-            AppointmentRow.scheduled_at <= window_end.isoformat(),
-        )
-    ).all()
+    stmt = select(AppointmentRow.table_id, AppointmentRow.scheduled_at, AppointmentRow.turnover_minutes).where(
+        AppointmentRow.hospital_id == hospital_id,
+        AppointmentRow.table_id.in_(table_ids),
+        AppointmentRow.status == STATUS_BOOKED,
+        AppointmentRow.scheduled_at >= (window_start - timedelta(hours=12)).isoformat(),
+        AppointmentRow.scheduled_at <= window_end.isoformat(),
+    )
+    if exclude_appointment_id is not None:
+        stmt = stmt.where(AppointmentRow.id != exclude_appointment_id)
+    rows = session.execute(stmt).all()
     spans: dict[str, list[tuple[datetime, datetime]]] = {}
     for table_id, scheduled_at, turnover in rows:
         start = datetime.fromisoformat(scheduled_at)
@@ -180,6 +184,7 @@ def _table_free_for_span(spans: list[tuple[datetime, datetime]], start: datetime
 
 def get_available_table_slots(
     hospital_id: int, party_size: int, department_id: str | None = None, now: datetime | None = None,
+    exclude_appointment_id: int | None = None,
 ) -> list[dict]:
     """Every candidate start-time (soonest first) where at least one active
     table with capacity >= party_size (in `department_id`'s section, if
@@ -190,6 +195,9 @@ def get_available_table_slots(
     date/time menu machinery (flows/booking/messages.py's _send_date_menu/
     _send_time_menu, already branching on resource_id/procedure_id) can grow
     a party_size branch in Stage 3 with no shape surprises.
+
+    exclude_appointment_id: a reservation being MOVED shouldn't block its own
+    new time (e.g. shifting 30 minutes later on the venue's only table).
 
     Empty hospital_settings.operating_days/operating_hours (not configured
     yet) or zero qualifying tables both return [] -- same "no resource
@@ -211,7 +219,9 @@ def get_available_table_slots(
 
     window_start = now
     window_end = datetime.combine(now.date() + timedelta(days=_SLOT_DAYS_AHEAD), datetime.min.time())
-    spans_by_table = _booked_spans_by_table(hospital_id, [t["id"] for t in candidate_tables], window_start, window_end)
+    spans_by_table = _booked_spans_by_table(
+        hospital_id, [t["id"] for t in candidate_tables], window_start, window_end, exclude_appointment_id,
+    )
 
     slots = []
     for day_offset in range(_SLOT_DAYS_AHEAD):
@@ -267,6 +277,7 @@ def create_table_reservation(
     hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
     department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
     patient_id: int | None = None, appointment_type_id: str | None = None, source: str = SOURCE_WHATSAPP,
+    exclude_appointment_id: int | None = None,
 ) -> Appointment:
     """The table-reservation counterpart to create_procedure_appointment():
     same advisory-lock-protected BEGIN/COMMIT shape, re-checks candidate
@@ -305,7 +316,10 @@ def create_table_reservation(
         candidates = [t for t in get_tables(hospital_id, department_id) if t["capacity"] >= party_size]
         candidates.sort(key=lambda t: t["capacity"])
         chosen = next(
-            (t for t in candidates if _table_free_for_span_conn(conn, hospital_id, t["id"], scheduled_at, span_end)),
+            (
+                t for t in candidates
+                if _table_free_for_span_conn(conn, hospital_id, t["id"], scheduled_at, span_end, exclude_appointment_id)
+            ),
             None,
         )
         if chosen is None:
@@ -405,3 +419,32 @@ def reassign_table(hospital_id: int, appointment_id: int, new_table_id: str) -> 
     updated = get_appointment(hospital_id, appointment_id)
     assert updated is not None
     return updated
+
+
+def reschedule_table_reservation(hospital_id: int, old_appointment_id: int, new_scheduled_at: datetime) -> Appointment:
+    """Moves a booked TABLE reservation to a new time -- the table-reservation
+    counterpart to Tier1Connector.reschedule_booking(): books the new slot
+    FIRST (create_table_reservation()'s own advisory-lock-protected,
+    nearest-fit path, ignoring the old row so a reservation can shift onto
+    time it currently occupies), THEN retires the old one, so a lost race
+    (IntegrityError, left to propagate) leaves the guest's original
+    reservation intact rather than with neither. Raises ValueError for a
+    not-found/wrong-tenant/non-table/non-booked reservation."""
+    from db.repositories.appointments import get_appointment, mark_rescheduled
+
+    old = get_appointment(hospital_id, old_appointment_id)
+    if old is None:
+        raise ValueError(f"reservation {old_appointment_id} not found for hospital {hospital_id}")
+    if old.table_id is None:
+        raise ValueError(f"reservation {old_appointment_id} is not a table reservation")
+    if old.status != STATUS_BOOKED:
+        raise ValueError(f"reservation {old_appointment_id} is not booked (status={old.status!r})")
+
+    new = create_table_reservation(
+        hospital_id, old.phone, old.party_size or 1, new_scheduled_at,
+        patient_id=old.patient_id,
+        appointment_type_id=old.appointment_type_id, source=old.source,
+        exclude_appointment_id=old_appointment_id,
+    )
+    mark_rescheduled(hospital_id, old_appointment_id)
+    return new

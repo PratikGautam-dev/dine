@@ -60,28 +60,28 @@ STRINGS: dict[str, dict[Language, str]] = {
     # slightly by what's about to happen, but the list itself (rows + button
     # + section title) is otherwise identical across all four.
     PATIENT_SELECTOR_PROMPT_BOOKING: {
-        "en": "Who is this appointment for?",
-        "hi": "यह अपॉइंटमेंट किसके लिए है?",
+        "en": "Who is this reservation for?",
+        "hi": "यह रिज़र्वेशन किसके लिए है?",
     },
     PATIENT_SELECTOR_PROMPT_CANCEL: {
-        "en": "Whose appointment would you like to cancel?",
-        "hi": "आप किसकी अपॉइंटमेंट रद्द करना चाहते हैं?",
+        "en": "Whose reservation would you like to cancel?",
+        "hi": "आप किसका रिज़र्वेशन रद्द करना चाहते हैं?",
     },
     PATIENT_SELECTOR_PROMPT_RESCHEDULE: {
-        "en": "Whose appointment would you like to reschedule?",
-        "hi": "आप किसकी अपॉइंटमेंट का समय बदलना चाहते हैं?",
+        "en": "Whose reservation would you like to reschedule?",
+        "hi": "आप किसके रिज़र्वेशन का समय बदलना चाहते हैं?",
     },
     PATIENT_SELECTOR_PROMPT_VIEW_APPOINTMENTS: {
-        "en": "Whose appointments would you like to see?",
-        "hi": "आप किसकी अपॉइंटमेंट देखना चाहते हैं?",
+        "en": "Whose reservations would you like to see?",
+        "hi": "आप किसके रिज़र्वेशन देखना चाहते हैं?",
     },
     PATIENT_SELECTOR_PROMPT_VIEW_APPOINTMENTS_PREVIOUS: {
-        "en": "Whose previous appointments would you like to see?",
-        "hi": "आप किसकी पिछली अपॉइंटमेंट देखना चाहते हैं?",
+        "en": "Whose previous reservations would you like to see?",
+        "hi": "आप किसके पिछले रिज़र्वेशन देखना चाहते हैं?",
     },
     PATIENT_SELECTOR_PROMPT_VIEW_APPOINTMENTS_UPCOMING: {
-        "en": "Whose upcoming appointments would you like to see?",
-        "hi": "आप किसकी आगामी अपॉइंटमेंट देखना चाहते हैं?",
+        "en": "Whose upcoming reservations would you like to see?",
+        "hi": "आप किसके आगामी रिज़र्वेशन देखना चाहते हैं?",
     },
     PATIENT_SELECTOR_BUTTON: {"en": "Select Guest", "hi": "अतिथि चुनें"},
     PATIENT_SELECTOR_SECTION_TITLE: {"en": "Guests", "hi": "अतिथि"},

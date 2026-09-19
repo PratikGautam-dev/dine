@@ -58,7 +58,7 @@ export default function PortalLoginPage() {
       <Card className="w-full max-w-sm p-space-6">
         <div className="mb-space-5 flex items-end gap-space-3">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-600 font-display text-[16px] font-extrabold text-white">
-            H
+            D
           </div>
           <div>
             <span className="block text-eyebrow">DAAP</span>

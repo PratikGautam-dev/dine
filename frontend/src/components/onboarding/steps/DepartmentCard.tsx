@@ -2,7 +2,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { DepartmentForm } from "../types";
 import type { WizardDispatch } from "../useWizardState";
-import { DoctorCard } from "./DoctorCard";
+import { TableRows } from "./TableRows";
 
 type Props = {
   deptIndex: number;
@@ -15,7 +15,7 @@ export function DepartmentCard({ deptIndex, department, dispatch }: Props) {
     <div className="mb-space-4 rounded-lg border border-line bg-card p-space-4 shadow-[var(--shadow-sm)]">
       <div className="mb-space-3 flex items-center gap-space-3">
         <Input
-          placeholder="Section name"
+          placeholder="Section name (e.g. Main Hall, Patio)"
           value={department.name}
           onChange={(e) => dispatch({ type: "setDepartmentName", deptIndex, name: e.target.value })}
           className="max-w-sm font-semibold"
@@ -29,15 +29,11 @@ export function DepartmentCard({ deptIndex, department, dispatch }: Props) {
         </button>
       </div>
 
-      <div className="space-y-space-3">
-        {department.doctors.map((doctor, docIndex) => (
-          <DoctorCard key={docIndex} deptIndex={deptIndex} docIndex={docIndex} doctor={doctor} dispatch={dispatch} />
-        ))}
-      </div>
+      <TableRows deptIndex={deptIndex} tables={department.tables} dispatch={dispatch} />
 
       <button
         type="button"
-        onClick={() => dispatch({ type: "addDoctor", deptIndex })}
+        onClick={() => dispatch({ type: "addTable", deptIndex })}
         className="mt-space-3 flex items-center gap-1 text-[13px] font-semibold text-brand-600 hover:underline"
       >
         <Plus size={14} /> Add table

@@ -129,7 +129,7 @@ export function OnboardingWizard() {
       <div className="mb-space-5 flex flex-wrap items-center justify-between gap-space-3">
         <div className="flex items-center gap-space-2">
           <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-600 font-display text-[15px] font-extrabold text-white">
-            H
+            D
           </div>
           <div className="min-w-0">
             <span className="block truncate text-[13px] font-bold text-ink-900">Restaurant Onboarding</span>

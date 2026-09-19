@@ -7,23 +7,15 @@ export type Weekday = (typeof WEEKDAYS)[number];
 
 export type TimeRange = { start: string; end: string };
 
-export type DoctorForm = {
+export type TableForm = {
   name: string;
-  workingDays: string[];
-  shifts: TimeRange[];
-  slotDurationMinutes: string;
-  breaks: TimeRange[];
-  maxBookingsPerSlot: string;
-  dailyBookingLimit: string;
-  onlineQuota: string;
-  walkinQuota: string;
-  followupDurationMinutes: string;
-  effectiveFrom: string;
+  // Kept as the raw <input> string; the backend validates/parses it.
+  capacity: string;
 };
 
 export type DepartmentForm = {
   name: string;
-  doctors: DoctorForm[];
+  tables: TableForm[];
 };
 
 export type TopicForm = {
@@ -62,6 +54,14 @@ export type WizardState = {
   reminderTemplateName: string;
   portalPassword: string;
   departments: DepartmentForm[];
+  // Restaurant-wide reservation hours (backend update_restaurant_hours()):
+  // one open/close range on the selected days, plus how long a party holds a
+  // table and how often a new seating time starts.
+  operatingDays: string[];
+  openTime: string;
+  closeTime: string;
+  turnoverMinutes: string;
+  bookingIntervalMinutes: string;
   topics: TopicForm[];
   // RBAC (docs/rbac-redis-plan.md): this hospital's first staff_users admin
   // login -- replaces the old shared portalPassword as the real ongoing
@@ -72,24 +72,12 @@ export type WizardState = {
   adminPassword: string;
 };
 
-export function emptyDoctor(): DoctorForm {
-  return {
-    name: "",
-    workingDays: [],
-    shifts: [{ start: "", end: "" }],
-    slotDurationMinutes: "",
-    breaks: [],
-    maxBookingsPerSlot: "1",
-    dailyBookingLimit: "",
-    onlineQuota: "",
-    walkinQuota: "",
-    followupDurationMinutes: "",
-    effectiveFrom: "",
-  };
+export function emptyTable(): TableForm {
+  return { name: "", capacity: "2" };
 }
 
 export function emptyDepartment(): DepartmentForm {
-  return { name: "", doctors: [] };
+  return { name: "", tables: [] };
 }
 
 export function emptyTopic(): TopicForm {
@@ -114,7 +102,12 @@ export function initialWizardState(): WizardState {
     reminderOffsetsHours: "24",
     reminderTemplateName: "",
     portalPassword: "",
-    departments: [],
+    departments: [{ name: "", tables: [{ name: "", capacity: "2" }] }],
+    operatingDays: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+    openTime: "10:00",
+    closeTime: "22:00",
+    turnoverMinutes: "90",
+    bookingIntervalMinutes: "30",
     topics: [],
     adminEmail: "",
     adminPassword: "",
@@ -146,9 +139,9 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
 };
 
 /** Builds the JSON payload the FastAPI /api/onboarding endpoint expects --
- * shift/break TimeRange pairs collapse into "HH:MM-HH:MM" strings here, the
- * one place that format matters, so every step component upstream can work
- * with plain structured objects instead of that string format. */
+ * the open/close times collapse into one "HH:MM-HH:MM" range here, the one
+ * place that format matters, so every step component upstream can work with
+ * plain structured values instead of that string format. */
 export function buildSubmissionPayload(state: WizardState) {
   return {
     // super_admin_token is NOT read off `state` here -- it's the platform
@@ -171,22 +164,20 @@ export function buildSubmissionPayload(state: WizardState) {
     data_tier: state.dataTier,
     api_base_url: state.apiBaseUrl,
     api_key: state.apiKey,
-    departments: state.departments.map((dept) => ({
-      name: dept.name,
-      doctors: dept.doctors.map((doc) => ({
-        name: doc.name,
-        working_days: doc.workingDays,
-        working_hours: doc.shifts.filter((s) => s.start && s.end).map((s) => `${s.start}-${s.end}`),
-        slot_duration_minutes: doc.slotDurationMinutes,
-        breaks: doc.breaks.filter((b) => b.start && b.end).map((b) => `${b.start}-${b.end}`),
-        max_bookings_per_slot: doc.maxBookingsPerSlot,
-        daily_booking_limit: doc.dailyBookingLimit,
-        online_quota: doc.onlineQuota,
-        walkin_quota: doc.walkinQuota,
-        followup_duration_minutes: doc.followupDurationMinutes,
-        effective_from: doc.effectiveFrom,
-      })),
-    })),
+    // Blank starter rows the user never filled in are dropped here, so they
+    // can't trip the backend's "table is missing a name" validation.
+    sections: state.departments
+      .map((dept) => ({
+        name: dept.name,
+        tables: dept.tables
+          .filter((table) => table.name.trim())
+          .map((table) => ({ name: table.name, capacity: table.capacity })),
+      }))
+      .filter((section) => section.name.trim() || section.tables.length > 0),
+    operating_days: state.operatingDays,
+    operating_hours: state.openTime && state.closeTime ? [`${state.openTime}-${state.closeTime}`] : [],
+    default_turnover_minutes: state.turnoverMinutes,
+    booking_interval_minutes: state.bookingIntervalMinutes,
     topics: state.topics.map((t) => ({ topic_label: t.topicLabel, answer_text: t.answerText })),
   };
 }

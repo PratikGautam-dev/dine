@@ -99,7 +99,7 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
       >
         <div className="mb-space-5 flex items-center gap-space-2 px-space-2">
           <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/15 font-display text-[14px] font-extrabold">
-            H
+            D
           </div>
           <span className="truncate text-[14px] font-bold">{hospital?.name || "Restaurant"}</span>
           <button

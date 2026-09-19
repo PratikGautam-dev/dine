@@ -174,7 +174,7 @@ async def portal_mark_attendance(
     attended = bool(payload["attended"])
     ok = db.mark_attendance(hospital.id, appointment_id, attended)
     if not ok:
-        return JSONResponse({"error": "No such booked appointment to update."}, status_code=404)
+        return JSONResponse({"error": "No such booked reservation to update."}, status_code=404)
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "booking.attendance",
         entity_type="appointment", entity_id=str(appointment_id),
@@ -194,12 +194,12 @@ async def portal_delete_booking(appointment_id: int, authorization: str | None =
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
-        return JSONResponse({"error": "No such appointment."}, status_code=404)
+        return JSONResponse({"error": "No such reservation."}, status_code=404)
     if appointment.status == db.STATUS_BOOKED:
-        return JSONResponse({"error": "Cancel this appointment before deleting it."}, status_code=400)
+        return JSONResponse({"error": "Cancel this reservation before deleting it."}, status_code=400)
     ok = db.soft_delete_appointment(hospital.id, appointment_id)
     if not ok:
-        return JSONResponse({"error": "No such appointment."}, status_code=404)
+        return JSONResponse({"error": "No such reservation."}, status_code=404)
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "booking.delete",
         entity_type="appointment", entity_id=str(appointment_id),
@@ -329,7 +329,7 @@ async def portal_approve_procedure_reschedule(appointment_id: int, authorization
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_reschedule_requested_at is None:
-        return JSONResponse({"error": "No pending reschedule request for this appointment."}, status_code=404)
+        return JSONResponse({"error": "No pending reschedule request for this reservation."}, status_code=404)
     requested_at = datetime.fromisoformat(appointment.procedure_reschedule_requested_at)
     try:
         updated = db.confirm_procedure_appointment(hospital.id, appointment_id, requested_at)
@@ -351,7 +351,7 @@ async def portal_reject_procedure_reschedule(appointment_id: int, authorization:
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_reschedule_requested_at is None:
-        return JSONResponse({"error": "No pending reschedule request for this appointment."}, status_code=404)
+        return JSONResponse({"error": "No pending reschedule request for this reservation."}, status_code=404)
     db.request_procedure_reschedule(hospital.id, appointment_id, None)
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "booking.procedure_reschedule_reject",
@@ -413,7 +413,7 @@ async def portal_cancel_booking(
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
-        return JSONResponse({"error": "No such appointment."}, status_code=404)
+        return JSONResponse({"error": "No such reservation."}, status_code=404)
 
     connector = connectors.get_connector_for_hospital(hospital)
     try:
@@ -465,7 +465,7 @@ async def portal_reassign_table(
 
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
-        return JSONResponse({"error": "No such appointment."}, status_code=404)
+        return JSONResponse({"error": "No such reservation."}, status_code=404)
 
     connector = connectors.get_connector_for_hospital(hospital)
     try:
@@ -508,19 +508,24 @@ async def portal_reschedule_booking(
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
-        return JSONResponse({"error": "No such appointment."}, status_code=404)
+        return JSONResponse({"error": "No such reservation."}, status_code=404)
 
     department_id = (payload or {}).get("department_id") or ""
     doctor_id = (payload or {}).get("doctor_id") or ""
     slot_id = (payload or {}).get("slot_id") or ""
+    # A table reservation has no doctor/department to re-pick: only a new
+    # date/time (slot_id, from /api/portal/new-booking/table-slots for the
+    # same party size) is needed -- a table is re-assigned nearest-fit.
+    is_table = appointment.table_id is not None
 
     errors = []
-    department = db.find_department(hospital.id, department_id)
-    if department is None:
-        errors.append("Choose a valid department.")
-    doctor = db.find_doctor(hospital.id, department_id, doctor_id) if department else None
-    if doctor is None:
-        errors.append("Choose a valid doctor.")
+    if not is_table:
+        department = db.find_department(hospital.id, department_id)
+        if department is None:
+            errors.append("Choose a valid section.")
+        doctor = db.find_doctor(hospital.id, department_id, doctor_id) if department else None
+        if doctor is None:
+            errors.append("Choose a valid table.")
     scheduled_at = None
     if not slot_id:
         errors.append("Choose an available slot.")
@@ -535,16 +540,21 @@ async def portal_reschedule_booking(
 
     connector = connectors.get_connector_for_hospital(hospital)
     try:
-        connector.reschedule_booking(
-            hospital_id=hospital.id,
-            old_appointment_id=appointment_id,
-            phone=appointment.phone,
-            department_id=department_id,
-            doctor_id=doctor_id,
-            scheduled_at=scheduled_at,
-        )
+        if is_table:
+            connector.reschedule_table_reservation(hospital.id, appointment_id, scheduled_at)
+        else:
+            connector.reschedule_booking(
+                hospital_id=hospital.id,
+                old_appointment_id=appointment_id,
+                phone=appointment.phone,
+                department_id=department_id,
+                doctor_id=doctor_id,
+                scheduled_at=scheduled_at,
+            )
     except connectors.ConnectorNotImplementedError as e:
         return JSONResponse({"errors": [str(e)]}, status_code=501)
+    except ValueError as e:
+        return JSONResponse({"errors": [str(e)]}, status_code=400)
     except IntegrityError:
         return JSONResponse({"errors": ["That slot was just taken — please pick another."]}, status_code=400)
 
@@ -586,7 +596,8 @@ async def portal_new_booking_context(authorization: str | None = Header(default=
 
 @router.get("/api/portal/new-booking/table-slots")
 async def portal_new_booking_table_slots(
-    party_size: int, department_id: str | None = None, authorization: str | None = Header(default=None),
+    party_size: int, department_id: str | None = None, exclude_appointment_id: int | None = None,
+    authorization: str | None = Header(default=None),
 ):
     """Party size (and optional section preference) -> available slots, the
     staff-booking counterpart to flows/booking/types/table_reservation.py's
@@ -594,14 +605,19 @@ async def portal_new_booking_table_slots(
     read, so a slot offered here is exactly as real as one WhatsApp would
     offer. Unlike the WhatsApp flow, no _MAX_PARTY_SIZE cap: that limit
     exists to hand LARGE parties off to a human via a handoff request --
-    staff creating the booking directly already ARE that human."""
+    staff creating the booking directly already ARE that human.
+
+    exclude_appointment_id: rescheduling an existing reservation -- it must not
+    block its own new time."""
     hospital = _authenticate(authorization)
     if hospital is None:
         return JSONResponse({"error": "Not authenticated."}, status_code=401)
     if party_size < 1:
         return JSONResponse({"error": "party_size must be at least 1."}, status_code=400)
     connector = connectors.get_connector_for_hospital(hospital)
-    slots = connector.get_available_table_slots(hospital.id, party_size, department_id or None)
+    slots = connector.get_available_table_slots(
+        hospital.id, party_size, department_id or None, exclude_appointment_id=exclude_appointment_id,
+    )
     return JSONResponse({"slots": slots})
 
 
@@ -679,13 +695,13 @@ async def _portal_create_doctor_booking(hospital, payload: dict) -> JSONResponse
 
     errors = []
     if not db.is_valid_phone(patient_phone):
-        errors.append("Patient phone is required and must contain at least one digit.")
+        errors.append("Guest phone is required and must contain at least one digit.")
     department = db.find_department(hospital.id, department_id)
     if department is None:
-        errors.append("Choose a valid department.")
+        errors.append("Choose a valid section.")
     doctor = db.find_doctor(hospital.id, department_id, doctor_id) if department else None
     if doctor is None:
-        errors.append("Choose a valid doctor.")
+        errors.append("Choose a valid table.")
     scheduled_at = None
     if not slot_id:
         errors.append("Choose an available slot.")
@@ -750,7 +766,7 @@ async def portal_extend_followup_validity(
 
     updated = db.grant_followup_extension(principal.hospital.id, appointment_id, extra_days)
     if updated is None:
-        return JSONResponse({"error": "No such attended appointment to extend."}, status_code=404)
+        return JSONResponse({"error": "No such attended reservation to extend."}, status_code=404)
 
     db.record_audit_log(
         "portal", principal.hospital.id, principal.name, "booking.followup_extend",
@@ -781,7 +797,7 @@ async def portal_book_followup_now(
 
     source_appointment = db.get_appointment(principal.hospital.id, appointment_id)
     if source_appointment is None or source_appointment.status != db.STATUS_ATTENDED:
-        return JSONResponse({"error": "No such attended appointment to follow up on."}, status_code=404)
+        return JSONResponse({"error": "No such attended reservation to follow up on."}, status_code=404)
 
     slot_id = (payload or {}).get("scheduled_at") or ""
     try:

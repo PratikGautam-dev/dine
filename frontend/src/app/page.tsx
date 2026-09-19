@@ -1,7 +1,6 @@
 import Image from "next/image";
 import { CircleCheck, ListChecks, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { ClinicSetupButton } from "@/components/marketing/ClinicSetupButton";
 import { PhoneMockup } from "@/components/marketing/PhoneMockup";
 
 const FEATURES = [
@@ -15,7 +14,7 @@ function BrandMark({ size = "md" }: { size?: "sm" | "md" }) {
   const name = size === "sm" ? "text-[19px]" : "text-[34px]";
   return (
     <div className="flex items-center gap-space-3">
-      <Image src="/logo-icon.png" alt="" width={markPx} height={markPx} className="shrink-0" priority />
+      <Image src="/logo-icon.svg" alt="" width={markPx} height={markPx} className="shrink-0" priority />
       <div>
         <span className="block text-eyebrow leading-none">DAAP</span>
         <span className={`font-display ${name} leading-tight font-extrabold text-ink-900`}>
@@ -47,7 +46,7 @@ export default function LandingPage() {
 
     <main className="relative isolate overflow-hidden">
       <Image
-        src="/homepage-bg.png"
+        src="/homepage-bg.svg"
         alt=""
         fill
         priority
@@ -103,7 +102,6 @@ export default function LandingPage() {
               <Button href="/auth" variant="primary" size="lg">
                 Set up your restaurant
               </Button>
-              <ClinicSetupButton />
               <Button
                 href="mailto:info@daaprimeprojects.com?subject=Product%20Demo%20Request"
                 variant="secondary"

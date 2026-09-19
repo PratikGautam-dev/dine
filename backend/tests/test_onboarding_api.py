@@ -129,7 +129,7 @@ def test_duplicate_phone_number_id_rejected(hospital_id, user_auth_header, super
 def test_missing_departments_rejected_when_booking_enabled(hospital_id, user_auth_header, super_admin_token):
     resp = client.post("/api/onboarding", json=_payload(super_admin_token, departments=[]), headers=user_auth_header)
     assert resp.status_code == 400
-    assert any("department" in e.lower() for e in resp.json()["errors"])
+    assert any("section" in e.lower() for e in resp.json()["errors"])
     assert db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID") is None
 
 
@@ -269,3 +269,116 @@ def test_backfill_rewrites_stale_stored_feature_keys(hospital_id):
 
     _backfill_stale_feature_keys(conn)  # idempotent
     assert db.get_hospital(hospital_id).enabled_features == ["book_appointment", "cancel"]
+
+
+# --- Restaurant setup: onboarding creates REAL tables + operating hours ---
+
+def _restaurant_payload(super_admin_token, **overrides):
+    """What the current wizard sends: sections/tables + hours, no doctors."""
+    data = _payload(
+        super_admin_token,
+        enabled_features=["book_appointment", "reschedule", "cancel", "view_appointments"],
+        departments=[],
+        sections=[
+            {"name": "Main Hall", "tables": [{"name": "T1", "capacity": "2"}, {"name": "T2", "capacity": "4"}]},
+            {"name": "Patio", "tables": [{"name": "P1", "capacity": 6}]},
+        ],
+        operating_days=["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
+        operating_hours=["11:00-22:30"],
+        default_turnover_minutes="90",
+        booking_interval_minutes="30",
+    )
+    data.update(overrides)
+    return data
+
+
+def test_onboarding_creates_real_tables_and_operating_hours(hospital_id, user_auth_header, super_admin_token):
+    resp = client.post("/api/onboarding", json=_restaurant_payload(super_admin_token), headers=user_auth_header)
+    assert resp.status_code == 200, resp.text
+    hospital = db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID")
+
+    tables = db.get_all_tables_for_hospital(hospital.id)
+    assert sorted((t["name"], t["capacity"]) for t in tables) == [("P1", 6), ("T1", 2), ("T2", 4)]
+    assert {d["name"] for d in db.get_departments(hospital.id)} == {"Main Hall", "Patio"}
+    # No placeholder doctor rows are created for a restaurant any more.
+    assert all(db.get_doctors(hospital.id, d["id"]) == [] for d in db.get_departments(hospital.id))
+
+    settings = db.get_hospital_settings(hospital.id)
+    assert settings["operating_days"] == ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+    assert settings["operating_hours"] == ["11:00-22:30"]
+    assert settings["default_turnover_minutes"] == 90 and settings["booking_interval_minutes"] == 30
+
+
+def test_freshly_onboarded_restaurant_has_real_availability_with_no_manual_setup(hospital_id, user_auth_header, super_admin_token):
+    """The demo scenario: nothing touched in the portal after onboarding."""
+    client.post("/api/onboarding", json=_restaurant_payload(super_admin_token), headers=user_auth_header)
+    hospital = db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID")
+
+    assert db.get_available_table_slots(hospital.id, 4), "party of 4 must have seating times"
+    assert db.get_available_table_slots(hospital.id, 6), "the 6-top on the patio must be bookable"
+    assert db.get_available_table_slots(hospital.id, 7) == []  # nothing seats 7
+
+    slot = db.get_available_table_slots(hospital.id, 4)[0]
+    from datetime import datetime
+    reservation = db.create_table_reservation(hospital.id, "919800000001", 4, datetime.fromisoformat(slot["id"]), patient_name="First Guest")
+    assert reservation.table_id is not None and reservation.party_size == 4
+
+
+def test_onboarding_rejects_booking_without_tables_or_hours(hospital_id, user_auth_header, super_admin_token):
+    no_tables = client.post(
+        "/api/onboarding", json=_restaurant_payload(super_admin_token, sections=[{"name": "Main Hall", "tables": []}]),
+        headers=user_auth_header,
+    )
+    assert no_tables.status_code == 400
+    assert any("table" in e.lower() for e in no_tables.json()["errors"])
+
+    no_hours = client.post(
+        "/api/onboarding", json=_restaurant_payload(super_admin_token, operating_days=[], operating_hours=[]),
+        headers=user_auth_header,
+    )
+    assert no_hours.status_code == 400
+    errors = " ".join(no_hours.json()["errors"]).lower()
+    assert "day" in errors and "opening" in errors
+    assert db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID") is None
+
+
+def test_onboarding_rejects_bad_table_capacity_and_impossible_hours(hospital_id, user_auth_header, super_admin_token):
+    bad_capacity = client.post(
+        "/api/onboarding",
+        json=_restaurant_payload(super_admin_token, sections=[{"name": "Hall", "tables": [{"name": "T1", "capacity": "lots"}]}]),
+        headers=user_auth_header,
+    )
+    assert bad_capacity.status_code == 400
+    assert any("capacity" in e.lower() for e in bad_capacity.json()["errors"])
+
+    zero = client.post(
+        "/api/onboarding",
+        json=_restaurant_payload(super_admin_token, sections=[{"name": "Hall", "tables": [{"name": "T1", "capacity": "0"}]}]),
+        headers=user_auth_header,
+    )
+    assert zero.status_code == 400
+
+    backwards = client.post(
+        "/api/onboarding", json=_restaurant_payload(super_admin_token, operating_hours=["22:00-10:00"]), headers=user_auth_header,
+    )
+    assert backwards.status_code == 400
+    assert any("before closing" in e.lower() for e in backwards.json()["errors"])
+
+    too_short = client.post(
+        "/api/onboarding",
+        json=_restaurant_payload(super_admin_token, operating_hours=["10:00-10:30"], default_turnover_minutes="90"),
+        headers=user_auth_header,
+    )
+    assert too_short.status_code == 400
+    assert any("turnover" in e.lower() for e in too_short.json()["errors"])
+    assert db.find_hospital_by_phone_number_id("NEW_HOSPITAL_PHONE_ID") is None
+
+
+def test_onboarding_rejects_duplicate_table_names_in_a_section(hospital_id, user_auth_header, super_admin_token):
+    resp = client.post(
+        "/api/onboarding",
+        json=_restaurant_payload(super_admin_token, sections=[{"name": "Hall", "tables": [{"name": "T1", "capacity": "2"}, {"name": "t1", "capacity": "4"}]}]),
+        headers=user_auth_header,
+    )
+    assert resp.status_code == 400
+    assert any("twice" in e.lower() for e in resp.json()["errors"])

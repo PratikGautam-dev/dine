@@ -49,7 +49,7 @@ async def landing_page():
 <body>
 <div class="ok-page">
   <div class="brand">
-    <div class="brand-mark">H</div>
+    <div class="brand-mark">D</div>
     <span class="brand-name">Dine Connect</span>
   </div>
   <h1>Dine Connect backend</h1>

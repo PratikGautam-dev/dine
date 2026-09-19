@@ -9,7 +9,7 @@ from sqlalchemy.orm import aliased
 
 from db.connection import get_session
 from db.models import STATUS_ATTENDED, STATUS_BOOKED, STATUS_CANCELLED, STATUS_NO_SHOW, STATUS_RESCHEDULED
-from db.orm_models import AppointmentRow, Department, DoctorRow
+from db.orm_models import AppointmentRow, Department, DoctorRow, TableRow
 
 # --- Staff dashboard (SPEC Section 12.8) -- portal.py's /portal/dashboard.
 # Every query here is hospital_id-scoped, same discipline as everywhere else
@@ -226,11 +226,16 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
     rows = session.execute(
         select(
             AppointmentRow.status, AppointmentRow.phone, DoctorRow.name.label("doctor_name"),
+            TableRow.name.label("table_name"), AppointmentRow.party_size,
             Department.name.label("department_name"), AppointmentRow.created_at, AppointmentRow.updated_at,
         )
         .select_from(AppointmentRow)
         .join(Department, Department.id == AppointmentRow.department_id)
-        .join(DoctorRow, DoctorRow.id == AppointmentRow.doctor_id)
+        # OUTER joins: a table reservation has no doctor (doctor_id is NULL),
+        # a doctor appointment has no table -- an inner join on either one
+        # silently dropped every table reservation from the feed.
+        .outerjoin(DoctorRow, DoctorRow.id == AppointmentRow.doctor_id)
+        .outerjoin(TableRow, TableRow.id == AppointmentRow.table_id)
         .where(AppointmentRow.hospital_id == hospital_id)
         .order_by(order_col.desc())
         .limit(limit)
@@ -247,6 +252,8 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
             "label": labels.get(r.status, r.status),
             "phone": r.phone,
             "doctor_name": r.doctor_name,
+            "table_name": r.table_name,
+            "party_size": r.party_size,
             "department_name": r.department_name,
             "at": datetime.fromisoformat(event_at),
         })

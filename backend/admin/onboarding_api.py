@@ -9,6 +9,8 @@ validation or database-write logic. Field-level rules (doctor schedule
 parsing, department/topic reconstruction, tier requirements) are imported
 straight from admin.onboarding so the two entry points can never drift apart.
 """
+import re
+
 from fastapi import APIRouter, Header, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
@@ -47,6 +49,17 @@ class DoctorIn(BaseModel):
 class DepartmentIn(BaseModel):
     name: str = ""
     doctors: list[DoctorIn] = Field(default_factory=list)
+
+
+class TableIn(BaseModel):
+    name: str = ""
+    # The wizard sends the raw <input> string; accept a real int too.
+    capacity: int | str = ""
+
+
+class SectionIn(BaseModel):
+    name: str = ""
+    tables: list[TableIn] = Field(default_factory=list)
 
 
 class TopicIn(BaseModel):
@@ -94,6 +107,16 @@ class OnboardingSubmission(BaseModel):
     data_tier: str = "tier1"
     api_base_url: str = ""
     api_key: str = ""
+    # Restaurant setup: real sections + tables (create_table()) and real
+    # operating hours (update_restaurant_hours()) -- what WhatsApp table
+    # booking actually reads. `departments` (doctor-shaped) is the legacy
+    # pre-restaurant payload, still accepted so older clients/tests keep
+    # working, but it never produces tables or hours.
+    sections: list[SectionIn] = Field(default_factory=list)
+    operating_days: list[str] = Field(default_factory=list)
+    operating_hours: list[str] = Field(default_factory=list)
+    default_turnover_minutes: int | str = 90
+    booking_interval_minutes: int | str = 30
     departments: list[DepartmentIn] = Field(default_factory=list)
     topics: list[TopicIn] = Field(default_factory=list)
     # Tenant-type-driven capability gating (tenant-capability-gating-plan.md):
@@ -140,6 +163,93 @@ def _validate_departments(departments: list[DepartmentIn]) -> tuple[list[dict], 
         if dept_name and built_doctors:
             built.append({"name": dept_name, "doctors": built_doctors})
     return built, errors, warnings
+
+
+_WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+_TIME_RANGE_RE = re.compile(r"^([01]\d|2[0-3]):([0-5]\d)-([01]\d|2[0-3]):([0-5]\d)$")
+_MAX_TABLE_CAPACITY = 50
+
+
+def _validate_sections(sections: list[SectionIn]) -> tuple[list[dict], list[str]]:
+    """Sections + their tables -> [{"name", "tables": [{"name", "capacity"}]}].
+    Only sections that have both a name and at least one valid table are kept;
+    every problem is reported rather than silently dropped."""
+    built: list[dict] = []
+    errors: list[str] = []
+    seen: set[tuple[str, str]] = set()
+    for section in sections:
+        section_name = section.name.strip()
+        tables: list[dict] = []
+        for table in section.tables:
+            table_name = table.name.strip()
+            label = f'"{table_name}"' if table_name else "A table"
+            if not table_name:
+                if str(table.capacity).strip():
+                    errors.append(f'A table in section "{section_name or "(unnamed)"}" is missing a name.')
+                continue
+            try:
+                capacity = int(str(table.capacity).strip())
+            except ValueError:
+                errors.append(f"Table {label} needs a whole-number seating capacity.")
+                continue
+            if not 1 <= capacity <= _MAX_TABLE_CAPACITY:
+                errors.append(f"Table {label} capacity must be between 1 and {_MAX_TABLE_CAPACITY}.")
+                continue
+            key = (section_name.lower(), table_name.lower())
+            if key in seen:
+                errors.append(f'Table "{table_name}" is listed twice in section "{section_name}".')
+                continue
+            seen.add(key)
+            tables.append({"name": table_name, "capacity": capacity})
+        if tables and not section_name:
+            errors.append(f"A section containing tables {[t['name'] for t in tables]} is missing a name.")
+        elif section_name and tables:
+            built.append({"name": section_name, "tables": tables})
+    return built, errors
+
+
+def _validate_restaurant_hours(payload: "OnboardingSubmission") -> tuple[dict | None, list[str]]:
+    """Same rules as POST /api/portal/settings/restaurant-hours, plus a check
+    that the hours are long enough for at least one table turnover (otherwise
+    get_available_table_slots() would offer no seating time at all)."""
+    errors: list[str] = []
+    bad_days = [d for d in payload.operating_days if d not in _WEEKDAYS]
+    if bad_days:
+        errors.append(f"Unrecognized operating day(s): {', '.join(bad_days)}.")
+    days = [d for d in _WEEKDAYS if d in payload.operating_days]
+    if not days:
+        errors.append("Choose at least one day the restaurant takes reservations.")
+
+    ranges = [h.strip() for h in payload.operating_hours if h and h.strip()]
+    if not ranges:
+        errors.append("Opening and closing times are required.")
+    try:
+        turnover = int(str(payload.default_turnover_minutes).strip())
+        interval = int(str(payload.booking_interval_minutes).strip())
+    except ValueError:
+        errors.append("Table turnover and booking interval must be whole numbers of minutes.")
+        return None, errors
+    if not 15 <= turnover <= 480:
+        errors.append("Table turnover must be between 15 and 480 minutes.")
+    if not 5 <= interval <= 240:
+        errors.append("Booking interval must be between 5 and 240 minutes.")
+
+    longest = 0
+    for r in ranges:
+        if not _TIME_RANGE_RE.match(r):
+            errors.append(f'Invalid opening hours "{r}" -- use HH:MM-HH:MM.')
+            continue
+        start, end = r.split("-")
+        start_min, end_min = int(start[:2]) * 60 + int(start[3:]), int(end[:2]) * 60 + int(end[3:])
+        if start_min >= end_min:
+            errors.append(f'Invalid opening hours "{r}": opening time must be before closing time.')
+            continue
+        longest = max(longest, end_min - start_min)
+    if ranges and longest and not errors and longest < turnover:
+        errors.append("The opening hours are shorter than one table turnover, so no seating time could ever be offered.")
+    if errors:
+        return None, errors
+    return {"days": days, "hours": ranges, "turnover": turnover, "interval": interval}, []
 
 
 def _validate_topics(topics: list[TopicIn]) -> tuple[list[dict], list[str]]:
@@ -212,12 +322,23 @@ async def submit_onboarding(
         errors.append(f'Unrecognized tenant type "{payload.tenant_type}".')
 
     departments, dept_errors, dept_warnings = _validate_departments(payload.departments)
+    sections, section_errors = _validate_sections(payload.sections)
     topics, topic_errors = _validate_topics(payload.topics)
+    restaurant_hours = None
 
     if "book_appointment" in payload.enabled_features:
-        errors.extend(dept_errors)
-        if not departments:
-            errors.append("At least one department with at least one doctor is required.")
+        if payload.sections:
+            errors.extend(section_errors)
+            if not sections:
+                errors.append("At least one section with at least one table is required.")
+            restaurant_hours, hours_errors = _validate_restaurant_hours(payload)
+            errors.extend(hours_errors)
+        else:
+            # Legacy doctor-shaped payload (older clients/tests). Creates no
+            # tables or hours -- the current wizard always sends `sections`.
+            errors.extend(dept_errors)
+            if not departments:
+                errors.append("At least one section with at least one table is required.")
         # RBAC (docs/rbac-redis-plan.md): a bookings portal password is no
         # longer required here -- admin_email/admin_password (validated
         # above) is this hospital's real login going forward. portal_password
@@ -288,8 +409,23 @@ async def submit_onboarding(
         for page_key, actions in resolve_default_permissions(role).items()
     ])
 
+    created_sections = []
+    if "book_appointment" in payload.enabled_features and sections:
+        for section in sections:
+            created_section = db.create_department(hospital.id, section["name"])
+            created_tables = [
+                db.create_table(hospital.id, created_section["id"], table["name"], table["capacity"])
+                for table in section["tables"]
+            ]
+            created_sections.append({"name": created_section["name"], "tables": created_tables})
+        if restaurant_hours is not None:
+            db.update_restaurant_hours(
+                hospital.id, restaurant_hours["days"], restaurant_hours["hours"],
+                restaurant_hours["turnover"], restaurant_hours["interval"],
+            )
+
     created_departments = []
-    if "book_appointment" in payload.enabled_features:
+    if "book_appointment" in payload.enabled_features and not sections:
         for dept in departments:
             created_dept = db.create_department(hospital.id, dept["name"])
             created_doctors = [
@@ -322,6 +458,8 @@ async def submit_onboarding(
         "portal_password_set": bool(hospital.portal_password_hash),
         "admin_email": admin_email,
         "departments": created_departments,
+        "sections": created_sections,
+        "operating_hours": restaurant_hours,
         "topics": created_topics,
         "warnings": dept_warnings,
     })
