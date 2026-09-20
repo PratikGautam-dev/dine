@@ -13,6 +13,7 @@ import { createRoleColumns } from "./_components/role-columns";
 const PAGE_KEYS = [
   "dashboard", "appointments", "patients", "tables", "food_menu", "food_orders", "messages",
   "doctors", "schedule", "settings", "staff", "roles",
+  "check_in_out", "my_leave", "leave_requests", "attendance", "attendance_settings",
 ];
 const PAGE_LABEL: Record<string, string> = {
   dashboard: "Dashboard",
@@ -27,6 +28,11 @@ const PAGE_LABEL: Record<string, string> = {
   settings: "Settings",
   staff: "Staff",
   roles: "Roles & Permissions",
+  check_in_out: "Clock in / out",
+  my_leave: "My Leave",
+  leave_requests: "Leave Requests (review)",
+  attendance: "Team Attendance",
+  attendance_settings: "Attendance Settings",
 };
 const ROLES: StaffRole[] = ["admin", "receptionist", "kitchen"];
 

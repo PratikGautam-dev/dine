@@ -3,6 +3,7 @@
 import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import type { PortalHospital } from "@/lib/portalAuth";
 
@@ -35,16 +36,19 @@ export function PortalShell({ hospital, active, children }: Props) {
       <PortalSidebar hospital={hospital} active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4 lg:hidden">
+        <header className="flex h-14 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
             aria-label="Open menu"
-            className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper"
+            className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden"
           >
             <Menu size={20} strokeWidth={2} />
           </button>
-          <span className="truncate text-[14px] font-bold text-ink-900">{hospital?.name || "Restaurant"}</span>
+          <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">{hospital?.name || "Restaurant"}</span>
+          <div className="ml-auto">
+            <NotificationBell />
+          </div>
         </header>
 
         <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">{children}</main>

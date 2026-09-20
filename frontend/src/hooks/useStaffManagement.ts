@@ -16,6 +16,9 @@ export type StaffMember = {
   department_name: string | null;
   reports_to_id: number | null;
   reports_to_name: string | null;
+  working_days: string[];
+  shift_start: string | null;
+  shift_end: string | null;
 };
 
 export type Section = { id: string; name: string };
@@ -29,6 +32,9 @@ export type StaffFormValues = {
   address: string;
   department_id: string;
   reports_to_id: string; // "" = nobody
+  working_days: string[];
+  shift_start: string; // "" = none
+  shift_end: string;
 };
 
 export type StaffDialog =
@@ -40,6 +46,7 @@ export type StaffDialog =
 
 export const emptyStaffForm = (): StaffFormValues => ({
   name: "", email: "", password: "", role: "receptionist", phone: "", address: "", department_id: "", reports_to_id: "",
+  working_days: [], shift_start: "", shift_end: "",
 });
 
 /** Loads and owns everything on /portal/settings/staff: the team list, the section list for the
@@ -132,6 +139,7 @@ export function useStaffManagement(canView: boolean) {
       name: f.name, email: f.email, password: f.password, role: f.role, phone: nullIfBlank(f.phone),
       address: nullIfBlank(f.address), department_id: nullIfBlank(f.department_id),
       reports_to_id: f.reports_to_id ? Number(f.reports_to_id) : null,
+      working_days: f.working_days, shift_start: nullIfBlank(f.shift_start), shift_end: nullIfBlank(f.shift_end),
     }, "Staff member added");
     return error;
   }
@@ -146,6 +154,12 @@ export function useStaffManagement(canView: boolean) {
     if ((nullIfBlank(f.department_id) ?? null) !== (member.department_id ?? null)) patch.department_id = nullIfBlank(f.department_id);
     const reports = f.reports_to_id ? Number(f.reports_to_id) : null;
     if (reports !== (member.reports_to_id ?? null)) patch.reports_to_id = reports;
+    const sameDays = f.working_days.join(",") === (member.working_days ?? []).join(",");
+    if (!sameDays) patch.working_days = f.working_days;
+    if (f.shift_start !== (member.shift_start ?? "") || f.shift_end !== (member.shift_end ?? "")) {
+      patch.shift_start = nullIfBlank(f.shift_start);
+      patch.shift_end = nullIfBlank(f.shift_end);
+    }
     if (Object.keys(patch).length === 0) return null;
     return mutate(`/api/portal/staff/${member.id}`, "PATCH", patch, "Staff member updated");
   }

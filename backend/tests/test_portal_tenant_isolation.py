@@ -118,6 +118,15 @@ class Victim:
     def staff(self):
         return db.create_staff_user(self.hid, "receptionist", f"zzb.{self._slot}.{id(object())}@example.com", hash_portal_password("hunter2hunter2"), f"{MARK} Staff")["id"]
 
+    def leave_request(self):
+        return db.create_leave_request(self.hid, self.staff(), "casual", "2031-05-05", "2031-05-06", False, f"{MARK} family event")["id"]
+
+    def attendance_record(self):
+        """A finished-in-the-past clock-in with no clock-out (a Manager could correct it)."""
+        return db.create_check_in(
+            self.hid, self.staff(), "2026-01-05", "2026-01-05T03:30:00+00:00", None, None, None, "unrestricted", "on_time", 0,
+        )["id"]
+
     def appt_type(self):
         return db.get_all_appointment_types_for_hospital(self.hid)[0]["id"]
 
@@ -229,6 +238,13 @@ def _cases():
     case("cancel B's order", o, "POST", lambda c: f"/api/portal/food-orders/{c['o']}/cancel")
     # ---- staff
     case("deactivate B's staff", lambda v: {"s": v.staff()}, "PATCH", lambda c: f"/api/portal/staff/{c['s']}", lambda c: {"is_active": False})
+    # ---- staff HR: leave and attendance
+    lv = lambda v: {"l": v.leave_request()}
+    case("approve B's leave request", lv, "POST", lambda c: f"/api/portal/leave/requests/{c['l']}/approve", lambda c: {"note": "attacker"})
+    case("reject B's leave request", lv, "POST", lambda c: f"/api/portal/leave/requests/{c['l']}/reject", lambda c: {"note": "attacker"})
+    case("withdraw B's leave request", lv, "POST", lambda c: f"/api/portal/leave/mine/{c['l']}/cancel", None, control_optional=True)
+    case("correct B's clock-out", lambda v: {"a": v.attendance_record()}, "POST", lambda c: f"/api/portal/attendance/{c['a']}/correct",
+         lambda c: {"check_out_time": "17:00", "note": "attacker correction"})
     case("promote B's staff", lambda v: {"s": v.staff()}, "PATCH", lambda c: f"/api/portal/staff/{c['s']}", lambda c: {"role": "admin"})
     case("edit B's staff profile", lambda v: {"s": v.staff()}, "PATCH", lambda c: f"/api/portal/staff/{c['s']}", lambda c: {"name": "Hacked", "phone": "9999999999"})
     case("reset B's staff password", lambda v: {"s": v.staff()}, "POST", lambda c: f"/api/portal/staff/{c['s']}/password", lambda c: {"new_password": "attacker-chosen-pw"})
@@ -305,6 +321,10 @@ LIST_ROUTES = [
     "/api/portal/doctors", "/api/portal/tables", "/api/portal/procedures", "/api/portal/procedure-resources",
     "/api/portal/menu-items", "/api/portal/food-orders", "/api/portal/staff", "/api/portal/dashboard",
     "/api/portal/settings", "/api/portal/audit-log", "/api/portal/appointment-types", "/api/portal/new-booking/context",
+    "/api/portal/leave/mine", "/api/portal/leave/requests", "/api/portal/leave/requests?status=pending", "/api/portal/leave/policy",
+    "/api/portal/attendance/today", "/api/portal/attendance/history?days=365", "/api/portal/attendance/overview",
+    "/api/portal/attendance/overview?date=2026-01-05", "/api/portal/attendance/summary?month=2026-01",
+    "/api/portal/attendance/settings", "/api/portal/notifications",
 ]
 
 
@@ -313,6 +333,7 @@ def test_restaurant_a_lists_never_include_restaurant_bs_records(hospital_id, sec
     b_headers = _manager(second_hospital_id, "b")
     v = Victim(second_hospital_id)
     v.appt(); v.patient(); v.handoff(); v.leave(); v.procedure(); v.resource(); v.order(); v.staff()
+    v.leave_request(); v.attendance_record()
     # B's own manager generates audit-log entries with the MARK in them
     assert _call("PUT", f"/api/portal/menu-items/{v.menu_item()}", b_headers, {"name": f"{MARK} Renamed", "price_rupees": 3}).status_code == 200
 

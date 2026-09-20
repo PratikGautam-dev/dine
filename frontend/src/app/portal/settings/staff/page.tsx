@@ -184,6 +184,8 @@ export default function StaffManagementPage() {
                 <Detail label="Phone" value={selected.phone} />
                 <Detail label="Section" value={selected.department_name} />
                 <Detail label="Reports to" value={selected.reports_to_name} />
+                <Detail label="Working days" value={selected.working_days?.length ? selected.working_days.join(", ") : null} />
+                <Detail label="Shift" value={selected.shift_start && selected.shift_end ? `${selected.shift_start}–${selected.shift_end}` : null} />
                 <Detail label="Address" value={selected.address} />
               </div>
               <PermissionGate page="staff" action="write">

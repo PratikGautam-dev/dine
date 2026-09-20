@@ -758,6 +758,10 @@ class StaffDetail(Base):
     department_id: Mapped[str | None] = mapped_column(ForeignKey("departments.id"))  # the section they work
     reports_to_id: Mapped[int | None] = mapped_column(ForeignKey("identities.id"))
     employee_id: Mapped[str | None]  # EMP-ST-00001, unique per restaurant
+    # migration 0037 -- the weekly working pattern (comma-joined Mon..Sun, and an HH:MM shift)
+    working_days: Mapped[str | None]
+    shift_start: Mapped[str | None]
+    shift_end: Mapped[str | None]
 
 
 class SuperAdminDetail(Base):

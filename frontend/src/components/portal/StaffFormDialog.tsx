@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
+import { WEEKDAYS } from "@/lib/hr";
 import { ROLE_OPTIONS } from "@/lib/staffRoles";
 import type { Section, StaffFormValues, StaffMember } from "@/hooks/useStaffManagement";
 import { emptyStaffForm } from "@/hooks/useStaffManagement";
@@ -31,6 +32,7 @@ export function StaffFormDialog({ member, isSelf, sections, managers, onSubmit, 
           ...emptyStaffForm(), name: member.name, role: member.role, phone: member.phone ?? "",
           address: member.address ?? "", department_id: member.department_id ?? "",
           reports_to_id: member.reports_to_id ? String(member.reports_to_id) : "",
+          working_days: member.working_days ?? [], shift_start: member.shift_start ?? "", shift_end: member.shift_end ?? "",
         }
       : emptyStaffForm(),
   );
@@ -102,6 +104,30 @@ export function StaffFormDialog({ member, isSelf, sections, managers, onSubmit, 
                   <option key={m.id} value={m.id}>{m.name}</option>
                 ))}
               </select>
+            </Field>
+            <fieldset className="mb-space-4 sm:col-span-2">
+              <legend className="text-label mb-space-1 block">Working days</legend>
+              <div className="flex flex-wrap gap-space-2">
+                {WEEKDAYS.map((d) => {
+                  const on = form.working_days.includes(d);
+                  return (
+                    <label key={d} className={`flex cursor-pointer items-center gap-1 rounded-md border px-space-3 py-1.5 text-[13px] ${on ? "border-brand-600 bg-brand-50 font-semibold text-brand-700" : "border-line text-ink-600"}`}>
+                      <input
+                        type="checkbox" className="sr-only" checked={on} aria-label={d}
+                        onChange={() => set({ working_days: WEEKDAYS.filter((x) => (x === d ? !on : form.working_days.includes(x))) })}
+                      />
+                      {d}
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="text-hint mt-space-1">The days they&apos;re due to work. Used to spot absences; leave empty to never count them absent.</p>
+            </fieldset>
+            <Field label="Shift starts" htmlFor="sf-shift-start" hint="Leave both blank to use the restaurant's default shift.">
+              <Input id="sf-shift-start" type="time" value={form.shift_start} onChange={(e) => set({ shift_start: e.target.value })} />
+            </Field>
+            <Field label="Shift ends" htmlFor="sf-shift-end">
+              <Input id="sf-shift-end" type="time" value={form.shift_end} onChange={(e) => set({ shift_end: e.target.value })} />
             </Field>
             <Field label="Address" htmlFor="sf-address" className="sm:col-span-2">
               <Textarea id="sf-address" rows={2} value={form.address} onChange={(e) => set({ address: e.target.value })} />

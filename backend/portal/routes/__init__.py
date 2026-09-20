@@ -5,12 +5,14 @@
 from fastapi import APIRouter
 
 from portal.routes.appointment_types import router as appointment_types_router
+from portal.routes.attendance import router as attendance_router
 from portal.routes.auth import router as auth_router
 from portal.routes.bookings import router as bookings_router
 from portal.routes.dashboard import router as dashboard_router
 from portal.routes.doctors import router as doctors_router
 from portal.routes.food_ordering import router as food_ordering_router
 from portal.routes.handoffs import router as handoffs_router
+from portal.routes.leave import router as leave_router
 from portal.routes.patients import router as patients_router
 from portal.routes.procedures import router as procedures_router
 from portal.routes.roles import router as roles_router
@@ -38,3 +40,5 @@ router.include_router(handoffs_router)
 router.include_router(staff_auth_router)
 router.include_router(staff_router)
 router.include_router(roles_router)
+router.include_router(leave_router)
+router.include_router(attendance_router)

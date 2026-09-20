@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
+import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
@@ -28,7 +29,14 @@ function PortalSettingsPageContent() {
     <PortalShell hospital={hospital} active="settings">
         <PageHeader
           title="Restaurant settings"
-          actions={<Button href="/portal/settings/activity" variant="secondary">Activity log <ArrowRight size={14} /></Button>}
+          actions={
+            <div className="flex flex-wrap gap-space-2">
+              <PermissionGate page="attendance_settings" action="view">
+                <Button href="/portal/settings/attendance" variant="secondary">Attendance rules <ArrowRight size={14} /></Button>
+              </PermissionGate>
+              <Button href="/portal/settings/activity" variant="secondary">Activity log <ArrowRight size={14} /></Button>
+            </div>
+          }
         />
 
         {!settings ? (

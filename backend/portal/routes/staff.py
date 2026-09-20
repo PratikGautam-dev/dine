@@ -18,6 +18,7 @@ from pydantic import BaseModel
 
 import db.repository as db
 from db.repositories.hospitals import hash_portal_password
+from portal.attendance_rules import WEEKDAYS, parse_days, valid_hhmm
 from portal.deps import authorize
 from portal.permissions import ASSIGNABLE_ROLES
 
@@ -26,7 +27,7 @@ router = APIRouter()
 _MIN_PASSWORD = 8
 _PHONE = re.compile(r"^\+?[0-9][0-9 ()-]{5,19}$")
 _MAX_ADDRESS = 300
-_EDITABLE = ("name", "phone", "address", "department_id", "reports_to_id")
+_EDITABLE = ("name", "phone", "address", "department_id", "reports_to_id", "working_days", "shift_start", "shift_end")
 
 
 def _staff_row(staff: dict) -> dict:
@@ -36,6 +37,8 @@ def _staff_row(staff: dict) -> dict:
         "address": staff.get("address"), "department_id": staff.get("department_id"),
         "department_name": staff.get("department_name"), "reports_to_id": staff.get("reports_to_id"),
         "reports_to_name": staff.get("reports_to_name"),
+        "working_days": parse_days(staff.get("working_days")),
+        "shift_start": staff.get("shift_start"), "shift_end": staff.get("shift_end"),
     }
 
 
@@ -77,6 +80,26 @@ def _clean_profile(hospital_id: int, staff_id: int | None, fields: dict) -> tupl
             errors.append("Choose one of your own sections.")
         else:
             clean["department_id"] = dept or None
+    if "working_days" in fields:
+        days = fields["working_days"] or []
+        if not isinstance(days, list) or any(d not in WEEKDAYS for d in days):
+            errors.append("Working days must be a list of Mon..Sun.")
+        else:
+            clean["working_days"] = ",".join(d for d in WEEKDAYS if d in days) or None
+    for key, label in (("shift_start", "Shift start"), ("shift_end", "Shift end")):
+        if key in fields:
+            value = (fields[key] or "").strip()
+            if value and not valid_hhmm(value):
+                errors.append(f"{label} must be a time like 09:00.")
+            else:
+                clean[key] = value or None
+    if ("shift_start" in fields) != ("shift_end" in fields):
+        errors.append("Set both a shift start and a shift end (or neither).")
+    elif "shift_start" in fields:
+        if bool(clean.get("shift_start")) != bool(clean.get("shift_end")):
+            errors.append("Set both a shift start and a shift end (or neither).")
+        elif clean.get("shift_start") and clean["shift_start"] == clean["shift_end"]:
+            errors.append("Shift start and end can't be the same time.")
     if "reports_to_id" in fields:
         manager_id = fields["reports_to_id"]
         if manager_id in (None, ""):
@@ -136,6 +159,9 @@ class CreateStaffPayload(BaseModel):
     address: str | None = None
     department_id: str | None = None
     reports_to_id: int | None = None
+    working_days: list[str] | None = None
+    shift_start: str | None = None
+    shift_end: str | None = None
 
 
 @router.post("/api/portal/staff")
@@ -163,7 +189,8 @@ async def create_staff(payload: CreateStaffPayload, authorization: str | None = 
         staff = db.create_staff_user(
             hospital_id, payload.role, email, hash_portal_password(payload.password), clean["name"],
             phone=clean.get("phone"), address=clean.get("address"), department_id=clean.get("department_id"),
-            reports_to_id=clean.get("reports_to_id"),
+            reports_to_id=clean.get("reports_to_id"), working_days=clean.get("working_days"),
+            shift_start=clean.get("shift_start"), shift_end=clean.get("shift_end"),
         )
     except db.IntegrityError:
         return JSONResponse({"error": f'"{email}" is already in use by another account.'}, status_code=400)
@@ -183,6 +210,9 @@ class UpdateStaffPayload(BaseModel):
     address: str | None = None
     department_id: str | None = None
     reports_to_id: int | None = None
+    working_days: list[str] | None = None
+    shift_start: str | None = None
+    shift_end: str | None = None
 
 
 @router.patch("/api/portal/staff/{staff_id}")

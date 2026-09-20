@@ -300,3 +300,44 @@ def test_every_portal_route_refuses_the_unauthenticated_and_the_unpermitted(hosp
             if resp.status_code != expected:
                 wrong.append(f"{who}: {method} {path} -> {resp.status_code} (wanted {expected})")
     assert not wrong, "\n" + "\n".join(wrong)
+
+
+# ---------------------------------------------------------------- the staff HR pages (leave and attendance)
+
+HR_PAGES = ("my_leave", "check_in_out", "leave_requests", "attendance", "attendance_settings")
+
+
+def test_hr_page_permissions_per_role_as_the_login_reports_them(hospital_id):
+    """check_in_out and my_leave for EVERYONE (Owners clock in too); the review queue, the team attendance
+    view and the attendance rules for Owner/Manager only."""
+    expected = {
+        "admin": {p: True for p in HR_PAGES},
+        "receptionist": {"my_leave": True, "check_in_out": True, "leave_requests": False, "attendance": False, "attendance_settings": False},
+        "kitchen": {"my_leave": True, "check_in_out": True, "leave_requests": False, "attendance": False, "attendance_settings": False},
+    }
+    for role, want in expected.items():
+        db.create_staff_user(hospital_id, role, f"{role}.hr@example.com", hash_portal_password(PASSWORD), role.title())
+        resp = client.post("/api/portal/staff/login", json={"email": f"{role}.hr@example.com", "password": PASSWORD})
+        perms = resp.json()["permissions"]
+        for page, allowed in want.items():
+            assert perms[page]["view"] is allowed, (role, page, perms[page])
+            assert perms[page]["write"] is allowed, (role, page, perms[page])
+        assert all(perms[p]["delete"] is (role == "admin") for p in HR_PAGES), role
+
+
+def test_hr_routes_follow_those_permissions_for_real(hospital_id, team):
+    routes_for_everyone = [
+        ("GET", "/api/portal/leave/mine"), ("GET", "/api/portal/attendance/today"), ("GET", "/api/portal/attendance/history"),
+        ("GET", "/api/portal/notifications"),
+    ]
+    owner_only = [
+        ("GET", "/api/portal/leave/requests"), ("GET", "/api/portal/leave/policy"), ("GET", "/api/portal/attendance/overview"),
+        ("GET", "/api/portal/attendance/summary"), ("GET", "/api/portal/attendance/settings"),
+    ]
+    for who in ("manager", "foh", "kitchen"):
+        for method, path in routes_for_everyone:
+            assert client.request(method, path, headers=team[who]).status_code == 200, (who, path)
+    for method, path in owner_only:
+        assert client.request(method, path, headers=team["manager"]).status_code == 200, path
+        for who in ("foh", "kitchen"):
+            assert client.request(method, path, headers=team[who]).status_code == 403, (who, path)

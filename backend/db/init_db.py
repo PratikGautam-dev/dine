@@ -1456,6 +1456,75 @@ def init_db_on_connection(conn) -> int:
         "WHERE employee_id IS NOT NULL"
     )
 
+    # Migration 0036 -- staff leave requests, in-portal notifications, HR settings.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS staff_leave_requests ("
+        "id SERIAL PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "staff_id INTEGER NOT NULL REFERENCES identities(id), "
+        "leave_type TEXT NOT NULL CHECK (leave_type IN ('casual', 'sick', 'annual', 'unpaid', 'personal')), "
+        "from_date TEXT NOT NULL, to_date TEXT NOT NULL, "
+        "is_half_day BOOLEAN NOT NULL DEFAULT FALSE, "
+        "days NUMERIC(5, 1) NOT NULL, "
+        "reason TEXT NOT NULL, "
+        "status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected', 'cancelled')), "
+        "decided_by INTEGER REFERENCES identities(id), decided_at TEXT, decision_note TEXT, "
+        "created_at TEXT NOT NULL DEFAULT (now()::text), "
+        "CHECK (to_date >= from_date), CHECK (NOT is_half_day OR from_date = to_date)"
+        ")"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_staff_leave_hospital_status ON staff_leave_requests(hospital_id, status)")
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_staff_leave_staff_from ON staff_leave_requests(staff_id, from_date)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS staff_notifications ("
+        "id SERIAL PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "staff_id INTEGER NOT NULL REFERENCES identities(id), "
+        "kind TEXT NOT NULL, title TEXT NOT NULL, body TEXT, link TEXT, "
+        "is_read BOOLEAN NOT NULL DEFAULT FALSE, "
+        "created_at TEXT NOT NULL DEFAULT (now()::text)"
+        ")"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_staff_notifications_staff_read ON staff_notifications(staff_id, is_read)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS staff_hr_settings ("
+        "hospital_id INTEGER PRIMARY KEY REFERENCES hospitals(id), "
+        "annual_leave_days INTEGER NOT NULL DEFAULT 20 CHECK (annual_leave_days BETWEEN 0 AND 366)"
+        ")"
+    )
+    # Migration 0037 -- attendance (clock in/out), the weekly working pattern, attendance settings.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS staff_attendance ("
+        "id SERIAL PRIMARY KEY, "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "staff_id INTEGER NOT NULL REFERENCES identities(id), "
+        "work_date TEXT NOT NULL, "
+        "check_in_at TEXT NOT NULL, check_in_lat DOUBLE PRECISION, check_in_lng DOUBLE PRECISION, check_in_ip TEXT, "
+        "check_in_method TEXT NOT NULL CHECK (check_in_method IN ('gps', 'ip', 'unrestricted')), "
+        "check_out_at TEXT, check_out_lat DOUBLE PRECISION, check_out_lng DOUBLE PRECISION, check_out_ip TEXT, "
+        "break_started_at TEXT, break_minutes INTEGER NOT NULL DEFAULT 0, "
+        "status TEXT NOT NULL CHECK (status IN ('on_time', 'late')), "
+        "late_minutes INTEGER NOT NULL DEFAULT 0, working_minutes INTEGER NOT NULL DEFAULT 0, "
+        "overtime_minutes INTEGER NOT NULL DEFAULT 0, "
+        "corrected_by INTEGER REFERENCES identities(id), correction_note TEXT, "
+        "created_at TEXT NOT NULL DEFAULT (now()::text), "
+        "CONSTRAINT ux_staff_attendance_staff_date UNIQUE (staff_id, work_date)"
+        ")"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_staff_attendance_hospital_date ON staff_attendance(hospital_id, work_date)")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS working_days TEXT")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS shift_start TEXT")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS shift_end TEXT")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS shift_start TEXT")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS shift_end TEXT")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS late_grace_minutes INTEGER NOT NULL DEFAULT 10")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS latitude DOUBLE PRECISION")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS radius_meters INTEGER")
+    conn.execute("ALTER TABLE staff_hr_settings ADD COLUMN IF NOT EXISTS allowed_ips TEXT")
+    conn.execute("ALTER TABLE staff_hr_settings DROP CONSTRAINT IF EXISTS ck_staff_hr_grace")
+    conn.execute("ALTER TABLE staff_hr_settings ADD CONSTRAINT ck_staff_hr_grace CHECK (late_grace_minutes BETWEEN 0 AND 240)")
+
     conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url TEXT")
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'online'")
     conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_payment_method_check")

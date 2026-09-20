@@ -47,5 +47,7 @@ from db.repositories.tables import *  # noqa: F401,F403
 from db.repositories.menu_items import *  # noqa: F401,F403
 from db.repositories.food_orders import *  # noqa: F401,F403
 from db.repositories.staff_users import *  # noqa: F401,F403
+from db.repositories.staff_leave import *  # noqa: F401,F403
+from db.repositories.staff_attendance import *  # noqa: F401,F403
 from db.repositories.role_permissions import *  # noqa: F401,F403
 from db.repositories.super_admins import *  # noqa: F401,F403

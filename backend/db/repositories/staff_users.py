@@ -26,7 +26,8 @@ _STAFF_COLUMNS = (
     Identity.id, StaffDetail.hospital_id, StaffDetail.role, Identity.email, Identity.password_hash,
     Identity.name, StaffDetail.doctor_id, Identity.is_active, Identity.token_version,
     StaffDetail.phone, StaffDetail.address, StaffDetail.department_id, StaffDetail.reports_to_id,
-    StaffDetail.employee_id,
+    StaffDetail.employee_id, StaffDetail.working_days, StaffDetail.shift_start, StaffDetail.shift_end,
+    Identity.created_at,
 )
 
 _EMPLOYEE_ID_PREFIX = "EMP-ST-"
@@ -48,7 +49,8 @@ def _next_employee_id(session, hospital_id: int) -> str:
 def create_staff_user(
     hospital_id: int, role: str, email: str, password_hash: str, name: str, doctor_id: str | None = None,
     phone: str | None = None, address: str | None = None, department_id: str | None = None,
-    reports_to_id: int | None = None,
+    reports_to_id: int | None = None, working_days: str | None = None, shift_start: str | None = None,
+    shift_end: str | None = None,
 ) -> dict:
     """Raises db.connection.IntegrityError (via reraise_as_driver_integrity_error) if email is
     already taken by ANY identity (ux_identities_email is global -- shared across restaurant
@@ -67,7 +69,8 @@ def create_staff_user(
             insert(StaffDetail).values(
                 identity_id=new_id, hospital_id=hospital_id, role=role, doctor_id=doctor_id, phone=phone,
                 address=address, department_id=department_id, reports_to_id=reports_to_id,
-                employee_id=_next_employee_id(session, hospital_id),
+                employee_id=_next_employee_id(session, hospital_id), working_days=working_days,
+                shift_start=shift_start, shift_end=shift_end,
             )
         )
         session.commit()
@@ -135,7 +138,10 @@ def update_staff_profile(hospital_id: int, staff_id: int, fields: dict) -> bool:
     restaurant's staff even with a wrong id). Only the keys present in `fields` are written, so a
     key mapped to None clears that value. Returns False when there is no such staff member here."""
     session = get_session()
-    detail_values = {k: v for k, v in fields.items() if k in ("phone", "address", "department_id", "reports_to_id")}
+    detail_values = {
+        k: v for k, v in fields.items()
+        if k in ("phone", "address", "department_id", "reports_to_id", "working_days", "shift_start", "shift_end")
+    }
     exists = session.execute(
         select(StaffDetail.identity_id).where(StaffDetail.identity_id == staff_id, StaffDetail.hospital_id == hospital_id)
     ).first()

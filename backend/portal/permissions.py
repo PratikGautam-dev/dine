@@ -50,10 +50,21 @@ PAGE_FOOD_ORDERS = "food_orders"
 # on why "doctors" wasn't deleted).
 PAGE_TABLES = "tables"
 
+# Staff HR: leave and attendance (docs: the CareConnect reference, adapted). my_leave is every
+# person's own leave page (and their notifications); leave_requests is the Manager's review queue;
+# check_in_out is clocking in/out plus your own history; attendance is the whole team's view and
+# corrections; attendance_settings is the shift/location rules.
+PAGE_MY_LEAVE = "my_leave"
+PAGE_LEAVE_REQUESTS = "leave_requests"
+PAGE_CHECK_IN_OUT = "check_in_out"
+PAGE_ATTENDANCE = "attendance"
+PAGE_ATTENDANCE_SETTINGS = "attendance_settings"
+
 ALL_PAGES = {
     PAGE_DASHBOARD, PAGE_APPOINTMENTS, PAGE_PATIENTS, PAGE_DOCTORS,
     PAGE_MESSAGES, PAGE_SETTINGS, PAGE_STAFF, PAGE_ROLES, PAGE_SCHEDULE, PAGE_DIAGNOSTIC_TESTS,
     PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES,
+    PAGE_MY_LEAVE, PAGE_LEAVE_REQUESTS, PAGE_CHECK_IN_OUT, PAGE_ATTENDANCE, PAGE_ATTENDANCE_SETTINGS,
 }
 ACTIONS = ("view", "write", "delete")
 
@@ -70,6 +81,16 @@ _NONE = {"view": False, "write": False, "delete": False}
 # STAFF/ROLES -- an admin manages other staff and edits this very matrix by
 # default) but, per the plan, is editable like everything else -- this is
 # only ever the STARTING point for a hospital's admin role, not a floor.
+# Everyone: apply for their own leave, clock in and out, see their own history. The review queue, the
+# team-wide attendance view and the attendance rules are Owner/Manager only (admin is all-true above).
+_STAFF_SELF_SERVICE = {
+    PAGE_MY_LEAVE: dict(_VIEW_WRITE),
+    PAGE_CHECK_IN_OUT: dict(_VIEW_WRITE),
+    PAGE_LEAVE_REQUESTS: dict(_NONE),
+    PAGE_ATTENDANCE: dict(_NONE),
+    PAGE_ATTENDANCE_SETTINGS: dict(_NONE),
+}
+
 DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
     "admin": {page: dict(_ALL_TRUE) for page in ALL_PAGES},
     # Front of House (host / server): works the floor -- reservations, guests, messages
@@ -89,6 +110,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_FOOD_MENU: dict(_VIEW_ONLY),
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
         PAGE_TABLES: dict(_VIEW_ONLY),
+        **_STAFF_SELF_SERVICE,
     },
     # Kitchen Staff: works the orders and the menu's availability (sold out / stock).
     # Sees today's reservations and the table layout for prep, never guest records,
@@ -107,6 +129,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_FOOD_MENU: dict(_VIEW_WRITE),
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
         PAGE_TABLES: dict(_VIEW_ONLY),
+        **_STAFF_SELF_SERVICE,
     },
 }
 
