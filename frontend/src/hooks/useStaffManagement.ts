@@ -1,30 +1,61 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { staffFetch, type StaffRole } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-export type StaffMember = { id: number; name: string; email: string; role: StaffRole; is_active: boolean };
-export type Doctor = { id: string; name: string };
+export type StaffMember = {
+  id: number;
+  name: string;
+  email: string;
+  role: StaffRole;
+  is_active: boolean;
+  employee_id: string | null;
+  phone: string | null;
+  address: string | null;
+  department_id: string | null;
+  department_name: string | null;
+  reports_to_id: number | null;
+  reports_to_name: string | null;
+};
 
-/** Loads + owns every mutation on /portal/settings/staff: the staff list,
- * the linked-doctor picker, create-staff-member form state, and the
- * active/inactive toggle. */
+export type Section = { id: string; name: string };
+
+export type StaffFormValues = {
+  name: string;
+  email: string;
+  password: string;
+  role: StaffRole;
+  phone: string;
+  address: string;
+  department_id: string;
+  reports_to_id: string; // "" = nobody
+};
+
+export type StaffDialog =
+  | { kind: "add" }
+  | { kind: "edit"; member: StaffMember }
+  | { kind: "password"; member: StaffMember }
+  | { kind: "toggle"; member: StaffMember }
+  | null;
+
+export const emptyStaffForm = (): StaffFormValues => ({
+  name: "", email: "", password: "", role: "receptionist", phone: "", address: "", department_id: "", reports_to_id: "",
+});
+
+/** Loads and owns everything on /portal/settings/staff: the team list, the section list for the
+ * "section" picker, search/filters, the selected row, and every mutation (add, edit incl. role,
+ * activate/deactivate, reset password). Mutations return an error message (or null) so the dialog
+ * that asked can show it in place. */
 export function useStaffManagement(canView: boolean) {
   const router = useRouter();
-
   const [staff, setStaff] = useState<StaffMember[] | null>(null);
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [togglingId, setTogglingId] = useState<number | null>(null);
-
-  const [showForm, setShowForm] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState<StaffRole>("receptionist");
-  const [doctorId, setDoctorId] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [dialog, setDialog] = useState<StaffDialog>(null);
+  const [search, setSearch] = useState("");
+  const [roleFilter, setRoleFilter] = useState<"" | StaffRole>("");
+  const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">("");
 
   const load = useCallback(async () => {
     const result = await staffFetch("/api/portal/staff");
@@ -33,91 +64,103 @@ export function useStaffManagement(canView: boolean) {
       else setError(result.error);
       return;
     }
+    setError(null);
     setStaff(result.data as StaffMember[]);
   }, [router]);
 
-  const loadDoctors = useCallback(async () => {
-    // Reuses the same doctor-list endpoint the Doctors page already fetches
-    // from, so a "doctor" staff row can be linked to an existing doctor
-    // record instead of duplicating name/specialization entry here.
+  const loadSections = useCallback(async () => {
+    // The same endpoint the Team page reads; a role without access simply gets no section picker.
     const result = await staffFetch("/api/portal/doctors");
-    if (!result.ok) return;
-    const data = result.data as { doctors: Doctor[] };
-    setDoctors(data.doctors || []);
+    if (result.ok) setSections(((result.data as { departments?: Section[] }).departments) ?? []);
   }, []);
 
   useEffect(() => {
     if (!canView) return;
     load();
-    loadDoctors();
-  }, [canView, load, loadDoctors]);
+    loadSections();
+  }, [canView, load, loadSections]);
 
-  function toggleForm() {
-    setShowForm((v) => !v);
-    setFormError(null);
-  }
-
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault();
-    if (role === "doctor" && !doctorId) {
-      setFormError("Select which table this login manages.");
-      return;
-    }
-    setSaving(true);
-    setFormError(null);
-    const result = await staffFetch("/api/portal/staff", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        name,
-        email,
-        password,
-        role,
-        doctor_id: role === "doctor" ? doctorId : undefined,
-      }),
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return (staff ?? []).filter((m) => {
+      if (roleFilter && m.role !== roleFilter) return false;
+      if (statusFilter === "active" && !m.is_active) return false;
+      if (statusFilter === "inactive" && m.is_active) return false;
+      if (!q) return true;
+      return [m.name, m.email, m.phone ?? "", m.department_name ?? "", m.employee_id ?? ""].some((v) => v.toLowerCase().includes(q));
     });
-    setSaving(false);
+  }, [staff, search, roleFilter, statusFilter]);
+
+  const counts = useMemo(() => {
+    const all = staff ?? [];
+    return {
+      total: all.length,
+      active: all.filter((m) => m.is_active).length,
+      frontOfHouse: all.filter((m) => m.role === "receptionist" && m.is_active).length,
+      kitchen: all.filter((m) => m.role === "kitchen" && m.is_active).length,
+    };
+  }, [staff]);
+
+  const selected = useMemo(() => {
+    const list = staff ?? [];
+    return list.find((m) => m.id === selectedId) ?? visible[0] ?? null;
+  }, [staff, visible, selectedId]);
+
+  /** Runs one mutation; returns an error message (shown by the caller) or null on success. */
+  async function mutate(path: string, method: "POST" | "PATCH", body: unknown, success: string): Promise<string | null> {
+    const result = await staffFetch(path, {
+      method,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     if (!result.ok) {
-      if (result.unauthorized) router.push("/portal/login");
-      else {
-        setFormError(result.error);
-        toast.error("Couldn't create staff member", result.error);
+      if (result.unauthorized) {
+        router.push("/portal/login");
+        return "Session expired -- please sign in again.";
       }
-      return;
+      return result.error;
     }
-    toast.success("Staff member created");
-    setName("");
-    setEmail("");
-    setPassword("");
-    setRole("receptionist");
-    setDoctorId("");
-    setShowForm(false);
-    load();
+    toast.success(success);
+    await load();
+    return null;
   }
 
-  async function handleToggleActive(member: StaffMember) {
-    setTogglingId(member.id);
-    const result = await staffFetch(`/api/portal/staff/${member.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ is_active: !member.is_active }),
-    });
-    setTogglingId(null);
-    if (result.ok) {
-      toast.success(member.is_active ? "Staff member deactivated" : "Staff member activated");
-      load();
-    } else if (result.unauthorized) {
-      router.push("/portal/login");
-    } else {
-      toast.error("Couldn't update staff member", result.error);
-    }
+  const nullIfBlank = (v: string) => (v.trim() === "" ? null : v.trim());
+
+  async function addStaff(f: StaffFormValues) {
+    const error = await mutate("/api/portal/staff", "POST", {
+      name: f.name, email: f.email, password: f.password, role: f.role, phone: nullIfBlank(f.phone),
+      address: nullIfBlank(f.address), department_id: nullIfBlank(f.department_id),
+      reports_to_id: f.reports_to_id ? Number(f.reports_to_id) : null,
+    }, "Staff member added");
+    return error;
+  }
+
+  async function editStaff(member: StaffMember, f: StaffFormValues) {
+    // Only what changed goes over the wire; a blank optional field is sent as null to clear it.
+    const patch: Record<string, unknown> = {};
+    if (f.name.trim() !== member.name) patch.name = f.name;
+    if (f.role !== member.role) patch.role = f.role;
+    if ((nullIfBlank(f.phone) ?? null) !== (member.phone ?? null)) patch.phone = nullIfBlank(f.phone);
+    if ((nullIfBlank(f.address) ?? null) !== (member.address ?? null)) patch.address = nullIfBlank(f.address);
+    if ((nullIfBlank(f.department_id) ?? null) !== (member.department_id ?? null)) patch.department_id = nullIfBlank(f.department_id);
+    const reports = f.reports_to_id ? Number(f.reports_to_id) : null;
+    if (reports !== (member.reports_to_id ?? null)) patch.reports_to_id = reports;
+    if (Object.keys(patch).length === 0) return null;
+    return mutate(`/api/portal/staff/${member.id}`, "PATCH", patch, "Staff member updated");
+  }
+
+  async function setActive(member: StaffMember, isActive: boolean) {
+    return mutate(`/api/portal/staff/${member.id}`, "PATCH", { is_active: isActive }, isActive ? "Staff member reactivated" : "Staff member deactivated");
+  }
+
+  async function resetPassword(member: StaffMember, newPassword: string) {
+    return mutate(`/api/portal/staff/${member.id}/password`, "POST", { new_password: newPassword }, "Password reset -- they've been signed out everywhere");
   }
 
   return {
-    staff, doctors, error, togglingId,
-    showForm, toggleForm,
-    name, setName, email, setEmail, password, setPassword, role, setRole, doctorId, setDoctorId,
-    formError, saving,
-    handleCreate, handleToggleActive,
+    staff, visible, counts, sections, error, selected, setSelectedId,
+    dialog, setDialog, search, setSearch, roleFilter, setRoleFilter, statusFilter, setStatusFilter,
+    addStaff, editStaff, setActive, resetPassword,
   };
 }

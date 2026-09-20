@@ -7,7 +7,7 @@ export type HospitalStaffSummary = {
   is_active: boolean;
   data_tier: string;
   admin_count: number;
-  doctor_count: number;
+  kitchen_count: number;
   receptionist_count: number;
   total_count: number;
 };

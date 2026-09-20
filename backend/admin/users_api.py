@@ -53,7 +53,7 @@ async def staff_summary_route(
     hospitals = [
         {
             "id": r["id"], "name": r["name"], "is_active": r["is_active"], "data_tier": r["data_tier"],
-            "admin_count": r["admin_count"], "doctor_count": r["doctor_count"],
+            "admin_count": r["admin_count"], "kitchen_count": r["kitchen_count"],
             "receptionist_count": r["receptionist_count"], "total_count": r["total_count"],
         }
         for r in rows

@@ -732,7 +732,7 @@ def init_db_on_connection(conn) -> int:
         "CREATE TABLE IF NOT EXISTS role_permissions ("
         "id SERIAL PRIMARY KEY, "
         "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
-        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor')), "
+        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen')), "
         "page_key TEXT NOT NULL, "
         "can_view BOOLEAN NOT NULL DEFAULT FALSE, "
         "can_write BOOLEAN NOT NULL DEFAULT FALSE, "
@@ -782,7 +782,7 @@ def init_db_on_connection(conn) -> int:
         "CREATE TABLE IF NOT EXISTS staff_details ("
         "identity_id INTEGER PRIMARY KEY REFERENCES identities(id), "
         "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
-        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor')), "
+        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen')), "
         "doctor_id TEXT REFERENCES doctors(id)"
         ")"
     )
@@ -1420,8 +1420,16 @@ def init_db_on_connection(conn) -> int:
 
     # Migration 0033 -- menu photos (pasted link) and pay-at-restaurant orders
     # (payment_method + the 'placed' status, whose CHECK is widened above).
-    # Migration 0034 -- the 'kitchen' role. Named constraints replace whichever auto-named /
-    # older one the table was created with, so an existing database accepts it too.
+    # Migrations 0034/0035 -- the 'kitchen' role, and the legacy 'doctor' login role retired. Any old
+    # doctor login becomes Front of House (sessions revoked, permission rows dropped) BEFORE the role
+    # CHECKs stop accepting it. Named constraints replace whichever auto-named / older one the table
+    # was created with, so an existing database converges to the same state as a fresh one.
+    conn.execute(
+        "UPDATE identities SET token_version = token_version + 1 "
+        "WHERE id IN (SELECT identity_id FROM staff_details WHERE role = 'doctor')"
+    )
+    conn.execute("UPDATE staff_details SET role = 'receptionist', doctor_id = NULL WHERE role = 'doctor'")
+    conn.execute("DELETE FROM role_permissions WHERE role = 'doctor'")
     for table, names in (
         ("staff_details", ("ck_staff_details_role", "staff_details_role_check")),
         ("role_permissions", ("ck_role_permissions_role", "role_permissions_role_check")),
@@ -1430,8 +1438,24 @@ def init_db_on_connection(conn) -> int:
             conn.execute(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {name}")
         conn.execute(
             f"ALTER TABLE {table} ADD CONSTRAINT {names[0]} "
-            "CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor'))"
+            "CHECK (role IN ('admin', 'receptionist', 'kitchen'))"
         )
+    # Migration 0035 -- staff profile fields + per-restaurant employee ids.
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS phone TEXT")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS address TEXT")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS department_id TEXT REFERENCES departments(id)")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS reports_to_id INTEGER REFERENCES identities(id)")
+    conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS employee_id TEXT")
+    conn.execute(
+        "UPDATE staff_details s SET employee_id = 'EMP-ST-' || lpad(n.rn::text, 5, '0') "
+        "FROM (SELECT identity_id, row_number() OVER (PARTITION BY hospital_id ORDER BY identity_id) AS rn "
+        "FROM staff_details WHERE employee_id IS NULL) n WHERE n.identity_id = s.identity_id"
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_staff_details_employee_id ON staff_details(hospital_id, employee_id) "
+        "WHERE employee_id IS NOT NULL"
+    )
+
     conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url TEXT")
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'online'")
     conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_payment_method_check")

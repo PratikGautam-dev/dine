@@ -5,6 +5,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePermission, useStaffSession, type StaffRole } from "@/lib/staffAuth";
+import { ROLE_LABEL } from "@/lib/staffRoles";
 import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { createRoleColumns } from "./_components/role-columns";
 
@@ -28,12 +29,6 @@ const PAGE_LABEL: Record<string, string> = {
   roles: "Roles & Permissions",
 };
 const ROLES: StaffRole[] = ["admin", "receptionist", "kitchen"];
-const ROLE_LABEL: Record<StaffRole, string> = {
-  admin: "Owner / Manager",
-  receptionist: "Front of House",
-  kitchen: "Kitchen Staff",
-  doctor: "Table manager (legacy)",
-};
 
 export default function RolesPermissionsPage() {
   // useStaffSession (not getStaffSession directly): null on the server AND

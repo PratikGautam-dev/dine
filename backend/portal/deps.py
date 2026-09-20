@@ -37,21 +37,6 @@ def _authenticate(authorization: str | None):
     return principal.hospital if principal is not None else None
 
 
-def _authenticate_with_role(authorization: str | None):
-    """Like `_authenticate()`, but also returns (role, doctor_id) when the
-    caller is a staff JWT -- both None for the legacy shared-hospital-
-    password session, same "no role concept" gap `_authenticate()` already
-    documents. For routes that need to scope data to "this doctor's own"
-    while still accepting that legacy session."""
-    principal = get_current_staff(authorization)
-    if principal is not None:
-        return principal.hospital, principal.role, principal.doctor_id
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return None, None, None
-    return hospital, None, None
-
-
 def require_capability(hospital, capability: str) -> JSONResponse | None:
     """Tenant-type-driven capability gating (tenant-capability-gating-plan.md).
     Deliberately a plain helper following this file's OWN established
@@ -85,18 +70,17 @@ class StaffPrincipal:
     """The unified, individually-logged-in identity docs/rbac-redis-plan.md
     introduces -- returned by get_current_staff() below in place of the bare
     Hospital `_authenticate` returns, since a permission check needs `role`
-    (and a Doctor route needs `doctor_id`) that a Hospital alone can't carry.
+    that a Hospital alone can't carry.
     Deliberately a plain attribute-holding object, not a dataclass/pydantic
     model -- nothing here is (de)serialized independently of the route that
     builds the JSON response, so there's no validation/parsing this would
     buy over a constructor that just assigns."""
 
-    def __init__(self, hospital, staff_id: int, role: str, name: str, doctor_id: str | None):
+    def __init__(self, hospital, staff_id: int, role: str, name: str):
         self.hospital = hospital
         self.staff_id = staff_id
         self.role = role
         self.name = name
-        self.doctor_id = doctor_id
 
 
 def get_current_staff(authorization: str | None) -> StaffPrincipal | None:
@@ -132,7 +116,7 @@ def get_current_staff(authorization: str | None) -> StaffPrincipal | None:
     hospital = db.get_hospital(staff["hospital_id"])
     if hospital is None:
         return None
-    return StaffPrincipal(hospital, staff["id"], staff["role"], staff["name"], staff["doctor_id"])
+    return StaffPrincipal(hospital, staff["id"], staff["role"], staff["name"])
 
 
 def require_permission(principal: StaffPrincipal, page_key: str, action: str) -> JSONResponse | None:

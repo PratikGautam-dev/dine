@@ -99,16 +99,16 @@ function UsersOverview() {
               <div className="flex flex-wrap items-center gap-x-space-4 gap-y-space-2 border-t border-line pt-space-3">
                 <div className="flex items-center gap-space-1.5">
                   <UserCog size={14} className="text-ink-400" />
-                  <span className="text-[13px] text-ink-700">{h.admin_count} admin{h.admin_count === 1 ? "" : "s"}</span>
+                  <span className="text-[13px] text-ink-700">{h.admin_count} owner{h.admin_count === 1 ? "" : "s"} / manager{h.admin_count === 1 ? "" : "s"}</span>
                 </div>
                 <div className="flex items-center gap-space-1.5">
                   <IdCard size={14} className="text-ink-400" />
-                  <span className="text-[13px] text-ink-700">{h.doctor_count} staff member{h.doctor_count === 1 ? "" : "s"}</span>
+                  <span className="text-[13px] text-ink-700">{h.kitchen_count} kitchen</span>
                 </div>
                 <div className="flex items-center gap-space-1.5">
                   <UsersIcon size={14} className="text-ink-400" />
                   <span className="text-[13px] text-ink-700">
-                    {h.receptionist_count} host{h.receptionist_count === 1 ? "" : "s"}
+                    {h.receptionist_count} front of house
                   </span>
                 </div>
                 <span className="ml-auto text-[12px] font-semibold text-ink-400">{h.total_count} total</span>

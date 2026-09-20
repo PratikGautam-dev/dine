@@ -229,6 +229,13 @@ def _cases():
     case("cancel B's order", o, "POST", lambda c: f"/api/portal/food-orders/{c['o']}/cancel")
     # ---- staff
     case("deactivate B's staff", lambda v: {"s": v.staff()}, "PATCH", lambda c: f"/api/portal/staff/{c['s']}", lambda c: {"is_active": False})
+    case("promote B's staff", lambda v: {"s": v.staff()}, "PATCH", lambda c: f"/api/portal/staff/{c['s']}", lambda c: {"role": "admin"})
+    case("edit B's staff profile", lambda v: {"s": v.staff()}, "PATCH", lambda c: f"/api/portal/staff/{c['s']}", lambda c: {"name": "Hacked", "phone": "9999999999"})
+    case("reset B's staff password", lambda v: {"s": v.staff()}, "POST", lambda c: f"/api/portal/staff/{c['s']}/password", lambda c: {"new_password": "attacker-chosen-pw"})
+    case("create staff under B's section", lambda v: {"d": v.dept["id"]}, "POST", lambda c: "/api/portal/staff",
+         lambda c: {"name": "Sneaky Staff", "email": "sneaky.staff@example.com", "password": "hunter2hunter2", "role": "kitchen", "department_id": c["d"]}, control_optional=True)
+    case("report to B's manager", lambda v: {"s": v.staff()}, "POST", lambda c: "/api/portal/staff",
+         lambda c: {"name": "Sneaky Two", "email": "sneaky.two@example.com", "password": "hunter2hunter2", "role": "kitchen", "reports_to_id": c["s"]}, control_optional=True)
     return C
 
 
@@ -245,6 +252,11 @@ def _snapshot(hid: int) -> dict:
             continue  # append-only bookkeeping, checked separately by the read-leak test
         rows = conn.execute(f"SELECT * FROM {t} WHERE hospital_id = ?", (hid,)).fetchall()
         snap[t] = sorted(json.dumps(dict(r), default=str, sort_keys=True) for r in rows)
+    # credentials and names live in identities, which has no hospital_id of its own
+    ident = conn.execute(
+        "SELECT i.* FROM identities i JOIN staff_details s ON s.identity_id = i.id WHERE s.hospital_id = ?", (hid,)
+    ).fetchall()
+    snap["identities"] = sorted(json.dumps(dict(r), default=str, sort_keys=True) for r in ident)
     for child, parent_col, parent in (("food_order_items", "order_id", "food_orders"), ("handoff_messages", "handoff_request_id", "handoff_requests")):
         try:
             rows = conn.execute(f"SELECT c.* FROM {child} c JOIN {parent} p ON p.id = c.{parent_col} WHERE p.hospital_id = ?", (hid,)).fetchall()

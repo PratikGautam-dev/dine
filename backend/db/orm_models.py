@@ -750,7 +750,14 @@ class StaffDetail(Base):
     identity_id: Mapped[int] = mapped_column(ForeignKey("identities.id"), primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
     role: Mapped[str]
+    # Legacy (the retired "doctor" login role linked a login to a doctors row). Always NULL now.
     doctor_id: Mapped[str | None] = mapped_column(ForeignKey("doctors.id"))
+    # migration 0035 -- the Staff page's profile fields
+    phone: Mapped[str | None]
+    address: Mapped[str | None]
+    department_id: Mapped[str | None] = mapped_column(ForeignKey("departments.id"))  # the section they work
+    reports_to_id: Mapped[int | None] = mapped_column(ForeignKey("identities.id"))
+    employee_id: Mapped[str | None]  # EMP-ST-00001, unique per restaurant
 
 
 class SuperAdminDetail(Base):

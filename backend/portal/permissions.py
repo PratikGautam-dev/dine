@@ -108,30 +108,12 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
         PAGE_TABLES: dict(_VIEW_ONLY),
     },
-    # Legacy: the old "table manager" login role from the clinic product. Not offered for
-    # restaurants any more; kept so any existing row still resolves.
-    "doctor": {
-        PAGE_DASHBOARD: dict(_VIEW_ONLY),
-        PAGE_APPOINTMENTS: dict(_VIEW_WRITE),
-        PAGE_PATIENTS: dict(_VIEW_WRITE),
-        PAGE_MESSAGES: dict(_VIEW_ONLY),
-        PAGE_DOCTORS: dict(_NONE),
-        PAGE_SETTINGS: dict(_NONE),
-        PAGE_STAFF: dict(_NONE),
-        PAGE_ROLES: dict(_NONE),
-        PAGE_SCHEDULE: dict(_VIEW_WRITE),
-        PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
-        PAGE_FOOD_MENU: dict(_NONE),
-        PAGE_FOOD_ORDERS: dict(_NONE),
-        PAGE_TABLES: dict(_NONE),
-    },
 }
 
-# Roles a restaurant can assign today (Owner/Manager, Front of House, Kitchen Staff), in
-# display order. "doctor" is legacy and deliberately not listed.
+# The three roles a restaurant has (Owner/Manager, Front of House, Kitchen Staff), in display order.
+# The old "doctor" (linked table manager) login role is retired.
 ASSIGNABLE_ROLES = ("admin", "receptionist", "kitchen")
-# Every stored role value the database accepts (assignable + legacy).
-VALID_ROLES = ("admin", "receptionist", "kitchen", "doctor")
+VALID_ROLES = ASSIGNABLE_ROLES
 
 
 def resolve_default_permissions(role: str) -> dict[str, dict[str, bool]]:
