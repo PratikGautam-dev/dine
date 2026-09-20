@@ -28,11 +28,8 @@ const SECTIONS = [
 
 function BrandMark() {
   return (
-    <a href="/" aria-label="Dine Connect home" className="flex items-center gap-space-3">
-      <Image src="/logo-icon.svg" alt="" width={32} height={32} className="shrink-0" />
-      <span className="font-display text-[19px] leading-tight font-extrabold text-ink-900">
-        Dine<span className="text-brand-600">Connect</span>
-      </span>
+    <a href="/" aria-label="Dine Connect home" className="flex items-center">
+      <Image src="/logo.png" alt="DAAP DineConnect — Better Dining. Stronger Connection." width={193} height={60} className="w-auto" style={{ height: 60 }} />
     </a>
   );
 }

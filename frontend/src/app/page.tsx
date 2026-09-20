@@ -10,21 +10,18 @@ const FEATURES = [
 ];
 
 function BrandMark({ size = "md" }: { size?: "sm" | "md" }) {
-  const markPx = size === "sm" ? 32 : 44;
-  const name = size === "sm" ? "text-[19px]" : "text-[34px]";
+  // The full logo lockup (mark + DAAP / DineConnect + tagline), as designed.
+  const height = size === "sm" ? 60 : 84;
   return (
-    <div className="flex items-center gap-space-3">
-      <Image src="/logo-icon.svg" alt="" width={markPx} height={markPx} className="shrink-0" priority />
-      <div>
-        <span className="block text-eyebrow leading-none">DAAP</span>
-        <span className={`font-display ${name} leading-tight font-extrabold text-ink-900`}>
-          Dine<span className="text-brand-600">Connect</span>
-        </span>
-        <span className="mt-0.5 block text-[11px] font-semibold tracking-wide text-ink-400">
-          Connect &bull; Reserve &bull; Dine
-        </span>
-      </div>
-    </div>
+    <Image
+      src="/logo.png"
+      alt="DAAP DineConnect — Better Dining. Stronger Connection."
+      width={Math.round(height * 3.21)}
+      height={height}
+      className="w-auto"
+      style={{ height }}
+      priority
+    />
   );
 }
 

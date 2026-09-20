@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -54,14 +55,8 @@ export function AdminSecretGate({ title, children }: { title: string; children: 
     return (
       <div className="flex min-h-screen items-center justify-center bg-paper px-space-4">
         <Card className="w-full max-w-sm p-space-6">
-          <div className="mb-space-5 flex items-center gap-space-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-600 font-display text-[16px] font-extrabold text-white">
-              D
-            </div>
-            <div>
-              <span className="block text-eyebrow">DAAP</span>
-              <span className="block text-[16px] font-bold text-ink-900">Dine Connect</span>
-            </div>
+          <div className="mb-space-5">
+            <Image src="/logo.png" alt="DAAP DineConnect — Better Dining. Stronger Connection." width={240} height={75} priority className="h-auto w-[240px]" />
           </div>
           <h1 className="text-display mb-space-1 !text-[22px]">{title}</h1>
           <p className="text-body mb-space-5">This page shows tenant credentials, so it&apos;s gated separately from onboarding.</p>

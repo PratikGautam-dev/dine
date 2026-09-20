@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   CalendarCheck,
   CalendarClock,
@@ -110,8 +111,8 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
         )}
       >
         <div className="mb-space-5 flex items-center gap-space-2 px-space-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/15 font-display text-[14px] font-extrabold">
-            D
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white">
+            <Image src="/logo-mark.png" alt="Dine Connect" width={24} height={24} />
           </div>
           <span className="truncate text-[14px] font-bold">{hospital?.name || "Restaurant"}</span>
           <button

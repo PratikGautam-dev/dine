@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import {
   ChevronsLeft,
   ChevronsRight,
@@ -68,8 +69,8 @@ export function AdminSidebar({ active, open = false, onClose, collapsed = false,
         )}
       >
         <div className="mb-space-5 flex items-center gap-space-2 px-space-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white/15 font-display text-[14px] font-extrabold">
-            A
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white">
+            <Image src="/logo-mark.png" alt="Dine Connect" width={24} height={24} />
           </div>
           {!collapsed && <span className="truncate text-[14px] font-bold">{superAdmin?.name || "Platform admin"}</span>}
           <button
