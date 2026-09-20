@@ -480,7 +480,7 @@ async def test_unlinking_a_patient_via_manage_patients_does_not_delete_their_his
     assert any(a.id == appt.id for a in appointments)
     # Lands on the main menu (confirmed with the user), not back on Manage
     # Patients -- with 0 patients left, that means fresh registration.
-    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_BOOKING_FOR
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_NAME
 
 
 @pytest.mark.asyncio

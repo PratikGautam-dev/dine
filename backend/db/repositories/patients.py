@@ -420,7 +420,7 @@ def _link_patient_under_cap(conn, hospital_id: int, phone: str, patient_id: int,
     )
 
 
-def find_potential_duplicate_patient(hospital_id: int, name: str, contact_phone: str, age: int, gender: str) -> dict | None:
+def find_potential_duplicate_patient(hospital_id: int, name: str, contact_phone: str, age: int | None, gender: str) -> dict | None:
     """CareConnect architecture doc alignment (Spec.md Section 0), Sections
     8-10: searched BEFORE create_patient_profile() creates a brand-new
     `patients` row/MRN, so a family member who already has a hospital
@@ -456,19 +456,26 @@ def find_potential_duplicate_patient(hospital_id: int, name: str, contact_phone:
     duplicate search. The caller (flows/patient_identity.py) now checks
     validate_active_patient_link() itself on the returned match to tell
     "already yours" apart from "exists elsewhere" and respond accordingly.
+    `age=None` means "age was not collected" (the restaurant registration asks only
+    name and gender): the age criterion is then left out entirely -- explicitly, not
+    as an `IS NULL` comparison.
+
     Returns the first match (deterministic: lowest patient id) or None."""
     session = get_session()
-    row = session.execute(
+    stmt = (
         select(PatientRow.id, PatientRow.name, PatientRow.age, PatientRow.patient_display_id, PatientRow.phone)
         .where(
             PatientRow.hospital_id == hospital_id, PatientRow.status == "active",
             func.lower(func.trim(PatientRow.name)) == func.lower(func.trim(name)),
             PatientRow.phone == contact_phone,
-            PatientRow.age == age, PatientRow.gender == gender,
+            PatientRow.gender == gender,
         )
         .order_by(PatientRow.id)
         .limit(1)
-    ).first()
+    )
+    if age is not None:
+        stmt = stmt.where(PatientRow.age == age)
+    row = session.execute(stmt).first()
     return dict(row._mapping) if row else None
 
 

@@ -1,9 +1,14 @@
 # flows/patient_identity/registration.py
-"""Registration: [Myself/Someone Else] -> name -> [contact number, Someone
-Else only] -> age -> gender -> [duplicate decision] -> create/link. The
+"""Registration: name -> gender -> [duplicate decision] -> create/link. The
 first-time-phone path out of resolution.py's get_or_prompt_for_active_patient,
 and also reachable mid-conversation via Manage Patients' "Add Patient"
-(identity_flow_next="manage_patients")."""
+(identity_flow_next="manage_patients").
+
+A guest is always registering themselves on the number they are messaging from
+(no "Myself / Someone Else" question, no contact-number or age question), and a
+phone holds a single profile (platform_settings.max_active_patient_links = 1).
+The older Myself/Someone Else, contact-number and age handlers below are kept only
+so a session already sitting in one of those states still completes."""
 from connectors import Connector, DuplicateSelfLinkError, RELATIONSHIP_OTHER, RELATIONSHIP_SELF, TooManyLinkedPatientsError
 from core.translations import t
 from core.translations.common import BACK_OPTION
@@ -67,22 +72,27 @@ async def _start_registration(
     wa: WhatsAppClient, sessions, phone: str, hospital_id: int, connector: Connector, language: str,
     identity_flow_next: str = "resolve",
 ) -> None:
-    """Kicks off registration -- "Myself / Someone Else" first, UNLESS this
-    CareConnect account already has an active "Myself" (relationship_label=
-    RELATIONSHIP_SELF) patient linked at this hospital, in which case the
-    question is skipped entirely (silently locked to "Someone Else") and
-    registration goes straight to the name question. See
-    has_self_linked_patient()'s own docstring for the hard, race-safe
-    backstop this soft check pairs with."""
-    account = connector.identify_contact(phone, phone_number=phone)
-    if connector.has_self_linked_patient(hospital_id, account["id"]):
-        context = {"identity_flow_next": identity_flow_next, "pending_relationship": RELATIONSHIP_OTHER}
-        sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_NAME, context, language=language)
-        await wa.send_text(phone, t(ASK_PATIENT_NAME, language))
+    """Kicks off registration with the name question -- the guest is always
+    registering themselves, on the number they are messaging from. If this phone
+    already holds as many profiles as the platform allows, says so up front rather
+    than after the questions."""
+    if len(connector.list_active_patients(hospital_id, phone)) >= connector.get_max_active_patient_links():
+        await wa.send_text(phone, t(TOO_MANY_LINKED_PATIENTS, language))
         if identity_flow_next == "manage_patients":
-            await _send_back_button(wa, phone, language=language)
+            from flows.patient_identity.manage_patients import _start_manage_patients
+
+            await _start_manage_patients(wa, sessions, phone, hospital_id, connector, language)
+        else:
+            sessions.reset(hospital_id, phone)
         return
-    await _send_booking_for_prompt(wa, sessions, phone, hospital_id, {"identity_flow_next": identity_flow_next}, language)
+    context = {
+        "identity_flow_next": identity_flow_next, "pending_relationship": RELATIONSHIP_SELF,
+        "pending_contact_phone": phone,
+    }
+    sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_NAME, context, language=language)
+    await wa.send_text(phone, t(ASK_PATIENT_NAME, language))
+    if identity_flow_next == "manage_patients":
+        await _send_back_button(wa, phone, language=language)
 
 
 async def _send_booking_for_prompt(
@@ -157,16 +167,14 @@ async def _handle_awaiting_patient_name(
     name = _parse_patient_name(reply["text"]) if reply["type"] == "text" else None
     if name is not None:
         new_context = {**context, "pending_name": name}
-        if new_context.get("pending_relationship") == RELATIONSHIP_OTHER:
+        if new_context.get("pending_relationship") == RELATIONSHIP_OTHER:  # a session started before this change
             sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_CONTACT_PHONE, new_context, language=language)
             await wa.send_text(phone, t(ASK_PATIENT_CONTACT_NUMBER, language, patient_name=name))
             if context.get("identity_flow_next") == "manage_patients":
                 await _send_back_button(wa, phone, language=language)
             return
-        sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_AGE, new_context, language=language)
-        await wa.send_text(phone, t(ASK_PATIENT_AGE, language, patient_name=name))
-        if context.get("identity_flow_next") == "manage_patients":
-            await _send_back_button(wa, phone, language=language)
+        new_context.setdefault("pending_contact_phone", phone)
+        await _send_gender_prompt(wa, sessions, phone, hospital_id, new_context, language)
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_NAME, context, language=language)
     await wa.send_text(phone, t(INVALID_PATIENT_NAME, language))
@@ -273,8 +281,13 @@ async def _handle_awaiting_patient_gender(
     find_potential_duplicate_patient()'s own docstring). Re-prompts on an
     unrecognized tap; BACK returns to the age question."""
     if reply["type"] == "interactive_reply" and reply["id"] == BACK_ID:
-        sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_AGE, context, language=language)
-        await wa.send_text(phone, t(ASK_PATIENT_AGE, language, patient_name=context.get("pending_name", "")))
+        if context.get("pending_age") is None:  # the short flow: name -> gender
+            new_context = {k: v for k, v in context.items() if k != "pending_name"}
+            sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_NAME, new_context, language=language)
+            await wa.send_text(phone, t(ASK_PATIENT_NAME, language))
+        else:
+            sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_AGE, context, language=language)
+            await wa.send_text(phone, t(ASK_PATIENT_AGE, language, patient_name=context.get("pending_name", "")))
         if context.get("identity_flow_next") == "manage_patients":
             await _send_back_button(wa, phone, language=language)
         return
@@ -286,7 +299,7 @@ async def _handle_awaiting_patient_gender(
     new_context = {**context, "pending_gender": gender}
     match = connector.find_potential_duplicate_patient(
         hospital_id, new_context["pending_name"], new_context["pending_contact_phone"],
-        new_context["pending_age"], new_context["pending_gender"],
+        new_context.get("pending_age"), new_context["pending_gender"],
     )
     if match is not None and connector.validate_active_patient_link(hospital_id, phone, match["id"]):
         identity_flow_next = context.get("identity_flow_next", "resolve")

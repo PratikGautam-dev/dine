@@ -57,18 +57,15 @@ def _sessions_en(hospital_id, phone=PHONE):
 
 
 async def _register_via_chat(wa, sessions, hospital_id, connector, phone, booking_for_id, name, contact_number=None, age=30):
-    """Drives the real chat flow: "hi" -> Myself/Someone Else -> name ->
-    [contact number, Someone Else only] -> age -> gender -> create."""
-    await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("hi"), connector=connector, enabled_features=["book_doctor_appointment"])
-    await flows.handle_incoming(wa, sessions, phone, hospital_id, tap(booking_for_id), connector=connector, enabled_features=["book_doctor_appointment"])
-    await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply(name), connector=connector, enabled_features=["book_doctor_appointment"])
-    if booking_for_id == patient_identity.BOOKING_FOR_OTHER_ID:
-        await flows.handle_incoming(
-            wa, sessions, phone, hospital_id, text_reply(contact_number), connector=connector, enabled_features=["book_doctor_appointment"],
-        )
-    await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply(str(age)), connector=connector, enabled_features=["book_doctor_appointment"])
+    """Drives the real chat flow: "hi" -> name -> gender -> create. The guest is
+    always registering themselves on the number they message from: there is no
+    Myself/Someone Else, contact-number or age question (the extra arguments are
+    accepted only so older call sites keep working)."""
+    features = ["book_doctor_appointment"]
+    await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("hi"), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply(name), connector=connector, enabled_features=features)
     await flows.handle_incoming(
-        wa, sessions, phone, hospital_id, tap(patient_identity.GENDER_OTHER_ID), connector=connector, enabled_features=["book_doctor_appointment"],
+        wa, sessions, phone, hospital_id, tap(patient_identity.GENDER_OTHER_ID), connector=connector, enabled_features=features,
     )
 
 
@@ -88,56 +85,70 @@ async def test_registering_myself_skips_contact_question_and_uses_messaging_phon
 
 
 @pytest.mark.asyncio
-async def test_registering_someone_else_asks_for_and_stores_their_own_contact_number(hospital_id):
+async def test_registration_asks_only_name_then_gender(hospital_id):
+    """No Myself/Someone Else, no contact number, no age: name -> gender -> done."""
     connector = flows._DEFAULT_CONNECTOR
     wa = FakeWhatsAppClient()
     sessions = _sessions_en(hospital_id)
+    features = ["book_doctor_appointment"]
 
-    await _register_via_chat(
-        wa, sessions, hospital_id, connector, PHONE, patient_identity.BOOKING_FOR_OTHER_ID, "Priya Kumar",
-        contact_number="9876543210",
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("hi"), connector=connector, enabled_features=features)
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_NAME
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Priya Kumar"), connector=connector, enabled_features=features)
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_GENDER
+    await flows.handle_incoming(
+        wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_FEMALE_ID), connector=connector, enabled_features=features,
     )
+    assert sessions.get(hospital_id, PHONE)["state"] == "IDLE"
+
+    asked = " ".join((kw.get("text") or kw.get("body_text") or "").lower() for _, kw in wa.sent)
+    assert "age" not in asked and "contact" not in asked and "myself" not in asked and "someone" not in asked
 
     linked = connector.list_active_patients(hospital_id, PHONE)
-    assert len(linked) == 1
-    assert linked[0]["relationship_label"] == "Other"
+    assert len(linked) == 1 and linked[0]["relationship_label"] == "Self"
     patient = db.get_patient(hospital_id, linked[0]["id"])
-    # stored with the "91" country code prepended, same shape as a messaging phone
-    assert patient["phone"] == "919876543210"
+    assert patient["name"] == "Priya Kumar" and patient["gender"] == "Female"
+    assert patient["age"] is None and patient["phone"] == PHONE
 
 
 @pytest.mark.asyncio
-async def test_invalid_contact_number_is_rejected_and_reprompted(hospital_id):
+async def test_back_from_gender_returns_to_the_name_question(hospital_id):
     connector = flows._DEFAULT_CONNECTOR
     wa = FakeWhatsAppClient()
     sessions = _sessions_en(hospital_id)
-
-    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("hi"), connector=connector, enabled_features=["book_doctor_appointment"])
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap(patient_identity.BOOKING_FOR_OTHER_ID), connector=connector, enabled_features=["book_doctor_appointment"],
-    )
-    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Priya Kumar"), connector=connector, enabled_features=["book_doctor_appointment"])
-    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_CONTACT_PHONE
-
-    # Too short, letters, and a leading zero -- all rejected, state unchanged.
-    for bad in ("12345", "98765abcde", "0123456789"):
-        await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply(bad), connector=connector, enabled_features=["book_doctor_appointment"])
-        assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_CONTACT_PHONE
-
-    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("9876543210"), connector=connector, enabled_features=["book_doctor_appointment"])
-    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_AGE
+    features = ["book_doctor_appointment"]
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("hi"), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Priya Kumar"), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap(patient_identity.BACK_ID), connector=connector, enabled_features=features)
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_NAME
+    assert "pending_name" not in sessions.get(hospital_id, PHONE)["context"]
 
 
 @pytest.mark.asyncio
-async def test_second_registration_from_same_account_skips_the_question_and_locks_to_someone_else(hospital_id):
-    """Soft pre-check (has_self_linked_patient): once an account has a
-    "Myself" patient at this hospital, a later "Add Patient" for that same
-    account never shows the Myself/Someone Else buttons again."""
+async def test_an_invalid_name_is_reprompted_and_gender_is_only_asked_after_a_valid_one(hospital_id):
     connector = flows._DEFAULT_CONNECTOR
     wa = FakeWhatsAppClient()
     sessions = _sessions_en(hospital_id)
-    await _register_via_chat(wa, sessions, hospital_id, connector, PHONE, patient_identity.BOOKING_FOR_SELF_ID, "Ravi Kumar")
+    features = ["book_doctor_appointment"]
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("hi"), connector=connector, enabled_features=features)
+    for bad in ("x", "12345", "!!!"):
+        await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply(bad), connector=connector, enabled_features=features)
+        assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_NAME
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Priya Kumar"), connector=connector, enabled_features=features)
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_GENDER
+
+
+@pytest.mark.asyncio
+async def test_a_phone_holds_a_single_profile_and_a_second_is_refused_up_front(hospital_id):
+    """With the platform limit at 1, "Add Patient" says so straight away -- it does
+    not ask for a name and gender first and only then refuse."""
+    db.update_platform_settings(1, {}, False)
+    connector = flows._DEFAULT_CONNECTOR
+    wa = FakeWhatsAppClient()
+    sessions = _sessions_en(hospital_id)
+    await _register_via_chat(wa, sessions, hospital_id, connector, PHONE, None, "Ravi Kumar")
     sessions.reset(hospital_id, PHONE)
+    wa.sent.clear()
 
     await flows.handle_incoming(
         wa, sessions, PHONE, hospital_id, tap("menu_manage_patients"), connector=connector, enabled_features=["manage_patients"],
@@ -146,25 +157,10 @@ async def test_second_registration_from_same_account_skips_the_question_and_lock
         wa, sessions, PHONE, hospital_id, tap(patient_identity.MANAGE_ADD_ROW_ID),
         connector=connector, enabled_features=["manage_patients"],
     )
-    # Booking_for skipped entirely -- straight to the name question.
-    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_NAME
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, text_reply("Priya Kumar"), connector=connector, enabled_features=["manage_patients"],
-    )
-    # Locked to "Someone Else" -- the contact-number question still fires.
-    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_CONTACT_PHONE
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, text_reply("9876543210"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, text_reply("8"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_OTHER_ID),
-        connector=connector, enabled_features=["manage_patients"],
-    )
-    linked = connector.list_active_patients(hospital_id, PHONE)
-    assert {p["relationship_label"] for p in linked} == {"Self", "Other"}
+    assert sessions.get(hospital_id, PHONE)["state"] != patient_identity.STATE_AWAITING_PATIENT_NAME
+    texts = " ".join(kw.get("text", "") for kind, kw in wa.sent if kind == "text")
+    assert texts.strip(), "the guest must be told why"
+    assert len(connector.list_active_patients(hospital_id, PHONE)) == 1
 
 
 def test_duplicate_detection_matches_on_name_contact_phone_age_and_gender(hospital_id):
@@ -290,47 +286,21 @@ def test_portal_visit_stats_are_correct_for_a_someone_else_patient_booked_under_
 
 @pytest.mark.asyncio
 async def test_patient_list_never_shows_the_self_or_other_relationship_label(hospital_id):
-    """relationship_label ("Self"/"Other") is internal bookkeeping -- it
-    drives the one-Myself-per-account rule and the contact-number question,
-    but must never appear in a patient-facing list row (confirmed with the
-    user)."""
+    """relationship_label ("Self"/"Other") is internal bookkeeping -- it must never
+    appear in a patient-facing list row. (A second profile needs a platform limit
+    above 1, which is not the restaurant setting -- raised here.)"""
+    db.update_platform_settings(5, {}, False)
     connector = flows._DEFAULT_CONNECTOR
     wa = FakeWhatsAppClient()
     sessions = _sessions_en(hospital_id)
-    await _register_via_chat(wa, sessions, hospital_id, connector, PHONE, patient_identity.BOOKING_FOR_SELF_ID, "Chandan")
+    await _register_via_chat(wa, sessions, hospital_id, connector, PHONE, None, "Chandan")
     sessions.reset(hospital_id, PHONE)
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap("menu_manage_patients"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap(patient_identity.MANAGE_ADD_ROW_ID),
-        connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, text_reply("Chandu"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, text_reply("6200876670"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, text_reply("30"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_OTHER_ID),
-        connector=connector, enabled_features=["manage_patients"],
-    )
+    features = ["manage_patients"]
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap("menu_manage_patients"), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap(patient_identity.MANAGE_ADD_ROW_ID), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Chandu"), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_OTHER_ID), connector=connector, enabled_features=features)
     # Adding a patient now lands on the main menu, not a patient list --
     # Manage Patients' own patient list is the Remove Patient screen.
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap("menu_manage_patients"), connector=connector, enabled_features=["manage_patients"],
-    )
-    await flows.handle_incoming(
-        wa, sessions, PHONE, hospital_id, tap(patient_identity.MANAGE_REMOVE_ROW_ID),
-        connector=connector, enabled_features=["manage_patients"],
-    )
-
-    kwargs = _last_list(wa)
-    titles = [row["title"] for section in kwargs["sections"] for row in section["rows"]]
-    assert "Chandan" in titles
-    assert "Chandu" in titles
-    assert not any("Self" in title or "Other" in title for title in titles)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap("menu_manage_patients"), connector=connector, enabled_features=features)
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap(patient_identity.MANAGE_REMOVE_ROW_ID), connector=connector, enabled_features=features)
