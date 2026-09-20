@@ -72,6 +72,9 @@ _NONE = {"view": False, "write": False, "delete": False}
 # only ever the STARTING point for a hospital's admin role, not a floor.
 DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
     "admin": {page: dict(_ALL_TRUE) for page in ALL_PAGES},
+    # Front of House (host / server): works the floor -- reservations, guests, messages
+    # and orders. Reads the menu and the table layout but cannot change either, and can
+    # never delete anything.
     "receptionist": {
         PAGE_DASHBOARD: dict(_VIEW_ONLY),
         PAGE_APPOINTMENTS: dict(_VIEW_WRITE),
@@ -83,10 +86,30 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_ROLES: dict(_NONE),
         PAGE_SCHEDULE: dict(_NONE),
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
+        PAGE_FOOD_MENU: dict(_VIEW_ONLY),
+        PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
+        PAGE_TABLES: dict(_VIEW_ONLY),
+    },
+    # Kitchen Staff: works the orders and the menu's availability (sold out / stock).
+    # Sees today's reservations and the table layout for prep, never guest records,
+    # messages, staff or settings.
+    "kitchen": {
+        PAGE_DASHBOARD: dict(_VIEW_ONLY),
+        PAGE_APPOINTMENTS: dict(_VIEW_ONLY),
+        PAGE_PATIENTS: dict(_NONE),
+        PAGE_MESSAGES: dict(_NONE),
+        PAGE_DOCTORS: dict(_NONE),
+        PAGE_SETTINGS: dict(_NONE),
+        PAGE_STAFF: dict(_NONE),
+        PAGE_ROLES: dict(_NONE),
+        PAGE_SCHEDULE: dict(_NONE),
+        PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
         PAGE_FOOD_MENU: dict(_VIEW_WRITE),
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
-        PAGE_TABLES: dict(_VIEW_WRITE),
+        PAGE_TABLES: dict(_VIEW_ONLY),
     },
+    # Legacy: the old "table manager" login role from the clinic product. Not offered for
+    # restaurants any more; kept so any existing row still resolves.
     "doctor": {
         PAGE_DASHBOARD: dict(_VIEW_ONLY),
         PAGE_APPOINTMENTS: dict(_VIEW_WRITE),
@@ -96,10 +119,6 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_SETTINGS: dict(_NONE),
         PAGE_STAFF: dict(_NONE),
         PAGE_ROLES: dict(_NONE),
-        # Own-schedule self-service (working days/hours/breaks/leave) --
-        # off by default for admin/receptionist, toggleable via Roles &
-        # Permissions since admin already manages any doctor's schedule
-        # through /portal/doctors regardless.
         PAGE_SCHEDULE: dict(_VIEW_WRITE),
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
         PAGE_FOOD_MENU: dict(_NONE),
@@ -107,6 +126,12 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_TABLES: dict(_NONE),
     },
 }
+
+# Roles a restaurant can assign today (Owner/Manager, Front of House, Kitchen Staff), in
+# display order. "doctor" is legacy and deliberately not listed.
+ASSIGNABLE_ROLES = ("admin", "receptionist", "kitchen")
+# Every stored role value the database accepts (assignable + legacy).
+VALID_ROLES = ("admin", "receptionist", "kitchen", "doctor")
 
 
 def resolve_default_permissions(role: str) -> dict[str, dict[str, bool]]:

@@ -104,8 +104,7 @@ Required for the bot to start:
 - `WHATSAPP_ACCESS_TOKEN` + `WHATSAPP_PHONE_NUMBER_ID` + `WHATSAPP_APP_SECRET` — [Meta Developer Portal](https://developers.facebook.com/)
 - `WHATSAPP_VERIFY_TOKEN` — any string you choose (must match the webhook config in Meta's dashboard)
 - `INTERNAL_SECRET` — protects `/internal/send-reminders` (the cron-triggered reminder endpoint)
-- `ADMIN_SECRET` — gates onboarding a _new_ restaurant via the wizard
-- `TENANTS_ADMIN_SECRET` — gates the platform-wide tenant list/edit pages, deliberately separate from `ADMIN_SECRET` so a leaked onboarding secret can't also expose every existing tenant's stored credentials
+- Platform-operator access (onboarding a restaurant, the tenant list/edit pages) is an individual super-admin login, not a shared secret -- the old `ADMIN_SECRET` / `TENANTS_ADMIN_SECRET` variables no longer exist and can be deleted from your environment.
 - `PORTAL_SECRET`, `AUTH_SECRET`, `DOCTOR_SECRET`, `JWT_SECRET`, `SUPER_ADMIN_JWT_SECRET` — sign the various portal/staff/super-admin session tokens, each deliberately separate so a leaked one can't forge another
 
 Optional:

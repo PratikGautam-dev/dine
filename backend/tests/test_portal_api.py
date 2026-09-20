@@ -47,6 +47,7 @@ os.environ.setdefault("PORTAL_SECRET", "test-portal-secret")
 
 from main import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from tests.portal_login import portal_login  # noqa: E402
 
 client = TestClient(app)
 
@@ -77,7 +78,7 @@ def _set_hospital_creds(hospital_id: int, *, password: str, phone_number_id: str
 
 
 def _login(password: str) -> str:
-    resp = client.post("/api/portal/login", json={"password": password})
+    resp = portal_login(client, password)
     assert resp.status_code == 200, resp.text
     return resp.json()["token"]
 

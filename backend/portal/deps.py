@@ -26,47 +26,15 @@ def _hospital_summary(hospital) -> dict:
 
 
 def _authenticate(authorization: str | None):
-    """Returns the Hospital for a valid 'Bearer <token>' header, or None.
+    """Returns the Hospital of a valid staff login ('Bearer <staff JWT>'), or None.
 
-    RBAC (docs/rbac-redis-plan.md): the vast majority of portal/routes/*.py
-    files (settings, patients, dashboard, doctors, appointment_types,
-    daycare_duration_options, documents, bookings, handoffs) were written
-    against ONLY this function, before staff_users/JWTs existed, and every
-    one of them just needs a Hospital -- none of them call
-    require_permission(), only (some of them) require_capability(), which is
-    the orthogonal tenant-level gate and is untouched by any of this. Rather
-    than touching every one of those route files to also try
-    get_current_staff(), this function itself now accepts EITHER token: the
-    legacy shared-hospital-password session (_verify_session, tried first
-    since it's cheaper -- no DB round trip) OR a staff JWT (verify_access_token),
-    resolved to that staff member's hospital. This is what makes logging in
-    through the NEW unified staff login work on every existing route
-    immediately, not just the handful (doctor_portal.py, staff_auth.py,
-    roles.py, staff.py) written against get_current_staff() directly.
-
-    Deliberately loses role/doctor_id granularity here -- a staff JWT
-    authenticated through this path is only ever a Hospital, same as the old
-    shared-password token always was, so a receptionist or doctor logging in
-    still gets whatever these NOT-yet-permission-gated routes always granted
-    every authenticated caller. That's an accepted gap for this rollout
-    phase (docs/rbac-redis-plan.md's Phase 6 cleanup is what tightens these
-    routes to require_permission() one at a time), not a regression -- it's
-    exactly the access level the legacy shared password already gave
-    everyone at this hospital."""
-    if not authorization or not authorization.startswith("Bearer "):
-        return None
-    token = authorization.removeprefix("Bearer ").strip()
-    hospital_id = _verify_session(token)
-    if hospital_id is not None:
-        return db.get_hospital(hospital_id)
-
-    claims = verify_access_token(token, expected_typ="staff")
-    if claims is None:
-        return None
-    staff = db.get_staff_user_by_id(claims["sub"])
-    if staff is None or not staff["is_active"] or staff["token_version"] != claims["tv"]:
-        return None
-    return db.get_hospital(staff["hospital_id"])
+    Authentication only -- it says WHO the caller's restaurant is, not what they may do.
+    Every portal route uses authorize() below, which also checks the caller's role
+    against the page and action the route belongs to. The old shared-hospital-password
+    session is no longer accepted anywhere: it carried no role, so it passed every check.
+    A platform (super-admin) token is a different token type and is refused here too."""
+    principal = get_current_staff(authorization)
+    return principal.hospital if principal is not None else None
 
 
 def _authenticate_with_role(authorization: str | None):
@@ -186,6 +154,28 @@ def require_permission(principal: StaffPrincipal, page_key: str, action: str) ->
             {"error": f"Your role does not have '{action}' access to '{page_key}'."}, status_code=403,
         )
     return None
+
+
+def authorize(authorization: str | None, page_key: str, action: str):
+    """The one guard every portal route calls:
+
+        principal, error = authorize(authorization, "food_menu", "write")
+        if error:
+            return error
+        hospital = principal.hospital
+
+    Returns (principal, None) when the caller is a signed-in staff member whose role holds
+    `action` (view | write | delete) on `page_key`; otherwise (None, JSONResponse) with a
+    401 (not signed in / deactivated / wrong token type) or a 403 (role lacks access).
+    The restaurant always comes from the caller's own staff row, never from the request,
+    so an authorised caller can only ever reach their own restaurant's data."""
+    principal = get_current_staff(authorization)
+    if principal is None:
+        return None, JSONResponse({"error": "Not authenticated."}, status_code=401)
+    forbidden = require_permission(principal, page_key, action)
+    if forbidden is not None:
+        return None, forbidden
+    return principal, None
 
 
 def get_current_super_admin(authorization: str | None):

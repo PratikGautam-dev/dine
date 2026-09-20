@@ -58,8 +58,6 @@ class Settings(BaseSettings):
     WHATSAPP_VERIFY_TOKEN: str | None = None
 
     INTERNAL_SECRET: str = ""
-    ADMIN_SECRET: str = ""
-    TENANTS_ADMIN_SECRET: str = ""
     PORTAL_SECRET: str = ""
     AUTH_SECRET: str = ""
     # Dedicated doctor-login session token (auth/doctor_session.py) -- its own

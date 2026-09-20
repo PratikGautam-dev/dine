@@ -117,39 +117,52 @@ def test_limiter_lockout_expires_after_window_passes(monkeypatch):
     assert limiter.is_locked_out("k") is False
 
 
-# --- Portal login (HTML + JSON share one lockout counter per IP) ---
+# --- Portal staff login (one lockout counter per IP) ---
+
+_STAFF_EMAIL = "lockout.staff@example.com"
+_STAFF_PASSWORD = "correct-horse-battery-staple"
 
 
-def test_portal_login_locks_out_after_max_attempts(hospital_id):
-    _set_portal_password(hospital_id, "correct-horse-battery-staple")
+def _staff_login(password: str):
+    return client.post("/api/portal/staff/login", json={"email": _STAFF_EMAIL, "password": password})
+
+
+def _make_staff(hospital_id: int) -> None:
+    db.create_staff_user(hospital_id, "admin", _STAFF_EMAIL, db.hash_portal_password(_STAFF_PASSWORD), "Lockout Staff")
+
+
+def test_staff_login_locks_out_after_max_attempts(hospital_id):
+    _make_staff(hospital_id)
     for _ in range(rate_limit.DEFAULT_MAX_ATTEMPTS):
-        resp = client.post("/api/portal/login", json={"password": "wrong"})
-        assert resp.status_code == 403
+        assert _staff_login("wrong").status_code == 401
 
-    locked = client.post("/api/portal/login", json={"password": "wrong"})
-    assert locked.status_code == 429
+    assert _staff_login("wrong").status_code == 429
 
     # Locked out blocks even the CORRECT password -- not just repeats of the wrong one.
-    still_locked = client.post("/api/portal/login", json={"password": "correct-horse-battery-staple"})
+    still_locked = _staff_login(_STAFF_PASSWORD)
     assert still_locked.status_code == 429
-    assert "token" not in still_locked.json()
+    assert "access_token" not in still_locked.json()
 
 
-def test_portal_login_success_resets_failure_count(hospital_id):
-    _set_portal_password(hospital_id, "correct-horse-battery-staple")
-    # A couple of wrong guesses (well under the threshold)...
-    client.post("/api/portal/login", json={"password": "wrong"})
-    client.post("/api/portal/login", json={"password": "wrong"})
-    # ...then a correct one.
-    ok = client.post("/api/portal/login", json={"password": "correct-horse-battery-staple"})
-    assert ok.status_code == 200
+def test_staff_login_success_resets_failure_count(hospital_id):
+    _make_staff(hospital_id)
+    _staff_login("wrong")
+    _staff_login("wrong")
+    assert _staff_login(_STAFF_PASSWORD).status_code == 200
 
-    # If the earlier failures hadn't been cleared, only
-    # (DEFAULT_MAX_ATTEMPTS - 2) more wrong guesses would be allowed before
-    # lockout. Prove the full budget is available again.
+    # If the earlier failures hadn't been cleared, only (DEFAULT_MAX_ATTEMPTS - 2) more wrong
+    # guesses would be allowed before lockout. Prove the full budget is available again.
     for _ in range(rate_limit.DEFAULT_MAX_ATTEMPTS):
-        resp = client.post("/api/portal/login", json={"password": "still-wrong"})
-        assert resp.status_code == 403, "locked out earlier than a fresh counter should allow"
+        assert _staff_login("still-wrong").status_code == 401, "locked out earlier than a fresh counter should allow"
+
+
+def test_the_retired_shared_password_login_no_longer_signs_anyone_in(hospital_id):
+    """The shared portal password carried no role, so it bypassed every permission check.
+    It is retired: even the correct password gets no session."""
+    _set_portal_password(hospital_id, "shared-password-123")
+    resp = client.post("/api/portal/login", json={"password": "shared-password-123"})
+    assert resp.status_code == 410
+    assert "token" not in resp.json()
 
 
 # --- RBAC (docs/rbac-redis-plan.md): admin/onboarding_api.py's ADMIN_SECRET
@@ -201,18 +214,3 @@ def test_super_admin_login_correct_password_still_works_before_lockout():
     assert "access_token" in resp.json()
 
 
-# --- Timing-safe comparison: functional correctness (the actual timing
-# property is what hmac.compare_digest guarantees; this confirms the
-# comparison is wired correctly, not just that some comparison exists).
-# admin/onboarding.py's check_admin_secret() is dead code post-migration
-# (Phase 6 cleanup deletes it), still covered here since it still exists
-# and still guards the "" (unset) case the same way. ---
-
-
-def test_admin_secret_empty_env_value_never_authenticates(monkeypatch):
-    import admin.onboarding as onboarding
-
-    monkeypatch.setattr(onboarding, "ADMIN_SECRET", "")
-    # hmac.compare_digest("", "") is True -- the bool(ADMIN_SECRET) guard is
-    # what prevents an unset secret from accepting a blank guess.
-    assert onboarding.check_admin_secret("", request=None) is False

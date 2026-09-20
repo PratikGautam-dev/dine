@@ -9,7 +9,6 @@ import pytest
 # once per process. conftest.py is guaranteed to load before every test module
 # in this directory, so this is the one place that setting can't lose a race
 # against which test file pytest happens to collect first.
-os.environ.setdefault("ADMIN_SECRET", "test-admin-secret")
 # Section 15: same reasoning as ADMIN_SECRET above -- user_auth.py reads this
 # at import time (core.main imports it), so it must be set before that
 # first import too.

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
-from portal.deps import _authenticate, _authenticate_with_role
+from portal.deps import _authenticate, _authenticate_with_role, authorize
 from portal.routes.bookings import _appointment_json
 
 router = APIRouter()
@@ -12,9 +12,11 @@ router = APIRouter()
 async def portal_patients(search: str = "", authorization: str | None = Header(default=None)):
     """Scoped to only patients the caller has actually seen when
     role=="doctor" -- see portal_bookings()'s own note on why."""
-    hospital, role, doctor_id = _authenticate_with_role(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "patients", "view")
+    if error:
+        return error
+    hospital = principal.hospital
+    role, doctor_id = principal.role, principal.doctor_id
     if role == "doctor" and doctor_id is not None:
         patients = db.get_patients_for_doctor(hospital.id, doctor_id)
         if search:
@@ -33,9 +35,10 @@ async def portal_delete_patients(payload: dict, authorization: str | None = Head
     FastAPI matches routes in registration order, and a later registration
     here would let POST /api/portal/patients/{patient_id} match "delete" as
     a patient_id string first, failing int coercion with a 422."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "patients", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     patient_ids = (payload or {}).get("patient_ids") or []
     if not isinstance(patient_ids, list) or not patient_ids:
         return JSONResponse({"error": "patient_ids is required."}, status_code=400)
@@ -76,9 +79,11 @@ async def portal_patient_detail(patient_id: int, authorization: str | None = Hea
     as a patient that doesn't exist at all, never a 403 that would confirm
     the record exists at this hospital (mirrors doctor_patient_detail() in
     doctor_portal.py)."""
-    hospital, role, doctor_id = _authenticate_with_role(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "patients", "view")
+    if error:
+        return error
+    hospital = principal.hospital
+    role, doctor_id = principal.role, principal.doctor_id
     patient = db.get_patient(hospital.id, patient_id)
     if patient is None:
         return JSONResponse({"error": "No such patient."}, status_code=404)
@@ -99,9 +104,10 @@ async def portal_patient_detail(patient_id: int, authorization: str | None = Hea
 
 @router.post("/api/portal/patients/{patient_id}")
 async def portal_update_patient(patient_id: int, payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "patients", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     updated = db.update_patient_demographics(
         hospital.id, patient_id,
         date_of_birth=(payload or {}).get("date_of_birth") or None,
@@ -128,9 +134,10 @@ async def portal_set_patient_status(patient_id: int, payload: dict, authorizatio
     18: staff-side way to block/reactivate a patient record -- a hospital-
     level fact about the PATIENT, independent of any phone's own link to
     them (db.set_patient_status()'s own docstring). "active" un-blocks."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "patients", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     status = (payload or {}).get("status")
     if status not in db.PATIENT_STATUSES:
         return JSONResponse({"error": f"status must be one of {db.PATIENT_STATUSES}."}, status_code=400)

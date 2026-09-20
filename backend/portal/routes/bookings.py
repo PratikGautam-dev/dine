@@ -9,7 +9,7 @@ import db.repository as db
 from auth.session import _build_new_booking_context
 from core.whatsapp import WhatsAppClient
 from db.connection import IntegrityError
-from portal.deps import _authenticate, _authenticate_with_role, get_current_staff, require_permission
+from portal.deps import _authenticate, _authenticate_with_role, get_current_staff, require_permission, authorize
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -106,9 +106,11 @@ async def portal_bookings(authorization: str | None = Header(default=None)):
     """Scoped to the caller's own appointments when role=="doctor" -- this
     route is now shared by the doctor portal too, and a doctor must never
     see another doctor's patients/appointments through it."""
-    hospital, role, doctor_id = _authenticate_with_role(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "view")
+    if error:
+        return error
+    hospital = principal.hospital
+    role, doctor_id = principal.role, principal.doctor_id
     if role == "doctor" and doctor_id is not None:
         appointments = db.get_doctor_appointments(hospital.id, doctor_id)
     else:
@@ -123,9 +125,10 @@ async def portal_bookings_needing_attendance_review(authorization: str | None = 
     passed but are still status='booked' -- the real, staff-actionable list
     behind the dashboard's existing no-show heuristic, for the appointments
     page to prompt "Did the patient visit?" against."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     appointments = db.get_appointments_needing_attendance_review(hospital.id)
     return JSONResponse({"appointments": [_appointment_json(a) for a in appointments]})
 
@@ -142,9 +145,10 @@ async def portal_delete_bookings(payload: dict, authorization: str | None = Head
     a still-booked id in the batch is silently skipped (not included in
     `deleted`), same as portal_delete_booking()'s single-item 400 but
     without failing the whole batch over one row."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment_ids = (payload or {}).get("appointment_ids") or []
     if not isinstance(appointment_ids, list) or not appointment_ids:
         return JSONResponse({"error": "appointment_ids is required."}, status_code=400)
@@ -166,9 +170,10 @@ async def portal_mark_attendance(
     WHERE status='booked' guard makes re-marking an already-resolved
     appointment (or a wrong-hospital/nonexistent one) a clean 404, not a
     silent overwrite."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     if "attended" not in (payload or {}):
         return JSONResponse({"error": "attended (true/false) is required."}, status_code=400)
     attended = bool(payload["attended"])
@@ -189,9 +194,10 @@ async def portal_delete_booking(appointment_id: int, authorization: str | None =
     standing never-hard-delete-appointments convention -- db.soft_delete_
     appointment()'s own guard refuses a still-'booked' row (cancel it
     first), surfaced here as a clear 400 rather than a generic failure."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
         return JSONResponse({"error": "No such reservation."}, status_code=404)
@@ -228,9 +234,10 @@ async def _notify_patient_best_effort(hospital, phone: str, message: str, appoin
 async def portal_procedure_approval_queue(authorization: str | None = Header(default=None)):
     """The staff approval-queue list -- procedure_status IN
     ('REQUESTED','UNDER_REVIEW') for this hospital."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     appointments = db.get_all_appointments_for_hospital(hospital.id)
     queue = [
         _appointment_json(a) for a in appointments
@@ -247,9 +254,10 @@ async def portal_approve_procedure_request(appointment_id: int, authorization: s
     "Procedure Approved" (spec's exact text) -- the patient resumes booking
     by messaging in and tapping Book Appointment again, same as any other
     unfinished booking."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_status not in ("REQUESTED", "UNDER_REVIEW"):
         return JSONResponse({"error": "No such pending procedure request."}, status_code=404)
@@ -267,9 +275,10 @@ async def portal_approve_procedure_request(appointment_id: int, authorization: s
 
 @router.post("/api/portal/bookings/{appointment_id}/procedure/reject")
 async def portal_reject_procedure_request(appointment_id: int, payload: dict | None = None, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_status not in ("REQUESTED", "UNDER_REVIEW"):
         return JSONResponse({"error": "No such pending procedure request."}, status_code=404)
@@ -294,9 +303,10 @@ async def portal_advance_procedure_status(appointment_id: int, payload: dict, au
     COMPLETED (post-visit), same linear forward-map shape as
     portal_advance_lab_status; or an explicit cancel (payload =
     {"status": "CANCELLED"}), valid from any non-terminal procedure_status."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_status is None:
         return JSONResponse({"error": "No such procedure appointment."}, status_code=404)
@@ -324,9 +334,10 @@ async def portal_approve_procedure_reschedule(appointment_id: int, authorization
     the target span is STILL free via confirm_procedure_appointment()'s own
     advisory-locked reservation (a race is possible if another booking took
     it meanwhile, surfaced as a 409)."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_reschedule_requested_at is None:
         return JSONResponse({"error": "No pending reschedule request for this reservation."}, status_code=404)
@@ -346,9 +357,10 @@ async def portal_approve_procedure_reschedule(appointment_id: int, authorization
 
 @router.post("/api/portal/bookings/{appointment_id}/procedure/reschedule-request/reject")
 async def portal_reject_procedure_reschedule(appointment_id: int, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None or appointment.procedure_reschedule_requested_at is None:
         return JSONResponse({"error": "No pending reschedule request for this reservation."}, status_code=404)
@@ -408,9 +420,10 @@ async def portal_cancel_booking(
     one write in the app that bypassed it, which would have silently
     "succeeded" against the local DB only for a Tier 2/3 hospital instead of
     ever touching that hospital's real external system."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
         return JSONResponse({"error": "No such reservation."}, status_code=404)
@@ -455,9 +468,10 @@ async def portal_reassign_table(
     same "never bypass the connector interface" discipline cancel/reschedule
     above already follow -- db/repositories/tables.py::reassign_table() does
     the actual re-check-under-lock work."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
 
     new_table_id = (payload.get("table_id") or "").strip()
     if not new_table_id:
@@ -503,9 +517,10 @@ async def portal_reschedule_booking(
     the portal surfaces it as a plain 400 rather than an alternate-slot
     picker, since staff can just pick a different slot from the same form
     and resubmit, unlike a WhatsApp conversation mid-flow)."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is None:
         return JSONResponse({"error": "No such reservation."}, status_code=404)
@@ -583,9 +598,10 @@ async def portal_reschedule_booking(
 
 @router.get("/api/portal/new-booking/context")
 async def portal_new_booking_context(authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     departments, doctors_by_department, slots_by_doctor = _build_new_booking_context(hospital)
     return JSONResponse({
         "departments": departments,
@@ -609,9 +625,10 @@ async def portal_new_booking_table_slots(
 
     exclude_appointment_id: rescheduling an existing reservation -- it must not
     block its own new time."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     if party_size < 1:
         return JSONResponse({"error": "party_size must be at least 1."}, status_code=400)
     connector = connectors.get_connector_for_hospital(hospital)
@@ -623,9 +640,10 @@ async def portal_new_booking_table_slots(
 
 @router.post("/api/portal/new-booking")
 async def portal_create_new_booking(payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
 
     # Defaults to "doctor" (unchanged pre-existing behavior) when omitted --
     # the new frontend always sends this explicitly now (Table Reservation

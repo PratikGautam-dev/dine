@@ -9,8 +9,7 @@ server-rendered HTML wizard and HTML tenant list/edit pages -- genuinely
 redundant once the Next.js versions existed, so removed. What's left:
 
 1. Shared validation/parsing helpers still specific to onboarding/tenant-admin
-   (_build_departments, _build_faq_topics, _mask_secret, check_admin_secret/
-   ADMIN_SECRET, _VALID_TIERS) -- imported directly by admin/onboarding_api.py
+   (_build_departments, _build_faq_topics, _mask_secret, _VALID_TIERS) -- imported directly by admin/onboarding_api.py
    and admin/tenants_api.py, so this module stays even though its own HTML
    routes don't. The genuinely generic field validators used well outside
    admin/ too (_validate_doctor_fields, _parse_offsets) now live in
@@ -21,12 +20,9 @@ redundant once the Next.js versions existed, so removed. What's left:
    backend's own URL bookmarked. No forms, no state, nothing to keep in
    sync with the JSON API's own validation.
 """
-import hmac
-
 from fastapi import APIRouter, Request
 from fastapi.responses import HTMLResponse
 
-import core.rate_limit as rate_limit
 from admin.theme import STYLE as _STYLE
 from admin.validation import _validate_doctor_fields
 from core.config import get_settings
@@ -35,25 +31,6 @@ router = APIRouter()
 
 _settings = get_settings()
 FRONTEND_ORIGIN = _settings.FRONTEND_ORIGIN
-
-ADMIN_SECRET = _settings.ADMIN_SECRET
-
-
-def check_admin_secret(secret: str, request: Request) -> bool:
-    """Timing-safe (hmac.compare_digest) and rate-limited (audit follow-up,
-    Spec.md Section 0) -- shared by every ADMIN_SECRET check in this module
-    plus admin/onboarding_api.py's JSON equivalent, so the lockout is one
-    counter per caller IP regardless of which of the two entry points
-    (HTML wizard vs JSON API) they're hitting."""
-    key = rate_limit.client_key("admin_secret", request)
-    if rate_limit.is_locked_out(key):
-        return False
-    ok = bool(ADMIN_SECRET) and hmac.compare_digest(secret or "", ADMIN_SECRET)
-    if ok:
-        rate_limit.reset(key)
-    else:
-        rate_limit.record_failure(key)
-    return ok
 
 _VALID_TIERS = {"tier1", "tier2", "tier3"}
 
@@ -188,7 +165,7 @@ def _button_page(eyebrow: str, title: str, description: str, button_label: str, 
 @router.get("/admin/onboard-hospital", response_class=HTMLResponse)
 async def admin_page(request: Request):
     """Minimal entry point -- the real guided wizard (Google sign-in +
-    ADMIN_SECRET, Section 15) lives at {FRONTEND_ORIGIN}/auth. Ungated:
+    a platform super-admin login, Section 15) lives at {FRONTEND_ORIGIN}/auth. Ungated:
     there's nothing sensitive on this page, only a link onward to where the
     real gates are enforced."""
     return _button_page(
@@ -199,8 +176,8 @@ async def admin_page(request: Request):
 
 @router.get("/admin/tenants", response_class=HTMLResponse)
 async def superadmin_page(request: Request):
-    """Minimal entry point -- the real tenant list/edit UI (gated by
-    TENANTS_ADMIN_SECRET, admin/tenants_api.py) lives at
+    """Minimal entry point -- the real tenant list/edit UI (gated by a
+    platform super-admin login, admin/tenants_api.py) lives at
     {FRONTEND_ORIGIN}/admin/tenants. Ungated here for the same reason as
     admin_page() above -- this page itself shows nothing sensitive."""
     return _button_page(

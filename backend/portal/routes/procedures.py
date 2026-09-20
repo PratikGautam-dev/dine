@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 
 import db.repository as db
 from portal.capabilities import MANAGE_PROCEDURES
-from portal.deps import _authenticate, require_capability
+from portal.deps import _authenticate, require_capability, authorize
 
 router = APIRouter()
 
@@ -59,17 +59,19 @@ class ProcedureResourcePayload(BaseModel):
 
 @router.get("/api/portal/procedures")
 async def portal_procedures(authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     return JSONResponse({"procedures": db.get_all_procedures_for_hospital(hospital.id)})
 
 
 @router.post("/api/portal/procedures")
 async def portal_create_procedure(payload: ProcedurePayload, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -96,9 +98,10 @@ async def portal_create_procedure(payload: ProcedurePayload, authorization: str 
 
 @router.put("/api/portal/procedures/{procedure_id}")
 async def portal_update_procedure(procedure_id: int, payload: ProcedurePayload, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -125,9 +128,10 @@ async def portal_update_procedure(procedure_id: int, payload: ProcedurePayload, 
 
 @router.post("/api/portal/procedures/{procedure_id}/active")
 async def portal_set_procedure_active(procedure_id: int, payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -144,9 +148,10 @@ async def portal_set_procedure_active(procedure_id: int, payload: dict, authoriz
 
 @router.delete("/api/portal/procedures/{procedure_id}")
 async def portal_delete_procedure(procedure_id: int, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -161,9 +166,10 @@ async def portal_delete_procedure(procedure_id: int, authorization: str | None =
 
 @router.post("/api/portal/procedures/{procedure_id}/required-resource-types")
 async def portal_set_required_resource_types(procedure_id: int, payload: ResourceTypesPayload, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -182,9 +188,10 @@ async def portal_set_required_resource_types(procedure_id: int, payload: Resourc
 
 @router.post("/api/portal/procedures/{procedure_id}/instructions")
 async def portal_create_instruction(procedure_id: int, payload: InstructionPayload, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -199,9 +206,10 @@ async def portal_create_instruction(procedure_id: int, payload: InstructionPaylo
 
 @router.delete("/api/portal/procedures/instructions/{instruction_id}")
 async def portal_delete_instruction(instruction_id: int, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -215,17 +223,19 @@ async def portal_delete_instruction(instruction_id: int, authorization: str | No
 
 @router.get("/api/portal/procedure-resources")
 async def portal_procedure_resources(resource_type: str | None = None, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     return JSONResponse({"resources": db.get_all_procedure_resources_for_hospital(hospital.id, resource_type=resource_type)})
 
 
 @router.post("/api/portal/procedure-resources")
 async def portal_create_procedure_resource(payload: ProcedureResourcePayload, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -250,9 +260,10 @@ async def portal_create_procedure_resource(payload: ProcedureResourcePayload, au
 
 @router.get("/api/portal/procedure-resources/{resource_id}")
 async def portal_get_procedure_resource(resource_id: str, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     resource = db.get_procedure_resource_full(hospital.id, resource_id)
     if resource is None:
         return JSONResponse({"error": "No such resource."}, status_code=404)
@@ -261,9 +272,10 @@ async def portal_get_procedure_resource(resource_id: str, authorization: str | N
 
 @router.put("/api/portal/procedure-resources/{resource_id}")
 async def portal_update_procedure_resource(resource_id: str, payload: ProcedureResourcePayload, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -290,9 +302,10 @@ async def portal_update_procedure_resource(resource_id: str, payload: ProcedureR
 
 @router.post("/api/portal/procedure-resources/{resource_id}/active")
 async def portal_set_procedure_resource_active(resource_id: str, payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -309,9 +322,10 @@ async def portal_set_procedure_resource_active(resource_id: str, payload: dict, 
 
 @router.delete("/api/portal/procedure-resources/{resource_id}")
 async def portal_delete_procedure_resource(resource_id: str, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -323,9 +337,10 @@ async def portal_delete_procedure_resource(resource_id: str, authorization: str 
 
 @router.get("/api/portal/procedure-resources/{resource_id}/leave")
 async def portal_get_procedure_resource_leave(resource_id: str, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     if db.get_procedure_resource_full(hospital.id, resource_id) is None:
         return JSONResponse({"error": "No such resource."}, status_code=404)
     return JSONResponse({"leave_dates": db.get_procedure_resource_leave_dates(hospital.id, resource_id)})
@@ -333,9 +348,10 @@ async def portal_get_procedure_resource_leave(resource_id: str, authorization: s
 
 @router.post("/api/portal/procedure-resources/{resource_id}/leave")
 async def portal_add_procedure_resource_leave(resource_id: str, payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden
@@ -351,9 +367,10 @@ async def portal_add_procedure_resource_leave(resource_id: str, payload: dict, a
 
 @router.post("/api/portal/procedure-resources/{resource_id}/leave/remove")
 async def portal_remove_procedure_resource_leave(resource_id: str, payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, MANAGE_PROCEDURES)
     if forbidden:
         return forbidden

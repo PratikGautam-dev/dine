@@ -13,9 +13,10 @@ import { usePermission, useStaffSession, type StaffRole } from "@/lib/staffAuth"
 import { useStaffManagement } from "@/hooks/useStaffManagement";
 
 const ROLE_LABEL: Record<StaffRole, string> = {
-  admin: "Admin",
-  receptionist: "Host / Reception",
-  doctor: "Staff member",
+  admin: "Owner / Manager",
+  receptionist: "Front of House",
+  kitchen: "Kitchen Staff",
+  doctor: "Table manager (legacy)",
 };
 
 export default function StaffManagementPage() {
@@ -87,9 +88,9 @@ export default function StaffManagementPage() {
                   onChange={(e) => setRole(e.target.value as StaffRole)}
                   className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
                 >
-                  <option value="admin">Admin</option>
-                  <option value="receptionist">Host / Reception</option>
-                  <option value="doctor">Staff member</option>
+                  <option value="admin">Owner / Manager</option>
+                  <option value="receptionist">Front of House</option>
+                  <option value="kitchen">Kitchen Staff</option>
                 </select>
               </Field>
               {role === "doctor" && (

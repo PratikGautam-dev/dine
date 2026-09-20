@@ -707,7 +707,7 @@ def init_db_on_connection(conn) -> int:
         "CREATE TABLE IF NOT EXISTS staff_users ("
         "id SERIAL PRIMARY KEY, "
         "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
-        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'doctor')), "
+        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor')), "
         "email TEXT NOT NULL, "
         "password_hash TEXT NOT NULL, "
         "name TEXT NOT NULL, "
@@ -732,7 +732,7 @@ def init_db_on_connection(conn) -> int:
         "CREATE TABLE IF NOT EXISTS role_permissions ("
         "id SERIAL PRIMARY KEY, "
         "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
-        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'doctor')), "
+        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor')), "
         "page_key TEXT NOT NULL, "
         "can_view BOOLEAN NOT NULL DEFAULT FALSE, "
         "can_write BOOLEAN NOT NULL DEFAULT FALSE, "
@@ -782,7 +782,7 @@ def init_db_on_connection(conn) -> int:
         "CREATE TABLE IF NOT EXISTS staff_details ("
         "identity_id INTEGER PRIMARY KEY REFERENCES identities(id), "
         "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
-        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'doctor')), "
+        "role TEXT NOT NULL CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor')), "
         "doctor_id TEXT REFERENCES doctors(id)"
         ")"
     )
@@ -1420,6 +1420,18 @@ def init_db_on_connection(conn) -> int:
 
     # Migration 0033 -- menu photos (pasted link) and pay-at-restaurant orders
     # (payment_method + the 'placed' status, whose CHECK is widened above).
+    # Migration 0034 -- the 'kitchen' role. Named constraints replace whichever auto-named /
+    # older one the table was created with, so an existing database accepts it too.
+    for table, names in (
+        ("staff_details", ("ck_staff_details_role", "staff_details_role_check")),
+        ("role_permissions", ("ck_role_permissions_role", "role_permissions_role_check")),
+    ):
+        for name in names:
+            conn.execute(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {name}")
+        conn.execute(
+            f"ALTER TABLE {table} ADD CONSTRAINT {names[0]} "
+            "CHECK (role IN ('admin', 'receptionist', 'kitchen', 'doctor'))"
+        )
     conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url TEXT")
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'online'")
     conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_payment_method_check")

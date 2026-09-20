@@ -8,7 +8,7 @@ import db.repository as db
 from core.translations import SUPPORTED_LANGUAGES
 from db.repositories.handoffs import DEFAULT_HANDOFF_AUTO_RESOLVE_HOURS
 from db.repositories.hospital_settings import DEFAULT_FOLLOWUP_VALIDITY_DAYS
-from portal.deps import _authenticate, get_current_staff, require_capability, require_permission
+from portal.deps import _authenticate, get_current_staff, require_capability, require_permission, authorize
 
 router = APIRouter()
 
@@ -51,9 +51,10 @@ _MAX_FEE = 1_000_000
 
 @router.get("/api/portal/settings")
 async def portal_get_settings(authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     hospital_settings = db.get_hospital_settings(hospital.id)
     return JSONResponse(
         {
@@ -106,9 +107,10 @@ async def portal_get_settings(authorization: str | None = Header(default=None)):
 
 @router.post("/api/portal/settings")
 async def portal_update_settings(payload: dict, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
 
     # Section 12.13 validation -- a clear 400 instead of a raw DB error/silent
     # bad value.
@@ -244,9 +246,10 @@ async def portal_update_restaurant_hours(payload: dict, authorization: str | Non
     function itself supports a list, but one range is enough to unblock a
     freshly onboarded hospital's WhatsApp table booking, which is the actual
     gap this closes)."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, "manage_settings")
     if forbidden:
         return forbidden
@@ -293,9 +296,10 @@ async def portal_audit_log(authorization: str | None = Header(default=None)):
     route instead). Gated by manage_settings, same capability that already
     gates this file's own settings-update route, rather than inventing a
     new one just for reading history."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, "manage_settings")
     if forbidden:
         return forbidden

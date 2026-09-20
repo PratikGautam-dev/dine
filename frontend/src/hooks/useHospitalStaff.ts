@@ -5,7 +5,7 @@ export type StaffRow = {
   id: number;
   name: string;
   email: string;
-  role: "admin" | "receptionist" | "doctor";
+  role: "admin" | "receptionist" | "kitchen" | "doctor";
   hospital_id: number;
   hospital_name: string;
   is_active: boolean;
@@ -18,7 +18,7 @@ export type StaffRow = {
 export function useHospitalStaff(
   hospitalId: number,
   search: string,
-  roleFilter: "" | "admin" | "receptionist" | "doctor",
+  roleFilter: "" | "admin" | "receptionist" | "kitchen" | "doctor",
   activeFilter: "" | "active" | "inactive",
 ) {
   const [staff, setStaff] = useState<StaffRow[] | null>(null);

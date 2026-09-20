@@ -24,6 +24,7 @@ from connectors.tier1 import Tier1Connector  # noqa: E402
 from db.connection import IntegrityError  # noqa: E402
 from main import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from tests.portal_login import portal_login  # noqa: E402
 
 client = TestClient(app)
 connector = Tier1Connector()
@@ -103,7 +104,7 @@ def test_updating_a_table_under_the_wrong_hospital_id_is_a_silent_no_op(hospital
 # --- Portal route: capability gate + basic HTTP-level behavior ---
 
 def _login(password: str) -> str:
-    resp = client.post("/api/portal/login", json={"password": password})
+    resp = portal_login(client, password)
     assert resp.status_code == 200, resp.text
     return resp.json()["token"]
 

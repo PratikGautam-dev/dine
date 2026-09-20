@@ -25,6 +25,7 @@ from datetime import datetime  # noqa: E402
 import db.repository as db  # noqa: E402
 from main import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from tests.portal_login import portal_login  # noqa: E402
 from portal.capabilities import (  # noqa: E402
     ALL_CAPABILITIES, DEFAULT_CAPABILITIES_BY_TYPE, get_capabilities, has_capability,
 )
@@ -71,7 +72,7 @@ def _set_hospital(hospital_id: int, *, password: str, tenant_type=_UNSET, admin_
 
 
 def _login(password: str) -> str:
-    resp = client.post("/api/portal/login", json={"password": password})
+    resp = portal_login(client, password)
     assert resp.status_code == 200, resp.text
     return resp.json()["token"]
 

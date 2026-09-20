@@ -36,6 +36,7 @@ os.environ.setdefault("PORTAL_SECRET", "test-portal-secret")
 
 from main import app  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
+from tests.portal_login import portal_login  # noqa: E402
 
 client = TestClient(app)
 
@@ -54,7 +55,7 @@ def _login(hospital_id: int, password: str) -> dict:
         external_api_base_url=h.external_api_base_url, external_api_key=h.external_api_key,
         portal_password_hash=db.hash_portal_password(password), enabled_features=h.enabled_features,
     )
-    resp = client.post("/api/portal/login", json={"password": password})
+    resp = portal_login(client, password)
     assert resp.status_code == 200, resp.text
     return {"Authorization": f"Bearer {resp.json()['token']}"}
 

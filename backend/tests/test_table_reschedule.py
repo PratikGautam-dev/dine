@@ -26,6 +26,7 @@ from core.session_store import InMemorySessionStore
 from db.connection import IntegrityError
 from flows.booking import handle_incoming
 from reminders.scheduler import send_reminders
+from tests.portal_login import portal_login  # noqa: E402
 
 PHONE = "5491112345678"
 
@@ -210,7 +211,7 @@ def _portal_login(hosp_id: int, password: str):
         tenant_type=h.tenant_type, admin_capabilities=h.admin_capabilities,
         dpdp_consent_required=h.dpdp_consent_required,
     )
-    resp = client.post("/api/portal/login", json={"password": password})
+    resp = portal_login(client, password)
     assert resp.status_code == 200, resp.text
     return client, {"Authorization": f"Bearer {resp.json()['token']}"}
 

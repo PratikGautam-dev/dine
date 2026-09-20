@@ -13,7 +13,7 @@ from pydantic import BaseModel
 import db.repository as db
 from portal.deps import get_current_staff, require_permission
 from portal.permission_cache import invalidate
-from portal.permissions import ALL_PAGES, get_permission_matrix
+from portal.permissions import ALL_PAGES, VALID_ROLES, get_permission_matrix
 
 router = APIRouter()
 
@@ -50,7 +50,7 @@ async def update_permissions(payload: PermissionsUpdatePayload, authorization: s
     if forbidden:
         return forbidden
 
-    valid_roles = {"admin", "receptionist", "doctor"}
+    valid_roles = set(VALID_ROLES)
     errors = []
     rows = []
     for update in payload.updates:
@@ -65,9 +65,9 @@ async def update_permissions(payload: PermissionsUpdatePayload, authorization: s
             "can_view": update.can_view, "can_write": update.can_write, "can_delete": update.can_delete,
         })
     if errors:
-        return JSONResponse({"errors": errors}, status_code=400)
+        return JSONResponse({"error": " ".join(errors)}, status_code=400)
     if not rows:
-        return JSONResponse({"errors": ["No permission updates were provided."]}, status_code=400)
+        return JSONResponse({"error": "No permission updates were provided."}, status_code=400)
 
     db.upsert_role_permissions(principal.hospital.id, rows)
     # Redis pub/sub invalidation (portal/permission_cache.py) -- makes this

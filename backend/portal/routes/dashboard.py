@@ -2,16 +2,17 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
-from portal.deps import _authenticate, _hospital_summary
+from portal.deps import _authenticate, _hospital_summary, authorize
 
 router = APIRouter()
 
 
 @router.get("/api/portal/dashboard")
 async def portal_dashboard(authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "dashboard", "view")
+    if error:
+        return error
+    hospital = principal.hospital
 
     stats = db.get_dashboard_stats(hospital.id)
     weekly_counts = db.get_weekly_appointment_counts(hospital.id)

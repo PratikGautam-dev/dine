@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 import db.repository as db
 from portal.capabilities import MANAGE_TABLES
-from portal.deps import _authenticate, require_capability
+from portal.deps import _authenticate, require_capability, authorize
 
 router = APIRouter()
 
@@ -25,19 +25,20 @@ class TablePayload(BaseModel):
     is_active: bool = True
 
 
-def _require_tables(authorization: str | None):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return None, JSONResponse({"error": "Not authenticated."}, status_code=401)
-    forbidden = require_capability(hospital, MANAGE_TABLES)
+def _require_tables(authorization: str | None, action: str):
+    """Signed in, holds `action` on the Tables page, and the tenant has table management."""
+    principal, error = authorize(authorization, "tables", action)
+    if error:
+        return None, error
+    forbidden = require_capability(principal.hospital, MANAGE_TABLES)
     if forbidden:
         return None, forbidden
-    return hospital, None
+    return principal.hospital, None
 
 
 @router.get("/api/portal/tables")
 async def portal_tables(authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization)
+    hospital, error = _require_tables(authorization, "view")
     if error:
         return error
     # get_all_tables_for_hospital() -- the management list, intentionally
@@ -51,7 +52,7 @@ async def portal_tables(authorization: str | None = Header(default=None)):
 
 @router.post("/api/portal/tables")
 async def portal_create_table(payload: TablePayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization)
+    hospital, error = _require_tables(authorization, "write")
     if error:
         return error
     name = payload.name.strip()
@@ -71,7 +72,7 @@ async def portal_create_table(payload: TablePayload, authorization: str | None =
 
 @router.put("/api/portal/tables/{table_id}")
 async def portal_update_table(table_id: str, payload: TablePayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization)
+    hospital, error = _require_tables(authorization, "write")
     if error:
         return error
     existing = db.find_table(hospital.id, table_id)

@@ -18,10 +18,13 @@ from pydantic import BaseModel
 import db.repository as db
 from db.repositories.hospitals import hash_portal_password
 from portal.deps import get_current_staff, require_permission
+from portal.permissions import VALID_ROLES
 
 router = APIRouter()
 
-_VALID_ROLES = {"admin", "receptionist", "doctor"}
+# Owner/Manager, Front of House, Kitchen Staff -- plus the legacy linked-table-manager role, still
+# accepted here until the Staff page rework retires it.
+_VALID_ROLES = set(VALID_ROLES)
 
 
 def _staff_row(staff: dict) -> dict:

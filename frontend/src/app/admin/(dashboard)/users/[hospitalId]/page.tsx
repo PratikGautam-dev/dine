@@ -14,7 +14,7 @@ const ROLE_LABELS: Record<string, string> = { admin: "Admin", receptionist: "Hos
 function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
   const router = useRouter();
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"" | "admin" | "receptionist" | "doctor">("");
+  const [roleFilter, setRoleFilter] = useState<"" | "admin" | "receptionist" | "kitchen" | "doctor">("");
   const [activeFilter, setActiveFilter] = useState<"" | "active" | "inactive">("");
   const { staff, hospitalName, error } = useHospitalStaff(hospitalId, search, roleFilter, activeFilter);
 
@@ -50,7 +50,8 @@ function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
           >
             <option value="">All roles</option>
             <option value="admin">Admin</option>
-            <option value="receptionist">Host / Reception</option>
+            <option value="receptionist">Front of House</option>
+            <option value="kitchen">Kitchen Staff</option>
             <option value="doctor">Staff member</option>
           </select>
           <select

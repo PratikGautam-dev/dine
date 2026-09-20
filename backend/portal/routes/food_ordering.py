@@ -22,7 +22,7 @@ from db.repositories.food_orders import (
     STATUS_PLACED, STATUS_PREPARING, STATUS_READY_FOR_PICKUP,
 )
 from portal.capabilities import MANAGE_FOOD_ORDERING
-from portal.deps import _authenticate, require_capability
+from portal.deps import _authenticate, require_capability, authorize
 
 router = APIRouter()
 
@@ -52,22 +52,23 @@ def _clean_image_url(raw: str | None) -> tuple[str | None, str | None]:
     return url, None
 
 
-def _require_food_ordering(authorization: str | None):
-    """Shared guard every route below opens with -- returns (hospital, None)
-    on success or (None, JSONResponse) to return as-is, same "if forbidden:
-    return forbidden" early-return shape every portal route already uses."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return None, JSONResponse({"error": "Not authenticated."}, status_code=401)
-    forbidden = require_capability(hospital, MANAGE_FOOD_ORDERING)
+def _require_food_ordering(authorization: str | None, page: str, action: str):
+    """Shared guard every route below opens with -- returns (hospital, None) on success or
+    (None, JSONResponse) to return as-is, same "if error: return error" early-return shape
+    every portal route uses. `page` is food_menu (the menu catalogue) or food_orders (the
+    kitchen's order queue); `action` is view | write. Also requires the tenant capability."""
+    principal, error = authorize(authorization, page, action)
+    if error:
+        return None, error
+    forbidden = require_capability(principal.hospital, MANAGE_FOOD_ORDERING)
     if forbidden:
         return None, forbidden
-    return hospital, None
+    return principal.hospital, None
 
 
 @router.get("/api/portal/menu-items")
 async def portal_menu_items(authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization)
+    hospital, error = _require_food_ordering(authorization, "food_menu", "view")
     if error:
         return error
     # available_only=False -- the management list shows sold-out/disabled
@@ -80,7 +81,7 @@ async def portal_menu_items(authorization: str | None = Header(default=None)):
 
 @router.post("/api/portal/menu-items")
 async def portal_create_menu_item(payload: MenuItemPayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization)
+    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
     name = payload.name.strip()
@@ -107,7 +108,7 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
 async def portal_update_menu_item(
     menu_item_id: str, payload: MenuItemPayload, authorization: str | None = Header(default=None),
 ):
-    hospital, error = _require_food_ordering(authorization)
+    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
     existing = db.get_menu_item(hospital.id, menu_item_id)
@@ -135,7 +136,7 @@ async def portal_update_menu_item(
 
 @router.get("/api/portal/food-orders")
 async def portal_food_orders(status: str | None = None, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization)
+    hospital, error = _require_food_ordering(authorization, "food_orders", "view")
     if error:
         return error
     orders = db.list_food_orders(hospital.id, status=status)
@@ -144,7 +145,7 @@ async def portal_food_orders(status: str | None = None, authorization: str | Non
 
 @router.get("/api/portal/food-orders/{order_id}")
 async def portal_food_order_detail(order_id: int, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization)
+    hospital, error = _require_food_ordering(authorization, "food_orders", "view")
     if error:
         return error
     order = db.get_food_order(hospital.id, order_id)
@@ -178,7 +179,7 @@ _ACCEPTABLE_FROM = (STATUS_PLACED, STATUS_PAID)
 
 @router.post("/api/portal/food-orders/{order_id}/{action}")
 async def portal_advance_food_order(order_id: int, action: str, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization)
+    hospital, error = _require_food_ordering(authorization, "food_orders", "write")
     if error:
         return error
     order = db.get_food_order(hospital.id, order_id)

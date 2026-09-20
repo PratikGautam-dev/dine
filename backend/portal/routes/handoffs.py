@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 import db.repository as db
 from core.whatsapp import WhatsAppClient
-from portal.deps import _authenticate, _session_id
+from portal.deps import _authenticate, _session_id, authorize
 
 router = APIRouter()
 
@@ -20,9 +20,10 @@ async def portal_get_handoffs(
     ("system_error"), when given, is the "Errored" tab -- passed with
     status="all" by the frontend so an already-resolved bot error still
     shows up, not just currently-open ones."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     status_filter = None if status == "all" else status
     return JSONResponse({
         "handoffs": db.get_handoff_requests(hospital.id, status=status_filter, date_str=date, reason=reason),
@@ -32,9 +33,10 @@ async def portal_get_handoffs(
 @router.post("/api/portal/handoffs/{handoff_id}/delete")
 async def portal_delete_handoff(handoff_id: int, authorization: str | None = Header(default=None)):
     """Item 3: soft-delete only, same convention as bookings above."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     ok = db.soft_delete_handoff(hospital.id, handoff_id)
     if not ok:
         return JSONResponse({"error": "No such handoff request."}, status_code=404)
@@ -47,9 +49,10 @@ async def portal_delete_handoff(handoff_id: int, authorization: str | None = Hea
 
 @router.post("/api/portal/handoffs/{handoff_id}/resolve")
 async def portal_resolve_handoff(handoff_id: int, authorization: str | None = Header(default=None)):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     ok = db.resolve_handoff_request(hospital.id, handoff_id, resolved_by=_session_id(authorization))
     if not ok:
         return JSONResponse({"error": "No such open handoff request."}, status_code=404)
@@ -67,9 +70,10 @@ async def portal_bulk_resolve_handoffs(payload: dict, authorization: str | None 
     open (see bulk_resolve_handoff_requests()'s own docstring); the response
     reports exactly which ids were actually resolved so the frontend can
     show a caller a real count, not an optimistic one."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     handoff_ids = (payload or {}).get("handoff_ids")
     if not isinstance(handoff_ids, list) or not handoff_ids:
         return JSONResponse({"error": "handoff_ids (a non-empty list) is required."}, status_code=400)
@@ -86,9 +90,10 @@ async def portal_bulk_resolve_handoffs(payload: dict, authorization: str | None 
 async def portal_bulk_delete_handoffs(payload: dict, authorization: str | None = Header(default=None)):
     """Messages page bulk action -- soft-delete only, same convention
     portal_delete_handoff() above already follows."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "delete")
+    if error:
+        return error
+    hospital = principal.hospital
     handoff_ids = (payload or {}).get("handoff_ids")
     if not isinstance(handoff_ids, list) or not handoff_ids:
         return JSONResponse({"error": "handoff_ids (a non-empty list) is required."}, status_code=400)
@@ -111,9 +116,10 @@ async def portal_reply_handoff(handoff_id: int, payload: dict, authorization: st
     reply as an outbound handoff_messages row -- ONLY after the WhatsApp
     send actually succeeds, so the thread never shows a reply that wasn't
     really delivered."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "write")
+    if error:
+        return error
+    hospital = principal.hospital
 
     text = (payload or {}).get("text", "").strip()
     if not text:
@@ -136,9 +142,10 @@ async def portal_reply_handoff(handoff_id: int, payload: dict, authorization: st
 async def portal_get_handoff_messages(handoff_id: int, authorization: str | None = Header(default=None)):
     """Two-way threading follow-up: the full ordered thread for one handoff
     -- single source of truth for the portal's chat-thread UI."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "messages", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     matches = [h for h in db.get_handoff_requests(hospital.id, status=None) if h["id"] == handoff_id]
     if not matches:
         return JSONResponse({"error": "No such handoff request."}, status_code=404)

@@ -7,7 +7,9 @@ const ACCESS_KEY = "staff_access_token";
 const REFRESH_KEY = "staff_refresh_token";
 const SESSION_KEY = "staff_session";
 
-export type StaffRole = "admin" | "receptionist" | "doctor";
+// Owner/Manager, Front of House, Kitchen Staff. "doctor" is the legacy linked-table-manager login,
+// no longer offered for new staff but still a valid stored value.
+export type StaffRole = "admin" | "receptionist" | "kitchen" | "doctor";
 export type StaffPermissions = Record<string, { view: boolean; write: boolean; delete: boolean }>;
 
 export type StaffSession = {

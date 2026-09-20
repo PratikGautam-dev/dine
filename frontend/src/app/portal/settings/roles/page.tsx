@@ -8,20 +8,32 @@ import { usePermission, useStaffSession, type StaffRole } from "@/lib/staffAuth"
 import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { createRoleColumns } from "./_components/role-columns";
 
-const PAGE_KEYS = ["dashboard", "appointments", "patients", "schedule", "doctors", "messages", "settings", "staff", "roles"];
+// Kept in step with backend/portal/permissions.py's ALL_PAGES -- the pages a restaurant actually has.
+const PAGE_KEYS = [
+  "dashboard", "appointments", "patients", "tables", "food_menu", "food_orders", "messages",
+  "doctors", "schedule", "settings", "staff", "roles",
+];
 const PAGE_LABEL: Record<string, string> = {
   dashboard: "Dashboard",
   appointments: "Reservations",
   patients: "Guests",
-  schedule: "Schedule",
-  doctors: "Tables",
+  tables: "Tables",
+  food_menu: "Menu",
+  food_orders: "Orders",
   messages: "Messages",
+  doctors: "Team",
+  schedule: "Schedule",
   settings: "Settings",
   staff: "Staff",
   roles: "Roles & Permissions",
 };
-const ROLES: StaffRole[] = ["admin", "receptionist", "doctor"];
-const ROLE_LABEL: Record<StaffRole, string> = { admin: "Admin", receptionist: "Host / Reception", doctor: "Staff member" };
+const ROLES: StaffRole[] = ["admin", "receptionist", "kitchen"];
+const ROLE_LABEL: Record<StaffRole, string> = {
+  admin: "Owner / Manager",
+  receptionist: "Front of House",
+  kitchen: "Kitchen Staff",
+  doctor: "Table manager (legacy)",
+};
 
 export default function RolesPermissionsPage() {
   // useStaffSession (not getStaffSession directly): null on the server AND

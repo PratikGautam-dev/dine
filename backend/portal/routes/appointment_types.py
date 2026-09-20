@@ -13,7 +13,7 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
-from portal.deps import _authenticate, require_capability
+from portal.deps import _authenticate, require_capability, authorize
 
 router = APIRouter()
 
@@ -23,9 +23,10 @@ async def portal_appointment_types(authorization: str | None = Header(default=No
     """Active AND inactive, so the toggle UI can show what's currently off --
     unlike the WhatsApp-facing connector.get_appointment_types(), which only
     ever returns the active subset."""
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    hospital = principal.hospital
     return JSONResponse({"appointment_types": db.get_all_appointment_types_for_hospital(hospital.id)})
 
 
@@ -33,9 +34,10 @@ async def portal_appointment_types(authorization: str | None = Header(default=No
 async def portal_set_appointment_type_active(
     appointment_type_id: str, payload: dict, authorization: str | None = Header(default=None)
 ):
-    hospital = _authenticate(authorization)
-    if hospital is None:
-        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
     forbidden = require_capability(hospital, "manage_appointment_types")
     if forbidden:
         return forbidden
