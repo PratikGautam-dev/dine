@@ -24,6 +24,9 @@ type SwitchProps = {
   onChange: () => void;
   disabled?: boolean;
   size?: SwitchSize;
+  /** Colour when on. brand (default) is for settings and toggles; success is for "this is available / active",
+   * where the brand red would read as a warning. */
+  tone?: "brand" | "success";
   className?: string;
   "aria-label"?: string;
 };
@@ -31,7 +34,7 @@ type SwitchProps = {
 /** Shared on/off toggle -- replaces the hand-rolled `role="switch"` button
  * that used to be copy-pasted (with tiny drifting inconsistencies) across
  * doctor/staff active-toggles, appointment types, and diagnostic managers. */
-export function Switch({ checked, onChange, disabled, size = "md", className, ...rest }: SwitchProps) {
+export function Switch({ checked, onChange, disabled, size = "md", tone = "brand", className, ...rest }: SwitchProps) {
   return (
     <button
       type="button"
@@ -44,7 +47,7 @@ export function Switch({ checked, onChange, disabled, size = "md", className, ..
         "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-50",
         trackSizes[size],
-        checked ? "bg-brand-600 hover:bg-brand-700" : "bg-line hover:bg-black/15",
+        checked ? (tone === "success" ? "bg-success hover:bg-success/90" : "bg-brand-600 hover:bg-brand-700") : "bg-line hover:bg-black/15",
         className,
       )}
       {...rest}

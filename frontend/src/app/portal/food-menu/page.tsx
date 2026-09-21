@@ -184,6 +184,7 @@ export default function PortalFoodMenuPage() {
           return (
             <div className="flex items-center gap-space-2 whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
               <Switch
+                tone="success"
                 checked={item.is_available}
                 onChange={() => handleAvailability(item, !item.is_available)}
                 disabled={busyId === item.id || !canManage}
