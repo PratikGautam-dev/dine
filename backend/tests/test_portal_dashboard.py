@@ -73,7 +73,7 @@ def test_dashboard_stats_counts_match_known_seeded_data(hospital_id):
     # rows -- the repeat patient's newer row is scheduled the 16th, not today.
     assert stats["today_appointments"] == 4
     assert stats["confirmed_today"] == 3  # booked (not cancelled) ones scheduled today: 10:00, 16:00, 13:00
-    assert stats["no_shows_today"] == 2  # still-booked AND already past `now` (14:00): the 10:00 and 13:00 ones
+    assert stats["no_shows_today"] == 0  # nobody marked a no-show: the past 10:00 / 13:00 bookings are NOT guessed to be no-shows
     assert stats["new_patients_today"] == 3  # the 3 first-contact phones created today -- the repeat patient's phone is excluded (its earlier appointment predates today)
 
 
@@ -96,6 +96,36 @@ def test_dashboard_stats_week_over_week_delta_up_down_and_flat(hospital_id):
     assert stats["today_appointments_delta_pct"] == 50.0  # (3-2)/2 * 100
     # confirmed_today == today_appointments here (nothing cancelled) -- same delta.
     assert stats["confirmed_today_delta_pct"] == 50.0
+
+
+def test_no_shows_count_only_what_staff_marked_and_agree_with_the_reservations_page(hospital_id):
+    """One definition across the app: a no-show is a reservation staff marked "Came? No" (status 'no_show').
+    A booking whose time passed but that nobody marked is not a no-show; neither is a cancelled one."""
+    now = datetime(2027, 6, 15, 22, 0, 0)
+    doctor_id = "doc_card_1"
+    # today: three past, unmarked bookings, one cancelled, one marked no-show, one attended
+    for i, phone in enumerate(["5490100001", "5490100002", "5490100003"]):
+        _insert_appointment(hospital_id, phone, "cardiology", doctor_id,
+                             datetime(2027, 6, 15, 9 + i, 0), datetime(2027, 6, 15, 8, 0))
+    _insert_appointment(hospital_id, "5490100004", "cardiology", doctor_id, datetime(2027, 6, 15, 12, 0),
+                         datetime(2027, 6, 15, 8, 0), status="cancelled", updated_at=datetime(2027, 6, 15, 9, 0))
+    _insert_appointment(hospital_id, "5490100005", "cardiology", doctor_id, datetime(2027, 6, 15, 13, 0),
+                         datetime(2027, 6, 15, 8, 0), status="no_show", updated_at=datetime(2027, 6, 15, 14, 0))
+    _insert_appointment(hospital_id, "5490100006", "cardiology", doctor_id, datetime(2027, 6, 15, 14, 0),
+                         datetime(2027, 6, 15, 8, 0), status="attended", updated_at=datetime(2027, 6, 15, 15, 0))
+    # same weekday last week: two marked no-shows and one unmarked past booking
+    for i, phone in enumerate(["5490100007", "5490100008"]):
+        _insert_appointment(hospital_id, phone, "cardiology", doctor_id, datetime(2027, 6, 8, 9 + i, 0),
+                             datetime(2027, 6, 8, 8, 0), status="no_show", updated_at=datetime(2027, 6, 8, 12, 0))
+    _insert_appointment(hospital_id, "5490100009", "cardiology", doctor_id, datetime(2027, 6, 8, 15, 0), datetime(2027, 6, 8, 8, 0))
+
+    stats = db.get_dashboard_stats(hospital_id, now=now)
+    assert stats["no_shows_today"] == 1  # only the marked one -- not the 3 unmarked past bookings
+    assert stats["no_shows_today_delta_pct"] == -50.0  # 1 today vs 2 marked last week; the unmarked one is not counted there either
+    # the very same rule the Reservations page's "No-shows" tile applies to its list
+    listed = [a for a in db.get_all_appointments_for_hospital(hospital_id) if a.status == "no_show"
+              and a.scheduled_at.date() == now.date()]
+    assert len(listed) == stats["no_shows_today"]
 
 
 def test_dashboard_stats_delta_is_none_without_a_last_week_baseline(hospital_id):

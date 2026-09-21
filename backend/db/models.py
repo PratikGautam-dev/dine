@@ -17,11 +17,10 @@ STATUS_BOOKED = "booked"
 STATUS_CANCELLED = "cancelled"
 STATUS_RESCHEDULED = "rescheduled"
 # Item 9 (Spec.md Section 0): real, staff-confirmed statuses -- closes the
-# previously-flagged "no-shows are a heuristic, not a real status" gap
-# (get_dashboard_stats()' "no_shows_today" below is UNCHANGED, still the
-# same time-passed-and-still-booked heuristic -- these two new values don't
-# retroactively reclassify it, they give staff a way to record the real
-# outcome going forward once they confirm it).
+# previously-flagged "no-shows are a heuristic, not a real status" gap.
+# get_dashboard_stats()' "no_shows_today" now counts only appointments staff
+# marked STATUS_NO_SHOW -- the same definition the Reservations page uses --
+# instead of guessing from "time passed and still booked".
 STATUS_ATTENDED = "attended"
 STATUS_NO_SHOW = "no_show"
 

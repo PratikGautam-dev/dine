@@ -12,6 +12,8 @@ export type FoodOrderItem = {
 export type FoodOrder = {
   id: number;
   phone: string;
+  // the guest's name from their profile at this restaurant; null when they never gave one
+  patient_name: string | null;
   status: string;
   fulfillment_type: string | null;
   delivery_address: string | null;
@@ -57,20 +59,21 @@ export const STATUS_LABELS: Record<string, string> = {
  * db/repositories/food_orders.py's advance_order_status() itself enforces
  * server-side -- a stale/double-tapped action gets a 409 back, handled here
  * as "refresh, don't crash," not a generic error. */
-export function useFoodOrders(ready: boolean, statusFilter: string) {
+export function useFoodOrders(ready: boolean, statusFilter: string, days = 90) {
   const [orders, setOrders] = useState<FoodOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const query = statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : "";
+    // days limits how far back the list goes (0 = all time), so a page load never fetches every order ever placed
+    const query = `?days=${days}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ""}`;
     const result = await portalFetch(`/api/portal/food-orders${query}`);
     if (!result.ok) {
       if (!result.unauthorized) setError(result.error);
       return;
     }
     setOrders((result.data as { food_orders: FoodOrder[] }).food_orders);
-  }, [statusFilter]);
+  }, [statusFilter, days]);
 
   useEffect(() => {
     if (ready) load();

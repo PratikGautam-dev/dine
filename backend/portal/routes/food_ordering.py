@@ -9,6 +9,8 @@ Stock: stock_count is the initial/corrected count on the create/edit form (blank
 adds to it atomically, and the sold-out switch (is_available) is independent of it -- an item can be hidden
 with stock left, or listed with a zero count that a restock brings back. A bulk "reset to par level" action
 would need a stored par level, which is deliberately not built."""
+from datetime import datetime, timedelta, timezone
+
 from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -193,13 +195,29 @@ async def portal_set_menu_item_availability(
     return JSONResponse({"menu_item": item})
 
 
+DEFAULT_ORDER_DAYS = 90
+MAX_ORDER_DAYS = 3650
+
+
 @router.get("/api/portal/food-orders")
-async def portal_food_orders(status: str | None = None, authorization: str | None = Header(default=None)):
+async def portal_food_orders(
+    status: str | None = None, days: int = DEFAULT_ORDER_DAYS, authorization: str | None = Header(default=None),
+):
+    """The restaurant's orders, newest first. `days` limits how far back the list goes (default 90) so a page
+    load never returns every order ever placed; `days=0` means all time."""
     hospital, error = _require_food_ordering(authorization, "food_orders", "view")
     if error:
         return error
-    orders = db.list_food_orders(hospital.id, status=status)
-    return JSONResponse({"food_orders": orders})
+    if not 0 <= days <= MAX_ORDER_DAYS:
+        return JSONResponse({"error": f"days must be between 0 (all time) and {MAX_ORDER_DAYS}."}, status_code=400)
+    since = datetime.now(timezone.utc) - timedelta(days=days) if days else None
+    orders = db.list_food_orders(hospital.id, status=status, since=since)
+    # The guest's name, as the dashboard and reservations list show it: from their profile at THIS restaurant.
+    names = db.get_patient_names_by_phone(hospital.id, [o["phone"] for o in orders])
+    return JSONResponse({
+        "food_orders": [{**o, "patient_name": names.get(o["phone"])} for o in orders],
+        "period_days": days,
+    })
 
 
 @router.get("/api/portal/food-orders/{order_id}")

@@ -37,13 +37,12 @@ def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
       ever at this hospital (by created_at) was created on the date in
       question -- there's no separate patients table, so "new" is derived
       from first-appearance-in-appointments.
-    - "no-shows today": still status='booked' appointments whose scheduled_at
-      has already passed as of `now` (or, for last week's comparison day,
-      the whole day, since it's entirely in the past). KNOWN LIMITATION: this
-      app has no "attended"/"completed" status, so this is a heuristic, not a
-      true no-show flag -- a booked appointment the patient actually attended
-      looks identical to one they skipped once its time has passed. Flagged
-      here deliberately rather than silently treated as exact.
+    - "no-shows today": appointments scheduled that day that staff have MARKED
+      as a no-show (status='no_show', set with "Came? No" on the Reservations
+      page). A still-'booked' reservation whose time has passed is NOT counted:
+      nobody has recorded what happened to it, and guessing would call every
+      unmarked visit a no-show. This is the same definition the Reservations
+      page uses, so the two numbers always agree.
 
     A week-over-week % change with a zero baseline (nothing happened on the
     comparison day) returns None (not a divide-by-zero, not a misleading
@@ -54,7 +53,7 @@ def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
     last_week_day = today - timedelta(days=7)
     session = get_session()
 
-    def _stats_for_day(day, no_show_cutoff: datetime) -> dict:
+    def _stats_for_day(day) -> dict:
         day_start = datetime.combine(day, datetime.min.time()).isoformat()
         day_end = datetime.combine(day, datetime.max.time()).isoformat()
         A = AppointmentRow
@@ -82,12 +81,12 @@ def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
         no_shows = session.execute(
             select(func.count()).select_from(A)
             .where(A.hospital_id == hospital_id, A.scheduled_at >= day_start, A.scheduled_at <= day_end,
-                   A.scheduled_at < no_show_cutoff.isoformat(), A.status == STATUS_BOOKED)
+                   A.status == STATUS_NO_SHOW)
         ).scalar_one()
         return {"total": total, "confirmed": confirmed, "new_patients": new_patients, "no_shows": no_shows}
 
-    today_stats = _stats_for_day(today, now)
-    last_week_stats = _stats_for_day(last_week_day, datetime.combine(last_week_day, datetime.max.time()))
+    today_stats = _stats_for_day(today)
+    last_week_stats = _stats_for_day(last_week_day)
 
     def _delta_pct(today_v: int, last_week_v: int) -> float | None:
         if last_week_v == 0:

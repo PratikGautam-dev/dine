@@ -7,6 +7,8 @@ type Props = {
   label: string;
   value: number;
   deltaPct: number | null;
+  /** Shown before the number, e.g. "₹". */
+  prefix?: string;
   /** A lucide icon element for the tinted square, e.g. <CalendarCheck size={22} />. */
   icon?: ReactNode;
   /** No-shows: an increase is bad, so up/down colors invert relative to the
@@ -19,7 +21,7 @@ type Props = {
   hint?: string;
 };
 
-export function StatTile({ label, value, deltaPct, icon, upIsGood = true, hint = "vs last week" }: Props) {
+export function StatTile({ label, value, deltaPct, prefix, icon, upIsGood = true, hint = "vs last week" }: Props) {
   const isUp = deltaPct !== null && deltaPct > 0;
   const isDown = deltaPct !== null && deltaPct < 0;
   const isGoodDirection = (isUp && upIsGood) || (isDown && !upIsGood);
@@ -37,7 +39,7 @@ export function StatTile({ label, value, deltaPct, icon, upIsGood = true, hint =
       <div className="min-w-0">
         <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}</p>
         <div className="mt-1 flex items-baseline gap-space-2">
-          <span className="text-[30px] leading-none font-bold text-ink-900">{value.toLocaleString()}</span>
+          <span className="text-[30px] leading-none font-bold text-ink-900">{prefix}{value.toLocaleString()}</span>
           {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
           {deltaPct !== null && (
             <span

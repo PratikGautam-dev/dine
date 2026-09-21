@@ -20,7 +20,7 @@ guard (menu_items.decrement_stock()), which is the right-sized protection,
 not a bigger lock."""
 from datetime import datetime, timezone
 
-from sqlalchemy import select
+from sqlalchemy import DateTime, cast, select
 
 from db.connection import IntegrityError, get_connection, get_session
 from db.display_ids import ORDER_REFERENCE_ID_PREFIX, _generate_reference_id
@@ -256,8 +256,9 @@ def get_food_order(hospital_id: int, order_id: int) -> dict | None:
     return order
 
 
-def list_food_orders(hospital_id: int, status: str | None = None) -> list[dict]:
-    """Portal's order-list read point -- newest first. Includes each order's
+def list_food_orders(hospital_id: int, status: str | None = None, since: datetime | None = None) -> list[dict]:
+    """Portal's order-list read point -- newest first. `since` (a timezone-aware datetime) leaves out orders placed
+    before it, so a page load doesn't return every order the restaurant has ever taken. Includes each order's
     line items via one batched query (same "fetch once, group in-memory"
     shape _booked_spans_by_table() uses for table availability), not N+1 --
     a kitchen/front-of-house view genuinely needs to see what was ordered,
@@ -266,6 +267,9 @@ def list_food_orders(hospital_id: int, status: str | None = None) -> list[dict]:
     stmt = select(*_ORDER_COLUMNS).where(FoodOrder.hospital_id == hospital_id)
     if status is not None:
         stmt = stmt.where(FoodOrder.status == status)
+    if since is not None:
+        # created_at is stored as ISO text; compare it as the instant it is
+        stmt = stmt.where(cast(FoodOrder.created_at, DateTime(timezone=True)) >= since)
     rows = session.execute(stmt.order_by(FoodOrder.created_at.desc())).all()
     orders = [dict(r._mapping) for r in rows]
 
