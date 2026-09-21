@@ -9,6 +9,8 @@ const DEFAULT_RESCHEDULE_MESSAGE = "Your reservation has been rescheduled.";
 export type Appointment = {
   id: number;
   phone: string;
+  // the guest's name from their profile at this restaurant; null when they never gave one
+  patient_name: string | null;
   department_name: string | null;
   // Table reservations (migration 0030): doctor_id/doctor_name are null for
   // a table reservation (create_table_reservation() never sets doctor_id),
@@ -61,6 +63,24 @@ export const TYPE_LABELS: Record<string, string> = {
   procedure: "Procedure",
 };
 
+// The quick views above the list. "today" and "upcoming" are about WHEN (and only count reservations that are
+// still on), the rest are a status each.
+export type ViewFilter = "all" | "today" | "upcoming" | "attended" | "cancelled" | "no_show" | "rescheduled";
+
+function isSameLocalDay(iso: string, now: Date) {
+  const d = new Date(iso);
+  return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+}
+
+export function matchesView(a: Appointment, view: ViewFilter, now: Date): boolean {
+  switch (view) {
+    case "all": return true;
+    case "today": return isSameLocalDay(a.scheduled_at, now) && a.status !== "cancelled" && a.status !== "rescheduled";
+    case "upcoming": return a.status === "booked" && new Date(a.scheduled_at) >= now;
+    default: return a.status === view;
+  }
+}
+
 function typeBucket(a: Appointment) {
   return a.appointment_type_id && a.appointment_type_id in TYPE_LABELS ? a.appointment_type_id : "other";
 }
@@ -106,6 +126,7 @@ export function useAppointments(ready: boolean) {
   // needed).
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [viewFilter, setViewFilter] = useState<ViewFilter>("all");
   // Divides the appointments list by type (New Reservation, Follow-up,
   // Procedure) as its own tab row -- "other" covers any appointment
   // predating appointment_type_id (never backfilled, so an old row is
@@ -151,15 +172,37 @@ export function useAppointments(ready: boolean) {
     return counts;
   }, [appointments]);
 
+  // How many reservations each quick view holds, and today's reservations in time order (for the schedule card).
+  const viewCounts = useMemo(() => {
+    const now = new Date();
+    const counts: Record<ViewFilter, number> = { all: 0, today: 0, upcoming: 0, attended: 0, cancelled: 0, no_show: 0, rescheduled: 0 };
+    for (const a of appointments || []) {
+      for (const view of Object.keys(counts) as ViewFilter[]) {
+        if (matchesView(a, view, now)) counts[view] += 1;
+      }
+    }
+    return counts;
+  }, [appointments]);
+
+  const todaySchedule = useMemo(() => {
+    const now = new Date();
+    return (appointments || [])
+      .filter((a) => matchesView(a, "today", now))
+      .sort((x, y) => x.scheduled_at.localeCompare(y.scheduled_at));
+  }, [appointments]);
+
   const filteredAppointments = useMemo(() => {
     if (!appointments) return appointments;
     const q = searchQuery.trim().toLowerCase();
+    const now = new Date();
     return appointments.filter((a) => {
       if (typeFilter !== "all" && typeBucket(a) !== typeFilter) return false;
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      if (!matchesView(a, viewFilter, now)) return false;
       if (!q) return true;
       return (
         a.phone.toLowerCase().includes(q) ||
+        (a.patient_name || "").toLowerCase().includes(q) ||
         (a.doctor_name || "").toLowerCase().includes(q) ||
         (a.table_name || "").toLowerCase().includes(q) ||
         (a.department_name || "").toLowerCase().includes(q) ||
@@ -167,7 +210,7 @@ export function useAppointments(ready: boolean) {
         (a.patient_display_id || "").toLowerCase().includes(q)
       );
     });
-  }, [appointments, searchQuery, statusFilter, typeFilter]);
+  }, [appointments, searchQuery, statusFilter, typeFilter, viewFilter]);
 
   // Item 9 (Spec.md Section 0): closes the "no-shows are a heuristic, not a
   // real status" gap -- a still-'booked' appointment whose scheduled time
@@ -413,7 +456,8 @@ export function useAppointments(ready: boolean) {
   const allSelected = deletableAppointments.length > 0 && selected.size === deletableAppointments.length;
 
   return {
-    appointments, error, filteredAppointments, typeCounts,
+    appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule,
+    viewFilter, setViewFilter,
     searchQuery, setSearchQuery, statusFilter, setStatusFilter, typeFilter, setTypeFilter,
     cancellingId, cancelPanelId, cancelMessage, setCancelMessage, openCancelPanel, closeCancelPanel, handleCancel,
     reschedulePanelId, reschedulingId, rescheduleCtx, rescheduleErrors, rescheduleMessage, setRescheduleMessage,

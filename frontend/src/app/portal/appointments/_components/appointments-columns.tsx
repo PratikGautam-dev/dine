@@ -3,7 +3,8 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { cn } from "@/lib/cn";
-import { formatShortDateTime } from "@/lib/formatDate";
+import { MessageCircle, UserRound } from "lucide-react";
+import { formatShortDateTime, formatTimeOnly } from "@/lib/formatDate";
 import { TYPE_LABELS, type Appointment } from "@/hooks/useAppointments";
 import { AppointmentCellAction } from "./appointments-cellaction";
 
@@ -20,7 +21,14 @@ export const STATUS_LABELS: Record<string, string> = {
 };
 const SOURCE_LABELS: Record<string, string> = { whatsapp: "WhatsApp", staff: "Walk-in" };
 
+function formatDay(iso: string) {
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
+}
+
 type CreateAppointmentColumnsOptions = {
+  /** May this person change reservations (mark attendance, reschedule, cancel)? View-only roles just read. */
+  canWrite: boolean;
   selected: Set<number>;
   toggleSelected: (id: number, checked: boolean) => void;
   toggleSelectAll: (checked: boolean) => void;
@@ -43,7 +51,7 @@ type CreateAppointmentColumnsOptions = {
  * to render directly, just expressed as ColumnDefs so DataTable (@tanstack/
  * react-table under the hood) owns rendering + client-side pagination. */
 export function createAppointmentColumns({
-  selected, toggleSelected, toggleSelectAll, allSelected, deletableCount,
+  canWrite, selected, toggleSelected, toggleSelectAll, allSelected, deletableCount,
   markingAttendanceId, onAttendance,
   cancelPanelId, reschedulePanelId, reassignPanelId, onOpenReschedule, onOpenCancel, onOpenReassign,
   deletingId, onDelete,
@@ -80,27 +88,20 @@ export function createAppointmentColumns({
       },
     },
     {
-      id: "scheduled_at",
-      header: "Reservation time",
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap tabular-nums text-ink-600">{formatShortDateTime(row.original.scheduled_at)}</span>
-      ),
-    },
-    {
-      id: "created_at",
-      header: "Booked",
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap tabular-nums text-ink-400">
-          {row.original.created_at ? formatShortDateTime(row.original.created_at) : "—"}
-        </span>
-      ),
-    },
-    {
       id: "reference_id",
       header: "Reference",
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap font-mono text-[12px] text-ink-400">{row.original.reference_id || "—"}</span>
-      ),
+      cell: ({ row }) => {
+        const a = row.original;
+        return (
+          <div>
+            <div className="whitespace-nowrap font-mono text-[12px] font-semibold text-ink-900">{a.reference_id || "—"}</div>
+            <div className="whitespace-nowrap text-[11.5px] text-ink-400">
+              {a.created_at ? `Booked ${formatShortDateTime(a.created_at)}` : ""}
+              {a.appointment_type_id && a.appointment_type_id !== "new" ? ` · ${TYPE_LABELS[a.appointment_type_id] || a.appointment_type_id}` : ""}
+            </div>
+          </div>
+        );
+      },
     },
     {
       id: "patient",
@@ -108,48 +109,39 @@ export function createAppointmentColumns({
       cell: ({ row }) => {
         const a = row.original;
         return (
-          <div className="text-ink-900">
-            <div>{a.phone}</div>
-            {a.patient_display_id && <div className="font-mono text-[11px] text-ink-400">{a.patient_display_id}</div>}
+          <div className="min-w-[120px] text-ink-900">
+            <div className="font-semibold">{a.patient_name || a.phone}</div>
+            {a.patient_name && <div className="text-[12px] text-ink-600">{a.phone}</div>}
           </div>
         );
       },
     },
     {
-      // Table reservations (migration 0030): table_name (the real assigned
-      // table) takes priority when present; doctor_name is the fallback for
-      // any non-table-reservation appointment (a legacy doctor appointment
-      // fixture, if one still exists) -- additive, the two are never both
-      // set on the same row. Neither is a lie about "Table" anymore: a
-      // doctor-appointment row showing a doctor's name here is pre-existing
-      // Stage 2 behavior, unchanged; a table-reservation row now shows its
-      // actual table instead of rendering blank.
+      id: "scheduled_at",
+      header: "Date & time",
+      cell: ({ row }) => (
+        <div className="whitespace-nowrap">
+          <div className="font-semibold text-ink-900">{formatDay(row.original.scheduled_at)}</div>
+          <div className="tabular-nums text-[12.5px] text-ink-600">{formatTimeOnly(row.original.scheduled_at)}</div>
+        </div>
+      ),
+    },
+    {
+      // Table reservations (migration 0030): table_name (the real assigned table) takes priority when present;
+      // doctor_name is the fallback for any non-table-reservation appointment (a legacy doctor appointment
+      // fixture, if one still exists) -- the two are never both set on the same row.
       id: "table_or_doctor_name",
       header: "Table",
-      cell: ({ row }) => (
-        <span className="text-ink-600">{row.original.table_name || row.original.doctor_name || "—"}</span>
-      ),
-    },
-    {
-      id: "party_size",
-      header: "Party Size",
-      cell: ({ row }) => (
-        <span className="tabular-nums text-ink-600">{row.original.party_size ?? "—"}</span>
-      ),
-    },
-    {
-      id: "department_name",
-      header: "Section",
-      cell: ({ row }) => <span className="text-ink-600">{row.original.department_name || "—"}</span>,
-    },
-    {
-      id: "type",
-      header: "Type",
       cell: ({ row }) => {
         const a = row.original;
         return (
-          <div className="text-ink-600">
-            <div>{a.appointment_type_id ? TYPE_LABELS[a.appointment_type_id] || a.appointment_type_id : "—"}</div>
+          <div className="whitespace-nowrap">
+            <div className="font-semibold text-ink-900">{a.table_name || a.doctor_name || "—"}</div>
+            <div className="text-[12px] text-ink-600">
+              {a.party_size ? `${a.party_size} ${a.party_size === 1 ? "guest" : "guests"}` : ""}
+              {a.party_size && a.department_name ? " · " : ""}
+              {a.department_name || ""}
+            </div>
           </div>
         );
       },
@@ -157,59 +149,63 @@ export function createAppointmentColumns({
     {
       id: "source",
       header: "Source",
-      cell: ({ row }) => <span className="text-ink-600">{SOURCE_LABELS[row.original.source] || row.original.source}</span>,
+      cell: ({ row }) => {
+        const Icon = row.original.source === "whatsapp" ? MessageCircle : UserRound;
+        return (
+          <span className="inline-flex items-center gap-space-1 whitespace-nowrap text-ink-600">
+            <Icon size={14} className="text-ink-400" />
+            {SOURCE_LABELS[row.original.source] || row.original.source}
+          </span>
+        );
+      },
     },
     {
       id: "status",
       header: "Status",
-      cell: ({ row }) => (
-        <span
-          className={cn(
-            "rounded-full px-space-2 py-0.5 text-[11px] font-semibold",
-            STATUS_STYLES[row.original.status] || "bg-black/[0.04] text-ink-600",
-          )}
-        >
-          {STATUS_LABELS[row.original.status] || row.original.status}
-        </span>
-      ),
-    },
-    {
-      id: "visited",
-      header: "Visited",
       cell: ({ row }) => {
         const a = row.original;
-        if (a.status !== "booked" && a.status !== "attended" && a.status !== "no_show") {
-          return <span className="text-[12.5px] text-ink-300">—</span>;
-        }
-        // Admin-editable at any time, not gated on the scheduled time having
-        // passed, and freely re-toggleable (not a one-way door) -- per direct
-        // portal feedback.
+        // "Did they come?" -- admin-editable at any time, not gated on the scheduled time having passed, and freely
+        // re-toggleable (not a one-way door) -- per direct portal feedback.
+        const canMark = canWrite && (a.status === "booked" || a.status === "attended" || a.status === "no_show");
         return (
-          <span className="inline-flex items-center gap-space-2 whitespace-nowrap">
-            <button
-              type="button"
-              onClick={() => onAttendance(a.id, true)}
-              disabled={markingAttendanceId === a.id}
+          <div className="whitespace-nowrap">
+            <span
               className={cn(
-                "text-[12.5px] font-semibold disabled:opacity-50",
-                a.status === "attended" ? "text-success underline" : "text-ink-400 hover:text-success hover:underline",
+                "rounded-full px-space-2 py-0.5 text-[11px] font-semibold",
+                STATUS_STYLES[a.status] || "bg-black/[0.04] text-ink-600",
               )}
             >
-              Yes
-            </button>
-            <span className="text-ink-300">/</span>
-            <button
-              type="button"
-              onClick={() => onAttendance(a.id, false)}
-              disabled={markingAttendanceId === a.id}
-              className={cn(
-                "text-[12.5px] font-semibold disabled:opacity-50",
-                a.status === "no_show" ? "text-error underline" : "text-ink-400 hover:text-error hover:underline",
-              )}
-            >
-              No
-            </button>
-          </span>
+              {STATUS_LABELS[a.status] || a.status}
+            </span>
+            {canMark && (
+              <div className="mt-1 inline-flex w-full items-center gap-space-1 text-[12px] text-ink-400">
+                Came?
+                <button
+                  type="button"
+                  onClick={() => onAttendance(a.id, true)}
+                  disabled={markingAttendanceId === a.id}
+                  className={cn(
+                    "font-semibold disabled:opacity-50",
+                    a.status === "attended" ? "text-success underline" : "text-ink-600 hover:text-success hover:underline",
+                  )}
+                >
+                  Yes
+                </button>
+                <span>/</span>
+                <button
+                  type="button"
+                  onClick={() => onAttendance(a.id, false)}
+                  disabled={markingAttendanceId === a.id}
+                  className={cn(
+                    "font-semibold disabled:opacity-50",
+                    a.status === "no_show" ? "text-destructive underline" : "text-ink-600 hover:text-destructive hover:underline",
+                  )}
+                >
+                  No
+                </button>
+              </div>
+            )}
+          </div>
         );
       },
     },
@@ -228,6 +224,7 @@ export function createAppointmentColumns({
             onOpenReassign={onOpenReassign}
             deletingId={deletingId}
             onDelete={onDelete}
+            canWrite={canWrite}
           />
         </div>
       ),

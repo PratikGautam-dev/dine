@@ -110,7 +110,13 @@ async def portal_bookings(authorization: str | None = Header(default=None)):
     hospital = principal.hospital
     appointments = db.get_all_appointments_for_hospital(hospital.id)
     validity_days = db.get_followup_validity_days(hospital.id)
-    return JSONResponse({"appointments": [_appointment_json(a, validity_days) for a in appointments]})
+    # The guest's name, as the dashboard shows it: from their profile at THIS restaurant (one batched lookup).
+    names = db.get_patient_names_by_phone(hospital.id, [a.phone for a in appointments])
+    return JSONResponse({
+        "appointments": [
+            {**_appointment_json(a, validity_days), "patient_name": names.get(a.phone)} for a in appointments
+        ]
+    })
 
 
 @router.get("/api/portal/bookings/needs-attendance-review")

@@ -192,6 +192,26 @@ def get_patient(hospital_id: int, patient_id: int) -> dict | None:
     return dict(row._mapping) if row else None
 
 
+def get_patient_names_by_phone(hospital_id: int, phones: list[str]) -> dict[str, str]:
+    """{phone: name} for the given phones at THIS restaurant, in one query -- the same "earliest profile for the
+    phone" answer get_patient_by_phone() gives, without a query per row. Phones with no profile, or whose profile
+    has no name, are simply absent."""
+    unique = sorted(set(phones))
+    if not unique:
+        return {}
+    session = get_session()
+    rows = session.execute(
+        select(PatientRow.phone, PatientRow.name)
+        .where(PatientRow.hospital_id == hospital_id, PatientRow.phone.in_(unique))
+        .order_by(PatientRow.id)
+    ).all()
+    names: dict[str, str] = {}
+    for phone, name in rows:
+        if phone not in names and (name or "").strip():
+            names[phone] = name.strip()
+    return names
+
+
 def get_patient_by_phone(hospital_id: int, phone: str) -> dict | None:
     """Section 12.11: the WhatsApp booking flow's "have we met this patient
     before" check -- unlike get_patient() (looked up by the portal's own

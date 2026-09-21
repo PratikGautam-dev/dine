@@ -1,26 +1,41 @@
 "use client";
 
 import { useMemo } from "react";
-import { CalendarClock, Plus, Search, Send, Trash2, X } from "lucide-react";
+import { Ban, CalendarCheck, CalendarClock, CalendarDays, CircleCheck, Plus, Search, Send, Trash2, UserX, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
+import { usePermission } from "@/lib/staffAuth";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
+import { TodayScheduleCard } from "@/components/portal/TodayScheduleCard";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
-import { TYPE_LABELS, type Appointment, useAppointments } from "@/hooks/useAppointments";
-import { createAppointmentColumns, STATUS_LABELS } from "./_components/appointments-columns";
+import { TYPE_LABELS, type Appointment, type ViewFilter, useAppointments } from "@/hooks/useAppointments";
+import { createAppointmentColumns } from "./_components/appointments-columns";
 
 const TYPE_TAB_ORDER = ["all", "new", "followup", "other"];
 
+// The quick views above the list; empty rare ones (Rescheduled) only appear once something is in them.
+const VIEW_TABS: { id: ViewFilter; label: string; always: boolean }[] = [
+  { id: "all", label: "All", always: true },
+  { id: "today", label: "Today", always: true },
+  { id: "upcoming", label: "Upcoming", always: true },
+  { id: "attended", label: "Attended", always: true },
+  { id: "cancelled", label: "Cancelled", always: true },
+  { id: "no_show", label: "No-show", always: true },
+  { id: "rescheduled", label: "Rescheduled", always: false },
+];
+
 export default function PortalAppointmentsPage() {
   const { hospital, ready } = usePortalGuard();
+  const canWrite = usePermission("appointments", "write");
   const {
-    appointments, error, filteredAppointments, typeCounts,
-    searchQuery, setSearchQuery, statusFilter, setStatusFilter, typeFilter, setTypeFilter,
+    appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule, viewFilter, setViewFilter,
+    searchQuery, setSearchQuery, typeFilter, setTypeFilter,
     cancellingId, cancelPanelId, cancelMessage, setCancelMessage, openCancelPanel, closeCancelPanel, handleCancel,
     reschedulePanelId, reschedulingId, rescheduleCtx, rescheduleErrors, rescheduleMessage, setRescheduleMessage,
     rDepartmentId, setRDepartmentId, rDoctorId, setRDoctorId, rDate, setRDate, rSlotId, setRSlotId,
@@ -37,7 +52,7 @@ export default function PortalAppointmentsPage() {
   const columns = useMemo(
     () =>
       createAppointmentColumns({
-        selected, toggleSelected, toggleSelectAll, allSelected,
+        canWrite, selected, toggleSelected, toggleSelectAll, allSelected,
         deletableCount: deletableAppointments.length,
         markingAttendanceId, onAttendance: handleAttendance,
         cancelPanelId, reschedulePanelId, reassignPanelId,
@@ -45,7 +60,7 @@ export default function PortalAppointmentsPage() {
         deletingId, onDelete: handleDelete,
       }),
     [
-      selected, toggleSelected, toggleSelectAll, allSelected, deletableAppointments.length,
+      canWrite, selected, toggleSelected, toggleSelectAll, allSelected, deletableAppointments.length,
       markingAttendanceId, handleAttendance,
       cancelPanelId, reschedulePanelId, reassignPanelId,
       openReschedulePanel, openCancelPanel, openReassignPanel, deletingId, handleDelete,
@@ -340,6 +355,8 @@ export default function PortalAppointmentsPage() {
     <PortalShell hospital={hospital} active="appointments">
         <PageHeader
           title="Reservations"
+          icon={<CalendarCheck size={22} />}
+          description="Table reservations from WhatsApp and your own staff."
           actions={
             <>
               {selectedAppointments.length > 0 && (
@@ -363,70 +380,101 @@ export default function PortalAppointmentsPage() {
 
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-        {/* Divides the list by appointment type -- a tab per type (plus
-            "Other" for the rare pre-appointment-type-feature row), each
-            showing how many currently match, "All" always first. */}
-        <div className="mb-space-4 flex flex-wrap gap-space-2">
-          {TYPE_TAB_ORDER.filter((id) => id === "all" || (typeCounts[id] || 0) > 0 || typeFilter === id).map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTypeFilter(id)}
-              className={cn(
-                "rounded-full border px-space-3 py-space-1 text-[12.5px] font-semibold transition-colors duration-150",
-                typeFilter === id
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50",
+        {appointments && (
+          <>
+            <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <StatTile icon={<CalendarDays size={22} />} label="Today" value={viewCounts.today} deltaPct={null} hint="On today's schedule" />
+              <StatTile icon={<CalendarCheck size={22} />} label="Upcoming" value={viewCounts.upcoming} deltaPct={null} hint="Confirmed, still to come" />
+              <StatTile icon={<CircleCheck size={22} />} label="Attended" value={viewCounts.attended} deltaPct={null} hint="Guests who came" />
+              <StatTile icon={<Ban size={22} />} label="Cancelled" value={viewCounts.cancelled} deltaPct={null} hint="Cancelled bookings" />
+              <StatTile icon={<UserX size={22} />} label="No-shows" value={viewCounts.no_show} deltaPct={null} upIsGood={false} hint="Booked but didn't come" />
+            </div>
+            {appointments.length >= 500 && (
+              <p className="mb-space-3 text-[12px] text-ink-400">Counts and the list cover your latest 500 reservations.</p>
+            )}
+          </>
+        )}
+
+        <div>
+          <div className="min-w-0">
+            <div className="mb-space-3 flex flex-wrap gap-space-2">
+              {VIEW_TABS.filter((t) => t.always || viewCounts[t.id] > 0 || viewFilter === t.id).map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  onClick={() => setViewFilter(t.id)}
+                  className={cn(
+                    "rounded-full border px-space-3 py-space-1 text-[12.5px] font-semibold transition-colors duration-150",
+                    viewFilter === t.id
+                      ? "border-brand-600 bg-brand-600 text-white"
+                      : "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50",
+                  )}
+                >
+                  {t.label}
+                  <span className={cn("ml-space-1 tabular-nums", viewFilter === t.id ? "text-white/80" : "text-ink-400")}>
+                    {viewCounts[t.id]}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            {/* A tab per reservation type only when more than one type actually has rows (a restaurant that only
+                takes plain table reservations never sees these). */}
+            {TYPE_TAB_ORDER.filter((id) => id !== "all" && (typeCounts[id] || 0) > 0).length > 1 && (
+              <div className="mb-space-3 flex flex-wrap gap-space-2">
+                {TYPE_TAB_ORDER.filter((id) => id === "all" || (typeCounts[id] || 0) > 0 || typeFilter === id).map((id) => (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setTypeFilter(id)}
+                    className={cn(
+                      "rounded-md border px-space-2 py-0.5 text-[12px] font-semibold",
+                      typeFilter === id ? "border-ink-900 bg-ink-900 text-white" : "border-line bg-card text-ink-600 hover:border-ink-400",
+                    )}
+                  >
+                    {id === "all" ? "Any type" : id === "other" ? "Other" : TYPE_LABELS[id]}
+                    <span className="ml-space-1 tabular-nums opacity-70">{typeCounts[id] || 0}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="mb-space-3">
+              <div className="relative">
+                <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
+                <input
+                  type="text"
+                  placeholder="Search guest, phone, table, section or reference…"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
+                />
+              </div>
+            </div>
+
+            <Card className="p-space-4">
+              {!appointments ? (
+                <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+              ) : appointments.length === 0 ? (
+                <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations yet.</p>
+              ) : filteredAppointments && filteredAppointments.length === 0 ? (
+                <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations match your search/filter.</p>
+              ) : (
+                <DataTable
+                  columns={columns}
+                  data={filteredAppointments || []}
+                  getRowId={(a) => String(a.id)}
+                  isRowExpanded={(a) => reschedulePanelId === a.id || cancelPanelId === a.id || reassignPanelId === a.id}
+                  renderRowDetail={renderRowDetail}
+                />
               )}
-            >
-              {id === "all" ? "All" : id === "other" ? "Other" : TYPE_LABELS[id]}
-              <span className={cn("ml-space-1 tabular-nums", typeFilter === id ? "text-white/80" : "text-ink-400")}>
-                {typeCounts[id] || 0}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mb-space-4 flex flex-wrap items-center gap-space-3">
-          <div className="relative min-w-[220px] flex-1">
-            <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
-            <input
-              type="text"
-              placeholder="Search phone, table, section, or reference…"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
-            />
+            </Card>
           </div>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
-          >
-            <option value="all">All statuses</option>
-            {Object.entries(STATUS_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>{label}</option>
-            ))}
-          </select>
-        </div>
 
-        <Card className="p-space-4">
-          {!appointments ? (
-            <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
-          ) : appointments.length === 0 ? (
-            <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations yet.</p>
-          ) : filteredAppointments && filteredAppointments.length === 0 ? (
-            <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations match your search/filter.</p>
-          ) : (
-            <DataTable
-              columns={columns}
-              data={filteredAppointments || []}
-              getRowId={(a) => String(a.id)}
-              isRowExpanded={(a) => reschedulePanelId === a.id || cancelPanelId === a.id || reassignPanelId === a.id}
-              renderRowDetail={renderRowDetail}
-            />
-          )}
-        </Card>
+          <div className="mt-space-4">
+            <TodayScheduleCard items={todaySchedule} />
+          </div>
+        </div>
 
         <ConfirmDialog
           open={pendingDelete !== null}
