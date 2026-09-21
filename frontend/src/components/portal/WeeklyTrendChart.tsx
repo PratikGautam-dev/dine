@@ -1,9 +1,11 @@
 "use client";
 
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Card } from "@/components/ui/Card";
 
 type Point = { date: string; label: string; count: number };
+
+const BRAND = "#e21220";
 
 function TrendTooltip({ active, payload, label }: { active?: boolean; payload?: { value: number }[]; label?: string }) {
   if (!active || !payload?.length) return null;
@@ -15,31 +17,44 @@ function TrendTooltip({ active, payload, label }: { active?: boolean; payload?: 
   );
 }
 
+/** Reservations per day for the last 7 days (today included). */
 export function WeeklyTrendChart({ data }: { data: Point[] }) {
+  const total = data.reduce((sum, p) => sum + p.count, 0);
   return (
     <Card className="p-space-4">
-      <h3 className="text-label mb-space-4 font-bold text-ink-900">Reservations (this week)</h3>
-      <ResponsiveContainer width="100%" height={220}>
-        <LineChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
-          <CartesianGrid stroke="#e1e0d9" vertical={false} />
-          <XAxis
-            dataKey="label"
-            tickLine={false}
-            axisLine={{ stroke: "#c3c2b7" }}
-            tick={{ fontSize: 12, fill: "#898781" }}
-          />
-          <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#898781" }} allowDecimals={false} />
-          <Tooltip content={<TrendTooltip />} cursor={{ stroke: "#c3c2b7", strokeDasharray: 3 }} />
-          <Line
-            type="monotone"
-            dataKey="count"
-            stroke="#C2542D"
-            strokeWidth={2}
-            dot={{ r: 3, fill: "#C2542D", strokeWidth: 2, stroke: "#fff" }}
-            activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
-          />
-        </LineChart>
-      </ResponsiveContainer>
+      <div className="mb-space-3">
+        <h3 className="text-[15px] font-bold text-ink-900">Reservation trend</h3>
+        <p className="text-hint">Last 7 days · {total.toLocaleString()} in total</p>
+      </div>
+      {total === 0 ? (
+        <div className="flex h-[220px] items-center justify-center text-[13px] text-ink-400">
+          No reservations in the last 7 days.
+        </div>
+      ) : (
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={data} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+            <defs>
+              <linearGradient id="trendFill" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={BRAND} stopOpacity={0.22} />
+                <stop offset="100%" stopColor={BRAND} stopOpacity={0.02} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke="#ebe0d6" vertical={false} />
+            <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#ebe0d6" }} tick={{ fontSize: 12, fill: "#6b5f56" }} />
+            <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 12, fill: "#6b5f56" }} allowDecimals={false} />
+            <Tooltip content={<TrendTooltip />} cursor={{ stroke: "#c9b8a8", strokeDasharray: 3 }} />
+            <Area
+              type="monotone"
+              dataKey="count"
+              stroke={BRAND}
+              strokeWidth={2}
+              fill="url(#trendFill)"
+              dot={{ r: 3, fill: BRAND, strokeWidth: 2, stroke: "#fff" }}
+              activeDot={{ r: 5, strokeWidth: 2, stroke: "#fff" }}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      )}
     </Card>
   );
 }

@@ -229,8 +229,8 @@ def test_recent_activity_feed_uses_updated_at_for_status_changes(hospital_id):
 
     feed = db.get_recent_activity_feed(hospital_id, limit=10)
     labels_by_phone = {e["phone"]: e["label"] for e in feed}
-    assert labels_by_phone["5490011111"] == "Booked appointment"
-    assert labels_by_phone["5490022222"] == "Cancelled appointment"
+    assert labels_by_phone["5490011111"] == "Booked reservation"
+    assert labels_by_phone["5490022222"] == "Cancelled reservation"
 
     # The cancelled event sorts by ITS OWN updated_at (just now, real time),
     # not the original created_at (2020-01-01 07:00, earlier than the other

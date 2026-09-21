@@ -9,7 +9,7 @@ from sqlalchemy.orm import aliased
 
 from db.connection import get_session
 from db.models import STATUS_ATTENDED, STATUS_BOOKED, STATUS_CANCELLED, STATUS_NO_SHOW, STATUS_RESCHEDULED
-from db.orm_models import AppointmentRow, Department, DoctorRow, TableRow
+from db.orm_models import AppointmentRow, Department, DoctorRow, PatientRow, TableRow
 
 # --- Staff dashboard (SPEC Section 12.8) -- portal.py's /portal/dashboard.
 # Every query here is hospital_id-scoped, same discipline as everywhere else
@@ -203,6 +203,22 @@ def get_appointments_by_department(hospital_id: int, days: int = 30, now: dateti
     return [{"department_name": r.department_name, "count": r.c} for r in rows]
 
 
+_ACTIVITY_LABELS = {
+    STATUS_BOOKED: "Booked reservation",
+    STATUS_CANCELLED: "Cancelled reservation",
+    STATUS_RESCHEDULED: "Rescheduled reservation",
+    STATUS_ATTENDED: "Attended reservation",
+    STATUS_NO_SHOW: "No-show reservation",
+}
+
+
+def activity_label(status: str) -> str:
+    """The feed's human-readable event for a reservation status. A status without a hand-written label still reads
+    as a sentence ("waitlisted" -> "Waitlisted reservation"), never as a raw database value the UI would have to
+    guess at -- so adding a new status later can't silently show "some_new_status" to staff."""
+    return _ACTIVITY_LABELS.get(status) or f"{status.replace('_', ' ').strip().capitalize()} reservation"
+
+
 def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
     """A lightweight "what just happened" feed built entirely from
     appointments' own status/timestamps -- SPEC Section 12.8 looked for an
@@ -223,9 +239,18 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
     real, separately-timed things happened."""
     session = get_session()
     order_col = func.coalesce(AppointmentRow.updated_at, AppointmentRow.created_at)
+    # The guest's name, the same way the rest of the dashboard resolves it (the profile registered under this phone
+    # at this restaurant; the earliest one if a phone somehow has several). NULL when the guest never gave a name.
+    guest_name = (
+        select(PatientRow.name)
+        .where(PatientRow.hospital_id == AppointmentRow.hospital_id, PatientRow.phone == AppointmentRow.phone)
+        .order_by(PatientRow.id)
+        .limit(1)
+        .scalar_subquery()
+    )
     rows = session.execute(
         select(
-            AppointmentRow.status, AppointmentRow.phone, DoctorRow.name.label("doctor_name"),
+            AppointmentRow.status, AppointmentRow.phone, guest_name.label("guest_name"), DoctorRow.name.label("doctor_name"),
             TableRow.name.label("table_name"), AppointmentRow.party_size,
             Department.name.label("department_name"), AppointmentRow.created_at, AppointmentRow.updated_at,
         )
@@ -240,16 +265,12 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
         .order_by(order_col.desc())
         .limit(limit)
     ).all()
-    labels = {
-        STATUS_BOOKED: "Booked reservation",
-        STATUS_CANCELLED: "Cancelled reservation",
-        STATUS_RESCHEDULED: "Rescheduled reservation",
-    }
     feed = []
     for r in rows:
         event_at = r.updated_at or r.created_at
         feed.append({
-            "label": labels.get(r.status, r.status),
+            "label": activity_label(r.status),
+            "guest_name": (r.guest_name or "").strip() or None,
             "phone": r.phone,
             "doctor_name": r.doctor_name,
             "table_name": r.table_name,

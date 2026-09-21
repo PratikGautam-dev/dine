@@ -5,10 +5,10 @@ import { Card } from "@/components/ui/Card";
 
 type Slice = { department_name: string; count: number };
 
-// dataviz skill's documented default categorical palette, first slots in
-// fixed order (never cycled/reassigned) -- validated for adjacent-pair CVD
-// separation, which is what a donut/pie's ring of touching neighbors needs.
-const SLOT_COLORS = ["#2a78d6", "#eb6834", "#1baf7a", "#eda100", "#e87ba4", "#008300", "#4a3aa7", "#e34948"];
+// Brand red first, then warm neutrals and earth tones -- fixed order, never cycled or reassigned. Adjacent
+// slots differ strongly in lightness (red / charcoal / amber / olive / stone ...), and every legend row also
+// carries the section name and its share, so colour is never the only way to tell slices apart.
+const SLOT_COLORS = ["#e21220", "#2a211c", "#e0a100", "#6b7a4f", "#9c9086", "#f28b82", "#7d361d", "#c9b8a8"];
 
 function DonutTooltip({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) {
   if (!active || !payload?.length) return null;
@@ -20,37 +20,47 @@ function DonutTooltip({ active, payload }: { active?: boolean; payload?: { name:
   );
 }
 
+/** Share of reservations by section over the window the dashboard API uses (30 days back and 30 ahead). */
 export function DepartmentDonut({ data }: { data: Slice[] }) {
   const total = data.reduce((sum, d) => sum + d.count, 0);
 
   return (
     <Card className="p-space-4">
-      <h3 className="text-label mb-space-4 font-bold text-ink-900">Reservations by section</h3>
+      <div className="mb-space-3">
+        <h3 className="text-[15px] font-bold text-ink-900">Reservations by section</h3>
+        <p className="text-hint">Past and coming 30 days</p>
+      </div>
       {total === 0 ? (
-        <div className="flex h-[220px] items-center justify-center text-[13px] text-ink-400">
+        <div className="flex h-[220px] items-center justify-center px-space-3 text-center text-[13px] text-ink-400">
           No reservations in the last 30 days or scheduled in the next 30.
         </div>
       ) : (
-        <div className="flex items-center gap-space-4">
-          <ResponsiveContainer width="55%" height={200}>
-            <PieChart>
-              <Pie
-                data={data}
-                dataKey="count"
-                nameKey="department_name"
-                innerRadius={55}
-                outerRadius={85}
-                paddingAngle={data.length > 1 ? 2 : 0}
-                strokeWidth={0}
-              >
-                {data.map((entry, i) => (
-                  <Cell key={entry.department_name} fill={SLOT_COLORS[i % SLOT_COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip content={<DonutTooltip />} />
-            </PieChart>
-          </ResponsiveContainer>
-          <ul className="flex-1 space-y-space-2">
+        <div className="flex flex-col items-center gap-space-3">
+          <div className="relative h-[180px] w-[180px] shrink-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  dataKey="count"
+                  nameKey="department_name"
+                  innerRadius={58}
+                  outerRadius={86}
+                  paddingAngle={data.length > 1 ? 2 : 0}
+                  strokeWidth={0}
+                >
+                  {data.map((entry, i) => (
+                    <Cell key={entry.department_name} fill={SLOT_COLORS[i % SLOT_COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<DonutTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+              <span className="text-[24px] leading-none font-bold text-ink-900">{total.toLocaleString()}</span>
+              <span className="text-[11.5px] text-ink-600">reservations</span>
+            </div>
+          </div>
+          <ul className="w-full min-w-0 flex-1 space-y-space-2">
             {data.map((d, i) => (
               <li key={d.department_name} className="flex items-center gap-space-2 text-[12.5px]">
                 <span
@@ -58,7 +68,10 @@ export function DepartmentDonut({ data }: { data: Slice[] }) {
                   style={{ backgroundColor: SLOT_COLORS[i % SLOT_COLORS.length] }}
                 />
                 <span className="flex-1 truncate text-ink-900">{d.department_name}</span>
-                <span className="font-semibold text-ink-600">{Math.round((d.count / total) * 100)}%</span>
+                <span className="text-ink-600 tabular-nums">{d.count}</span>
+                <span className="w-9 text-right font-semibold text-ink-900 tabular-nums">
+                  {Math.round((d.count / total) * 100)}%
+                </span>
               </li>
             ))}
           </ul>

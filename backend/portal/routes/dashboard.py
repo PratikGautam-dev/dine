@@ -55,6 +55,7 @@ async def portal_dashboard(authorization: str | None = Header(default=None)):
         "activity_feed": [
             {
                 "label": item["label"],
+                "guest_name": item["guest_name"],
                 "phone": item["phone"],
                 "doctor_name": item["doctor_name"],
                 "table_name": item["table_name"],

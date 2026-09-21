@@ -17,6 +17,16 @@ export type DashboardData = {
   };
   weekly_counts: { date: string; label: string; count: number }[];
   department_breakdown: { department_name: string; count: number }[];
+  activity_feed: {
+    label: string;
+    guest_name: string | null;
+    phone: string;
+    doctor_name: string | null;
+    table_name: string | null;
+    party_size: number | null;
+    department_name: string;
+    at: string;
+  }[];
   recent_appointments: {
     id: number;
     phone: string;

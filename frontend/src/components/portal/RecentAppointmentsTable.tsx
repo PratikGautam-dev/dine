@@ -50,24 +50,14 @@ const columns: ColumnDef<Appointment>[] = [
     ),
   },
   {
-    id: "reference_id",
-    header: "Reference",
-    cell: ({ row }) => (
-      <span className="whitespace-nowrap font-mono text-[12px] text-ink-400">{row.original.reference_id || "—"}</span>
-    ),
-  },
-  {
     id: "patient",
     header: "Guest",
     cell: ({ row }) => {
       const a = row.original;
       return (
         <div className="text-ink-900">
-          <div>
-            <span className="font-semibold">{a.patient_name || a.phone}</span>
-            {a.patient_name && <span className="ml-space-2 text-[12px] text-ink-400">{a.phone}</span>}
-          </div>
-          {a.patient_display_id && <div className="font-mono text-[11px] text-ink-400">{a.patient_display_id}</div>}
+          <div className="font-semibold">{a.patient_name || a.phone}</div>
+          {a.patient_name && <div className="text-[12px] text-ink-600">{a.phone}</div>}
         </div>
       );
     },
@@ -76,16 +66,14 @@ const columns: ColumnDef<Appointment>[] = [
     id: "doctor_name",
     header: "Table",
     cell: ({ row }) => (
-      <span className="text-ink-600">
-        {row.original.table_name || row.original.doctor_name || "—"}
-        {row.original.party_size ? <span className="ml-space-1 text-ink-400">· {row.original.party_size} guests</span> : null}
-      </span>
+      <div className="text-ink-900">
+        <div>
+          {row.original.table_name || row.original.doctor_name || "—"}
+          {row.original.party_size ? <span className="ml-space-1 text-ink-600">· {row.original.party_size} guests</span> : null}
+        </div>
+        <div className="text-[12px] text-ink-600">{row.original.department_name}</div>
+      </div>
     ),
-  },
-  {
-    id: "department_name",
-    header: "Section",
-    cell: ({ row }) => <span className="text-ink-600">{row.original.department_name}</span>,
   },
   {
     id: "source",
@@ -112,9 +100,9 @@ export function RecentAppointmentsTable({ appointments }: { appointments: Appoin
   return (
     <Card className="p-space-4">
       <div className="mb-space-3 flex items-center justify-between">
-        <h3 className="text-label font-bold text-ink-900">Recent reservations</h3>
-        <Link href="/portal/patients" className="text-[12.5px] font-semibold text-brand-600 hover:underline">
-          View all guests →
+        <h3 className="text-[15px] font-bold text-ink-900">Recent reservations</h3>
+        <Link href="/portal/appointments" className="text-[12.5px] font-semibold text-brand-700 hover:underline">
+          View all reservations →
         </Link>
       </div>
       {appointments.length === 0 ? (
