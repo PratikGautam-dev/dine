@@ -148,6 +148,12 @@ export function useMenuItems(ready: boolean) {
       return;
     }
     toast.success(`${item.name}: +${add} added`);
+    // an open edit form for this item shows the new count, so saving can't write the old one back
+    const updated = (result.data as { menu_item: MenuItem }).menu_item;
+    if (editingId === item.id && updated) {
+      const count = updated.stock_count === null ? "" : String(updated.stock_count);
+      setForm((f) => ({ ...f, stock_count: count, stock_original: count }));
+    }
     load();
   }
 
@@ -164,6 +170,7 @@ export function useMenuItems(ready: boolean) {
       return;
     }
     toast.success(isAvailable ? `${item.name} is back on the menu` : `${item.name} marked sold out`);
+    if (editingId === item.id) setForm((f) => ({ ...f, is_available: isAvailable }));
     load();
   }
 
