@@ -3,6 +3,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type Department = { id: string; name: string };
+export type Section = { id: string; name: string; sort_order: number; table_count: number };
 export type RestaurantTable = {
   id: string;
   name: string;
@@ -30,6 +31,8 @@ export function emptyTableForm(departments: Department[]): TableFormState {
  * PortalSidebar.tsx's own comment on why both pages exist. */
 export function useRestaurantTables(ready: boolean) {
   const [departments, setDepartments] = useState<Department[] | null>(null);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [sectionBusy, setSectionBusy] = useState(false);
   const [tables, setTables] = useState<RestaurantTable[]>([]);
   const [error, setError] = useState<string | null>(null);
 
@@ -46,8 +49,9 @@ export function useRestaurantTables(ready: boolean) {
       if (!result.unauthorized) setError(result.error);
       return;
     }
-    const data = result.data as { departments: Department[]; tables: RestaurantTable[] };
+    const data = result.data as { departments: Department[]; tables: RestaurantTable[]; sections: Section[] };
     setDepartments(data.departments);
+    setSections(data.sections ?? []);
     const byId = new Map(data.departments.map((d) => [d.id, d.name]));
     setTables(data.tables.map((t) => ({ ...t, department_name: byId.get(t.department_id) })));
   }, []);
@@ -131,9 +135,32 @@ export function useRestaurantTables(ready: boolean) {
     load();
   }
 
+  /** One call for every section change (add / rename / move / delete). Returns an error message or null. */
+  async function sectionRequest(path: string, method: string, body?: unknown, success?: string): Promise<string | null> {
+    setSectionBusy(true);
+    const result = await portalFetch(path, {
+      method,
+      headers: body ? { "Content-Type": "application/json" } : undefined,
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    setSectionBusy(false);
+    if (!result.ok) return result.unauthorized ? "Session expired — please log in again." : result.error;
+    if (success) toast.success(success);
+    await load();
+    return null;
+  }
+
+  const addSection = (name: string) => sectionRequest("/api/portal/sections", "POST", { name }, "Section added");
+  const renameSection = (id: string, name: string) =>
+    sectionRequest(`/api/portal/sections/${id}`, "PUT", { name }, "Section renamed");
+  const moveSection = (id: string, direction: "up" | "down") =>
+    sectionRequest(`/api/portal/sections/${id}/move`, "POST", { direction });
+  const deleteSection = (id: string) => sectionRequest(`/api/portal/sections/${id}`, "DELETE", undefined, "Section deleted");
+
   return {
-    departments, tables, error,
+    departments, sections, sectionBusy, tables, error,
     showForm, editingId, form, setForm, formError, saving, togglingId,
     openAddForm, openEditForm, cancelForm, handleSave, handleToggleActive,
+    addSection, renameSection, moveSection, deleteSection,
   };
 }

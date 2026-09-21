@@ -111,6 +111,12 @@ class Victim:
     def menu_item(self):
         return db.create_menu_item(self.hid, f"{MARK} Dish", price_paise=5000, category="Mains")["id"]
 
+    def stocked_menu_item(self):
+        return db.create_menu_item(self.hid, f"{MARK} Counted Dish", price_paise=5000, category="Mains", stock_count=4)["id"]
+
+    def empty_section(self):
+        return db.create_department(self.hid, f"{MARK} Empty {id(object())}")["id"]
+
     def order(self):
         item = self.menu_item()
         return db.create_food_order(self.hid, PHONE_B, [{"menu_item_id": item, "quantity": 1}], "pickup", payment_method="pay_at_restaurant")["id"]
@@ -232,6 +238,13 @@ def _cases():
     # ---- menu + orders
     m = lambda v: {"m": v.menu_item()}
     case("edit B's menu item", m, "PUT", lambda c: f"/api/portal/menu-items/{c['m']}", lambda c: {"name": "Hacked", "price_rupees": 1})
+    case("restock B's menu item", lambda v: {"m": v.stocked_menu_item()}, "POST", lambda c: f"/api/portal/menu-items/{c['m']}/restock", lambda c: {"add": 5})
+    case("mark B's menu item sold out", m, "POST", lambda c: f"/api/portal/menu-items/{c['m']}/availability", lambda c: {"is_available": False})
+    # ---- sections
+    sec = lambda v: {"s": v.dept["id"]}
+    case("rename B's section", sec, "PUT", lambda c: f"/api/portal/sections/{c['s']}", lambda c: {"name": f"{MARK} Renamed Hall"})
+    case("move B's section", sec, "POST", lambda c: f"/api/portal/sections/{c['s']}/move", lambda c: {"direction": "down"})
+    case("delete B's section", lambda v: {"s": v.empty_section()}, "DELETE", lambda c: f"/api/portal/sections/{c['s']}")
     o = lambda v: {"o": v.order()}
     case("read B's order", o, "GET", lambda c: f"/api/portal/food-orders/{c['o']}")
     case("accept B's order", o, "POST", lambda c: f"/api/portal/food-orders/{c['o']}/accept")

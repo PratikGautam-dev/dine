@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Plus } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -8,9 +9,12 @@ import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { Switch } from "@/components/ui/Switch";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { useMenuItems } from "@/hooks/useMenuItems";
+
+const NEW_CATEGORY = "__new__";
 
 export default function PortalFoodMenuPage() {
   const { hospital, ready } = usePortalGuard();
@@ -20,17 +24,27 @@ export default function PortalFoodMenuPage() {
   // canManageDoctors check already uses.
   const canManage = !hospital || hospital.admin_capabilities?.includes("manage_food_ordering");
   const {
-    items, error,
+    items, categories, error, busyId,
     showForm, editingId, form, setForm, formError, saving,
-    openAddForm, openEditForm, cancelForm, handleSave,
+    openAddForm, openEditForm, cancelForm, handleSave, handleRestock, handleAvailability,
   } = useMenuItems(ready);
+  // "New category…" reveals a text box; picking an existing category (or "No category") hides it again.
+  const [newCategoryMode, setNewCategoryMode] = useState(false);
+  const [restockAmounts, setRestockAmounts] = useState<Record<string, string>>({});
+  const categoryKnown = form.category === "" || categories.includes(form.category);
+  const showNewCategory = newCategoryMode || !categoryKnown;
+
+  function openForm(open: () => void) {
+    setNewCategoryMode(false);
+    open();
+  }
 
   return (
     <PortalShell hospital={hospital} active="food-menu">
       <PageHeader
         title="Menu"
         description="What guests can order for takeaway or delivery through WhatsApp."
-        actions={canManage && <Button size="md" onClick={openAddForm}><Plus size={14} /> Add item</Button>}
+        actions={canManage && <Button size="md" onClick={() => openForm(openAddForm)}><Plus size={14} /> Add item</Button>}
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
       {!canManage && (
@@ -62,16 +76,36 @@ export default function PortalFoodMenuPage() {
                   onChange={(e) => setForm({ ...form, price_rupees: e.target.value })}
                 />
               </Field>
-              <Field label="Category" htmlFor="mi-category" hint="e.g. Starters, Mains, Beverages">
-                <Input
-                  id="mi-category" value={form.category}
-                  onChange={(e) => setForm({ ...form, category: e.target.value })}
-                />
+              <Field label="Category" htmlFor="mi-category" hint="Guests see the menu grouped by category on WhatsApp.">
+                <select
+                  id="mi-category" value={showNewCategory ? NEW_CATEGORY : form.category}
+                  onChange={(e) => {
+                    if (e.target.value === NEW_CATEGORY) {
+                      setNewCategoryMode(true);
+                      setForm({ ...form, category: "" });
+                    } else {
+                      setNewCategoryMode(false);
+                      setForm({ ...form, category: e.target.value });
+                    }
+                  }}
+                  className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                >
+                  <option value="">No category</option>
+                  {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  <option value={NEW_CATEGORY}>+ New category…</option>
+                </select>
+                {showNewCategory && (
+                  <Input
+                    id="mi-category-new" className="mt-space-2" placeholder="New category name, e.g. Starters"
+                    aria-label="New category name" value={form.category}
+                    onChange={(e) => setForm({ ...form, category: e.target.value })}
+                  />
+                )}
               </Field>
             </div>
             <Field
-              label="Stock count" htmlFor="mi-stock"
-              hint="Leave blank for unlimited. Editing this each day is how you reset today's stock."
+              label={editingId ? "Stock count" : "Starting stock"} htmlFor="mi-stock"
+              hint="Portions available. Leave blank for unlimited. Use Restock on the item to add more later."
             >
               <Input
                 id="mi-stock" type="number" min="0" value={form.stock_count}
@@ -100,7 +134,7 @@ export default function PortalFoodMenuPage() {
               checked={form.is_available}
               onChange={(checked) => setForm({ ...form, is_available: checked })}
             >
-              Available for ordering
+              Available for ordering (untick to mark sold out without changing the stock count)
             </CheckboxRow>
             {formError && <p className="mt-space-2 text-[13px] text-error">{formError}</p>}
             <div className="mt-space-4 flex gap-space-2">
@@ -117,32 +151,83 @@ export default function PortalFoodMenuPage() {
         <p className="text-[13px] text-ink-400">No menu items yet. Add your first one above.</p>
       ) : (
         <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <Card key={item.id} elevation="interactive" onClick={() => canManage && openEditForm(item)} className="p-space-4">
-              {item.image_url && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={item.image_url} alt={item.name} loading="lazy"
-                  className="mb-space-2 h-28 w-full rounded-md object-cover"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              )}
-              <div className="mb-space-2 flex items-start justify-between gap-space-2">
-                <h3 className="text-body-lg font-semibold">{item.name}</h3>
-                <Badge tone={item.is_available ? "success" : "neutral"}>
-                  {item.is_available ? "Available" : "Unavailable"}
-                </Badge>
-              </div>
-              {item.category && <p className="mb-space-1 text-[12px] text-ink-400">{item.category}</p>}
-              {item.description && <p className="mb-space-2 text-[13px] text-ink-600">{item.description}</p>}
-              <div className="flex items-center justify-between text-[13px]">
-                <span className="font-semibold">₹{(item.price_paise / 100).toFixed(2)}</span>
-                <span className="text-ink-400">
-                  {item.stock_count === null ? "Unlimited stock" : `${item.stock_count} left today`}
-                </span>
-              </div>
-            </Card>
-          ))}
+          {items.map((item) => {
+            const soldOut = !item.is_available;
+            const outOfStock = item.stock_count === 0;
+            const restockAmount = Math.floor(Number(restockAmounts[item.id]));
+            return (
+              <Card
+                key={item.id} elevation="interactive"
+                onClick={() => canManage && openForm(() => openEditForm(item))} className="p-space-4"
+              >
+                {item.image_url && (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item.image_url} alt={item.name} loading="lazy"
+                    className="mb-space-2 h-28 w-full rounded-md object-cover"
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  />
+                )}
+                <div className="mb-space-2 flex items-start justify-between gap-space-2">
+                  <h3 className="text-body-lg font-semibold">{item.name}</h3>
+                  <Badge tone={soldOut ? "neutral" : outOfStock ? "clay" : "success"}>
+                    {soldOut ? "Sold out" : outOfStock ? "Out of stock" : "Available"}
+                  </Badge>
+                </div>
+                {item.category && <p className="mb-space-1 text-[12px] text-ink-400">{item.category}</p>}
+                {item.description && <p className="mb-space-2 text-[13px] text-ink-600">{item.description}</p>}
+                <div className="flex items-center justify-between text-[13px]">
+                  <span className="font-semibold">₹{(item.price_paise / 100).toFixed(2)}</span>
+                  <span className="text-ink-400">
+                    {item.stock_count === null ? "Unlimited stock" : `${item.stock_count} in stock`}
+                  </span>
+                </div>
+                {canManage && (
+                  <div
+                    className="mt-space-3 flex flex-wrap items-center gap-space-2 border-t border-line pt-space-3"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    {item.stock_count !== null && (
+                      <>
+                        {[5, 10].map((n) => (
+                          <Button
+                            key={n} size="md" variant="secondary" disabled={busyId === item.id}
+                            onClick={() => handleRestock(item, n)}
+                          >
+                            +{n}
+                          </Button>
+                        ))}
+                        <Input
+                          type="number" min="1" aria-label={`Restock ${item.name} by`} placeholder="+N"
+                          className="h-10! w-20!" value={restockAmounts[item.id] ?? ""}
+                          onChange={(e) => setRestockAmounts({ ...restockAmounts, [item.id]: e.target.value })}
+                        />
+                        <Button
+                          size="md" variant="secondary"
+                          disabled={busyId === item.id || !(restockAmount >= 1)}
+                          onClick={async () => {
+                            await handleRestock(item, restockAmount);
+                            setRestockAmounts((prev) => ({ ...prev, [item.id]: "" }));
+                          }}
+                        >
+                          Restock
+                        </Button>
+                      </>
+                    )}
+                    <label className="ml-auto flex items-center gap-space-2 text-[12px] text-ink-600">
+                      Sold out
+                      <Switch
+                        checked={soldOut}
+                        onChange={() => handleAvailability(item, soldOut)}
+                        disabled={busyId === item.id}
+                        aria-label={`Mark ${item.name} sold out`}
+                      />
+                    </label>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
         </div>
       )}
     </PortalShell>

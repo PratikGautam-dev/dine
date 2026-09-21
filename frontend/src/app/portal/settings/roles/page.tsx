@@ -12,7 +12,7 @@ import { createRoleColumns } from "./_components/role-columns";
 // Kept in step with backend/portal/permissions.py's ALL_PAGES -- the pages a restaurant actually has.
 const PAGE_KEYS = [
   "dashboard", "appointments", "patients", "tables", "food_menu", "food_orders", "messages",
-  "doctors", "schedule", "settings", "staff", "roles",
+  "doctors", "settings", "staff", "roles",
   "check_in_out", "my_leave", "leave_requests", "attendance", "attendance_settings",
 ];
 const PAGE_LABEL: Record<string, string> = {
@@ -24,7 +24,6 @@ const PAGE_LABEL: Record<string, string> = {
   food_orders: "Orders",
   messages: "Messages",
   doctors: "Team",
-  schedule: "Schedule",
   settings: "Settings",
   staff: "Staff",
   roles: "Roles & Permissions",

@@ -1525,6 +1525,12 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE staff_hr_settings DROP CONSTRAINT IF EXISTS ck_staff_hr_grace")
     conn.execute("ALTER TABLE staff_hr_settings ADD CONSTRAINT ck_staff_hr_grace CHECK (late_grace_minutes BETWEEN 0 AND 240)")
 
+    # Migration 0038 -- sections get a display order (1.., 0 = unset; only unset rows are numbered, so this is idempotent).
+    conn.execute("ALTER TABLE departments ADD COLUMN IF NOT EXISTS sort_order INTEGER NOT NULL DEFAULT 0")
+    conn.execute(
+        "UPDATE departments d SET sort_order = n.rn FROM (SELECT id, row_number() OVER (PARTITION BY hospital_id ORDER BY name, id) AS rn "
+        "FROM departments) n WHERE n.id = d.id AND d.sort_order = 0"
+    )
     conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS image_url TEXT")
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS payment_method TEXT NOT NULL DEFAULT 'online'")
     conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_payment_method_check")

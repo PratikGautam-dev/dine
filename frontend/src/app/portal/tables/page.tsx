@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { SectionsPanel } from "@/components/portal/SectionsPanel";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { useRestaurantTables } from "@/hooks/useRestaurantTables";
 
@@ -20,21 +21,17 @@ export default function PortalTablesPage() {
   // open while hospital hasn't loaded" shape the Menu/Staff pages already use.
   const canManage = !hospital || hospital.admin_capabilities?.includes("manage_tables");
   const {
-    departments, tables, error,
+    departments, sections, sectionBusy, tables, error,
     showForm, editingId, form, setForm, formError, saving, togglingId,
     openAddForm, openEditForm, cancelForm, handleSave, handleToggleActive,
+    addSection, renameSection, moveSection, deleteSection,
   } = useRestaurantTables(ready);
 
   return (
     <PortalShell hospital={hospital} active="tables">
       <PageHeader
         title="Tables"
-        description="The physical tables guests get auto-assigned to when they book via WhatsApp."
-        actions={
-          canManage && departments && departments.length > 0 && (
-            <Button size="md" onClick={openAddForm}><Plus size={14} /> Add table</Button>
-          )
-        }
+        description="Set up your sections first, then add the physical tables guests get auto-assigned to when they book via WhatsApp."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
       {!canManage && (
@@ -42,10 +39,24 @@ export default function PortalTablesPage() {
           Table management isn&apos;t available for your account type. Contact support if you need changes made.
         </p>
       )}
+      {departments && (
+        <SectionsPanel
+          sections={sections} canManage={canManage} busy={sectionBusy}
+          onAdd={addSection} onRename={renameSection} onMove={moveSection} onDelete={deleteSection}
+        />
+      )}
+
+      <div className="mb-space-3 flex items-center justify-between gap-space-3">
+        <div className="flex items-baseline gap-space-2">
+          <span className="text-eyebrow">Step 2</span>
+          <h2 className="text-[15px] font-bold text-ink-900">Tables</h2>
+        </div>
+        {canManage && departments && departments.length > 0 && (
+          <Button size="md" onClick={openAddForm}><Plus size={14} /> Add table</Button>
+        )}
+      </div>
       {departments && departments.length === 0 && (
-        <p className="mb-space-4 text-[13px] text-ink-400">
-          Add a section first (Staff & Sections page) before adding tables.
-        </p>
+        <p className="mb-space-4 text-[13px] text-ink-400">Add at least one section above, then you can add tables to it.</p>
       )}
 
       {showForm && (
@@ -89,7 +100,7 @@ export default function PortalTablesPage() {
       {!departments ? (
         <p className="text-[13px] text-ink-400">Loading…</p>
       ) : tables.length === 0 ? (
-        <p className="text-[13px] text-ink-400">No tables yet.</p>
+        departments.length > 0 && <p className="text-[13px] text-ink-400">No tables yet. Use Add table to create the first one.</p>
       ) : (
         <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3">
           {tables.map((table) => (

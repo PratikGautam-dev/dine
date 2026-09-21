@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta
 from typing import cast
 
 import sqlalchemy.exc
-from sqlalchemy import delete, insert, select, update
+from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import CursorResult
 
 from db.connection import get_connection, get_session, reraise_as_driver_integrity_error
@@ -22,7 +22,7 @@ _WEEKDAY_ABBREVS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 def get_departments(hospital_id: int) -> list[dict]:
     session = get_session()
     rows = session.execute(
-        select(Department.id, Department.name).where(Department.hospital_id == hospital_id).order_by(Department.name)
+        select(Department.id, Department.name).where(Department.hospital_id == hospital_id).order_by(Department.sort_order, Department.name)
     ).all()
     return [dict(r._mapping) for r in rows]
 
@@ -71,7 +71,10 @@ def create_department(hospital_id: int, name: str) -> dict:
     (db/schema.sql's comment on that table)."""
     department_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
-    session.execute(insert(Department).values(id=department_id, hospital_id=hospital_id, name=name))
+    last = session.execute(
+        select(func.coalesce(func.max(Department.sort_order), 0)).where(Department.hospital_id == hospital_id)
+    ).scalar_one()
+    session.execute(insert(Department).values(id=department_id, hospital_id=hospital_id, name=name, sort_order=last + 1))
     session.commit()
     return {"id": department_id, "name": name}
 

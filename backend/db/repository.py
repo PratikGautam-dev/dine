@@ -44,6 +44,7 @@ from db.repositories.audit_logs import *  # noqa: F401,F403
 from db.repositories.platform_settings import *  # noqa: F401,F403
 from db.repositories.hospital_settings import *  # noqa: F401,F403
 from db.repositories.tables import *  # noqa: F401,F403
+from db.repositories.sections import *  # noqa: F401,F403
 from db.repositories.menu_items import *  # noqa: F401,F403
 from db.repositories.food_orders import *  # noqa: F401,F403
 from db.repositories.staff_users import *  # noqa: F401,F403

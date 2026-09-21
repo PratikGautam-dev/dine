@@ -3,7 +3,6 @@
 import Image from "next/image";
 import {
   CalendarCheck,
-  CalendarClock,
   CalendarDays,
   CalendarOff,
   ClipboardList,
@@ -46,7 +45,6 @@ const NAV_ITEMS = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard" },
   { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments" },
   { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients" },
-  { key: "schedule", label: "Schedule", icon: CalendarClock, href: "/portal/schedule", pageKey: "schedule" },
   { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables" },
   { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors" },
   // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,

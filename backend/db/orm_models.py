@@ -250,6 +250,8 @@ class Department(Base):
     id: Mapped[str] = mapped_column(primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
     name: Mapped[str]
+    # migration 0038 -- display order among the restaurant's sections (1.., 0 = unset)
+    sort_order: Mapped[int]
 
 
 class DoctorRow(Base):

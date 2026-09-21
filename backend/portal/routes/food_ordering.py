@@ -5,13 +5,10 @@ actions, gated by the dedicated manage_food_ordering capability.
 Structurally cloned from portal/routes/procedures.py (catalog CRUD pattern)
 and portal/routes/bookings.py (list/detail + guarded-action pattern).
 
-No separate "reset stock" bulk action -- confirmed as the right scope for
-v1 (Sub-stage 1's own design note): stock_count is just another field on
-the same PUT /api/portal/menu-items/{id} edit form every other field goes
-through, so staff correct today's count the same way they'd correct a
-price. A dedicated bulk-reset endpoint would need a stored "default/par
-stock level" concept that was deliberately NOT built (flagged as future
-scope, time-window/kitchen-capacity availability alongside it)."""
+Stock: stock_count is the initial/corrected count on the create/edit form (blank = unlimited), "restock +N"
+adds to it atomically, and the sold-out switch (is_available) is independent of it -- an item can be hidden
+with stock left, or listed with a zero count that a restock brings back. A bulk "reset to par level" action
+would need a stored par level, which is deliberately not built."""
 from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -37,7 +34,16 @@ class MenuItemPayload(BaseModel):
     image_url: str | None = None
 
 
+class RestockPayload(BaseModel):
+    add: int = 0
+
+
+class AvailabilityPayload(BaseModel):
+    is_available: bool
+
+
 _MAX_IMAGE_URL_LENGTH = 2000
+_MAX_RESTOCK = 10_000
 
 
 def _clean_image_url(raw: str | None) -> tuple[str | None, str | None]:
@@ -76,7 +82,7 @@ async def portal_menu_items(authorization: str | None = Header(default=None)):
     # filters" split get_all_tables_for_hospital() vs get_tables() already
     # establishes for table management.
     items = db.get_menu_items(hospital.id, available_only=False)
-    return JSONResponse({"menu_items": items})
+    return JSONResponse({"menu_items": items, "categories": db.list_menu_categories(hospital.id)})
 
 
 @router.post("/api/portal/menu-items")
@@ -89,12 +95,15 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
         return JSONResponse({"error": "Item name is required."}, status_code=400)
     if payload.price_rupees < 0:
         return JSONResponse({"error": "Price cannot be negative."}, status_code=400)
+    if payload.stock_count is not None and payload.stock_count < 0:
+        return JSONResponse({"error": "Stock cannot be negative."}, status_code=400)
     image_url, image_error = _clean_image_url(payload.image_url)
     if image_error:
         return JSONResponse({"error": image_error}, status_code=400)
     item = db.create_menu_item(
         hospital.id, name, price_paise=round(payload.price_rupees * 100),
-        description=payload.description, category=payload.category, stock_count=payload.stock_count,
+        description=payload.description, category=db.canonical_category(hospital.id, payload.category),
+        stock_count=payload.stock_count,
         image_url=image_url, is_available=payload.is_available,
     )
     db.record_audit_log(
@@ -119,17 +128,67 @@ async def portal_update_menu_item(
         return JSONResponse({"error": "Item name is required."}, status_code=400)
     if payload.price_rupees < 0:
         return JSONResponse({"error": "Price cannot be negative."}, status_code=400)
+    if payload.stock_count is not None and payload.stock_count < 0:
+        return JSONResponse({"error": "Stock cannot be negative."}, status_code=400)
     image_url, image_error = _clean_image_url(payload.image_url)
     if image_error:
         return JSONResponse({"error": image_error}, status_code=400)
+    # stock_count only overwrites the live count when the request actually carries it (see update_menu_item).
     item = db.update_menu_item(
         hospital.id, menu_item_id, name=name, price_paise=round(payload.price_rupees * 100),
-        description=payload.description, category=payload.category, is_available=payload.is_available,
-        stock_count=payload.stock_count, image_url=image_url,
+        description=payload.description, category=db.canonical_category(hospital.id, payload.category),
+        is_available=payload.is_available,
+        stock_count=payload.stock_count if "stock_count" in payload.model_fields_set else db.KEEP_STOCK,
+        image_url=image_url,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.update",
         entity_type="menu_item", entity_id=menu_item_id, before=existing, after=item,
+    )
+    return JSONResponse({"menu_item": item})
+
+
+@router.post("/api/portal/menu-items/{menu_item_id}/restock")
+async def portal_restock_menu_item(
+    menu_item_id: str, payload: RestockPayload, authorization: str | None = Header(default=None),
+):
+    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
+    if error:
+        return error
+    existing = db.get_menu_item(hospital.id, menu_item_id)
+    if existing is None:
+        return JSONResponse({"error": "Menu item not found."}, status_code=404)
+    if not 1 <= payload.add <= _MAX_RESTOCK:
+        return JSONResponse({"error": f"Add between 1 and {_MAX_RESTOCK} portions."}, status_code=400)
+    if existing["stock_count"] is None:
+        return JSONResponse(
+            {"error": "This item has unlimited stock. Set a stock count first if you want to track portions."},
+            status_code=409,
+        )
+    item = db.restock_menu_item(hospital.id, menu_item_id, payload.add)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "menu_item.restock",
+        entity_type="menu_item", entity_id=menu_item_id,
+        before={"stock_count": existing["stock_count"]}, after={"added": payload.add},
+    )
+    return JSONResponse({"menu_item": item})
+
+
+@router.post("/api/portal/menu-items/{menu_item_id}/availability")
+async def portal_set_menu_item_availability(
+    menu_item_id: str, payload: AvailabilityPayload, authorization: str | None = Header(default=None),
+):
+    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
+    if error:
+        return error
+    existing = db.get_menu_item(hospital.id, menu_item_id)
+    if existing is None:
+        return JSONResponse({"error": "Menu item not found."}, status_code=404)
+    item = db.set_menu_item_availability(hospital.id, menu_item_id, payload.is_available)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "menu_item.availability",
+        entity_type="menu_item", entity_id=menu_item_id,
+        before={"is_available": existing["is_available"]}, after={"is_available": payload.is_available},
     )
     return JSONResponse({"menu_item": item})
 
