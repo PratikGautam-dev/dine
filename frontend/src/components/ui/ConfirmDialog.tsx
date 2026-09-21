@@ -49,12 +49,7 @@ export function ConfirmDialog({
           <Button variant="secondary" onClick={onCancel} disabled={busy}>
             {cancelLabel}
           </Button>
-          <Button
-            variant="primary"
-            onClick={onConfirm}
-            disabled={busy}
-            className={destructive ? "bg-error hover:bg-error/90 active:bg-error/80" : undefined}
-          >
+          <Button variant={destructive ? "destructive" : "primary"} onClick={onConfirm} disabled={busy}>
             {busy ? "Working…" : confirmLabel}
           </Button>
         </div>

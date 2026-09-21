@@ -267,9 +267,9 @@ export default function PortalAppointmentsPage() {
           <div className="flex gap-space-2">
             <Button
               size="md"
+              variant="destructive"
               onClick={() => handleCancel(a.id)}
               disabled={cancellingId === a.id}
-              className="bg-error hover:bg-error/90 active:bg-error/80"
             >
               <Send size={13} /> {cancellingId === a.id ? "Cancelling…" : "Send & cancel"}
             </Button>
@@ -345,9 +345,8 @@ export default function PortalAppointmentsPage() {
               {selectedAppointments.length > 0 && (
                 <PermissionGate page="appointments" action="delete">
                   <Button
-                    variant="secondary"
+                    variant="destructive"
                     size="md"
-                    className="border-error/30 text-error hover:border-error hover:bg-error/10"
                     onClick={() => setPendingDelete(selectedAppointments)}
                   >
                     <Trash2 size={15} />

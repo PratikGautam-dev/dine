@@ -1,10 +1,11 @@
 "use client";
 
-import { Menu } from "lucide-react";
+import { CalendarDays, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
+import { UserMenu } from "@/components/portal/UserMenu";
 import type { PortalHospital } from "@/lib/portalAuth";
 
 type Props = {
@@ -36,7 +37,7 @@ export function PortalShell({ hospital, active, children }: Props) {
       <PortalSidebar hospital={hospital} active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="flex h-14 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
+        <header className="flex h-16 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
           <button
             type="button"
             onClick={() => setSidebarOpen(true)}
@@ -46,8 +47,17 @@ export function PortalShell({ hospital, active, children }: Props) {
             <Menu size={20} strokeWidth={2} />
           </button>
           <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">{hospital?.name || "Restaurant"}</span>
-          <div className="ml-auto">
+          <div className="ml-auto flex items-center gap-space-2">
+            <span
+              // the server and the browser can be on different days/timezones for a moment; the browser's wins
+              suppressHydrationWarning
+              className="mr-space-2 hidden items-center gap-space-2 rounded-md border border-line px-space-3 py-1.5 text-[13px] font-medium text-ink-600 md:flex"
+            >
+              <CalendarDays size={15} className="text-ink-400" />
+              {new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short", year: "numeric" })}
+            </span>
             <NotificationBell />
+            <UserMenu />
           </div>
         </header>
 

@@ -1,5 +1,6 @@
 "use client";
 
+import { CalendarCheck, CalendarDays, CircleCheck, LayoutDashboard, UserPlus, UserX } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -43,15 +44,8 @@ function HospitalDashboard() {
               )}
             </>
           }
-          actions={
-            <select
-              disabled
-              title="Coming soon"
-              className="h-9 cursor-not-allowed rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-600"
-            >
-              <option>Today</option>
-            </select>
-          }
+          icon={<LayoutDashboard size={22} />}
+          description="How your reservations and guests are doing."
         />
 
         {!data ? (
@@ -59,11 +53,11 @@ function HospitalDashboard() {
         ) : (
           <>
             <div className="mb-space-4 grid grid-cols-1 gap-space-4 md:grid-cols-2 lg:grid-cols-5">
-              <StatTile label="Upcoming reservations" value={data.stats.upcoming_appointments} deltaPct={null} hint="Currently booked" />
-              <StatTile label="Today's reservations" value={data.stats.today_appointments} deltaPct={data.stats.today_appointments_delta_pct} />
-              <StatTile label="Confirmed" value={data.stats.confirmed_today} deltaPct={data.stats.confirmed_today_delta_pct} />
-              <StatTile label="New guests" value={data.stats.new_patients_today} deltaPct={data.stats.new_patients_today_delta_pct} />
-              <StatTile label="No-shows" value={data.stats.no_shows_today} deltaPct={data.stats.no_shows_today_delta_pct} upIsGood={false} />
+              <StatTile icon={<CalendarCheck size={22} />} label="Upcoming reservations" value={data.stats.upcoming_appointments} deltaPct={null} hint="Currently booked" />
+              <StatTile icon={<CalendarDays size={22} />} label="Today's reservations" value={data.stats.today_appointments} deltaPct={data.stats.today_appointments_delta_pct} />
+              <StatTile icon={<CircleCheck size={22} />} label="Confirmed" value={data.stats.confirmed_today} deltaPct={data.stats.confirmed_today_delta_pct} />
+              <StatTile icon={<UserPlus size={22} />} label="New guests" value={data.stats.new_patients_today} deltaPct={data.stats.new_patients_today_delta_pct} />
+              <StatTile icon={<UserX size={22} />} label="No-shows" value={data.stats.no_shows_today} deltaPct={data.stats.no_shows_today_delta_pct} upIsGood={false} />
             </div>
 
             <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">

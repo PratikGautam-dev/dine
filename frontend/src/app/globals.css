@@ -17,19 +17,20 @@
    here has asked for it yet) -- this is deliberately a single light theme. --- */
 
 :root {
-  /* --- Brand terracotta scale (600 = #C2542D, the chosen primary -- a
-     burnt/earthy terracotta rather than a brighter orange, so it reads as
-     "warm dining" without tipping into fast-food-red territory) --- */
-  --brand-50: #fdf4f0;
-  --brand-100: #fae3d8;
-  --brand-200: #f3c3ac;
-  --brand-300: #e9a07e;
-  --brand-400: #da7d57;
-  --brand-500: #cd6640;
-  --brand-600: #c2542d;
-  --brand-700: #a04423;
-  --brand-800: #7d361d;
-  --brand-900: #572613;
+  /* --- Brand red scale. 600 = #E21220, the exact red of the DAAP DineConnect logo mark (replaces the earlier
+     terracotta accent; the warm neutrals below are unchanged). Contrast: white on 600 is 4.84:1 (AA for text),
+     white on 700 is 7.0:1. 600 itself is NOT used as small text on tinted surfaces (4.2:1 on brand-50) --
+     text/links in the brand colour use 700, which every existing component already does. --- */
+  --brand-50: #fef2f2;
+  --brand-100: #fde1e2;
+  --brand-200: #fbc2c5;
+  --brand-300: #f6959b;
+  --brand-400: #ee5661;
+  --brand-500: #e83341;
+  --brand-600: #e21220;
+  --brand-700: #b30d18;
+  --brand-800: #870a12;
+  --brand-900: #5c070d;
 
   /* --- Clay accent scale, repurposed to a deep olive (500 = #6B7A4F) --
      Option A's accent, keeping the terracotta primary from being the only
@@ -56,6 +57,11 @@
   --success: #1e9e5a;
   --success-tint: #e4f6ec;
   --error: #d14343;
+  /* Destructive ACTIONS (delete, cancel a booking, deactivate) use an outlined button in this colour -- never a
+     solid red fill, so they can't be mistaken for the brand-red primary button. 6.5:1 on white. --error above
+     stays for validation/error TEXT and status pills. */
+  --destructive: #b42318;
+  --destructive-tint: #fef3f2;
   --error-tint: #fbeaea;
 
   /* --- Spacing scale (8px-based; step 1/2 drop to 4px for the tightest
@@ -123,6 +129,8 @@
   --color-success: var(--success);
   --color-success-tint: var(--success-tint);
   --color-error: var(--error);
+  --color-destructive: var(--destructive);
+  --color-destructive-tint: var(--destructive-tint);
   --color-error-tint: var(--error-tint);
 
   --spacing-space-1: var(--space-1);

@@ -61,9 +61,8 @@ export default function PortalPatientsPage() {
           {selectedPatients.length > 0 && (
             <PermissionGate page="patients" action="delete">
               <Button
-                variant="secondary"
+                variant="destructive"
                 size="md"
-                className="border-error/30 text-error hover:border-error hover:bg-error/10"
                 onClick={() => setPendingDelete(selectedPatients)}
               >
                 <Trash2 size={15} />

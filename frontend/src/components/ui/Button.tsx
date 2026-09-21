@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 
-type ButtonVariant = "primary" | "secondary" | "ghost";
+type ButtonVariant = "primary" | "secondary" | "ghost" | "destructive";
 type ButtonSize = "md" | "lg";
 
 const base =
@@ -28,6 +28,11 @@ const variants: Record<ButtonVariant, string> = {
     "bg-transparent text-ink-600 " +
     "hover:bg-black/[0.04] hover:text-ink-900 " +
     "active:bg-black/[0.06]",
+  // Outlined on purpose (see --destructive in globals.css): a filled red would read as the brand primary.
+  destructive:
+    "bg-card text-destructive border border-destructive/40 shadow-[var(--shadow-sm)] " +
+    "hover:border-destructive hover:bg-destructive-tint " +
+    "active:bg-destructive/10",
 };
 
 const sizes: Record<ButtonSize, string> = {

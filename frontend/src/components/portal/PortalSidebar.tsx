@@ -41,28 +41,31 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // which never reference doctor_id. "Team" avoids colliding with the
 // existing "Staff" entry below (/portal/settings/staff, login ACCOUNTS --
 // a different concept from a scheduled team member/doctor row).
-const NAV_ITEMS = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard" },
-  { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments" },
-  { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients" },
-  { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables" },
-  { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors" },
+type NavGroup = "Operations" | "Workforce" | "Admin";
+
+// Grouped so a long list scans quickly; a group whose items the person can't see is hidden entirely.
+const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; href: string; pageKey: string; group: NavGroup }[] = [
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Operations" },
+  { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments", group: "Operations" },
+  { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables", group: "Operations" },
   // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,
   // portal/permissions.py) since a role reasonably might need one without
   // the other -- same split PAGE_DOCTORS/PAGE_SCHEDULE already use.
-  { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu" },
-  { key: "food-orders", label: "Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders" },
-  { key: "messages", label: "Messages", icon: MessageCircle, href: "/portal/messages", pageKey: "messages" },
+  { key: "food-orders", label: "Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders", group: "Operations" },
+  { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu", group: "Operations" },
+  { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Operations" },
+  { key: "messages", label: "Messages", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Operations" },
+  { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors", group: "Workforce" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
-  { key: "clock", label: "Clock in / out", icon: Clock, href: "/portal/check-in-out", pageKey: "check_in_out" },
-  { key: "my-attendance", label: "My Attendance", icon: History, href: "/portal/attendance", pageKey: "check_in_out" },
-  { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave" },
-  { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance" },
-  { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings" },
-  { key: "staff", label: "Staff", icon: Users, href: "/portal/settings/staff", pageKey: "staff" },
-  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles" },
+  { key: "clock", label: "Clock in / out", icon: Clock, href: "/portal/check-in-out", pageKey: "check_in_out", group: "Workforce" },
+  { key: "my-attendance", label: "My Attendance", icon: History, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
+  { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
+  { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
+  { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
+  { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
+  { key: "staff", label: "Staff", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
+  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },
 ];
 
 type Props = {
@@ -103,16 +106,19 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-brand-700 px-space-3 py-space-4 text-white transition-transform duration-200 ease-out",
-          "lg:static lg:z-auto lg:w-60 lg:max-w-none lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-ink-900 py-space-4 text-white transition-transform duration-200 ease-out",
+          "lg:static lg:z-auto lg:w-64 lg:max-w-none lg:translate-x-0",
           open && "translate-x-0",
         )}
       >
-        <div className="mb-space-5 flex items-center gap-space-2 px-space-2">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-white">
-            <Image src="/logo-mark.png" alt="Dine Connect" width={24} height={24} />
+        <div className="mb-space-4 flex items-center gap-space-3 px-space-4">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white">
+            <Image src="/logo-mark.png" alt="Dine Connect" width={30} height={30} />
           </div>
-          <span className="truncate text-[14px] font-bold">{hospital?.name || "Restaurant"}</span>
+          <div className="min-w-0 leading-tight">
+            <span className="block truncate text-[15px] font-bold">{hospital?.name || "Restaurant"}</span>
+            <span className="block text-[11.5px] text-white/60">DAAP DineConnect</span>
+          </div>
           <button
             type="button"
             onClick={onClose}
@@ -122,48 +128,56 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
             <X size={18} strokeWidth={2} />
           </button>
         </div>
+        <div className="mx-space-4 mb-space-2 border-t border-white/10" />
 
-        <nav className="flex-1 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.filter(
-            // Per-page-key permission check (hasPermission is a plain
-            // function here, not the usePermission hook, since it's called
-            // once per item inside this loop). Fails OPEN the same way the
-            // old hardcoded "doctors" capability check did -- this is only a
-            // UI convenience, the backend's 403 is the real enforcement.
-            (item) => hasPermission(session, item.pageKey, "view"),
-          ).map(({ key, label, icon: Icon, href }) => {
-            const isActive = key === active;
-            const itemClasses = cn(
-              "flex w-full items-center gap-space-3 rounded-md px-space-3 py-space-2 text-left text-[13.5px] font-medium transition-colors duration-150",
-              isActive && "bg-white text-brand-700",
-              !isActive && href && "text-white/85 hover:bg-white/10 hover:text-white",
-              !href && "cursor-not-allowed text-white/40",
-            );
-            if (!href) {
+        <nav className="flex-1 overflow-y-auto px-space-3">
+          {(() => {
+            // Per-page-key permission check (hasPermission is a plain function here, not the usePermission
+            // hook, since it's called once per item). Fails OPEN the same way the old hardcoded "doctors"
+            // capability check did -- this is only a UI convenience, the backend's 403 is the real enforcement.
+            // Nothing until the session has loaded: before it, hasPermission fails open and would flash admin-only
+            // items at a Kitchen or Front of House login for a moment.
+            const visible = session ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")) : [];
+            return visible.map(({ key, label, icon: Icon, href, group }, index) => {
+              const isActive = key === active;
+              const startsGroup = index === 0 || visible[index - 1].group !== group;
               return (
-                <button key={key} type="button" disabled title="Coming soon" className={itemClasses}>
-                  <Icon size={16} strokeWidth={2} className="shrink-0" />
-                  {label}
-                </button>
+                <div key={key}>
+                  {startsGroup && (
+                    <p className={cn("px-space-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-white/50 uppercase", index === 0 ? "pt-space-2" : "pt-space-3")}>
+                      {group}
+                    </p>
+                  )}
+                  <Link
+                    href={href}
+                    onClick={onClose}
+                    aria-current={isActive ? "page" : undefined}
+                    className={cn(
+                      "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
+                      isActive ? "bg-brand-600 font-semibold text-white shadow-[var(--shadow-sm)]" : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white",
+                    )}
+                  >
+                    <Icon size={18} strokeWidth={2} className="shrink-0" />
+                    {label}
+                  </Link>
+                </div>
               );
-            }
-            return (
-              <Link key={key} href={href} onClick={onClose} className={itemClasses}>
-                <Icon size={16} strokeWidth={2} className="shrink-0" />
-                {label}
-              </Link>
-            );
-          })}
+            });
+          })()}
         </nav>
 
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="flex w-full items-center gap-space-3 rounded-md px-space-3 py-space-2 text-left text-[13.5px] font-medium text-white/70 transition-colors duration-150 hover:bg-white/10 hover:text-white"
-        >
-          <LogOut size={16} strokeWidth={2} className="shrink-0" />
-          Log out
-        </button>
+        <div className="mx-space-4 mt-space-2 border-t border-white/10" />
+        <div className="px-space-3 pt-space-2">
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] font-medium text-white/80 transition-colors duration-150 hover:bg-white/[0.08] hover:text-white"
+          >
+            <LogOut size={18} strokeWidth={2} className="shrink-0" />
+            Log out
+          </button>
+          <p className="px-space-3 pt-space-2 text-[11.5px] leading-snug text-white/55">Better Dining. Stronger Connection.</p>
+        </div>
       </aside>
     </>
   );

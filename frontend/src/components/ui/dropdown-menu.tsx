@@ -78,7 +78,7 @@ function DropdownMenuItem({
       className={cn(
         "flex cursor-default items-center gap-space-2 rounded-md px-space-2 py-space-1 text-[13px] font-medium outline-hidden select-none",
         "focus:cursor-pointer focus:bg-brand-50 focus:text-brand-700",
-        "data-[variant=destructive]:text-error data-[variant=destructive]:focus:bg-error/10 data-[variant=destructive]:focus:text-error",
+        "data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive-tint data-[variant=destructive]:focus:text-destructive",
         "data-disabled:pointer-events-none data-disabled:opacity-50",
         "[&_svg]:pointer-events-none [&_svg]:shrink-0",
         className,
