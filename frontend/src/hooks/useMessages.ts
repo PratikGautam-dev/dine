@@ -5,6 +5,8 @@ import { portalFetch } from "@/lib/portalAuth";
 export type Handoff = {
   id: number;
   phone: string;
+  // the guest's name from their profile at this restaurant; null when they never gave one
+  patient_name: string | null;
   reason: "patient_requested" | "system_error";
   message_text: string | null;
   status: "open" | "resolved";
@@ -145,9 +147,9 @@ export function useMessages(ready: boolean) {
     load();
   }
 
+  // (the page asks for confirmation with its own dialog before calling this)
   async function handleBulkDelete() {
     if (selectedIds.size === 0) return;
-    if (!window.confirm(`Delete ${selectedIds.size} message record(s)? This can't be undone from the portal.`)) return;
     setBulkActing(true);
     setBulkError(null);
     const result = await portalFetch("/api/portal/handoffs/bulk-delete", {
@@ -205,6 +207,9 @@ export function useMessages(ready: boolean) {
     if (result.ok) {
       setReplyText("");
       loadThread(selected.id);
+    } else {
+      // The reply was NOT sent (e.g. WhatsApp isn't connected): say so, and keep the text so nothing is lost.
+      setThreadError(result.unauthorized ? "Session expired — please log in again." : `Your reply was not sent. ${result.error}`);
     }
   }
 
@@ -218,7 +223,6 @@ export function useMessages(ready: boolean) {
   // Item 3: soft-delete only (no restriction on status, unlike appointments
   // -- see db.soft_delete_handoff()'s own reasoning).
   async function handleDelete(id: number) {
-    if (!window.confirm("Delete this message record? This can't be undone from the portal.")) return;
     setDeletingId(id);
     const result = await portalFetch(`/api/portal/handoffs/${id}/delete`, { method: "POST" });
     setDeletingId(null);

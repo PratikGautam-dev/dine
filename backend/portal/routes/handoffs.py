@@ -25,9 +25,10 @@ async def portal_get_handoffs(
         return error
     hospital = principal.hospital
     status_filter = None if status == "all" else status
-    return JSONResponse({
-        "handoffs": db.get_handoff_requests(hospital.id, status=status_filter, date_str=date, reason=reason),
-    })
+    handoffs = db.get_handoff_requests(hospital.id, status=status_filter, date_str=date, reason=reason)
+    # The guest's name, as the other portal lists show it: from their profile at THIS restaurant (one batched lookup).
+    names = db.get_patient_names_by_phone(hospital.id, [h["phone"] for h in handoffs])
+    return JSONResponse({"handoffs": [{**h, "patient_name": names.get(h["phone"])} for h in handoffs]})
 
 
 @router.post("/api/portal/handoffs/{handoff_id}/delete")
