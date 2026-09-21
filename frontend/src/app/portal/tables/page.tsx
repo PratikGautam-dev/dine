@@ -242,6 +242,7 @@ export default function PortalTablesPage() {
                                 </button>
                               )}
                               <Switch
+                                tone="success"
                                 checked={table.is_active}
                                 onChange={() => handleToggleActive(table)}
                                 disabled={togglingId === table.id || !canManage}
