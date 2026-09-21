@@ -31,6 +31,8 @@ async function deletePatients(patientIds: number[]) {
 export function usePatients(ready: boolean) {
   const router = useRouter();
   const [patients, setPatients] = useState<Patient[] | null>(null);
+  // The whole directory (no search applied): the summary tiles and charts describe everyone, not the search results.
+  const [directory, setDirectory] = useState<Patient[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -45,7 +47,9 @@ export function usePatients(ready: boolean) {
         else setError(result.error);
         return;
       }
-      setPatients((result.data as { patients: Patient[] }).patients);
+      const list = (result.data as { patients: Patient[] }).patients;
+      setPatients(list);
+      if (!query.trim()) setDirectory(list);
     },
     [router],
   );
@@ -91,6 +95,7 @@ export function usePatients(ready: boolean) {
     const deletedIds = new Set((result.data as { deleted: number[] }).deleted);
     toast.success(deletedIds.size > 1 ? `${deletedIds.size} guests deleted` : "Guest deleted");
     setPatients((prev) => (prev ? prev.filter((p) => !deletedIds.has(p.id)) : prev));
+    setDirectory((prev) => (prev ? prev.filter((p) => !deletedIds.has(p.id)) : prev));
     setSelected((prev) => {
       const next = new Set(prev);
       deletedIds.forEach((id) => next.delete(id));
@@ -103,6 +108,7 @@ export function usePatients(ready: boolean) {
 
   return {
     patients,
+    directory,
     error,
     search,
     setSearch,

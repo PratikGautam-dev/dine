@@ -1,6 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
+import { MessageCircle } from "lucide-react";
 import Link from "next/link";
 import { formatDate } from "@/lib/formatDate";
 import type { Patient } from "@/hooks/usePatients";
@@ -51,31 +52,39 @@ export function createPatientColumns({
       },
     },
     {
-      id: "patient_display_id",
-      header: "Guest ID",
-      cell: ({ row }) => (
-        <span className="whitespace-nowrap font-mono text-[12px] text-ink-600">
-          {row.original.patient_display_id || `#${row.original.id}`}
-        </span>
-      ),
-    },
-    {
-      id: "name",
-      header: "Name",
-      cell: ({ row }) => (
-        <Link
-          href={`/portal/patients/${row.original.id}`}
-          onClick={(e) => e.stopPropagation()}
-          className="font-semibold text-ink-900 hover:underline"
-        >
-          {row.original.name || "—"}
-        </Link>
-      ),
+      id: "guest",
+      header: "Guest",
+      cell: ({ row }) => {
+        const p = row.original;
+        const label = p.name || p.phone;
+        return (
+          <div className="flex min-w-[170px] items-center gap-space-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-50 text-[13px] font-bold text-brand-700">
+              {(label.trim()[0] || "?").toUpperCase()}
+            </span>
+            <div className="min-w-0">
+              <Link
+                href={`/portal/patients/${p.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="font-semibold text-ink-900 hover:underline"
+              >
+                {p.name || "Guest"}
+              </Link>
+              <div className="font-mono text-[11px] text-ink-400">{p.patient_display_id || `#${p.id}`}</div>
+            </div>
+          </div>
+        );
+      },
     },
     {
       id: "phone",
-      header: "Phone",
-      cell: ({ row }) => <span className="text-ink-600">{row.original.phone}</span>,
+      header: "Phone / WhatsApp",
+      cell: ({ row }) => (
+        <span className="inline-flex items-center gap-space-1 whitespace-nowrap text-ink-600">
+          <MessageCircle size={14} className="text-ink-400" />
+          {row.original.phone}
+        </span>
+      ),
     },
     {
       id: "last_visit",

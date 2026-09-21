@@ -10,29 +10,33 @@ type Slice = { department_name: string; count: number };
 // carries the section name and its share, so colour is never the only way to tell slices apart.
 const SLOT_COLORS = ["#e21220", "#2a211c", "#e0a100", "#6b7a4f", "#9c9086", "#f28b82", "#7d361d", "#c9b8a8"];
 
-function DonutTooltip({ active, payload }: { active?: boolean; payload?: { name: string; value: number }[] }) {
+function DonutTooltip({ active, payload, unit }: { active?: boolean; payload?: { name: string; value: number }[]; unit: string }) {
   if (!active || !payload?.length) return null;
   return (
     <div className="rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] shadow-[var(--shadow-md)]">
       <p className="font-semibold text-ink-900">{payload[0].name}</p>
-      <p className="text-ink-600">{payload[0].value} reservations</p>
+      <p className="text-ink-600">{payload[0].value} {unit}</p>
     </div>
   );
 }
 
-/** Share of reservations by section over the window the dashboard API uses (30 days back and 30 ahead). */
-export function DepartmentDonut({ data }: { data: Slice[] }) {
+/** A donut with a legend of names, counts and shares. Defaults are the Dashboard's: reservations by section over the
+ * window its API uses (30 days back and 30 ahead). */
+export function DepartmentDonut({
+  data, title = "Reservations by section", subtitle = "Past and coming 30 days", unit = "reservations",
+  emptyText = "No reservations in the last 30 days or scheduled in the next 30.",
+}: { data: Slice[]; title?: string; subtitle?: string; unit?: string; emptyText?: string }) {
   const total = data.reduce((sum, d) => sum + d.count, 0);
 
   return (
     <Card className="p-space-4">
       <div className="mb-space-3">
-        <h3 className="text-[15px] font-bold text-ink-900">Reservations by section</h3>
-        <p className="text-hint">Past and coming 30 days</p>
+        <h3 className="text-[15px] font-bold text-ink-900">{title}</h3>
+        <p className="text-hint">{subtitle}</p>
       </div>
       {total === 0 ? (
         <div className="flex h-[220px] items-center justify-center px-space-3 text-center text-[13px] text-ink-400">
-          No reservations in the last 30 days or scheduled in the next 30.
+          {emptyText}
         </div>
       ) : (
         <div className="flex flex-col items-center gap-space-3">
@@ -52,12 +56,12 @@ export function DepartmentDonut({ data }: { data: Slice[] }) {
                     <Cell key={entry.department_name} fill={SLOT_COLORS[i % SLOT_COLORS.length]} />
                   ))}
                 </Pie>
-                <Tooltip content={<DonutTooltip />} />
+                <Tooltip content={<DonutTooltip unit={unit} />} />
               </PieChart>
             </ResponsiveContainer>
             <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
               <span className="text-[24px] leading-none font-bold text-ink-900">{total.toLocaleString()}</span>
-              <span className="text-[11.5px] text-ink-600">reservations</span>
+              <span className="text-[11.5px] text-ink-600">{unit}</span>
             </div>
           </div>
           <ul className="w-full min-w-0 flex-1 space-y-space-2">
