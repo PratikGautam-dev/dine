@@ -106,7 +106,7 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-ink-900 py-space-4 text-white transition-transform duration-200 ease-out",
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-brand-700 py-space-4 text-white transition-transform duration-200 ease-out",
           "lg:static lg:z-auto lg:w-64 lg:max-w-none lg:translate-x-0",
           open && "translate-x-0",
         )}
@@ -130,7 +130,7 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
         </div>
         <div className="mx-space-4 mb-space-2 border-t border-white/10" />
 
-        <nav className="flex-1 overflow-y-auto px-space-3">
+        <nav className="scrollbar-dark flex-1 overflow-y-auto px-space-3">
           {(() => {
             // Per-page-key permission check (hasPermission is a plain function here, not the usePermission
             // hook, since it's called once per item). Fails OPEN the same way the old hardcoded "doctors"
@@ -154,7 +154,7 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
                     aria-current={isActive ? "page" : undefined}
                     className={cn(
                       "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
-                      isActive ? "bg-brand-600 font-semibold text-white shadow-[var(--shadow-sm)]" : "font-medium text-white/80 hover:bg-white/[0.08] hover:text-white",
+                      isActive ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]" : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
                     )}
                   >
                     <Icon size={18} strokeWidth={2} className="shrink-0" />
