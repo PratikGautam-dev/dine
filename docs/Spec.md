@@ -979,6 +979,9 @@ Once the FAQ flow ships, DaaPrime's tenant record should be edited (via the now-
 ---
 
 
+- ⚠️ **New tracked opportunity, not acted on now** (same "flagged for a later pass" precedent as the `meta_access_token_ref`/`app_secret_ref` plaintext-storage note and the guarded-`UPDATE` retrofit note above): the portal settings page's Reminder Offsets field round-trips a whole-number entry as a decimal -- type "24", save, reload, and the field now shows "24.0". `admin/validation.py`'s `_parse_offsets()` parses every entry through `float(part)` (so an integer input becomes a Python float internally), and `portal/routes/settings.py`'s `GET /api/portal/settings` formats the stored list back to the form field with a plain `",".join(str(h) for h in hospital.reminder_offsets_hours)` -- `str(24.0)` is `"24.0"`, not `"24"`. Found during the restaurant-layout redesign pass while comparing the rebuilt Settings page against a reference design (the page's own field layout was reorganized into tabs in that pass; this formatting behavior predates it and neither file above was touched as part of that work -- confirmed via `git diff`). Cosmetic, not a correctness bug (`_parse_offsets` reads `"24.0"` back into `24.0` just fine, and the reminder scheduler only ever reads the parsed numeric list, never the display string) -- low priority, worth a real fix (e.g. formatting each offset as an int when it has no fractional part) whenever someone is next in this file for another reason, not urgent enough to justify touching backend logic during a visual-only pass.
+
+
 
 ## 15. Instructions for Claude Code
 
