@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense } from "react";
-import { ArrowRight } from "lucide-react";
+import { Suspense, useState } from "react";
+import {
+  ArrowRight, Banknote, CalendarClock, Globe, ListChecks, MessagesSquare, Settings as SettingsIcon, SlidersHorizontal,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { CheckboxRow } from "@/components/ui/Checkbox";
@@ -9,11 +11,25 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
-import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
 import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
+import { cn } from "@/lib/cn";
+import { usePermission } from "@/lib/staffAuth";
+
+type TabId = "general" | "booking" | "types" | "messaging" | "language" | "conversation" | "fees";
+type Tab = { id: TabId; label: string; icon: typeof SettingsIcon };
+
+const TABS: Tab[] = [
+  { id: "general", label: "General", icon: SettingsIcon },
+  { id: "booking", label: "Booking Rules", icon: CalendarClock },
+  { id: "types", label: "Reservation Types", icon: ListChecks },
+  { id: "messaging", label: "Messaging", icon: MessagesSquare },
+  { id: "language", label: "Language", icon: Globe },
+  { id: "conversation", label: "Conversation", icon: SlidersHorizontal },
+  { id: "fees", label: "Fees", icon: Banknote },
+];
 
 function PortalSettingsPageContent() {
   const { hospital, ready } = usePortalGuard();
@@ -24,16 +40,22 @@ function PortalSettingsPageContent() {
   const canManageAppointmentTypes = !hospital || hospital.admin_capabilities?.includes("manage_appointment_types");
   const { settings, setSettings, error, saving, saved, handleSave } = usePortalSettings(ready);
   const hoursForm = useRestaurantHours(ready);
+  const canSeeAttendanceSettings = usePermission("attendance_settings", "view");
+  const [tab, setTab] = useState<TabId>("general");
+
+  const tabs = TABS.filter((t) => t.id !== "types" || canManageAppointmentTypes);
 
   return (
     <PortalShell hospital={hospital} active="settings">
         <PageHeader
           title="Restaurant settings"
+          icon={<SettingsIcon size={22} />}
+          description="Configure how your restaurant's WhatsApp bot behaves, in the guests' own words."
           actions={
             <div className="flex flex-wrap gap-space-2">
-              <PermissionGate page="attendance_settings" action="view">
+              {canSeeAttendanceSettings && (
                 <Button href="/portal/settings/attendance" variant="secondary">Attendance rules <ArrowRight size={14} /></Button>
-              </PermissionGate>
+              )}
               <Button href="/portal/settings/activity" variant="secondary">Activity log <ArrowRight size={14} /></Button>
             </div>
           }
@@ -42,252 +64,310 @@ function PortalSettingsPageContent() {
         {!settings ? (
           <p className="text-[13px] text-ink-400">Loading…</p>
         ) : (
-          <form onSubmit={handleSave} className="flex flex-col gap-space-5">
-            <div className="grid grid-cols-1 gap-space-5 lg:grid-cols-2">
-              <Card className="p-space-5">
-                <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">General</h2>
-                <Field label="Restaurant name" htmlFor="name" hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection.">
-                  <Input id="name" value={settings.name} disabled />
-                </Field>
-                <Field label="Welcome message text" htmlFor="welcome_message_text">
-                  <Textarea
-                    id="welcome_message_text"
-                    rows={2}
-                    value={settings.welcome_message_text}
-                    onChange={(e) => setSettings({ ...settings, welcome_message_text: e.target.value })}
-                  />
-                </Field>
-                <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                  <Field
-                    label="Reminder offsets (comma-separated hours)"
-                    htmlFor="reminder_offsets_hours"
-                    hint="e.g. 24,1 sends a reminder one day before and one hour before."
+          <div className="grid grid-cols-1 items-start gap-space-4 xl:grid-cols-[220px_minmax(0,1fr)]">
+            <nav className="flex gap-space-1 overflow-x-auto xl:flex-col xl:overflow-visible">
+              {tabs.map((t) => {
+                const Icon = t.icon;
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTab(t.id)}
+                    aria-current={tab === t.id ? "page" : undefined}
+                    className={cn(
+                      "flex shrink-0 items-center gap-space-2 rounded-md px-space-3 py-2.5 text-left text-[13.5px] font-semibold transition-colors duration-150",
+                      tab === t.id ? "bg-brand-50 text-brand-700" : "text-ink-600 hover:bg-paper hover:text-ink-900",
+                    )}
                   >
-                    <Input
-                      id="reminder_offsets_hours"
-                      value={settings.reminder_offsets_hours}
-                      onChange={(e) => setSettings({ ...settings, reminder_offsets_hours: e.target.value })}
-                    />
-                  </Field>
-                  <Field label="Reminder template name" htmlFor="reminder_template_name">
-                    <Input
-                      id="reminder_template_name"
-                      value={settings.reminder_template_name}
-                      onChange={(e) => setSettings({ ...settings, reminder_template_name: e.target.value })}
-                    />
-                  </Field>
-                </div>
-              </Card>
+                    <Icon size={16} className="shrink-0" />
+                    {t.label}
+                  </button>
+                );
+              })}
+            </nav>
 
-              <Card className="p-space-5">
-                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Messaging</h2>
-                <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Extra text guests see: appended after a reservation/cancellation/reschedule completes, shown as an informational
-                  line in the &quot;Restaurant Information&quot; reply, and shown on the &quot;Consent &amp; Privacy&quot; menu item.
-                </p>
-                <Field label="Closing / thank-you message" htmlFor="closing_message_text" hint='e.g. "Thank you for choosing City Bistro. We look forward to seeing you again."'>
-                  <Textarea
-                    id="closing_message_text"
-                    rows={2}
-                    value={settings.closing_message_text}
-                    onChange={(e) => setSettings({ ...settings, closing_message_text: e.target.value })}
-                  />
-                </Field>
-                <Field label="Operating hours" htmlFor="business_hours_text" hint="e.g. Mon-Sat, 9am-10pm">
-                  <Input
-                    id="business_hours_text"
-                    value={settings.business_hours_text}
-                    onChange={(e) => setSettings({ ...settings, business_hours_text: e.target.value })}
-                  />
-                </Field>
-                <Field label="Privacy notice text" htmlFor="privacy_notice_text" hint="Leave blank to show a generic default notice.">
-                  <Textarea
-                    id="privacy_notice_text"
-                    rows={4}
-                    value={settings.privacy_notice_text}
-                    onChange={(e) => setSettings({ ...settings, privacy_notice_text: e.target.value })}
-                  />
-                </Field>
-              </Card>
+            <div className="min-w-0">
+              {tab === "general" && (
+                <form onSubmit={handleSave}>
+                  <Card className="p-space-5">
+                    <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">General</h2>
+                    <Field label="Restaurant name" htmlFor="name" hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection.">
+                      <Input id="name" value={settings.name} disabled />
+                    </Field>
+                    <Field label="Welcome message text" htmlFor="welcome_message_text">
+                      <Textarea
+                        id="welcome_message_text"
+                        rows={2}
+                        value={settings.welcome_message_text}
+                        onChange={(e) => setSettings({ ...settings, welcome_message_text: e.target.value })}
+                      />
+                    </Field>
+                    <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                      <Field
+                        label="Reminder offsets (comma-separated hours)"
+                        htmlFor="reminder_offsets_hours"
+                        hint="e.g. 24,1 sends a reminder one day before and one hour before."
+                      >
+                        <Input
+                          id="reminder_offsets_hours"
+                          value={settings.reminder_offsets_hours}
+                          onChange={(e) => setSettings({ ...settings, reminder_offsets_hours: e.target.value })}
+                        />
+                      </Field>
+                      <Field label="Reminder template name" htmlFor="reminder_template_name">
+                        <Input
+                          id="reminder_template_name"
+                          value={settings.reminder_template_name}
+                          onChange={(e) => setSettings({ ...settings, reminder_template_name: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                    {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
+                    {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
+                    <Button type="submit" disabled={saving} className="mt-space-4">
+                      {saving ? "Saving…" : "Save changes"}
+                    </Button>
+                  </Card>
+                  {/* Every tab below saves through this same form/button -- switching tabs doesn't lose changes made on another one. */}
+                </form>
+              )}
 
-              <Card className="p-space-5">
-                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Language</h2>
-                <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Which language a fresh conversation defaults to, and whether guests are asked to choose at all.
-                </p>
-                <Field label="Default language" htmlFor="default_language">
-                  <select
-                    id="default_language"
-                    value={settings.default_language}
-                    onChange={(e) => setSettings({ ...settings, default_language: e.target.value as "en" | "hi" })}
-                    className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13.5px] text-ink-900"
-                  >
-                    <option value="en">English</option>
-                    <option value="hi">हिन्दी (Hindi)</option>
-                  </select>
-                </Field>
-                <CheckboxRow
-                  checked={settings.language_prompt_enabled}
-                  onChange={(checked) => setSettings({ ...settings, language_prompt_enabled: checked })}
-                  className="mt-space-1"
-                >
-                  Ask guests to choose a language at the start of every fresh conversation
-                </CheckboxRow>
-                {!settings.language_prompt_enabled && (
-                  <p className="mt-space-2 text-[12px] text-ink-400">
-                    Guests will go straight to the menu in {settings.default_language === "hi" ? "हिन्दी" : "English"} — the
-                    language picker won&apos;t be shown.
+              {tab === "booking" && (
+                <Card className="p-space-5">
+                  <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Table booking hours</h2>
+                  <p className="mb-space-3 text-[12.5px] text-ink-400">
+                    When guests can book a table via WhatsApp. Table booking shows no availability at all until
+                    this is set.
                   </p>
-                )}
-              </Card>
+                  <form onSubmit={hoursForm.handleSave} className="flex flex-col gap-space-3">
+                    <Field label="Open days">
+                      <div className="flex flex-wrap gap-space-3">
+                        {OPERATING_DAYS.map((day) => (
+                          <CheckboxRow
+                            key={day}
+                            checked={hoursForm.form.operating_days.includes(day)}
+                            onChange={() => hoursForm.toggleDay(day)}
+                          >
+                            {day}
+                          </CheckboxRow>
+                        ))}
+                      </div>
+                    </Field>
+                    <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                      <Field label="Opens at" htmlFor="rh-start">
+                        <Input
+                          id="rh-start" type="time" value={hoursForm.form.start_time}
+                          onChange={(e) => hoursForm.setForm({ ...hoursForm.form, start_time: e.target.value })}
+                        />
+                      </Field>
+                      <Field label="Closes at" htmlFor="rh-end">
+                        <Input
+                          id="rh-end" type="time" value={hoursForm.form.end_time}
+                          onChange={(e) => hoursForm.setForm({ ...hoursForm.form, end_time: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                    <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                      <Field label="Turnover per table (minutes)" htmlFor="rh-turnover" hint="How long a party typically occupies a table.">
+                        <Input
+                          id="rh-turnover" type="number" min="1" value={hoursForm.form.default_turnover_minutes}
+                          onChange={(e) => hoursForm.setForm({ ...hoursForm.form, default_turnover_minutes: e.target.value })}
+                        />
+                      </Field>
+                      <Field label="Booking interval (minutes)" htmlFor="rh-interval" hint="How far apart bookable time slots are.">
+                        <Input
+                          id="rh-interval" type="number" min="1" value={hoursForm.form.booking_interval_minutes}
+                          onChange={(e) => hoursForm.setForm({ ...hoursForm.form, booking_interval_minutes: e.target.value })}
+                        />
+                      </Field>
+                    </div>
+                    {hoursForm.error && <p className="text-[12.5px] font-medium text-error">{hoursForm.error}</p>}
+                    <Button type="submit" disabled={hoursForm.saving} className="self-start">
+                      {hoursForm.saving ? "Saving…" : "Save table hours"}
+                    </Button>
+                  </form>
+                </Card>
+              )}
 
-              <Card className="p-space-5">
-                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Conversation behavior</h2>
-                <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Session timeout, handoff auto-resolve, and whether a single linked guest still needs to confirm.
-                </p>
-                <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                  <Field label="Session timeout (minutes)" htmlFor="session_timeout_minutes" hint="Between 2 and 120 minutes.">
-                    <Input
-                      id="session_timeout_minutes"
-                      type="number"
-                      min={2}
-                      max={120}
-                      value={settings.session_timeout_minutes}
-                      onChange={(e) => setSettings({ ...settings, session_timeout_minutes: Number(e.target.value) })}
-                    />
-                  </Field>
-                  <Field label="Handoff auto-resolve (hours)" htmlFor="handoff_auto_resolve_hours" hint="Between 1 and 168 hours.">
-                    <Input
-                      id="handoff_auto_resolve_hours"
-                      type="number"
-                      min={1}
-                      max={168}
-                      value={settings.handoff_auto_resolve_hours}
-                      onChange={(e) => setSettings({ ...settings, handoff_auto_resolve_hours: Number(e.target.value) })}
-                    />
-                  </Field>
-                </div>
-                <CheckboxRow
-                  checked={settings.require_patient_confirmation}
-                  onChange={(checked) => setSettings({ ...settings, require_patient_confirmation: checked })}
-                >
-                  Require explicit confirmation before entering the menu, even for a single linked guest
-                </CheckboxRow>
-              </Card>
+              {tab === "types" && canManageAppointmentTypes && (
+                <Card className="p-space-5">
+                  <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Reservation types</h2>
+                  <p className="mb-space-3 text-[12.5px] text-ink-400">
+                    Turn on/off which of your allowed reservation types show up in the WhatsApp booking menu.
+                    A type greyed out below hasn&apos;t been enabled for your account by the platform — contact
+                    support to request it.
+                  </p>
+                  <AppointmentTypeToggles canManage={canManageAppointmentTypes} />
+                </Card>
+              )}
 
-              <Card className="p-space-5 lg:col-span-2">
-                <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Fees</h2>
-                <p className="mb-space-3 text-[12.5px] text-ink-400">
-                  Amounts shown on WhatsApp booking and order messages. Leave a fee blank to omit that line entirely
-                  rather than showing ₹0.
-                </p>
-                <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                  <Field label="New reservation deposit (₹)" htmlFor="new_consultation_fee" hint="Not shown to guests yet.">
-                    <Input
-                      id="new_consultation_fee"
-                      type="number"
-                      min={0}
-                      value={settings.new_consultation_fee}
-                      onChange={(e) => setSettings({ ...settings, new_consultation_fee: e.target.value === "" ? "" : Number(e.target.value) })}
-                    />
-                  </Field>
-                  <Field
-                    label="Delivery fee (₹)"
-                    htmlFor="home_collection_charge"
-                    hint="Added to WhatsApp food orders placed for delivery. Leave blank for no delivery fee."
-                  >
-                    <Input
-                      id="home_collection_charge"
-                      type="number"
-                      min={0}
-                      value={settings.home_collection_charge}
-                      onChange={(e) => setSettings({ ...settings, home_collection_charge: e.target.value === "" ? "" : Number(e.target.value) })}
-                    />
-                  </Field>
-                </div>
-              </Card>
+              {tab === "messaging" && (
+                <form onSubmit={handleSave}>
+                  <Card className="p-space-5">
+                    <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Messaging</h2>
+                    <p className="mb-space-3 text-[12.5px] text-ink-400">
+                      Extra text guests see: appended after a reservation/cancellation/reschedule completes, shown as an informational
+                      line in the &quot;Restaurant Information&quot; reply, and shown on the &quot;Consent &amp; Privacy&quot; menu item.
+                    </p>
+                    <Field label="Closing / thank-you message" htmlFor="closing_message_text" hint='e.g. "Thank you for choosing City Bistro. We look forward to seeing you again."'>
+                      <Textarea
+                        id="closing_message_text"
+                        rows={2}
+                        value={settings.closing_message_text}
+                        onChange={(e) => setSettings({ ...settings, closing_message_text: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Operating hours (shown to guests)" htmlFor="business_hours_text" hint="e.g. Mon-Sat, 9am-10pm. This is informational text only — it doesn't affect what WhatsApp actually lets guests book; that's set on the Booking Rules tab.">
+                      <Input
+                        id="business_hours_text"
+                        value={settings.business_hours_text}
+                        onChange={(e) => setSettings({ ...settings, business_hours_text: e.target.value })}
+                      />
+                    </Field>
+                    <Field label="Privacy notice text" htmlFor="privacy_notice_text" hint="Leave blank to show a generic default notice.">
+                      <Textarea
+                        id="privacy_notice_text"
+                        rows={4}
+                        value={settings.privacy_notice_text}
+                        onChange={(e) => setSettings({ ...settings, privacy_notice_text: e.target.value })}
+                      />
+                    </Field>
+                    {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
+                    {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
+                    <Button type="submit" disabled={saving} className="mt-space-4">
+                      {saving ? "Saving…" : "Save changes"}
+                    </Button>
+                  </Card>
+                </form>
+              )}
+
+              {tab === "language" && (
+                <form onSubmit={handleSave}>
+                  <Card className="p-space-5">
+                    <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Language</h2>
+                    <p className="mb-space-3 text-[12.5px] text-ink-400">
+                      Which language a fresh conversation defaults to, and whether guests are asked to choose at all.
+                    </p>
+                    <Field label="Default language" htmlFor="default_language">
+                      <select
+                        id="default_language"
+                        value={settings.default_language}
+                        onChange={(e) => setSettings({ ...settings, default_language: e.target.value as "en" | "hi" })}
+                        className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13.5px] text-ink-900"
+                      >
+                        <option value="en">English</option>
+                        <option value="hi">हिन्दी (Hindi)</option>
+                      </select>
+                    </Field>
+                    <CheckboxRow
+                      checked={settings.language_prompt_enabled}
+                      onChange={(checked) => setSettings({ ...settings, language_prompt_enabled: checked })}
+                      className="mt-space-1"
+                    >
+                      Ask guests to choose a language at the start of every fresh conversation
+                    </CheckboxRow>
+                    {!settings.language_prompt_enabled && (
+                      <p className="mt-space-2 text-[12px] text-ink-400">
+                        Guests will go straight to the menu in {settings.default_language === "hi" ? "हिन्दी" : "English"} — the
+                        language picker won&apos;t be shown.
+                      </p>
+                    )}
+                    {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
+                    {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
+                    <Button type="submit" disabled={saving} className="mt-space-4">
+                      {saving ? "Saving…" : "Save changes"}
+                    </Button>
+                  </Card>
+                </form>
+              )}
+
+              {tab === "conversation" && (
+                <form onSubmit={handleSave}>
+                  <Card className="p-space-5">
+                    <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Conversation behavior</h2>
+                    <p className="mb-space-3 text-[12.5px] text-ink-400">
+                      Session timeout, handoff auto-resolve, and whether a single linked guest still needs to confirm.
+                    </p>
+                    <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                      <Field label="Session timeout (minutes)" htmlFor="session_timeout_minutes" hint="Between 2 and 120 minutes.">
+                        <Input
+                          id="session_timeout_minutes"
+                          type="number"
+                          min={2}
+                          max={120}
+                          value={settings.session_timeout_minutes}
+                          onChange={(e) => setSettings({ ...settings, session_timeout_minutes: Number(e.target.value) })}
+                        />
+                      </Field>
+                      <Field label="Handoff auto-resolve (hours)" htmlFor="handoff_auto_resolve_hours" hint="Between 1 and 168 hours.">
+                        <Input
+                          id="handoff_auto_resolve_hours"
+                          type="number"
+                          min={1}
+                          max={168}
+                          value={settings.handoff_auto_resolve_hours}
+                          onChange={(e) => setSettings({ ...settings, handoff_auto_resolve_hours: Number(e.target.value) })}
+                        />
+                      </Field>
+                    </div>
+                    <CheckboxRow
+                      checked={settings.require_patient_confirmation}
+                      onChange={(checked) => setSettings({ ...settings, require_patient_confirmation: checked })}
+                    >
+                      Require explicit confirmation before entering the menu, even for a single linked guest
+                    </CheckboxRow>
+                    {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
+                    {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
+                    <Button type="submit" disabled={saving} className="mt-space-4">
+                      {saving ? "Saving…" : "Save changes"}
+                    </Button>
+                  </Card>
+                </form>
+              )}
+
+              {tab === "fees" && (
+                <form onSubmit={handleSave}>
+                  <Card className="p-space-5">
+                    <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Fees</h2>
+                    <p className="mb-space-3 text-[12.5px] text-ink-400">
+                      Amounts shown on WhatsApp booking and order messages. Leave a fee blank to omit that line entirely
+                      rather than showing ₹0.
+                    </p>
+                    <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                      <Field label="New reservation deposit (₹)" htmlFor="new_consultation_fee" hint="Not shown to guests yet.">
+                        <Input
+                          id="new_consultation_fee"
+                          type="number"
+                          min={0}
+                          value={settings.new_consultation_fee}
+                          onChange={(e) => setSettings({ ...settings, new_consultation_fee: e.target.value === "" ? "" : Number(e.target.value) })}
+                        />
+                      </Field>
+                      <Field
+                        label="Delivery fee (₹)"
+                        htmlFor="home_collection_charge"
+                        hint="Added to WhatsApp food orders placed for delivery. Leave blank for no delivery fee."
+                      >
+                        <Input
+                          id="home_collection_charge"
+                          type="number"
+                          min={0}
+                          value={settings.home_collection_charge}
+                          onChange={(e) => setSettings({ ...settings, home_collection_charge: e.target.value === "" ? "" : Number(e.target.value) })}
+                        />
+                      </Field>
+                    </div>
+                    {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
+                    {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
+                    <Button type="submit" disabled={saving} className="mt-space-4">
+                      {saving ? "Saving…" : "Save changes"}
+                    </Button>
+                  </Card>
+                </form>
+              )}
             </div>
-
-            {error && <p className="text-[12.5px] font-medium text-error">{error}</p>}
-            {saved && <p className="text-[12.5px] font-medium text-success">Saved.</p>}
-
-            <Button type="submit" disabled={saving} className="self-start">
-              {saving ? "Saving…" : "Save changes"}
-            </Button>
-          </form>
-        )}
-
-        {canManageAppointmentTypes && (
-          <div className="mt-space-5 grid grid-cols-1 gap-space-5 lg:grid-cols-2">
-            <Card className="p-space-5">
-              <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Reservation types</h2>
-              <p className="mb-space-3 text-[12.5px] text-ink-400">
-                Turn on/off which of your allowed reservation types show up in the WhatsApp booking menu.
-                A type greyed out below hasn&apos;t been enabled for your account by the platform — contact
-                support to request it.
-              </p>
-              <AppointmentTypeToggles canManage={canManageAppointmentTypes} />
-            </Card>
           </div>
         )}
-
-        <div className="mt-space-5 grid grid-cols-1 gap-space-5 lg:grid-cols-2">
-          <Card className="p-space-5">
-            <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Table booking hours</h2>
-            <p className="mb-space-3 text-[12.5px] text-ink-400">
-              When guests can book a table via WhatsApp. Table booking shows no availability at all until
-              this is set.
-            </p>
-            <form onSubmit={hoursForm.handleSave} className="flex flex-col gap-space-3">
-              <Field label="Open days">
-                <div className="flex flex-wrap gap-space-3">
-                  {OPERATING_DAYS.map((day) => (
-                    <CheckboxRow
-                      key={day}
-                      checked={hoursForm.form.operating_days.includes(day)}
-                      onChange={() => hoursForm.toggleDay(day)}
-                    >
-                      {day}
-                    </CheckboxRow>
-                  ))}
-                </div>
-              </Field>
-              <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                <Field label="Opens at" htmlFor="rh-start">
-                  <Input
-                    id="rh-start" type="time" value={hoursForm.form.start_time}
-                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, start_time: e.target.value })}
-                  />
-                </Field>
-                <Field label="Closes at" htmlFor="rh-end">
-                  <Input
-                    id="rh-end" type="time" value={hoursForm.form.end_time}
-                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, end_time: e.target.value })}
-                  />
-                </Field>
-              </div>
-              <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                <Field label="Turnover per table (minutes)" htmlFor="rh-turnover" hint="How long a party typically occupies a table.">
-                  <Input
-                    id="rh-turnover" type="number" min="1" value={hoursForm.form.default_turnover_minutes}
-                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, default_turnover_minutes: e.target.value })}
-                  />
-                </Field>
-                <Field label="Booking interval (minutes)" htmlFor="rh-interval" hint="How far apart bookable time slots are.">
-                  <Input
-                    id="rh-interval" type="number" min="1" value={hoursForm.form.booking_interval_minutes}
-                    onChange={(e) => hoursForm.setForm({ ...hoursForm.form, booking_interval_minutes: e.target.value })}
-                  />
-                </Field>
-              </div>
-              {hoursForm.error && <p className="text-[12.5px] font-medium text-error">{hoursForm.error}</p>}
-              <Button type="submit" disabled={hoursForm.saving} className="self-start">
-                {hoursForm.saving ? "Saving…" : "Save table hours"}
-              </Button>
-            </form>
-          </Card>
-        </div>
     </PortalShell>
   );
 }
