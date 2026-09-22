@@ -4,6 +4,8 @@ import { portalFetch } from "@/lib/portalAuth";
 export type AuditEntry = {
   id: number;
   actor_level: string;
+  // who did it, e.g. "Olive Owner <staff:1>"
+  actor_label?: string;
   action: string;
   entity_type: string | null;
   entity_id: string | null;

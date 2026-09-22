@@ -1,9 +1,12 @@
 "use client";
 
+import { ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { summariseRole } from "@/components/portal/RolePermissionSummary";
+import { StatTile } from "@/components/portal/StatTile";
 import { usePermission, useStaffSession, type StaffRole } from "@/lib/staffAuth";
 import { ROLE_LABEL } from "@/lib/staffRoles";
 import { usePortalRoles } from "@/hooks/usePortalRoles";
@@ -61,6 +64,7 @@ export default function RolesPermissionsPage() {
     <PortalShell hospital={session?.hospital || null} active="roles">
       <PageHeader
         title="Roles & Permissions"
+        icon={<ShieldCheck size={22} />}
         description={
           <>
             Configure what each role can view, edit, and delete across the portal.
@@ -75,6 +79,17 @@ export default function RolesPermissionsPage() {
         <p className="text-[13px] text-ink-400">Loading…</p>
       ) : (
         <div className="space-y-space-5">
+          <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-3">
+            {ROLES.map((role) => {
+              const summary = summariseRole(matrix, role);
+              return (
+                <StatTile
+                  key={role} icon={<ShieldCheck size={22} />} label={ROLE_LABEL[role]} value={summary.total} deltaPct={null}
+                  hint={`pages it can open, ${summary.change.length} it can change`}
+                />
+              );
+            })}
+          </div>
           {ROLES.map((role) => {
             const columns = createRoleColumns({
               pageLabel: PAGE_LABEL,

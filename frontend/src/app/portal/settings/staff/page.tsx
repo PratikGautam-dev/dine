@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { KeyRound, Pencil, Plus, Power, Search } from "lucide-react";
+import { ChefHat, CircleCheck, KeyRound, Pencil, Plus, Power, Search, ShieldCheck, Users, UtensilsCrossed } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -12,23 +12,18 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { ResetStaffPasswordDialog } from "@/components/portal/ResetStaffPasswordDialog";
+import { RolePermissionSummary } from "@/components/portal/RolePermissionSummary";
+import { StaffActivityCard } from "@/components/portal/StaffActivityCard";
+import { StatTile } from "@/components/portal/StatTile";
 import { StaffFormDialog } from "@/components/portal/StaffFormDialog";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { ROLE_LABEL, ROLE_OPTIONS, ROLE_TONE } from "@/lib/staffRoles";
+import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { useStaffManagement, type StaffMember } from "@/hooks/useStaffManagement";
 
 const SELECT_CLASS = "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
-
-function Tile({ label, value }: { label: string; value: number }) {
-  return (
-    <Card className="p-space-4">
-      <p className="text-label mb-space-2 font-medium text-ink-600">{label}</p>
-      <span className="text-[28px] leading-none font-semibold text-ink-900">{value}</span>
-    </Card>
-  );
-}
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
@@ -51,13 +46,25 @@ const columns: ColumnDef<StaffMember, unknown>[] = [
       </div>
     ),
   },
-  { id: "role", header: "Role", cell: ({ row }) => <Badge tone={ROLE_TONE[row.original.role]}>{ROLE_LABEL[row.original.role]}</Badge> },
+  {
+    id: "role",
+    header: "Role",
+    cell: ({ row }) => (
+      <div className="whitespace-nowrap">
+        <Badge tone={ROLE_TONE[row.original.role]}>{ROLE_LABEL[row.original.role]}</Badge>
+      </div>
+    ),
+  },
   { id: "section", header: "Section", cell: ({ row }) => <span className="text-[13px] text-ink-700">{row.original.department_name ?? "—"}</span> },
   { id: "phone", header: "Phone", cell: ({ row }) => <span className="text-[13px] text-ink-700">{row.original.phone ?? "—"}</span> },
   {
     id: "status",
     header: "Status",
-    cell: ({ row }) => <Badge tone={row.original.is_active ? "success" : "neutral"}>{row.original.is_active ? "Active" : "Deactivated"}</Badge>,
+    cell: ({ row }) => (
+      <div className="whitespace-nowrap">
+        <Badge tone={row.original.is_active ? "success" : "neutral"}>{row.original.is_active ? "Active" : "Deactivated"}</Badge>
+      </div>
+    ),
   },
 ];
 
@@ -78,6 +85,9 @@ export default function StaffManagementPage() {
     search, setSearch, roleFilter, setRoleFilter, statusFilter, setStatusFilter,
     addStaff, editStaff, setActive, resetPassword,
   } = useStaffManagement(canView);
+  // The real permission matrix, for the "what this role can do" summary (only people who may see Roles get it).
+  const canSeeRoles = usePermission("roles", "view");
+  const { matrix } = usePortalRoles(canSeeRoles);
 
   if (!canView) {
     return (
@@ -99,6 +109,7 @@ export default function StaffManagementPage() {
     <PortalShell hospital={session?.hospital || null} active="staff">
       <PageHeader
         title="Staff"
+        icon={<Users size={22} />}
         description="Everyone who signs in to this restaurant's portal, and what they can do."
         actions={
           <PermissionGate page="staff" action="write">
@@ -111,15 +122,22 @@ export default function StaffManagementPage() {
 
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <Tile label="Total staff" value={counts.total} />
-        <Tile label="Active" value={counts.active} />
-        <Tile label="Front of House" value={counts.frontOfHouse} />
-        <Tile label="Kitchen" value={counts.kitchen} />
+      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <StatTile
+          icon={<Users size={22} />} label="Total staff" value={counts.total} deltaPct={null}
+          hint={`${counts.total - counts.active} deactivated`}
+        />
+        <StatTile icon={<CircleCheck size={22} />} label="Active" value={counts.active} deltaPct={null} hint="Can sign in" />
+        <StatTile
+          icon={<ShieldCheck size={22} />} label="Owners & Managers"
+          value={(staff ?? []).filter((m) => m.role === "admin" && m.is_active).length} deltaPct={null} hint="Full access"
+        />
+        <StatTile icon={<UtensilsCrossed size={22} />} label="Front of House" value={counts.frontOfHouse} deltaPct={null} hint="Host and floor team" />
+        <StatTile icon={<ChefHat size={22} />} label="Kitchen" value={counts.kitchen} deltaPct={null} hint="Kitchen staff" />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1fr)_340px]">
-        <div>
+        <div className="min-w-0">
           <div className="mb-space-3 flex flex-wrap items-center gap-space-2">
             <div className="relative min-w-[200px] flex-1">
               <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
@@ -159,8 +177,10 @@ export default function StaffManagementPage() {
               />
             )}
           </Card>
+          <StaffActivityCard ready={canView} staff={staff} />
         </div>
 
+        <div>
         <Card className="h-fit p-space-5">
           {!selected ? (
             <p className="text-[13px] text-ink-400">Select someone to see their details.</p>
@@ -197,7 +217,7 @@ export default function StaffManagementPage() {
                     <KeyRound size={14} /> Reset password
                   </Button>
                   {selected.id !== selfId && (
-                    <Button variant="secondary" onClick={() => (selected.is_active ? setDialog({ kind: "toggle", member: selected }) : reactivate(selected))}>
+                    <Button variant={selected.is_active ? "destructive" : "secondary"} onClick={() => (selected.is_active ? setDialog({ kind: "toggle", member: selected }) : reactivate(selected))}>
                       <Power size={14} /> {selected.is_active ? "Deactivate" : "Reactivate"}
                     </Button>
                   )}
@@ -206,6 +226,8 @@ export default function StaffManagementPage() {
             </>
           )}
         </Card>
+        {selected && canSeeRoles && matrix && <RolePermissionSummary matrix={matrix} role={selected.role} />}
+        </div>
       </div>
 
       {dialog?.kind === "add" && (
