@@ -18,6 +18,10 @@ venv/
 *.db
 *.log
 
+# Design-reference material (source mockups + reference-vs-built comparison screenshots) -- local-only working
+# files for a design pass, never app assets; kept out of git entirely rather than committed and later pruned.
+design-reference/
+
 # Next.js
 frontend/.next/
 frontend/node_modules/
