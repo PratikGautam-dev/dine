@@ -249,3 +249,16 @@ def test_categories_are_listed_and_new_names_match_existing_spelling(hospital_id
     for item in db.get_menu_items(hospital_id):
         groups.setdefault((item.get("category") or "").strip(), []).append(item["name"])
     assert set(groups) == {"Starters", "Mains", "Chef Specials", ""}
+
+
+def test_availability_route_checks_permission_before_it_validates_the_body(hospital_id):
+    """No body / no sign-in must be a 401 (and no permission a 403), never a 422 that leaks that the route exists and
+    what it wants -- the same rule the every-route sweep in test_portal_rbac_enforcement applies."""
+    item = _create_item(_login(hospital_id), stock_count=3)
+    assert client.post(f"/api/portal/menu-items/{item['id']}/availability", json={}).status_code == 401
+    foh = _login(hospital_id, "receptionist", "f2")
+    assert client.post(f"/api/portal/menu-items/{item['id']}/availability", headers=foh, json={}).status_code == 403
+    admin = _login(hospital_id, "admin", "a2")
+    missing = client.post(f"/api/portal/menu-items/{item['id']}/availability", headers=admin, json={})
+    assert missing.status_code == 400 and "required" in missing.json()["error"]
+    assert db.get_menu_item(hospital_id, item["id"])["is_available"] is True  # nothing changed

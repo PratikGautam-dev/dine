@@ -41,7 +41,10 @@ class RestockPayload(BaseModel):
 
 
 class AvailabilityPayload(BaseModel):
-    is_available: bool
+    # Optional at the schema level ON PURPOSE: a required field makes FastAPI answer 422 before the handler runs, so
+    # a caller who isn't signed in (or isn't allowed) would see a validation error instead of 401/403. The handler
+    # checks permission first, then insists on the value.
+    is_available: bool | None = None
 
 
 _MAX_IMAGE_URL_LENGTH = 2000
@@ -183,6 +186,8 @@ async def portal_set_menu_item_availability(
     hospital, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
+    if payload.is_available is None:
+        return JSONResponse({"error": "is_available (true or false) is required."}, status_code=400)
     existing = db.get_menu_item(hospital.id, menu_item_id)
     if existing is None:
         return JSONResponse({"error": "Menu item not found."}, status_code=404)
