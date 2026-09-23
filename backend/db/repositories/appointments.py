@@ -14,8 +14,8 @@ from db.connection import IntegrityError, get_connection, get_session
 from db.display_ids import _generate_reference_id
 from db.models import (
     Appointment, DuplicateBookingError, QuotaExceededError,
-    SOURCE_WHATSAPP, STATUS_ATTENDED, STATUS_BOOKED, STATUS_CANCELLED, STATUS_NO_SHOW, STATUS_RESCHEDULED,
-    _generate_patient_identifiers, _row_to_appointment,
+    SOURCE_WHATSAPP, STATUS_ATTENDED, STATUS_BOOKED, STATUS_CANCELLED, STATUS_NO_SHOW, STATUS_PENDING,
+    STATUS_RESCHEDULED, _generate_patient_identifiers, _row_to_appointment,
 )
 from db.orm_models import (
     AppointmentProcedureResource, AppointmentReminder, AppointmentRow, Department,
@@ -44,7 +44,7 @@ def _appointment_select_stmt():
             AppointmentRow.procedure_estimated_price_min, AppointmentRow.procedure_estimated_price_max,
             AppointmentRow.procedure_order_reference, AppointmentRow.procedure_reschedule_requested_at,
             AppointmentRow.table_id, TableRow.name.label("table_name"),
-            AppointmentRow.party_size, AppointmentRow.turnover_minutes,
+            AppointmentRow.party_size, AppointmentRow.turnover_minutes, AppointmentRow.special_request,
         )
         .select_from(AppointmentRow)
         .join(Department, Department.id == AppointmentRow.department_id)
@@ -128,6 +128,7 @@ def create_appointment(
     exclude_appointment_id: int | None = None,
     appointment_type_id: str | None = None,
     consent_given_at: str | None = None,
+    special_request: str | None = None,
 ) -> Appointment:
     """Raises IntegrityError if the doctor's (or resource's) slot capacity
     (max_bookings_per_slot) is full at scheduled_at, or the more specific
@@ -175,7 +176,16 @@ def create_appointment(
     patients.py's create_patient_profile()/link_existing_patient() and
     _upsert_patient() above. Every read function below IS migrated to ORM;
     only this function and _upsert_patient() are the exception."""
+    from db.repositories.hospital_settings import get_hospital_settings
+
     conn = get_connection()
+    # Table Bookings follow-up: a WhatsApp booking lands 'pending' instead of 'booked' only when this
+    # hospital has opted into require_booking_confirmation (default false -- every hospital that hasn't
+    # touched the setting sees no change here). Staff-created bookings always land 'booked' -- a staff
+    # member entering it IS the confirmation.
+    status = STATUS_BOOKED
+    if source == SOURCE_WHATSAPP and get_hospital_settings(hospital_id).get("require_booking_confirmation"):
+        status = STATUS_PENDING
     scheduled_at_iso = scheduled_at.isoformat()
     scheduled_date = scheduled_at.date()
     day_start = datetime.combine(scheduled_date, datetime.min.time()).isoformat()
@@ -248,13 +258,15 @@ def create_appointment(
                 raise QuotaExceededError(f"{kind} quota full for this doctor today.")
 
         # Smallest booking_ordinal in [0, max_bookings_per_slot) not already
-        # taken by a booked row -- not a plain COUNT(*), since cancellations
-        # leave gaps in the ordinal sequence rather than freeing them.
+        # taken by a booked OR still-pending row -- not a plain COUNT(*), since cancellations
+        # leave gaps in the ordinal sequence rather than freeing them. A pending row (Table
+        # Bookings follow-up) still holds its slot until staff confirm or cancel it -- otherwise
+        # two guests could both land 'pending' for the same slot past max_bookings_per_slot.
         free_ordinal_row = conn.execute(
             f"SELECT MIN(o) AS ordinal FROM generate_series(0, ? - 1) AS o "
             f"WHERE o NOT IN (SELECT booking_ordinal FROM appointments WHERE hospital_id = ? "
-            f"AND {resource_column} = ? AND scheduled_at = ? AND status = ?)",
-            (max_bookings_per_slot, hospital_id, resource_value, scheduled_at_iso, STATUS_BOOKED),
+            f"AND {resource_column} = ? AND scheduled_at = ? AND status IN (?, ?))",
+            (max_bookings_per_slot, hospital_id, resource_value, scheduled_at_iso, STATUS_BOOKED, STATUS_PENDING),
         ).fetchone()
         assert free_ordinal_row is not None  # MIN() with no GROUP BY always returns one row
         if free_ordinal_row["ordinal"] is None:
@@ -268,8 +280,8 @@ def create_appointment(
         if doctor_id is not None and patient_id is not None:
             existing_by_patient = conn.execute(
                 "SELECT id FROM appointments WHERE hospital_id = ? AND doctor_id = ? "
-                "AND patient_id = ? AND status = ? AND id IS DISTINCT FROM ? ORDER BY scheduled_at",
-                (hospital_id, doctor_id, patient_id, STATUS_BOOKED, exclude_appointment_id),
+                "AND patient_id = ? AND status IN (?, ?) AND id IS DISTINCT FROM ? ORDER BY scheduled_at",
+                (hospital_id, doctor_id, patient_id, STATUS_BOOKED, STATUS_PENDING, exclude_appointment_id),
             ).fetchall()
             if existing_by_patient:
                 raise DuplicateBookingError(
@@ -282,8 +294,8 @@ def create_appointment(
             # different family member (different name or age) still gets through.
             existing_appointments = conn.execute(
                 "SELECT id, patient_name, patient_age FROM appointments WHERE hospital_id = ? AND phone = ? "
-                "AND doctor_id = ? AND status = ? AND id IS DISTINCT FROM ? ORDER BY scheduled_at",
-                (hospital_id, phone, doctor_id, STATUS_BOOKED, exclude_appointment_id),
+                "AND doctor_id = ? AND status IN (?, ?) AND id IS DISTINCT FROM ? ORDER BY scheduled_at",
+                (hospital_id, phone, doctor_id, STATUS_BOOKED, STATUS_PENDING, exclude_appointment_id),
             ).fetchall()
             for existing_appt in existing_appointments:
                 same_name = (existing_appt["patient_name"] or "").strip().lower() == effective_name.strip().lower()
@@ -299,11 +311,11 @@ def create_appointment(
         cur = conn.execute(
             "INSERT INTO appointments (hospital_id, phone, department_id, doctor_id, scheduled_at, "
             "booking_ordinal, source, reference_id, patient_id, patient_name, patient_phone, patient_age, "
-            "appointment_type_id, consent_given_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "appointment_type_id, consent_given_at, status, special_request) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             (hospital_id, phone, department_id, doctor_id, scheduled_at_iso, free_ordinal_row["ordinal"], source,
              _generate_reference_id(conn, hospital_id), patient["id"], patient["name"], phone, effective_age,
-             appointment_type_id, consent_given_at),
+             appointment_type_id, consent_given_at, status, special_request),
         )
         new_id_row = cur.fetchone()
         assert new_id_row is not None  # INSERT ... RETURNING always returns the inserted row
@@ -793,15 +805,15 @@ def get_all_appointments_for_hospital(hospital_id: int, limit: int = 500) -> lis
 
 def soft_delete_appointment(hospital_id: int, appointment_id: int) -> bool:
     """Stamps deleted_at rather than removing the row (never hard-delete).
-    Restricted to already-resolved appointments (status != 'booked') --
+    Restricted to already-resolved appointments (status not in booked/pending) --
     an active booking must be cancelled first, not deleted out from under
-    the patient."""
+    the patient. A still-'pending' row (Table Bookings follow-up) is just as active as a booked one."""
     session = get_session()
     result = cast(CursorResult, session.execute(
         update(AppointmentRow)
         .where(
             AppointmentRow.id == appointment_id, AppointmentRow.hospital_id == hospital_id,
-            AppointmentRow.status != STATUS_BOOKED, AppointmentRow.deleted_at.is_(None),
+            AppointmentRow.status.not_in((STATUS_BOOKED, STATUS_PENDING)), AppointmentRow.deleted_at.is_(None),
         )
         .values(deleted_at=datetime.now().isoformat())
     ))
@@ -1032,6 +1044,23 @@ def mark_attendance(hospital_id: int, appointment_id: int, attended: bool) -> bo
             AppointmentRow.status.in_([STATUS_BOOKED, STATUS_ATTENDED, STATUS_NO_SHOW]),
         )
         .values(status=new_status, updated_at=datetime.now().isoformat())
+    ))
+    session.commit()
+    return result.rowcount > 0
+
+
+def confirm_booking(hospital_id: int, appointment_id: int) -> bool:
+    """Table Bookings follow-up: staff confirms a still-'pending' WhatsApp booking (only reachable
+    when the hospital opted into hospital_settings.require_booking_confirmation). Guarded WHERE
+    status='pending' -- returns False (not an error) for a double-tapped Confirm button or a row
+    that already moved on, same no-op-is-not-an-error contract mark_attendance()/food_orders.py's
+    advance_order_status() already establish. Sending the real WhatsApp confirmation message is the
+    caller's job (portal/routes/bookings.py), same as every other guest-facing message here."""
+    session = get_session()
+    result = cast(CursorResult, session.execute(
+        update(AppointmentRow)
+        .where(AppointmentRow.id == appointment_id, AppointmentRow.hospital_id == hospital_id, AppointmentRow.status == STATUS_PENDING)
+        .values(status=STATUS_BOOKED, updated_at=datetime.now().isoformat())
     ))
     session.commit()
     return result.rowcount > 0

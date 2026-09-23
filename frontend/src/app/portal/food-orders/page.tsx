@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { BellRing, ChefHat, ClipboardList, MoreHorizontal, PackageCheck, Search, ShoppingBag, Wallet, X } from "lucide-react";
+import {
+  BellRing, ChefHat, ClipboardList, Download, MoreHorizontal, PackageCheck, Search, ShieldCheck, X, XCircle,
+} from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -14,6 +16,7 @@ import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WeeklyTrendChart } from "@/components/portal/WeeklyTrendChart";
+import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import {
   CANCELLABLE_STATUSES, FoodOrder, NEXT_ACTION_BY_STATUS, STATUS_LABELS, useFoodOrders,
@@ -25,7 +28,7 @@ import {
 import { usePermission } from "@/lib/staffAuth";
 
 const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
-  { id: "all", label: "All", always: true },
+  { id: "all", label: "All Orders", always: true },
   { id: "new", label: "New", always: true },
   { id: "kitchen", label: "In the kitchen", always: true },
   { id: "ready", label: "Ready", always: true },
@@ -33,6 +36,13 @@ const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
   { id: "cancelled", label: "Cancelled", always: true },
   { id: "awaiting_payment", label: "Awaiting payment", always: false },
 ];
+
+// Every order in this product is placed via the WhatsApp bot -- "source" only ever has this one real
+// value today. The tab still exists (rather than being folded into "All") so the page's own
+// information architecture doesn't have to change the day a second real channel is added; it never
+// pretends a Swiggy/Zomato/dine-in channel exists when none does.
+type SourceFilter = "all" | "whatsapp";
+type TypeFilter = "all" | "pickup" | "delivery";
 
 const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
   pending_payment: "neutral",
@@ -44,6 +54,14 @@ const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
   out_for_delivery: "brand",
   completed: "success",
   cancelled: "neutral",
+};
+
+// The same status, read as "what stage is the kitchen at" -- a coarser view of the identical
+// real `status` value, not a second tracked field. Blank before a kitchen is even involved yet.
+const KITCHEN_STATUS_LABELS: Record<string, string> = {
+  accepted: "Preparing", preparing: "Preparing",
+  ready_for_pickup: "Ready", out_for_delivery: "Ready",
+  completed: "Ready", cancelled: "—",
 };
 
 // How far back the list goes. 90 days is the default; "All time" is one click away.
@@ -65,6 +83,10 @@ function paymentLine(order: FoodOrder): string {
   return order.status === "pending_payment" ? "Awaiting online payment" : "Paid online";
 }
 
+function csvCell(value: string): string {
+  return /[",\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
 export default function PortalFoodOrdersPage() {
   const { hospital, ready } = usePortalGuard();
   // Everything is loaded once and filtered here, so every view can show its own count.
@@ -73,7 +95,8 @@ export default function PortalFoodOrdersPage() {
   const canWrite = usePermission("food_orders", "write");
 
   const [view, setView] = useState<OrderView>("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "pickup" | "delivery">("all");
+  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
 
@@ -119,6 +142,10 @@ export default function PortalFoodOrdersPage() {
     const q = search.trim().toLowerCase();
     return (orders || []).filter((o) => {
       if (!matchesOrderView(o.status, view)) return false;
+      // sourceFilter has no real effect yet -- every order is WhatsApp-sourced today, so
+      // "WhatsApp only" and "All sources" match the identical set. Kept as a real, honest no-op
+      // rather than removed, so the filter is already wired the day a second real channel exists.
+      void sourceFilter;
       if (typeFilter !== "all" && o.fulfillment_type !== typeFilter) return false;
       if (!q) return true;
       return (
@@ -128,28 +155,51 @@ export default function PortalFoodOrdersPage() {
         (o.items || []).some((i) => i.item_name_snapshot.toLowerCase().includes(q))
       );
     });
-  }, [orders, view, typeFilter, search]);
+  }, [orders, view, sourceFilter, typeFilter, search]);
+
+  function exportCsv() {
+    const header = ["Order ID", "Customer", "Phone", "Source", "Order Type", "Placed", "Amount (INR)", "Payment", "Status"];
+    const rows = visible.map((o) => [
+      o.reference_id ?? `#${o.id}`, o.patient_name || "", o.phone, "WhatsApp",
+      o.fulfillment_type === "delivery" ? "Delivery" : "Takeaway", formatOrderTime(o.created_at),
+      (o.total_paise / 100).toFixed(2), paymentLine(o), STATUS_LABELS[o.status] ?? o.status,
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => csvCell(String(c))).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `food-orders-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   const columns = useMemo<ColumnDef<FoodOrder>[]>(
     () => [
       {
         id: "order",
-        header: "Order",
+        header: "Order ID",
         cell: ({ row }) => (
-          <div className="whitespace-nowrap">
-            <div className="font-mono text-[12px] font-semibold text-ink-900">{row.original.reference_id ?? `#${row.original.id}`}</div>
-            <div className="text-[12px] text-ink-600">{formatOrderTime(row.original.created_at)}</div>
-          </div>
+          <div className="whitespace-nowrap font-mono text-[12px] font-semibold text-ink-900">{row.original.reference_id ?? `#${row.original.id}`}</div>
         ),
       },
       {
         id: "guest",
-        header: "Guest",
+        header: "Customer",
         cell: ({ row }) => (
           <div className="min-w-[110px] text-ink-900">
             <div className="font-semibold">{row.original.patient_name || row.original.phone}</div>
             {row.original.patient_name && <div className="text-[12px] text-ink-600">{row.original.phone}</div>}
           </div>
+        ),
+      },
+      {
+        id: "source",
+        header: "Source",
+        cell: () => (
+          <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12.5px] font-semibold text-ink-700">
+            <WhatsAppIcon size={16} /> WhatsApp
+          </span>
         ),
       },
       {
@@ -169,7 +219,7 @@ export default function PortalFoodOrdersPage() {
       },
       {
         id: "type",
-        header: "Type",
+        header: "Order Type",
         cell: ({ row }) => (
           <div className="max-w-[120px]">
             <div className="font-semibold text-ink-900">{row.original.fulfillment_type === "delivery" ? "Delivery" : "Takeaway"}</div>
@@ -178,6 +228,11 @@ export default function PortalFoodOrdersPage() {
             )}
           </div>
         ),
+      },
+      {
+        id: "placed",
+        header: "Placed",
+        cell: ({ row }) => <div className="whitespace-nowrap text-[12.5px] text-ink-600">{formatOrderTime(row.original.created_at)}</div>,
       },
       {
         id: "amount",
@@ -190,8 +245,16 @@ export default function PortalFoodOrdersPage() {
         ),
       },
       {
+        id: "kitchen_status",
+        header: "Kitchen Status",
+        cell: ({ row }) => {
+          const label = KITCHEN_STATUS_LABELS[row.original.status];
+          return label ? <Badge tone={row.original.status === "cancelled" ? "neutral" : STATUS_TONE[row.original.status]}>{label}</Badge> : <span className="text-[12px] text-ink-300">—</span>;
+        },
+      },
+      {
         id: "status",
-        header: "Status",
+        header: "Order Status",
         cell: ({ row }) => (
           <div className="whitespace-nowrap">
             <Badge tone={STATUS_TONE[row.original.status] ?? "neutral"}>{STATUS_LABELS[row.original.status] ?? row.original.status}</Badge>
@@ -240,28 +303,37 @@ export default function PortalFoodOrdersPage() {
   return (
     <PortalShell hospital={hospital} active="food-orders">
       <PageHeader
-        title="Orders"
+        title="Food Orders"
         icon={<ClipboardList size={22} />}
-        description="Incoming food orders, from payment through completion."
+        description="All your orders from WhatsApp — in one place."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {orders && (
         <>
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <StatTile icon={<ShoppingBag size={22} />} label="Orders today" value={stats.today} deltaPct={stats.todayDelta} hint="vs yesterday" />
-            <StatTile icon={<BellRing size={22} />} label="Needs action" value={viewCounts.new} deltaPct={null} hint="New orders to accept" />
-            <StatTile icon={<ChefHat size={22} />} label="In the kitchen" value={viewCounts.kitchen} deltaPct={null} hint="Accepted or preparing" />
-            <StatTile icon={<PackageCheck size={22} />} label="Ready" value={viewCounts.ready} deltaPct={null} hint="For pickup or out for delivery" />
-            <StatTile
-              icon={<Wallet size={22} />} label="Order value today" prefix="₹" value={Math.round(stats.valueToday / 100)}
-              deltaPct={null} hint="Cancelled orders excluded"
-            />
+          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <StatTile tone="success" filled icon={<BellRing size={22} />} label="New Orders" value={viewCounts.new} deltaPct={null} hint="Awaiting acceptance" />
+            <StatTile tone="warning" filled icon={<ChefHat size={22} />} label="Preparing" value={viewCounts.kitchen} deltaPct={null} hint="Accepted or preparing" />
+            <StatTile tone="info" filled icon={<PackageCheck size={22} />} label="Ready" value={viewCounts.ready} deltaPct={null} hint="Pickup or delivery" />
+            <StatTile tone="violet" filled icon={<ShieldCheck size={22} />} label="Completed" value={viewCounts.completed} deltaPct={null} hint="All time" />
+            <StatTile tone="brand" filled icon={<XCircle size={22} />} label="Cancelled" value={viewCounts.cancelled} deltaPct={null} upIsGood={false} hint="All time" />
+            <StatTile tone="clay" filled icon={<Download size={22} />} label="Pending Payment" value={viewCounts.awaiting_payment} deltaPct={null} upIsGood={false} hint="Awaiting payment" />
           </div>
 
-          <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">
-            <WeeklyTrendChart data={stats.days} title="Order volume" unit="orders" />
+          <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-3">
+            <WeeklyTrendChart data={stats.days} title="Order Volume" unit="orders" />
             <PeakHoursChart hours={stats.hours} periodLabel="Orders by hour of the day, last 30 days" />
+            <Card className="flex flex-col justify-center gap-space-2 bg-brand-50 p-space-4">
+              <div className="flex items-center gap-2">
+                <WhatsAppIcon size={22} />
+                <p className="text-[13px] font-bold text-brand-700">Orders from WhatsApp,<br />captured in one queue</p>
+              </div>
+              <ul className="mt-space-2 space-y-1 text-[12.5px] text-ink-600">
+                <li>✅ No orders missed</li>
+                <li>✅ Real-time kitchen updates</li>
+                <li>✅ Faster, happier customers</li>
+              </ul>
+            </Card>
           </div>
         </>
       )}
@@ -289,12 +361,19 @@ export default function PortalFoodOrdersPage() {
         <div className="relative min-w-[220px] flex-1">
           <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
           <input
-            type="text" placeholder="Search guest, phone, order or dish…" value={search} onChange={(e) => setSearch(e.target.value)}
+            type="text" placeholder="Search by Order ID, customer or phone…" value={search} onChange={(e) => setSearch(e.target.value)}
             className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
           />
         </div>
         <select
-          aria-label="Filter by order type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+          aria-label="Filter by source" value={sourceFilter} onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
+          className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+        >
+          <option value="all">All sources</option>
+          <option value="whatsapp">WhatsApp only</option>
+        </select>
+        <select
+          aria-label="Filter by order type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
           className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
         >
           <option value="all">Takeaway and delivery</option>
@@ -307,6 +386,9 @@ export default function PortalFoodOrdersPage() {
         >
           {PERIODS.map((p) => <option key={p.days} value={p.days}>{p.label}</option>)}
         </select>
+        <Button variant="secondary" size="md" onClick={exportCsv} disabled={visible.length === 0}>
+          <Download size={14} /> Export
+        </Button>
       </div>
 
       <Card className="p-space-4">

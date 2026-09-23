@@ -14,6 +14,7 @@ from core.translations.booking import (
     ASK_PATIENT_NAME,
     BOOKING_CONFIRMED,
     BOOKING_NOT_CONFIRMED,
+    BOOKING_PENDING_CONFIRMATION,
     CANCEL_BUTTON,
     CONSENT_DECLINED,
     DEPARTMENT_APPOINTMENT_CONFLICT,
@@ -691,8 +692,12 @@ async def _create_booking_and_notify(
     if flow.build_success_summary is not None:
         summary = flow.build_success_summary(appointment, context, hospital_id)
     else:
+        # Table Bookings follow-up: 'pending' (only reachable when this hospital opted into
+        # require_booking_confirmation) gets the "request received" text -- staff confirming it from
+        # the portal sends the real BOOKING_CONFIRMED text later (portal/routes/bookings.py).
+        confirmation_key = BOOKING_PENDING_CONFIRMATION if appointment.status == "pending" else BOOKING_CONFIRMED
         summary = t(
-            BOOKING_CONFIRMED, language,
+            confirmation_key, language,
             reference_id=appointment.reference_id,
             patient_name=context.get("patient_name"),
             department_name=appointment.department_name,

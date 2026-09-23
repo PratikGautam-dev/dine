@@ -30,12 +30,15 @@ class Tier1Connector(Connector):
     def get_available_slots(self, hospital_id, doctor_id):
         return repo.get_slots(hospital_id, doctor_id)
 
-    def create_booking(self, hospital_id, phone, department_id, doctor_id, scheduled_at, source="whatsapp", patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, consent_given_at=None):
+    def create_booking(self, hospital_id, phone, department_id, doctor_id, scheduled_at, source="whatsapp", patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, consent_given_at=None, special_request=None):
         return repo.create_appointment(
             hospital_id, phone, department_id, doctor_id, scheduled_at,
             source=source, patient_name=patient_name, patient_age=patient_age, patient_id=patient_id,
-            appointment_type_id=appointment_type_id, consent_given_at=consent_given_at,
+            appointment_type_id=appointment_type_id, consent_given_at=consent_given_at, special_request=special_request,
         )
+
+    def confirm_booking(self, hospital_id, appointment_id):
+        return repo.confirm_booking(hospital_id, appointment_id)
 
     def get_active_appointments_for_patient(self, hospital_id, patient_id):
         return repo.get_active_appointments_for_patient(hospital_id, patient_id)
@@ -136,11 +139,11 @@ class Tier1Connector(Connector):
             hospital_id, party_size, department_id, exclude_appointment_id=exclude_appointment_id,
         )
 
-    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp"):
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp", special_request=None):
         return repo.create_table_reservation(
             hospital_id, phone, party_size, scheduled_at, department_id=department_id,
             patient_name=patient_name, patient_age=patient_age, patient_id=patient_id,
-            appointment_type_id=appointment_type_id, source=source,
+            appointment_type_id=appointment_type_id, source=source, special_request=special_request,
         )
 
     def reassign_table(self, hospital_id, appointment_id, new_table_id):

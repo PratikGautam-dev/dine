@@ -280,3 +280,57 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
     return feed
 
 
+_ORDER_ACTIVITY_LABELS = {
+    "placed": "Order placed", "paid": "Order paid", "accepted": "Order accepted",
+    "preparing": "Order in the kitchen", "ready_for_pickup": "Order ready for pickup",
+    "out_for_delivery": "Order out for delivery", "completed": "Order completed", "cancelled": "Order cancelled",
+}
+
+
+def get_live_operations_activity_feed(hospital_id: int, limit: int = 15) -> list[dict]:
+    """Live Operations follow-up: unions three already-real event sources --
+    booking status changes (get_recent_activity_feed, above), food-order
+    status changes, and newly opened WhatsApp handoffs -- into one
+    time-ordered feed, each row tagged with `kind` so the page can pick an
+    icon. Composition only: no new event logging, just a merge-sort over
+    data these three domains already persist."""
+    from db.repositories.food_orders import list_food_orders
+    from db.repositories.handoffs import get_handoff_requests
+    from db.repositories.patients import get_patient_names_by_phone
+
+    # Bookings store naive local-time isoformat() strings; food_orders stamps timezone-aware UTC
+    # (advance_order_status()'s datetime.now(timezone.utc).isoformat()) -- naive/aware datetimes can't be
+    # compared directly, so every event's `at` is normalized to naive here purely for sort/display order
+    # (this feed never does arithmetic on `at`, just orders and formats it).
+    def _at(raw) -> datetime:
+        dt = datetime.fromisoformat(raw) if isinstance(raw, str) else raw
+        return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
+
+    events: list[dict] = []
+    for item in get_recent_activity_feed(hospital_id, limit=limit):
+        events.append({"kind": "booking", "label": item["label"], "guest_name": item["guest_name"], "at": _at(item["at"])})
+
+    orders = list_food_orders(hospital_id)[:limit]
+    order_names = get_patient_names_by_phone(hospital_id, [o["phone"] for o in orders])
+    for order in orders:
+        events.append({
+            "kind": "order",
+            "label": _ORDER_ACTIVITY_LABELS.get(order["status"], order["status"].replace("_", " ").capitalize()),
+            "guest_name": order_names.get(order["phone"]),
+            "at": _at(order.get("updated_at") or order["created_at"]),
+        })
+
+    handoffs = get_handoff_requests(hospital_id, status=None, limit=limit)
+    handoff_names = get_patient_names_by_phone(hospital_id, [h["phone"] for h in handoffs])
+    for handoff in handoffs:
+        events.append({
+            "kind": "message",
+            "label": "Guest needs a reply" if handoff["status"] == "open" else "Conversation resolved",
+            "guest_name": handoff_names.get(handoff["phone"]),
+            "at": _at(handoff["created_at"]),
+        })
+
+    events.sort(key=lambda e: e["at"], reverse=True)
+    return events[:limit]
+
+

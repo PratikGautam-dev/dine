@@ -23,6 +23,11 @@ STATUS_RESCHEDULED = "rescheduled"
 # instead of guessing from "time passed and still booked".
 STATUS_ATTENDED = "attended"
 STATUS_NO_SHOW = "no_show"
+# Table Bookings follow-up (migration 0040): only reachable when the hospital has opted into
+# hospital_settings.require_booking_confirmation -- a WhatsApp booking lands here instead of
+# STATUS_BOOKED until staff confirm it (db/repositories/tables.py's confirm_booking()). Every
+# hospital that hasn't touched the setting never produces this status; staff-created bookings never do.
+STATUS_PENDING = "pending"
 
 SOURCE_WHATSAPP = "whatsapp"
 SOURCE_STAFF = "staff"
@@ -267,6 +272,9 @@ class Appointment:
     table_name: str | None = None
     party_size: int | None = None
     turnover_minutes: int | None = None
+    # Table Bookings follow-up (migration 0040): a free-text note given at booking time (e.g.
+    # "birthday", "window seat"). None when the guest/staff didn't give one -- never backfilled.
+    special_request: str | None = None
 
     @property
     def place_label(self) -> str:
@@ -324,6 +332,7 @@ def _row_to_appointment(row) -> Appointment:
         table_name=row["table_name"],
         party_size=row["party_size"],
         turnover_minutes=row["turnover_minutes"],
+        special_request=row["special_request"],
     )
 
 

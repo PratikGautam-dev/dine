@@ -4,6 +4,16 @@ import { toast } from "@/lib/toast";
 
 export type Department = { id: string; name: string };
 export type Section = { id: string; name: string; sort_order: number; table_count: number };
+
+export type TableOccupant = {
+  source: "reservation" | "walkin";
+  guest_name: string | null;
+  party_size: number | null;
+  reference_id: string | null;
+  arrived_at: string | null;
+  expected_release_at: string | null;
+};
+
 export type RestaurantTable = {
   id: string;
   name: string;
@@ -11,6 +21,19 @@ export type RestaurantTable = {
   department_name?: string;
   capacity: number;
   is_active: boolean;
+  // Live Operations follow-up: real, staff-set occupancy (Seat/Clear/Block on the Live Operations
+  // floor grid or the Tables page's own floor map).
+  status: "free" | "occupied" | "needs_cleaning" | "blocked";
+  // Tables page follow-up: real floor-map position (percent of the canvas), null until ever dragged.
+  pos_x: number | null;
+  pos_y: number | null;
+  shape: "rect" | "round";
+  notes: string | null;
+  // Derived (not stored) -- a free table with a real booking coming up soon. See Seated's own precedent.
+  is_reserved_soon: boolean;
+  // A real join over today's attended appointments / assigned waitlist entries -- null when
+  // occupied with no real match, never guessed at.
+  current_occupant: TableOccupant | null;
 };
 
 export type TableFormState = {
@@ -18,10 +41,12 @@ export type TableFormState = {
   department_id: string;
   capacity: string;
   is_active: boolean;
+  notes: string;
+  shape: "rect" | "round";
 };
 
 export function emptyTableForm(departments: Department[]): TableFormState {
-  return { name: "", department_id: departments[0]?.id ?? "", capacity: "2", is_active: true };
+  return { name: "", department_id: departments[0]?.id ?? "", capacity: "2", is_active: true, notes: "", shape: "rect" };
 }
 
 /** Loads + owns every mutation on the /portal/tables page -- the REAL
@@ -38,10 +63,11 @@ export function useRestaurantTables(ready: boolean) {
 
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [form, setForm] = useState<TableFormState>({ name: "", department_id: "", capacity: "2", is_active: true });
+  const [form, setForm] = useState<TableFormState>(emptyTableForm([]));
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [statusActingId, setStatusActingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await portalFetch("/api/portal/tables");
@@ -72,6 +98,7 @@ export function useRestaurantTables(ready: boolean) {
     setForm({
       name: table.name, department_id: table.department_id,
       capacity: String(table.capacity), is_active: table.is_active,
+      notes: table.notes || "", shape: table.shape,
     });
     setFormError(null);
     setShowForm(true);
@@ -102,6 +129,7 @@ export function useRestaurantTables(ready: boolean) {
       body: JSON.stringify({
         name: form.name.trim(), department_id: form.department_id,
         capacity: Number(form.capacity) || 1, is_active: form.is_active,
+        notes: form.notes.trim() || null, shape: form.shape,
       }),
     });
     setSaving(false);
@@ -124,6 +152,7 @@ export function useRestaurantTables(ready: boolean) {
       body: JSON.stringify({
         name: table.name, department_id: table.department_id,
         capacity: table.capacity, is_active: !table.is_active,
+        notes: table.notes, shape: table.shape,
       }),
     });
     setTogglingId(null);
@@ -133,6 +162,34 @@ export function useRestaurantTables(ready: boolean) {
     }
     toast.success(table.is_active ? `${table.name} deactivated` : `${table.name} activated`);
     load();
+  }
+
+  /** Seat/Clear/Needs-cleaning/Block/Unblock -- the same guarded transitions Live Operations'
+   * floor grid already exposes, now also actionable from this page's own floor map/details panel. */
+  async function setTableStatus(tableId: string, action: "seat" | "clear" | "needs_cleaning" | "block" | "unblock") {
+    setStatusActingId(tableId);
+    const result = await portalFetch(`/api/portal/tables/${tableId}/${action}`, { method: "POST" });
+    setStatusActingId(null);
+    if (!result.ok) {
+      if (!result.unauthorized) toast.error("Couldn't update table", result.error);
+      load();
+      return;
+    }
+    load();
+  }
+
+  /** Persists a drag on the floor map -- pos_x/pos_y only, no other field touched. */
+  async function updatePosition(tableId: string, posX: number, posY: number) {
+    setTables((prev) => prev.map((t) => (t.id === tableId ? { ...t, pos_x: posX, pos_y: posY } : t)));
+    const result = await portalFetch(`/api/portal/tables/${tableId}/position`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ pos_x: posX, pos_y: posY }),
+    });
+    if (!result.ok && !result.unauthorized) {
+      toast.error("Couldn't save table position", result.error);
+      load();
+    }
   }
 
   /** One call for every section change (add / rename / move / delete). Returns an error message or null. */
@@ -161,6 +218,7 @@ export function useRestaurantTables(ready: boolean) {
     departments, sections, sectionBusy, tables, error,
     showForm, editingId, form, setForm, formError, saving, togglingId,
     openAddForm, openEditForm, cancelForm, handleSave, handleToggleActive,
+    statusActingId, setTableStatus, updatePosition,
     addSection, renameSection, moveSection, deleteSection,
   };
 }

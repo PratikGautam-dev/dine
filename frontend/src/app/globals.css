@@ -62,7 +62,20 @@
      stays for validation/error TEXT and status pills. */
   --destructive: #b42318;
   --destructive-tint: #fef3f2;
+  /* Warning -- a genuinely distinct amber, for a status tile/badge that needs to read as "needs attention"
+     without being confused with the brand red or the destructive red (both of which it would sit too close
+     to in hue if reused for this). #b45309 on white is ~5.1:1 (AA for normal text). */
+  --warning: #b45309;
+  --warning-tint: #fef3e2;
   --error-tint: #fbeaea;
+  /* Info (blue) / accent-violet -- Table Bookings' KPI-tile row needs two more distinct hues
+     (Confirmed / Walk-ins) beyond brand/success/warning/clay/neutral; both are genuinely reusable
+     status colors (blue = a confirmed/settled state, violet = a people/headcount metric), not
+     one-off page-specific colors, so they join the shared token set rather than living as inline hex. */
+  --info: #1d4ed8;
+  --info-tint: #eaf0fd;
+  --accent-violet: #6d28d9;
+  --accent-violet-tint: #f1ecfc;
 
   /* --- Spacing scale (8px-based; step 1/2 drop to 4px for the tightest
      icon-to-label gaps). Named --space-N rather than overriding Tailwind's
@@ -131,7 +144,13 @@
   --color-error: var(--error);
   --color-destructive: var(--destructive);
   --color-destructive-tint: var(--destructive-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
   --color-error-tint: var(--error-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-violet-tint: var(--accent-violet-tint);
 
   --spacing-space-1: var(--space-1);
   --spacing-space-2: var(--space-2);

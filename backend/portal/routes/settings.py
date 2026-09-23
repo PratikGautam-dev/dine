@@ -95,6 +95,9 @@ async def portal_get_settings(authorization: str | None = Header(default=None)):
             "operating_hours": hospital_settings["operating_hours"],
             "default_turnover_minutes": hospital_settings["default_turnover_minutes"],
             "booking_interval_minutes": hospital_settings["booking_interval_minutes"],
+            # Table Bookings follow-up: opt-in, default false -- see db/repositories/
+            # hospital_settings.py's own comment for exactly what turning this on changes.
+            "require_booking_confirmation": hospital_settings["require_booking_confirmation"],
         },
         # Settings-not-updating bug follow-up (Spec.md Section 0): defensive
         # -- rules out any browser/CDN-level HTTP caching of this
@@ -284,6 +287,31 @@ async def portal_update_restaurant_hours(payload: dict, authorization: str | Non
             "operating_days": operating_days, "operating_hours": operating_hours,
             "default_turnover_minutes": default_turnover_minutes, "booking_interval_minutes": booking_interval_minutes,
         },
+    )
+    return JSONResponse({"ok": True})
+
+
+@router.post("/api/portal/settings/booking-confirmation")
+async def portal_update_booking_confirmation_setting(payload: dict, authorization: str | None = Header(default=None)):
+    """Table Bookings follow-up: its own Booking Rules sub-form save action, same "separate write
+    path, its own portal sub-form" precedent portal_update_restaurant_hours() above sets. Off
+    (default) is today's behavior unchanged; on, a new WhatsApp booking lands 'pending' until staff
+    confirm it (db/repositories/appointments.py's create_appointment() / tables.py's
+    create_table_reservation())."""
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+
+    if "require_booking_confirmation" not in (payload or {}):
+        return JSONResponse({"error": "require_booking_confirmation (true/false) is required."}, status_code=400)
+    require_booking_confirmation = bool(payload["require_booking_confirmation"])
+
+    db.update_booking_confirmation_setting(hospital.id, require_booking_confirmation)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "booking_confirmation_setting.update",
+        entity_type="hospital", entity_id=str(hospital.id),
+        after={"require_booking_confirmation": require_booking_confirmation},
     )
     return JSONResponse({"ok": True})
 

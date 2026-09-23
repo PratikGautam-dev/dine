@@ -49,6 +49,8 @@ def _appointment_json(a, followup_validity_days: int | None = None) -> dict:
         "table_id": a.table_id,
         "table_name": a.table_name,
         "party_size": a.party_size,
+        # Table Bookings follow-up: a free-text note given at booking time, None when not given.
+        "special_request": a.special_request,
         "scheduled_at": a.scheduled_at.isoformat(),
         "status": a.status,
         "source": a.source,
@@ -141,8 +143,8 @@ async def portal_delete_bookings(payload: dict, authorization: str | None = Head
     matches routes in registration order, and a later registration here
     would let POST /api/portal/bookings/{appointment_id}/... match "delete"
     as an appointment_id string first, failing int coercion with a 422.
-    Reuses db.soft_delete_appointment()'s own status != 'booked' guard --
-    a still-booked id in the batch is silently skipped (not included in
+    Reuses db.soft_delete_appointment()'s own not-booked-or-pending guard --
+    a still-active (booked or pending) id in the batch is silently skipped (not included in
     `deleted`), same as portal_delete_booking()'s single-item 400 but
     without failing the whole batch over one row."""
     principal, error = authorize(authorization, "appointments", "delete")
@@ -186,6 +188,79 @@ async def portal_mark_attendance(
         after={"status": "attended" if attended else "no_show"},
     )
     return JSONResponse({"ok": True, "status": "attended" if attended else "no_show"})
+
+
+@router.post("/api/portal/bookings/{appointment_id}/confirm")
+async def portal_confirm_booking(appointment_id: int, authorization: str | None = Header(default=None)):
+    """Table Bookings follow-up: staff confirms a still-'pending' WhatsApp booking (only reachable
+    when this hospital opted into hospital_settings.require_booking_confirmation). Sends the guest a
+    plain confirmation text directly (same "send via WhatsAppClient right from the portal route"
+    precedent portal_reply_handoff() already sets) -- not the live-flow's own rich
+    buttons+quick-actions message (flows/booking/book.py's _create_booking_and_notify()), which only
+    makes sense mid-conversation, not from an unrelated staff action minutes/hours later."""
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    ok = db.confirm_booking(hospital.id, appointment_id)
+    if not ok:
+        return JSONResponse({"error": "No such pending reservation to confirm."}, status_code=404)
+
+    appointment = db.get_appointment(hospital.id, appointment_id)
+    if appointment is not None and hospital.whatsapp_phone_number_id and hospital.access_token:
+        wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+        where = appointment.table_name or appointment.department_name
+        text = (
+            f"✅ Your reservation is confirmed!\n\n"
+            f"🆔 Reservation ID: {appointment.reference_id}\n"
+            f"📍 {where}\n"
+            f"📅 Date: {appointment.scheduled_at.strftime('%A, %d %B %Y')}\n"
+            f"🕐 Time: {appointment.scheduled_at.strftime('%I:%M %p')}\n\n"
+            f"We look forward to seeing you."
+        )
+        await wa.send_text(appointment.phone, text)
+
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "booking.confirm",
+        entity_type="appointment", entity_id=str(appointment_id), after={"status": "booked"},
+    )
+    return JSONResponse({"ok": True})
+
+
+@router.post("/api/portal/bookings/{appointment_id}/send-reminder")
+async def portal_send_booking_reminder(appointment_id: int, authorization: str | None = Header(default=None)):
+    """Table Bookings follow-up: a real WhatsApp text sent on demand for an active (booked or
+    pending) reservation -- same "send via WhatsAppClient right from the portal route" precedent
+    portal_confirm_booking()/portal_reply_handoff() already set. Not a scheduled reminder (that's
+    reminders/scheduler.py's own job) -- this is staff explicitly choosing to nudge one guest now."""
+    principal, error = authorize(authorization, "appointments", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    appointment = db.get_appointment(hospital.id, appointment_id)
+    if appointment is None or appointment.status not in ("booked", "pending"):
+        return JSONResponse({"error": "No such active reservation to remind."}, status_code=404)
+    if not (hospital.whatsapp_phone_number_id and hospital.access_token):
+        return JSONResponse({"error": "WhatsApp is not configured for this hospital yet."}, status_code=400)
+
+    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+    where = appointment.table_name or appointment.department_name
+    status_line = "still awaiting confirmation" if appointment.status == "pending" else "confirmed"
+    text = (
+        f"⏰ *Reservation Reminder*\n\n"
+        f"🆔 Reservation ID: {appointment.reference_id}\n"
+        f"📍 {where}\n"
+        f"📅 Date: {appointment.scheduled_at.strftime('%A, %d %B %Y')}\n"
+        f"🕐 Time: {appointment.scheduled_at.strftime('%I:%M %p')}\n\n"
+        f"Your reservation is {status_line}. We look forward to seeing you."
+    )
+    await wa.send_text(appointment.phone, text)
+
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "booking.send_reminder",
+        entity_type="appointment", entity_id=str(appointment_id),
+    )
+    return JSONResponse({"ok": True})
 
 
 @router.post("/api/portal/bookings/{appointment_id}/delete")
@@ -667,6 +742,7 @@ async def _portal_create_table_reservation(hospital, payload: dict) -> JSONRespo
     department_id = payload.get("department_id") or None
     party_size = payload.get("party_size")
     slot_id = payload.get("slot_id") or ""
+    special_request = (payload.get("special_request") or "").strip() or None
 
     errors = []
     if not db.is_valid_phone(patient_phone):
@@ -691,6 +767,7 @@ async def _portal_create_table_reservation(hospital, payload: dict) -> JSONRespo
         created = connector.create_table_reservation(
             hospital.id, patient_phone, party_size, scheduled_at,
             department_id=department_id, patient_name=patient_name or None, source=db.SOURCE_STAFF,
+            special_request=special_request,
         )
     except IntegrityError:
         return JSONResponse({"errors": ["That slot was just taken — please pick another."]}, status_code=400)
@@ -698,7 +775,10 @@ async def _portal_create_table_reservation(hospital, payload: dict) -> JSONRespo
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "booking.create",
         entity_type="appointment", entity_id=str(created.id),
-        after={"party_size": party_size, "department_id": department_id, "scheduled_at": scheduled_at.isoformat()},
+        after={
+            "party_size": party_size, "department_id": department_id, "scheduled_at": scheduled_at.isoformat(),
+            "special_request": special_request,
+        },
     )
 
     return JSONResponse({"ok": True})
@@ -710,6 +790,7 @@ async def _portal_create_doctor_booking(hospital, payload: dict) -> JSONResponse
     department_id = payload.get("department_id") or ""
     doctor_id = payload.get("doctor_id") or ""
     slot_id = payload.get("slot_id") or ""
+    special_request = (payload.get("special_request") or "").strip() or None
 
     errors = []
     if not db.is_valid_phone(patient_phone):
@@ -737,7 +818,7 @@ async def _portal_create_doctor_booking(hospital, payload: dict) -> JSONResponse
     try:
         created = connector.create_booking(
             hospital.id, patient_phone, department_id, doctor_id, scheduled_at,
-            source=db.SOURCE_STAFF, patient_name=patient_name or None,
+            source=db.SOURCE_STAFF, patient_name=patient_name or None, special_request=special_request,
         )
     except db.QuotaExceededError as e:
         return JSONResponse({"errors": [str(e)]}, status_code=400)
@@ -747,7 +828,10 @@ async def _portal_create_doctor_booking(hospital, payload: dict) -> JSONResponse
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "booking.create",
         entity_type="appointment", entity_id=str(created.id),
-        after={"department_id": department_id, "doctor_id": doctor_id, "scheduled_at": scheduled_at.isoformat()},
+        after={
+            "department_id": department_id, "doctor_id": doctor_id, "scheduled_at": scheduled_at.isoformat(),
+            "special_request": special_request,
+        },
     )
 
     return JSONResponse({"ok": True})

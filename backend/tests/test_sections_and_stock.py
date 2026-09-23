@@ -105,14 +105,18 @@ def test_a_table_can_only_go_in_an_existing_section_and_moves_with_section_order
     assert bad.status_code == 400
 
 
-def test_front_of_house_can_view_but_not_change_sections(hospital_id):
+def test_front_of_house_can_view_and_write_but_not_delete_sections(hospital_id):
+    """Live Operations follow-up: front-of-house needs `tables` write to Seat/Clear a table, so their
+    PAGE_TABLES permission moved from view-only to view+write (portal/permissions.py) -- this also
+    unlocks section create/rename/move, which a host arranging the floor reasonably needs too. Delete
+    stays admin-only (the `tables` page's `delete` action, never granted to receptionist)."""
     admin = _login(hospital_id)
     foh = _login(hospital_id, "receptionist", "foh")
     sid = client.post("/api/portal/sections", headers=admin, json={"name": "Lounge"}).json()["section"]["id"]
     assert client.get("/api/portal/tables", headers=foh).status_code == 200
-    assert client.post("/api/portal/sections", headers=foh, json={"name": "Nope"}).status_code == 403
-    assert client.put(f"/api/portal/sections/{sid}", headers=foh, json={"name": "Nope"}).status_code == 403
-    assert client.post(f"/api/portal/sections/{sid}/move", headers=foh, json={"direction": "up"}).status_code == 403
+    assert client.post("/api/portal/sections", headers=foh, json={"name": "Patio"}).status_code == 200
+    assert client.put(f"/api/portal/sections/{sid}", headers=foh, json={"name": "Lounge (front)"}).status_code == 200
+    assert client.post(f"/api/portal/sections/{sid}/move", headers=foh, json={"direction": "up"}).status_code == 200
     assert client.delete(f"/api/portal/sections/{sid}", headers=foh).status_code == 403
 
 

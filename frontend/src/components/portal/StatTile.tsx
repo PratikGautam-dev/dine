@@ -3,6 +3,38 @@ import { Minus, TrendingDown, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 
+type Tone = "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
+
+// Icon-square background/text per tone -- brand (the default, used everywhere else) plus the app's existing
+// success/clay/warning/neutral tokens, reused here rather than one-off hex values, so a page that wants
+// per-tile color variety (status-coded tiles, e.g.) still draws from the same palette as every badge/switch.
+// "warning" (amber), not "destructive" (also red) -- a status tile sitting next to a brand-red tile needs a
+// hue that's actually distinguishable at a glance, not two reds that only differ up close.
+// "info" (blue) / "violet" -- Table Bookings' Confirmed/Walk-ins tiles, added to globals.css as shared
+// tokens (not one-off hex here) since both are reusable status colors, not page-specific.
+const TONE_CLASSES: Record<Tone, string> = {
+  brand: "bg-brand-50 text-brand-600",
+  success: "bg-success-tint text-success",
+  clay: "bg-clay-100 text-clay-700",
+  neutral: "bg-black/[0.04] text-ink-600",
+  warning: "bg-warning-tint text-warning",
+  info: "bg-info-tint text-info",
+  violet: "bg-accent-violet-tint text-accent-violet",
+};
+
+// Solid-fill variant (white icon on a solid tone background) -- an opt-in look (the `filled` prop
+// below) for a page that wants bolder tiles, e.g. Table Bookings; every other page keeps the default
+// tinted-square look above unless it explicitly asks for this one too.
+const TONE_CLASSES_FILLED: Record<Tone, string> = {
+  brand: "bg-brand-600 text-white",
+  success: "bg-success text-white",
+  clay: "bg-clay-500 text-white",
+  neutral: "bg-ink-600 text-white",
+  warning: "bg-warning text-white",
+  info: "bg-info text-white",
+  violet: "bg-accent-violet text-white",
+};
+
 type Props = {
   label: string;
   value: number;
@@ -11,6 +43,11 @@ type Props = {
   prefix?: string;
   /** A lucide icon element for the tinted square, e.g. <CalendarCheck size={22} />. */
   icon?: ReactNode;
+  /** Icon-square color. Defaults to brand (the site-wide default) -- pass another tone only where a page
+   * deliberately wants per-tile color variety instead of the single-brand-color convention. */
+  tone?: Tone;
+  /** Solid-fill icon square (white icon) instead of the default tinted square. */
+  filled?: boolean;
   /** No-shows: an increase is bad, so up/down colors invert relative to the
    * other tiles (dataviz skill: "delta color = direction x whether up is
    * good", not a flat green-up/red-down rule). */
@@ -21,7 +58,7 @@ type Props = {
   hint?: string;
 };
 
-export function StatTile({ label, value, deltaPct, prefix, icon, upIsGood = true, hint = "vs last week" }: Props) {
+export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand", filled = false, upIsGood = true, hint = "vs last week" }: Props) {
   const isUp = deltaPct !== null && deltaPct > 0;
   const isDown = deltaPct !== null && deltaPct < 0;
   const isGoodDirection = (isUp && upIsGood) || (isDown && !upIsGood);
@@ -32,7 +69,7 @@ export function StatTile({ label, value, deltaPct, prefix, icon, upIsGood = true
   return (
     <Card className="flex items-start gap-space-3 p-space-4">
       {icon && (
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+        <span className={cn("flex h-12 w-12 shrink-0 items-center justify-center rounded-md", (filled ? TONE_CLASSES_FILLED : TONE_CLASSES)[tone])}>
           {icon}
         </span>
       )}

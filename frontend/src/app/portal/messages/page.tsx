@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, BellRing, Check, CircleCheck, Clock, MessageCircle, Send, Trash2, TriangleAlert } from "lucide-react";
+import { AlertTriangle, BellRing, Check, CircleCheck, Clock, MessageCircle, Send, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
+import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { FILTERS, useMessages } from "@/hooks/useMessages";
 import { useGuestSummary, useHandoffOverview } from "@/hooks/useMessagesInsight";
@@ -27,9 +28,21 @@ function ageOf(iso: string): string {
   return `${Math.floor(minutes / (60 * 24))}d`;
 }
 
+// A handful of tinted-square palettes (the same shared tokens every other tile/badge on this page
+// already draws from) cycled by a stable hash of the guest's own name/phone -- purely cosmetic
+// variety, not a data claim, and deterministic so the same guest always gets the same color.
+const AVATAR_TONES = [
+  "bg-brand-50 text-brand-700", "bg-info-tint text-info", "bg-success-tint text-success",
+  "bg-warning-tint text-warning", "bg-accent-violet-tint text-accent-violet", "bg-clay-100 text-clay-700",
+];
+function avatarTone(label: string): string {
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[hash % AVATAR_TONES.length];
+}
 function Avatar({ label, className }: { label: string; className?: string }) {
   return (
-    <span className={cn("flex shrink-0 items-center justify-center rounded-full bg-brand-50 font-bold text-brand-700", className)}>
+    <span className={cn("flex shrink-0 items-center justify-center rounded-full font-bold", avatarTone(label), className)}>
       {(label.trim()[0] || "?").toUpperCase()}
     </span>
   );
@@ -77,20 +90,20 @@ export default function PortalMessagesPage() {
   return (
     <PortalShell hospital={hospital} active="messages">
         <PageHeader
-          title="Messages"
-          icon={<MessageCircle size={22} />}
+          title="WhatsApp Inbox"
+          icon={<WhatsAppIcon size={22} />}
           description="Guests who asked for a host, and bot errors worth a follow-up. Replies you send here go out on WhatsApp."
         />
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
         {overview && (
           <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-            <StatTile icon={<BellRing size={22} />} label="Open requests" value={counts.tabs.open} deltaPct={null} hint="Waiting for a reply" />
-            <StatTile icon={<MessageCircle size={22} />} label="Asked for a host" value={counts.openAsked} deltaPct={null} hint="Open, from guests" />
-            <StatTile icon={<TriangleAlert size={22} />} label="Bot errors" value={counts.openErrors} deltaPct={null} hint="Open, need a look" />
-            <StatTile icon={<CircleCheck size={22} />} label="Resolved today" value={counts.resolvedToday} deltaPct={null} hint="Closed since midnight" />
+            <StatTile tone="success" filled icon={<BellRing size={22} />} label="Open requests" value={counts.tabs.open} deltaPct={null} hint="Waiting for a reply" />
+            <StatTile tone="info" filled icon={<MessageCircle size={22} />} label="Asked for a host" value={counts.openAsked} deltaPct={null} hint="Open, from guests" />
+            <StatTile tone="brand" filled icon={<AlertTriangle size={22} />} label="Bot errors" value={counts.openErrors} deltaPct={null} upIsGood={false} hint="Open, need a look" />
+            <StatTile tone="violet" filled icon={<CircleCheck size={22} />} label="Resolved today" value={counts.resolvedToday} deltaPct={null} hint="Closed since midnight" />
             <Card className="flex items-start gap-space-3 p-space-4">
-              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600"><Clock size={22} /></span>
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-warning text-white"><Clock size={22} /></span>
               <div className="min-w-0">
                 <p className="text-[13px] leading-snug font-semibold text-ink-600">Waiting longest</p>
                 <p className="mt-1 text-[24px] leading-none font-bold text-ink-900">{counts.oldestOpen ? ageOf(counts.oldestOpen) : "—"}</p>
@@ -100,21 +113,21 @@ export default function PortalMessagesPage() {
           </div>
         )}
 
-        <div className="mb-space-3 flex flex-wrap items-center gap-space-2">
+        <div className="mb-space-3 flex flex-wrap gap-space-5 border-b border-line">
           {FILTERS.map((f) => (
             <button
               key={f.key}
               type="button"
               onClick={() => setFilter(f.key)}
               className={cn(
-                "rounded-full border px-space-3 py-space-1 text-[12.5px] font-semibold transition-colors duration-150",
+                "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
                 filter === f.key
-                  ? "border-brand-600 bg-brand-600 text-white"
-                  : "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50",
+                  ? "border-brand-600 text-brand-600"
+                  : "border-transparent text-ink-600 hover:text-ink-900",
               )}
             >
               {f.label}
-              {overview && <span className={cn("ml-space-1 tabular-nums", filter === f.key ? "text-white/80" : "text-ink-400")}>{counts.tabs[f.key]}</span>}
+              {overview && <span className="ml-space-1 tabular-nums text-ink-400">{counts.tabs[f.key]}</span>}
             </button>
           ))}
           <input
@@ -263,22 +276,25 @@ export default function PortalMessagesPage() {
 
                   {threadError && <p className="mb-space-3 text-[12.5px] text-error">{threadError}</p>}
 
-                  <div className="mb-space-4 max-h-[420px] min-h-[160px] flex-1 space-y-space-3 overflow-y-auto">
+                  <div
+                    className="mb-space-4 max-h-[420px] min-h-[160px] flex-1 space-y-space-2 overflow-y-auto rounded-lg p-space-3"
+                    style={{ backgroundColor: "#e9ddc9", backgroundImage: "radial-gradient(rgba(42,33,28,0.04) 1px, transparent 1px)", backgroundSize: "16px 16px" }}
+                  >
                     {thread === null ? (
-                      <p className="py-space-4 text-center text-[13px] text-ink-400">Loading conversation…</p>
+                      <p className="py-space-4 text-center text-[13px] text-ink-600">Loading conversation…</p>
                     ) : thread.length === 0 ? (
-                      <p className="py-space-4 text-center text-[13px] text-ink-400">No messages yet.</p>
+                      <p className="py-space-4 text-center text-[13px] text-ink-600">No messages yet.</p>
                     ) : (
                       thread.map((m) => (
                         <div key={m.id} className={cn("flex", m.direction === "outbound" ? "justify-end" : "justify-start")}>
                           <div
                             className={cn(
-                              "max-w-[75%] rounded-lg border px-space-3 py-space-2 text-[13.5px] text-ink-900",
-                              m.direction === "outbound" ? "border-brand-100 bg-brand-50" : "border-line bg-card",
+                              "max-w-[75%] rounded-lg px-space-3 py-space-2 text-[13.5px] text-ink-900 shadow-[var(--shadow-sm)]",
+                              m.direction === "outbound" ? "bg-[#dcf8c6]" : "bg-card",
                             )}
                           >
                             <p className="whitespace-pre-wrap">{m.message_text}</p>
-                            <p className="mt-space-1 text-[10.5px] text-ink-600">
+                            <p className="mt-space-1 text-right text-[10.5px] text-ink-600">
                               {m.direction === "outbound" ? "You · " : ""}{formatOrderTime(m.created_at)}
                             </p>
                           </div>
@@ -307,12 +323,19 @@ export default function PortalMessagesPage() {
 
             {selected && (
               <Card className="p-space-4 lg:col-span-2 xl:col-span-1">
-                <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Guest</h3>
-                <div className="mb-space-3 flex items-center gap-space-3">
-                  <Avatar label={displayName(selected)} className="h-11 w-11 text-[15px]" />
+                <div className="mb-space-4 flex items-center justify-between">
+                  <h3 className="text-[15px] font-bold text-ink-900">Customer Details</h3>
+                  {guest && (
+                    <Link href={`/portal/patients/${guest.id}`} className="text-[12px] font-semibold text-brand-700 hover:underline">
+                      Edit
+                    </Link>
+                  )}
+                </div>
+                <div className="mb-space-4 flex items-center gap-space-3">
+                  <Avatar label={displayName(selected)} className="h-12 w-12 text-[16px]" />
                   <div className="min-w-0">
-                    <p className="truncate text-[14px] font-semibold text-ink-900">{selected.patient_name || "Not registered yet"}</p>
-                    <p className="text-[12.5px] text-ink-600">{selected.phone}</p>
+                    <p className="truncate text-[15px] font-bold text-ink-900">{selected.patient_name || "Not registered yet"}</p>
+                    <p className="flex items-center gap-1 text-[12.5px] text-ink-600"><WhatsAppIcon size={13} /> {selected.phone}</p>
                   </div>
                 </div>
                 {canSeeGuests && (
@@ -320,14 +343,15 @@ export default function PortalMessagesPage() {
                     <p className="text-[12.5px] text-ink-400">Loading…</p>
                   ) : guest ? (
                     <>
+                      <p className="mb-space-2 text-[12px] font-semibold text-ink-400">GUEST ACTIVITY</p>
                       <dl className="mb-space-3 grid grid-cols-3 gap-space-2 text-center">
                         {[["Booked", guest.visit_count], ["Visited", guest.visited_count]].map(([label, value]) => (
-                          <div key={label as string} className="rounded-md bg-paper px-space-2 py-space-2">
-                            <dd className="text-[18px] font-bold tabular-nums text-ink-900">{value}</dd>
+                          <div key={label as string} className="rounded-md bg-paper px-space-2 py-space-3">
+                            <dd className="text-[20px] font-bold tabular-nums text-ink-900">{value}</dd>
                             <dt className="text-[11px] text-ink-600">{label}</dt>
                           </div>
                         ))}
-                        <div className="rounded-md bg-paper px-space-2 py-space-2">
+                        <div className="rounded-md bg-paper px-space-2 py-space-3">
                           <dd className="text-[12px] font-bold text-ink-900">{formatDate(guest.last_visit)}</dd>
                           <dt className="text-[11px] text-ink-600">Last visit</dt>
                         </div>
@@ -337,7 +361,7 @@ export default function PortalMessagesPage() {
                         href={`/portal/patients/${guest.id}`}
                         className="inline-flex text-[13px] font-semibold text-brand-700 hover:underline"
                       >
-                        Open guest →
+                        Open guest profile →
                       </Link>
                     </>
                   ) : (

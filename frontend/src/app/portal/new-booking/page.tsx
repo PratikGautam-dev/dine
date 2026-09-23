@@ -16,6 +16,7 @@ export default function NewBookingPage() {
     ctx, error, errors, submitting, success,
     bookingType, setBookingType,
     patientName, setPatientName, patientPhone, setPatientPhone,
+    specialRequest, setSpecialRequest,
     departmentId, setDepartmentId, doctorId, setDoctorId, date, setDate, slotId, setSlotId,
     doctors, datesForDoctor, slotsForDate,
     partySize, setPartySize, tableSlots, loadingTableSlots, loadTableSlots,
@@ -72,6 +73,10 @@ export default function NewBookingPage() {
                   <Input id="patient_phone" required value={patientPhone} onChange={(e) => setPatientPhone(e.target.value)} />
                 </Field>
               </div>
+
+              <Field label="Special request (optional)" htmlFor="special_request" hint="e.g. birthday, window seat, high chair needed">
+                <Input id="special_request" value={specialRequest} onChange={(e) => setSpecialRequest(e.target.value)} />
+              </Field>
 
               <Field label="Venue" htmlFor="branch" hint="Single-location restaurant — nothing to choose yet.">
                 <select id="branch" disabled className="h-11 w-full cursor-not-allowed rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-600">

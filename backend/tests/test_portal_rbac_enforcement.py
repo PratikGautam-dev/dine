@@ -126,7 +126,10 @@ def test_kitchen_cannot_touch_guests_messages_settings_staff_or_reservations(hos
 
 # ---------------------------------------------------------------- Front of House
 
-def test_front_of_house_cannot_edit_the_menu_or_the_floor_plan(hospital_id, team):
+def test_front_of_house_cannot_edit_the_menu_but_can_edit_the_floor_plan(hospital_id, team):
+    """Live Operations follow-up: front-of-house's PAGE_TABLES permission moved to view+write (they need
+    `tables` write to Seat/Clear a table from the Live Operations page) -- menu editing stays admin/kitchen
+    only, unaffected."""
     foh = team["foh"]
     item = _menu_item(hospital_id, price=5000)
     table = db.get_all_tables_for_hospital(hospital_id)[0]
@@ -134,13 +137,13 @@ def test_front_of_house_cannot_edit_the_menu_or_the_floor_plan(hospital_id, team
     assert client.get("/api/portal/menu-items", headers=foh).status_code == 200  # can read
     edit = client.put(f"/api/portal/menu-items/{item['id']}", headers=foh, json={"name": "Dish", "price_rupees": 1, "category": "Mains"})
     create = client.post("/api/portal/menu-items", headers=foh, json={"name": "Sneaky", "price_rupees": 1})
-    table_edit = client.put(f"/api/portal/tables/{table['id']}", headers=foh, json={"name": "Hacked", "department_id": table["department_id"], "capacity": 1})
-    table_new = client.post("/api/portal/tables", headers=foh, json={"name": "Sneaky", "department_id": table["department_id"], "capacity": 2})
-    assert (edit.status_code, create.status_code, table_edit.status_code, table_new.status_code) == (403, 403, 403, 403)
+    table_edit = client.put(f"/api/portal/tables/{table['id']}", headers=foh, json={"name": "Front desk edit", "department_id": table["department_id"], "capacity": 1})
+    table_new = client.post("/api/portal/tables", headers=foh, json={"name": "Front desk new", "department_id": table["department_id"], "capacity": 2})
+    assert (edit.status_code, create.status_code, table_edit.status_code, table_new.status_code) == (403, 403, 200, 200)
 
     assert _price(hospital_id, item["id"]) == 5000
     assert [m["name"] for m in db.get_menu_items(hospital_id, available_only=False)] == ["Dish"]
-    assert db.find_table(hospital_id, table["id"])["name"] == table["name"]
+    assert db.find_table(hospital_id, table["id"])["name"] == "Front desk edit"
     assert client.get("/api/portal/tables", headers=foh).status_code == 200  # can read the layout
 
 

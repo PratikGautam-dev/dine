@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Switch } from "@/components/ui/Switch";
 import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -15,6 +16,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
 import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
+import { useBookingConfirmationSetting } from "@/hooks/useBookingConfirmationSetting";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
 
@@ -40,6 +42,7 @@ function PortalSettingsPageContent() {
   const canManageAppointmentTypes = !hospital || hospital.admin_capabilities?.includes("manage_appointment_types");
   const { settings, setSettings, error, saving, saved, handleSave } = usePortalSettings(ready);
   const hoursForm = useRestaurantHours(ready);
+  const bookingConfirmation = useBookingConfirmationSetting(ready);
   const canSeeAttendanceSettings = usePermission("attendance_settings", "view");
   const [tab, setTab] = useState<TabId>("general");
 
@@ -186,6 +189,28 @@ function PortalSettingsPageContent() {
                       {hoursForm.saving ? "Saving…" : "Save table hours"}
                     </Button>
                   </form>
+                </Card>
+              )}
+
+              {tab === "booking" && (
+                <Card className="mt-space-4 p-space-5">
+                  <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Booking confirmation</h2>
+                  <p className="mb-space-3 text-[12.5px] text-ink-400">
+                    Off by default: a WhatsApp booking is confirmed instantly. Turn this on to require a staff
+                    member to confirm each new WhatsApp booking before the guest gets their confirmation message.
+                    Staff-created bookings are always confirmed immediately either way.
+                  </p>
+                  <div className="flex items-center gap-space-3">
+                    <Switch
+                      checked={bookingConfirmation.enabled}
+                      onChange={() => bookingConfirmation.toggle(!bookingConfirmation.enabled)}
+                      disabled={bookingConfirmation.saving}
+                      aria-label="Require staff confirmation for new WhatsApp bookings"
+                    />
+                    <span className="text-[13px] text-ink-900">
+                      Require staff to confirm new WhatsApp bookings
+                    </span>
+                  </div>
                 </Card>
               )}
 

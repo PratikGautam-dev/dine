@@ -30,6 +30,9 @@ ASK_RESERVATION_DATE_FOR_PARTY = "ask_reservation_date_for_party"
 NO_TABLES_AVAILABLE = "no_tables_available"
 TABLE_RESERVATION_CONFIRMATION_SUMMARY = "table_reservation_confirmation_summary"
 TABLE_RESERVATION_CONFIRMED = "table_reservation_confirmed"
+# Table Bookings follow-up: shown instead of TABLE_RESERVATION_CONFIRMED when the new appointment
+# landed 'pending' (hospital_settings.require_booking_confirmation is on for this hospital).
+TABLE_RESERVATION_PENDING_CONFIRMATION = "table_reservation_pending_confirmation"
 
 SELECT_DEPARTMENT = "select_department"
 VIEW_DEPARTMENTS_BUTTON = "view_departments_button"
@@ -75,6 +78,10 @@ CHANGE_DOCTOR_OPTION = "change_doctor_option"
 CHANGE_DATE_OPTION = "change_date_option"
 CHANGE_TIME_OPTION = "change_time_option"
 BOOKING_CONFIRMED = "booking_confirmed"
+# Table Bookings follow-up: shown instead of BOOKING_CONFIRMED when this hospital has opted into
+# hospital_settings.require_booking_confirmation -- the appointment lands 'pending', not 'booked',
+# until staff confirm it from the portal (which sends its own follow-up message at that point).
+BOOKING_PENDING_CONFIRMATION = "booking_pending_confirmation"
 BOOKING_NOT_CONFIRMED = "booking_not_confirmed"
 DUPLICATE_BOOKING_TEXT = "duplicate_booking_text"
 DEPARTMENT_APPOINTMENT_CONFLICT = "department_appointment_conflict"
@@ -402,6 +409,26 @@ STRINGS: dict[str, dict[Language, str]] = {
             "कृपया समय पर पहुंचें — हम आपका इंतज़ार करेंगे।"
         ),
     },
+    TABLE_RESERVATION_PENDING_CONFIRMATION: {
+        "en": (
+            "📝 *Request Received*\n\n"
+            "We've received your table reservation request and a staff member will confirm it shortly.\n\n"
+            "👤 Guest: {patient_name}\n"
+            "🍽️ Party Size: {party_size}\n"
+            "📅 Date: {date_label}\n"
+            "🕐 Time: {time_label}\n\n"
+            "We'll send you a message as soon as it's confirmed."
+        ),
+        "hi": (
+            "📝 *अनुरोध प्राप्त हुआ*\n\n"
+            "हमें आपका टेबल रिज़र्वेशन अनुरोध मिल गया है और जल्द ही एक स्टाफ सदस्य इसकी पुष्टि करेगा।\n\n"
+            "👤 अतिथि: {patient_name}\n"
+            "🍽️ पार्टी का आकार: {party_size}\n"
+            "📅 तारीख: {date_label}\n"
+            "🕐 समय: {time_label}\n\n"
+            "पुष्टि होते ही हम आपको संदेश भेज देंगे।"
+        ),
+    },
 
     # Confirmation's own Back routes here instead of popping one field --
     # "which one field" isn't knowable, so this asks instead of guessing.
@@ -439,6 +466,28 @@ STRINGS: dict[str, dict[Language, str]] = {
             "🕐 समय: {time_label}\n\n"
             "कृपया अपने रिज़र्वेशन से 15 मिनट पहले पहुंचें।\n"
             "हम आपसे मिलने के लिए उत्सुक हैं।"
+        ),
+    },
+    BOOKING_PENDING_CONFIRMATION: {
+        "en": (
+            "📝 *Request Received*\n\n"
+            "We've received your reservation request and a staff member will confirm it shortly.\n\n"
+            "👤 Guest: {patient_name}\n"
+            "📍 Section: {department_name}\n"
+            "🪑 Table: {doctor_name}\n"
+            "📅 Date: {date_label}\n"
+            "🕐 Time: {time_label}\n\n"
+            "We'll send you a message as soon as it's confirmed."
+        ),
+        "hi": (
+            "📝 *अनुरोध प्राप्त हुआ*\n\n"
+            "हमें आपका रिज़र्वेशन अनुरोध मिल गया है और जल्द ही एक स्टाफ सदस्य इसकी पुष्टि करेगा।\n\n"
+            "👤 अतिथि: {patient_name}\n"
+            "📍 सेक्शन: {department_name}\n"
+            "🪑 टेबल: {doctor_name}\n"
+            "📅 तारीख: {date_label}\n"
+            "🕐 समय: {time_label}\n\n"
+            "पुष्टि होते ही हम आपको संदेश भेज देंगे।"
         ),
     },
     BOOKING_NOT_CONFIRMED: {

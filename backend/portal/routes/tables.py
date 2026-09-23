@@ -23,6 +23,13 @@ class TablePayload(BaseModel):
     department_id: str = ""
     capacity: int = 1
     is_active: bool = True
+    notes: str | None = None
+    shape: str = "rect"
+
+
+class PositionPayload(BaseModel):
+    pos_x: float = 0
+    pos_y: float = 0
 
 
 def _require_tables(authorization: str | None, action: str):
@@ -47,7 +54,16 @@ async def portal_tables(authorization: str | None = Header(default=None)):
     # doctors/departments page -- one section list, not duplicated.
     departments = db.get_departments(hospital.id)
     tables = db.get_all_tables_for_hospital(hospital.id)
-    return JSONResponse({"departments": departments, "tables": tables, "sections": db.list_sections(hospital.id)})
+    # Tables page follow-up: "Reserved" (derived, not a stored status) and current_occupant (a real
+    # join over today's attended appointments / assigned waitlist entries, not a fabricated field).
+    reserved_soon_ids = db.get_reserved_soon_table_ids(hospital.id)
+    occupied_ids = [t["id"] for t in tables if t["status"] == db.STATUS_OCCUPIED]
+    occupants = db.get_current_occupants(hospital.id, occupied_ids)
+    enriched_tables = [
+        {**t, "is_reserved_soon": t["id"] in reserved_soon_ids, "current_occupant": occupants.get(t["id"])}
+        for t in tables
+    ]
+    return JSONResponse({"departments": departments, "tables": enriched_tables, "sections": db.list_sections(hospital.id)})
 
 
 class SectionPayload(BaseModel):
@@ -178,9 +194,86 @@ async def portal_update_table(table_id: str, payload: TablePayload, authorizatio
         return JSONResponse({"error": "Choose a valid section."}, status_code=400)
     if payload.capacity < 1:
         return JSONResponse({"error": "Capacity must be at least 1."}, status_code=400)
-    table = db.update_table(hospital.id, table_id, name, payload.department_id, payload.capacity, payload.is_active)
+    table = db.update_table(
+        hospital.id, table_id, name, payload.department_id, payload.capacity, payload.is_active,
+        notes=(payload.notes or "").strip() or None, shape=payload.shape if payload.shape in ("rect", "round") else "rect",
+    )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "table.update",
         entity_type="table", entity_id=table_id, before=existing, after=table,
     )
     return JSONResponse({"table": table})
+
+
+# --- Live occupancy (Live Operations follow-up) ---
+# action -> (expected_prior_status, new_status), same straight-line-transition table
+# food_ordering.py's _STRAIGHT_TRANSITIONS uses. Real staff actions only -- never inferred
+# from a reservation's turnover_minutes.
+_TABLE_STATUS_TRANSITIONS = {
+    "seat": (db.STATUS_FREE, db.STATUS_OCCUPIED),
+    "needs_cleaning": (db.STATUS_OCCUPIED, db.STATUS_NEEDS_CLEANING),
+    # Tables page follow-up: a table deliberately taken out of service (maintenance, etc.) --
+    # distinct from needs_cleaning. "unblock" always returns it to free (never straight back to
+    # occupied/needs_cleaning -- whatever state it's in once usable again starts fresh).
+    "unblock": (db.STATUS_BLOCKED, db.STATUS_FREE),
+    # "clear"/"block" are each reachable from more than one prior status -- handled separately
+    # below, not in this straight-line table.
+}
+_CLEARABLE_FROM = (db.STATUS_OCCUPIED, db.STATUS_NEEDS_CLEANING)
+_BLOCKABLE_FROM = (db.STATUS_FREE, db.STATUS_NEEDS_CLEANING)
+
+
+@router.post("/api/portal/tables/{table_id}/position")
+async def portal_update_table_position(table_id: str, payload: PositionPayload, authorization: str | None = Header(default=None)):
+    """Tables page follow-up: registered BEFORE the generic {action} route below -- FastAPI matches
+    routes in registration order, and "position" would otherwise be swallowed by {action} as an
+    unknown-action 400, same ordering pitfall portal/routes/bookings.py's own "delete" route docstring
+    already flags for this exact codebase."""
+    hospital, error = _require_tables(authorization, "write")
+    if error:
+        return error
+    if not (0 <= payload.pos_x <= 100 and 0 <= payload.pos_y <= 100):
+        return JSONResponse({"error": "pos_x and pos_y must be between 0 and 100."}, status_code=400)
+    updated = db.update_table_position(hospital.id, table_id, payload.pos_x, payload.pos_y)
+    if updated is None:
+        return JSONResponse({"error": "Table not found."}, status_code=404)
+    return JSONResponse({"table": updated})
+
+
+@router.post("/api/portal/tables/{table_id}/{action}")
+async def portal_set_table_status(table_id: str, action: str, authorization: str | None = Header(default=None)):
+    hospital, error = _require_tables(authorization, "write")
+    if error:
+        return error
+    table = db.find_table(hospital.id, table_id)
+    if table is None:
+        return JSONResponse({"error": "Table not found."}, status_code=404)
+
+    if action == "clear":
+        updated = None
+        for expected in _CLEARABLE_FROM:
+            updated = db.set_table_status(hospital.id, table_id, db.STATUS_FREE, expected_status=expected)
+            if updated is not None:
+                break
+    elif action == "block":
+        updated = None
+        for expected in _BLOCKABLE_FROM:
+            updated = db.set_table_status(hospital.id, table_id, db.STATUS_BLOCKED, expected_status=expected)
+            if updated is not None:
+                break
+    elif action in _TABLE_STATUS_TRANSITIONS:
+        expected_status, new_status = _TABLE_STATUS_TRANSITIONS[action]
+        updated = db.set_table_status(hospital.id, table_id, new_status, expected_status=expected_status)
+    else:
+        return JSONResponse({"error": f"Unknown action: {action!r}"}, status_code=400)
+
+    if updated is None:
+        return JSONResponse(
+            {"error": f"Table is not in a state where '{action}' applies (current status: {table['status']!r})."},
+            status_code=409,
+        )
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", f"table.{action}",
+        entity_type="table", entity_id=table_id, before={"status": table["status"]}, after={"status": updated["status"]},
+    )
+    return JSONResponse({"table": updated})

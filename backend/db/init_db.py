@@ -1539,6 +1539,73 @@ def init_db_on_connection(conn) -> int:
         "CHECK (payment_method IN ('pay_at_restaurant', 'online'))"
     )
 
+    # Migration 0039 -- tables gain a real-time status (free / occupied / needs_cleaning), staff-set via
+    # Seat/Clear/Needs cleaning on the Live Operations page, never inferred from turnover_minutes.
+    conn.execute("ALTER TABLE tables ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'free'")
+
+    # Migration 0040 -- Table Bookings follow-up: a free-text note per booking, and an opt-in
+    # (default off) setting that makes new WhatsApp bookings land 'pending' until staff confirm them.
+    conn.execute("ALTER TABLE appointments ADD COLUMN IF NOT EXISTS special_request TEXT")
+    conn.execute(
+        "ALTER TABLE hospital_settings ADD COLUMN IF NOT EXISTS require_booking_confirmation "
+        "BOOLEAN NOT NULL DEFAULT false"
+    )
+    conn.execute("ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_status_check")
+    conn.execute(
+        "ALTER TABLE appointments ADD CONSTRAINT appointments_status_check "
+        "CHECK (status IN ('booked', 'cancelled', 'rescheduled', 'attended', 'no_show', 'pending'))"
+    )
+
+    # Migration 0041 -- waitlist_entries: the walk-in/waitlist queue (Table Bookings follow-up).
+    # "Assign" seats a real table (tables.status) and closes the entry -- never creates a booking.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS waitlist_entries ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "guest_name TEXT NOT NULL, phone TEXT, party_size INTEGER NOT NULL, "
+        "status TEXT NOT NULL DEFAULT 'waiting', created_at TEXT NOT NULL, "
+        "assigned_table_id TEXT REFERENCES tables(id), assigned_at TEXT, assigned_by TEXT)"
+    )
+    conn.execute("ALTER TABLE waitlist_entries DROP CONSTRAINT IF EXISTS waitlist_entries_status_check")
+    conn.execute(
+        "ALTER TABLE waitlist_entries ADD CONSTRAINT waitlist_entries_status_check "
+        "CHECK (status IN ('waiting', 'assigned', 'cancelled'))"
+    )
+    conn.execute(
+        "CREATE INDEX IF NOT EXISTS idx_waitlist_entries_hospital_status "
+        "ON waitlist_entries(hospital_id, status)"
+    )
+
+    # Migration 0042 -- Tables page follow-up: a real floor-map position (percent of the canvas,
+    # NULL until dragged), staff-set shape, free-text notes, and a real 'blocked' status.
+    conn.execute("ALTER TABLE tables ADD COLUMN IF NOT EXISTS pos_x DOUBLE PRECISION")
+    conn.execute("ALTER TABLE tables ADD COLUMN IF NOT EXISTS pos_y DOUBLE PRECISION")
+    conn.execute("ALTER TABLE tables ADD COLUMN IF NOT EXISTS shape TEXT NOT NULL DEFAULT 'rect'")
+    conn.execute("ALTER TABLE tables ADD COLUMN IF NOT EXISTS notes TEXT")
+    conn.execute("ALTER TABLE tables DROP CONSTRAINT IF EXISTS tables_status_check")
+    conn.execute(
+        "ALTER TABLE tables ADD CONSTRAINT tables_status_check "
+        "CHECK (status IN ('free', 'occupied', 'needs_cleaning', 'blocked'))"
+    )
+
+    # Migration 0043 -- chef_notes: the Kitchen Orders page's real, attributed notes board.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS chef_notes ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "text TEXT NOT NULL, created_by_name TEXT NOT NULL, created_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_chef_notes_hospital ON chef_notes(hospital_id, created_at)")
+
+    # Migration 0044 -- customer profile fields for the Customers page (mockup-driven demo fields).
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS email TEXT")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS dietary_preference TEXT")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS allergies TEXT")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS notes TEXT")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS favorite_item TEXT")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS loyalty_tier TEXT")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS loyalty_points INTEGER NOT NULL DEFAULT 0")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS total_spend_paise BIGINT NOT NULL DEFAULT 0")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

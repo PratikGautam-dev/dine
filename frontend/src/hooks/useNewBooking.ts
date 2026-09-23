@@ -34,6 +34,7 @@ export function useNewBooking(ready: boolean) {
 
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
+  const [specialRequest, setSpecialRequest] = useState("");
   const [departmentId, setDepartmentIdRaw] = useState("");
   const [doctorId, setDoctorIdRaw] = useState("");
   const [date, setDateRaw] = useState("");
@@ -123,11 +124,13 @@ export function useNewBooking(ready: boolean) {
             booking_type: "table",
             patient_name: patientName, patient_phone: patientPhone,
             party_size: partySize, department_id: departmentId || null, slot_id: slotId,
+            special_request: specialRequest || null,
           }
         : {
             booking_type: "doctor",
             patient_name: patientName, patient_phone: patientPhone,
             department_id: departmentId, doctor_id: doctorId, slot_id: slotId,
+            special_request: specialRequest || null,
           };
     const result = await portalFetch("/api/portal/new-booking", {
       method: "POST",
@@ -157,6 +160,7 @@ export function useNewBooking(ready: boolean) {
     ctx, error, errors, submitting, success,
     bookingType, setBookingType,
     patientName, setPatientName, patientPhone, setPatientPhone,
+    specialRequest, setSpecialRequest,
     departmentId, setDepartmentId, doctorId, setDoctorId, date, setDate, slotId, setSlotId,
     doctors, datesForDoctor, slotsForDate,
     partySize, setPartySize, tableSlots, loadingTableSlots, loadTableSlots,

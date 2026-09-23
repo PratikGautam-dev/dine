@@ -10,13 +10,14 @@ import { AppointmentCellAction } from "./appointments-cellaction";
 
 const STATUS_STYLES: Record<string, string> = {
   booked: "bg-success-tint text-success",
+  pending: "bg-warning-tint text-warning",
   cancelled: "bg-error-tint text-error",
   rescheduled: "bg-clay-100 text-clay-700",
   attended: "bg-success-tint text-success",
   no_show: "bg-error-tint text-error",
 };
 export const STATUS_LABELS: Record<string, string> = {
-  booked: "Confirmed", cancelled: "Cancelled", rescheduled: "Rescheduled",
+  booked: "Confirmed", pending: "Pending", cancelled: "Cancelled", rescheduled: "Rescheduled",
   attended: "Attended", no_show: "No-show",
 };
 const SOURCE_LABELS: Record<string, string> = { whatsapp: "WhatsApp", staff: "Walk-in" };
@@ -36,6 +37,12 @@ type CreateAppointmentColumnsOptions = {
   deletableCount: number;
   markingAttendanceId: number | null;
   onAttendance: (id: number, attended: boolean) => void;
+  /** Live Operations' real per-table occupancy -- a still-'booked' row whose table is in this set
+   * shows "Seated" instead of "Confirmed", derived rather than a stored status. */
+  occupiedTableIds: Set<string>;
+  /** Table Bookings follow-up: confirms a still-'pending' row (only ever populated when this
+   * hospital opted into require_booking_confirmation). */
+  onConfirm: (id: number) => void;
   cancelPanelId: number | null;
   reschedulePanelId: number | null;
   reassignPanelId: number | null;
@@ -52,13 +59,14 @@ type CreateAppointmentColumnsOptions = {
  * react-table under the hood) owns rendering + client-side pagination. */
 export function createAppointmentColumns({
   canWrite, selected, toggleSelected, toggleSelectAll, allSelected, deletableCount,
-  markingAttendanceId, onAttendance,
+  markingAttendanceId, onAttendance, occupiedTableIds, onConfirm,
   cancelPanelId, reschedulePanelId, reassignPanelId, onOpenReschedule, onOpenCancel, onOpenReassign,
   deletingId, onDelete,
 }: CreateAppointmentColumnsOptions): ColumnDef<Appointment>[] {
   return [
     {
       id: "select",
+      meta: { className: "min-w-9 w-9" },
       header: () => (
         <PermissionGate page="appointments" action="delete">
           <input
@@ -73,7 +81,7 @@ export function createAppointmentColumns({
       ),
       cell: ({ row }) => {
         const a = row.original;
-        if (a.status === "booked") return null;
+        if (a.status === "booked" || a.status === "pending") return null;
         return (
           <PermissionGate page="appointments" action="delete">
             <input
@@ -89,65 +97,88 @@ export function createAppointmentColumns({
     },
     {
       id: "reference_id",
-      header: "Reference",
+      meta: { className: "min-w-[105px]" },
+      header: "Booking ID",
       cell: ({ row }) => {
         const a = row.original;
         return (
-          <div>
-            <div className="whitespace-nowrap font-mono text-[12px] font-semibold text-ink-900">{a.reference_id || "—"}</div>
-            <div className="whitespace-nowrap text-[11.5px] text-ink-400">
-              {a.created_at ? `Booked ${formatShortDateTime(a.created_at)}` : ""}
-              {a.appointment_type_id && a.appointment_type_id !== "new" ? ` · ${TYPE_LABELS[a.appointment_type_id] || a.appointment_type_id}` : ""}
-            </div>
+          <div
+            className="whitespace-nowrap font-mono text-[12px] font-semibold text-ink-900"
+            title={a.created_at ? `Booked ${formatShortDateTime(a.created_at)}` : undefined}
+          >
+            {a.reference_id || "—"}
+            {a.appointment_type_id && a.appointment_type_id !== "new" && (
+              <span className="ml-1 font-sans font-normal text-ink-400">· {TYPE_LABELS[a.appointment_type_id] || a.appointment_type_id}</span>
+            )}
           </div>
         );
       },
     },
     {
       id: "patient",
-      header: "Guest",
+      meta: { className: "min-w-[105px]" },
+      header: "Guest Name",
       cell: ({ row }) => {
         const a = row.original;
-        return (
-          <div className="min-w-[120px] text-ink-900">
-            <div className="font-semibold">{a.patient_name || a.phone}</div>
-            {a.patient_name && <div className="text-[12px] text-ink-600">{a.phone}</div>}
-          </div>
-        );
+        return <div className="font-semibold text-ink-900">{a.patient_name || a.phone}</div>;
       },
     },
     {
-      id: "scheduled_at",
-      header: "Date & time",
-      cell: ({ row }) => (
-        <div className="whitespace-nowrap">
-          <div className="font-semibold text-ink-900">{formatDay(row.original.scheduled_at)}</div>
-          <div className="tabular-nums text-[12.5px] text-ink-600">{formatTimeOnly(row.original.scheduled_at)}</div>
-        </div>
-      ),
+      id: "contact",
+      meta: { className: "min-w-[105px]" },
+      header: "Contact",
+      cell: ({ row }) => <div className="whitespace-nowrap text-ink-600">{row.original.phone}</div>,
+    },
+    {
+      id: "date",
+      meta: { className: "min-w-[80px]" },
+      header: "Date",
+      cell: ({ row }) => <div className="whitespace-nowrap font-semibold text-ink-900">{formatDay(row.original.scheduled_at)}</div>,
+    },
+    {
+      id: "time",
+      meta: { className: "min-w-[65px]" },
+      header: "Time",
+      cell: ({ row }) => <div className="whitespace-nowrap tabular-nums text-ink-600">{formatTimeOnly(row.original.scheduled_at)}</div>,
+    },
+    {
+      id: "party_size",
+      meta: { className: "min-w-[55px]" },
+      header: "Party Size",
+      cell: ({ row }) => <div className="tabular-nums text-ink-600">{row.original.party_size ?? "—"}</div>,
     },
     {
       // Table reservations (migration 0030): table_name (the real assigned table) takes priority when present;
       // doctor_name is the fallback for any non-table-reservation appointment (a legacy doctor appointment
       // fixture, if one still exists) -- the two are never both set on the same row.
       id: "table_or_doctor_name",
+      meta: { className: "min-w-[65px]" },
       header: "Table",
       cell: ({ row }) => {
         const a = row.original;
         return (
-          <div className="whitespace-nowrap">
-            <div className="font-semibold text-ink-900">{a.table_name || a.doctor_name || "—"}</div>
-            <div className="text-[12px] text-ink-600">
-              {a.party_size ? `${a.party_size} ${a.party_size === 1 ? "guest" : "guests"}` : ""}
-              {a.party_size && a.department_name ? " · " : ""}
-              {a.department_name || ""}
-            </div>
+          <div className="whitespace-nowrap font-semibold text-ink-900" title={a.department_name || undefined}>
+            {a.table_name || a.doctor_name || "—"}
           </div>
         );
       },
     },
     {
+      id: "special_request",
+      meta: { className: "min-w-[90px]" },
+      header: "Special Request",
+      cell: ({ row }) => {
+        const note = row.original.special_request;
+        return note ? (
+          <div className="max-w-[130px] truncate text-[13px] text-ink-600" title={note}>{note}</div>
+        ) : (
+          <span className="text-[12px] text-ink-300">—</span>
+        );
+      },
+    },
+    {
       id: "source",
+      meta: { className: "min-w-[85px]" },
       header: "Source",
       cell: ({ row }) => {
         const Icon = row.original.source === "whatsapp" ? MessageCircle : UserRound;
@@ -161,12 +192,12 @@ export function createAppointmentColumns({
     },
     {
       id: "status",
+      meta: { className: "min-w-[110px]" },
       header: "Status",
       cell: ({ row }) => {
         const a = row.original;
-        // "Did they come?" -- admin-editable at any time, not gated on the scheduled time having passed, and freely
-        // re-toggleable (not a one-way door) -- per direct portal feedback.
-        const canMark = canWrite && (a.status === "booked" || a.status === "attended" || a.status === "no_show");
+        // Live Operations' real per-table occupancy -- display-only, not a stored status.
+        const seated = a.status === "booked" && a.table_id != null && occupiedTableIds.has(a.table_id);
         return (
           <div className="whitespace-nowrap">
             <span
@@ -175,35 +206,16 @@ export function createAppointmentColumns({
                 STATUS_STYLES[a.status] || "bg-black/[0.04] text-ink-600",
               )}
             >
-              {STATUS_LABELS[a.status] || a.status}
+              {seated ? "Seated" : STATUS_LABELS[a.status] || a.status}
             </span>
-            {canMark && (
-              <div className="mt-1 inline-flex w-full items-center gap-space-1 text-[12px] text-ink-400">
-                Came?
-                <button
-                  type="button"
-                  onClick={() => onAttendance(a.id, true)}
-                  disabled={markingAttendanceId === a.id}
-                  className={cn(
-                    "font-semibold disabled:opacity-50",
-                    a.status === "attended" ? "text-success underline" : "text-ink-600 hover:text-success hover:underline",
-                  )}
-                >
-                  Yes
-                </button>
-                <span>/</span>
-                <button
-                  type="button"
-                  onClick={() => onAttendance(a.id, false)}
-                  disabled={markingAttendanceId === a.id}
-                  className={cn(
-                    "font-semibold disabled:opacity-50",
-                    a.status === "no_show" ? "text-destructive underline" : "text-ink-600 hover:text-destructive hover:underline",
-                  )}
-                >
-                  No
-                </button>
-              </div>
+            {canWrite && a.status === "pending" && (
+              <button
+                type="button"
+                onClick={() => onConfirm(a.id)}
+                className="ml-1 rounded-md bg-brand-600 px-space-2 py-0.5 text-[11px] font-semibold text-white hover:bg-brand-700"
+              >
+                Confirm
+              </button>
             )}
           </div>
         );
@@ -211,6 +223,7 @@ export function createAppointmentColumns({
     },
     {
       id: "actions",
+      meta: { className: "min-w-9 w-9" },
       header: "",
       cell: ({ row }) => (
         <div className="text-right">
@@ -225,6 +238,8 @@ export function createAppointmentColumns({
             deletingId={deletingId}
             onDelete={onDelete}
             canWrite={canWrite}
+            markingAttendanceId={markingAttendanceId}
+            onAttendance={onAttendance}
           />
         </div>
       ),

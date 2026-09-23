@@ -1,17 +1,22 @@
 "use client";
 
-import { useMemo } from "react";
-import { Ban, CalendarCheck, CalendarClock, CalendarDays, CircleCheck, Plus, Search, Send, Trash2, UserX, X } from "lucide-react";
+import { useMemo, useState } from "react";
+import {
+  CalendarCheck, CalendarClock, CalendarDays, CircleCheck, Plus, Search, Send, Trash2, UserRound, UserX, X,
+} from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
+import { QuickActionsBar } from "@/components/portal/QuickActionsBar";
 import { usePermission } from "@/lib/staffAuth";
+import { BookingCalendar } from "@/components/portal/BookingCalendar";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { TodayScheduleCard } from "@/components/portal/TodayScheduleCard";
+import { WaitlistQueueCard } from "@/components/portal/WaitlistQueueCard";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
 import { TYPE_LABELS, type Appointment, type ViewFilter, useAppointments } from "@/hooks/useAppointments";
@@ -20,10 +25,13 @@ import { createAppointmentColumns } from "./_components/appointments-columns";
 const TYPE_TAB_ORDER = ["all", "new", "followup", "other"];
 
 // The quick views above the list; empty rare ones (Rescheduled) only appear once something is in them.
+// "Pending" (Table Bookings follow-up) only ever has rows when the hospital opted into
+// require_booking_confirmation -- always shown, but reads as "0" for every other hospital.
 const VIEW_TABS: { id: ViewFilter; label: string; always: boolean }[] = [
   { id: "all", label: "All", always: true },
   { id: "today", label: "Today", always: true },
   { id: "upcoming", label: "Upcoming", always: true },
+  { id: "pending", label: "Pending", always: false },
   { id: "attended", label: "Attended", always: true },
   { id: "cancelled", label: "Cancelled", always: true },
   { id: "no_show", label: "No-show", always: true },
@@ -33,8 +41,10 @@ const VIEW_TABS: { id: ViewFilter; label: string; always: boolean }[] = [
 export default function PortalAppointmentsPage() {
   const { hospital, ready } = usePortalGuard();
   const canWrite = usePermission("appointments", "write");
+  const [activeId, setActiveId] = useState<number | null>(null);
   const {
-    appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule, viewFilter, setViewFilter,
+    appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule, occupiedTableIds,
+    confirmBooking, sendReminder, viewFilter, setViewFilter,
     searchQuery, setSearchQuery, typeFilter, setTypeFilter,
     cancellingId, cancelPanelId, cancelMessage, setCancelMessage, openCancelPanel, closeCancelPanel, handleCancel,
     reschedulePanelId, reschedulingId, rescheduleCtx, rescheduleErrors, rescheduleMessage, setRescheduleMessage,
@@ -54,18 +64,27 @@ export default function PortalAppointmentsPage() {
       createAppointmentColumns({
         canWrite, selected, toggleSelected, toggleSelectAll, allSelected,
         deletableCount: deletableAppointments.length,
-        markingAttendanceId, onAttendance: handleAttendance,
+        markingAttendanceId, onAttendance: handleAttendance, occupiedTableIds, onConfirm: confirmBooking,
         cancelPanelId, reschedulePanelId, reassignPanelId,
         onOpenReschedule: openReschedulePanel, onOpenCancel: openCancelPanel, onOpenReassign: openReassignPanel,
         deletingId, onDelete: handleDelete,
       }),
     [
       canWrite, selected, toggleSelected, toggleSelectAll, allSelected, deletableAppointments.length,
-      markingAttendanceId, handleAttendance,
+      markingAttendanceId, handleAttendance, occupiedTableIds, confirmBooking,
       cancelPanelId, reschedulePanelId, reassignPanelId,
       openReschedulePanel, openCancelPanel, openReassignPanel, deletingId, handleDelete,
     ],
   );
+
+  // Today's reservations, broken down for the KPI strip -- all derived from the already-loaded
+  // todaySchedule (no extra fetch, no invented numbers).
+  const todayStats = useMemo(() => ({
+    pending: todaySchedule.filter((a) => a.status === "pending").length,
+    confirmed: todaySchedule.filter((a) => a.status === "booked").length,
+    walkins: todaySchedule.filter((a) => a.source === "staff").length,
+    noShows: todaySchedule.filter((a) => a.status === "no_show").length,
+  }), [todaySchedule]);
 
   function renderRowDetail(a: Appointment) {
     if (reschedulePanelId === a.id && a.table_id) {
@@ -354,9 +373,9 @@ export default function PortalAppointmentsPage() {
   return (
     <PortalShell hospital={hospital} active="appointments">
         <PageHeader
-          title="Reservations"
+          title="Table Bookings"
           icon={<CalendarCheck size={22} />}
-          description="Table reservations from WhatsApp and your own staff."
+          description="Manage reservations, walk-ins and table assignments."
           actions={
             <>
               {selectedAppointments.length > 0 && (
@@ -382,12 +401,15 @@ export default function PortalAppointmentsPage() {
 
         {appointments && (
           <>
+            {/* Status-coded, solid-fill tiles on this page specifically (per direct request) -- every other
+                page keeps the default tinted-square look; these reuse the shared success/warning/info/violet/
+                brand tokens every badge on this page already draws from, not new one-off colors. */}
             <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-              <StatTile icon={<CalendarDays size={22} />} label="Today" value={viewCounts.today} deltaPct={null} hint="On today's schedule" />
-              <StatTile icon={<CalendarCheck size={22} />} label="Upcoming" value={viewCounts.upcoming} deltaPct={null} hint="Confirmed, still to come" />
-              <StatTile icon={<CircleCheck size={22} />} label="Attended" value={viewCounts.attended} deltaPct={null} hint="Guests who came" />
-              <StatTile icon={<Ban size={22} />} label="Cancelled" value={viewCounts.cancelled} deltaPct={null} hint="Cancelled bookings" />
-              <StatTile icon={<UserX size={22} />} label="No-shows" value={viewCounts.no_show} deltaPct={null} upIsGood={false} hint="Booked but didn't come" />
+              <StatTile tone="success" filled icon={<CalendarDays size={22} />} label="Today's Reservations" value={viewCounts.today} deltaPct={null} hint="On today's schedule" />
+              <StatTile tone="warning" filled icon={<CalendarClock size={22} />} label="Pending Confirmation" value={todayStats.pending} deltaPct={null} hint="Awaiting staff confirmation" />
+              <StatTile tone="info" filled icon={<CircleCheck size={22} />} label="Confirmed" value={todayStats.confirmed} deltaPct={null} hint="Today, confirmed" />
+              <StatTile tone="violet" filled icon={<UserRound size={22} />} label="Walk-ins" value={todayStats.walkins} deltaPct={null} hint="Staff-entered today" />
+              <StatTile tone="brand" filled icon={<UserX size={22} />} label="No-shows" value={todayStats.noShows} deltaPct={null} upIsGood={false} hint="Booked but didn't come" />
             </div>
             {appointments.length >= 500 && (
               <p className="mb-space-3 text-[12px] text-ink-400">Counts and the list cover your latest 500 reservations.</p>
@@ -397,23 +419,23 @@ export default function PortalAppointmentsPage() {
 
         <div>
           <div className="min-w-0">
-            <div className="mb-space-3 flex flex-wrap gap-space-2">
+            {/* Underline tabs, matching the reference layout -- same VIEW_TABS/setViewFilter this page
+                already had, just restyled from pills to an underline-active style. */}
+            <div className="mb-space-3 flex flex-wrap gap-space-5 border-b border-line">
               {VIEW_TABS.filter((t) => t.always || viewCounts[t.id] > 0 || viewFilter === t.id).map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setViewFilter(t.id)}
                   className={cn(
-                    "rounded-full border px-space-3 py-space-1 text-[12.5px] font-semibold transition-colors duration-150",
+                    "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
                     viewFilter === t.id
-                      ? "border-brand-600 bg-brand-600 text-white"
-                      : "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50",
+                      ? "border-brand-600 text-brand-600"
+                      : "border-transparent text-ink-600 hover:text-ink-900",
                   )}
                 >
                   {t.label}
-                  <span className={cn("ml-space-1 tabular-nums", viewFilter === t.id ? "text-white/80" : "text-ink-400")}>
-                    {viewCounts[t.id]}
-                  </span>
+                  <span className="ml-space-1 tabular-nums text-ink-400">{viewCounts[t.id]}</span>
                 </button>
               ))}
             </div>
@@ -439,12 +461,12 @@ export default function PortalAppointmentsPage() {
               </div>
             )}
 
-            <div className="mb-space-3">
-              <div className="relative">
+            <div className="mb-space-3 flex items-center gap-space-2">
+              <div className="relative flex-1">
                 <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
                 <input
                   type="text"
-                  placeholder="Search guest, phone, table, section or reference…"
+                  placeholder="Search by name, phone or booking ID…"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
@@ -466,13 +488,36 @@ export default function PortalAppointmentsPage() {
                   getRowId={(a) => String(a.id)}
                   isRowExpanded={(a) => reschedulePanelId === a.id || cancelPanelId === a.id || reassignPanelId === a.id}
                   renderRowDetail={renderRowDetail}
+                  onRowClick={(a) => setActiveId(a.id)}
+                  rowClassName={(a) => (a.id === activeId ? "bg-brand-50" : "")}
                 />
               )}
             </Card>
+
+            <QuickActionsBar
+              appointment={(appointments || []).find((a) => a.id === activeId) || null}
+              canWrite={canWrite}
+              onConfirm={confirmBooking}
+              onReschedule={openReschedulePanel}
+              onReassign={openReassignPanel}
+              onSendReminder={sendReminder}
+              onCancel={openCancelPanel}
+            />
+          </div>
+
+          <div className="mt-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-3">
+            <div className="xl:col-span-2">
+              <TodayScheduleCard
+                items={todaySchedule} canWrite={canWrite}
+                markingAttendanceId={markingAttendanceId} onAttendance={handleAttendance}
+                occupiedTableIds={occupiedTableIds} onConfirm={confirmBooking}
+              />
+            </div>
+            <BookingCalendar appointments={appointments || []} />
           </div>
 
           <div className="mt-space-4">
-            <TodayScheduleCard items={todaySchedule} />
+            <WaitlistQueueCard ready={ready} canWrite={canWrite} />
           </div>
         </div>
 

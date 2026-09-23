@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, Armchair, MoreHorizontal, Trash2, X } from "lucide-react";
+import { CalendarClock, Armchair, CircleCheck, MoreHorizontal, Trash2, UserX, X } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import type { Appointment } from "@/hooks/useAppointments";
 import { usePermission } from "@/lib/staffAuth";
@@ -16,6 +16,10 @@ type AppointmentCellActionProps = {
   deletingId: number | null;
   onDelete: (id: number) => void;
   canWrite: boolean;
+  /** "Did they come?" -- lives here (not inline in the Status column) to keep the table compact;
+   * freely re-toggleable, not gated on the scheduled time having passed. */
+  markingAttendanceId: number | null;
+  onAttendance: (id: number, attended: boolean) => void;
 };
 
 /** The row's "..." menu -- Reschedule / Reassign table / Cancel for a still-'booked' row (hidden while any inline
@@ -32,12 +36,16 @@ export function AppointmentCellAction({
   deletingId,
   onDelete,
   canWrite,
+  markingAttendanceId,
+  onAttendance,
 }: AppointmentCellActionProps) {
   const canDelete = usePermission("appointments", "delete");
   const booked = a.status === "booked";
-  if (booked && !canWrite) return null;
+  const canMarkAttendance = canWrite && (a.status === "booked" || a.status === "attended" || a.status === "no_show");
+  const canDeleteThisRow = a.status !== "booked" && a.status !== "pending";
+  if (!canMarkAttendance && booked && !canWrite) return null;
   if (booked && (cancelPanelId === a.id || reschedulePanelId === a.id || reassignPanelId === a.id)) return null;
-  if (!booked && !canDelete) return null;
+  if (!canMarkAttendance && !(canDeleteThisRow && canDelete)) return null;
 
   return (
     <DropdownMenu>
@@ -48,7 +56,17 @@ export function AppointmentCellAction({
         <MoreHorizontal size={18} />
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        {booked ? (
+        {canMarkAttendance && (
+          <>
+            <DropdownMenuItem disabled={markingAttendanceId === a.id} onClick={() => onAttendance(a.id, true)}>
+              <CircleCheck size={15} /> {a.status === "attended" ? "Undo — mark not arrived" : "Mark arrived"}
+            </DropdownMenuItem>
+            <DropdownMenuItem disabled={markingAttendanceId === a.id} onClick={() => onAttendance(a.id, false)}>
+              <UserX size={15} /> {a.status === "no_show" ? "Undo — mark not a no-show" : "Mark no-show"}
+            </DropdownMenuItem>
+          </>
+        )}
+        {booked && canWrite && (
           <>
             <DropdownMenuItem onClick={() => onOpenReschedule(a.id)}>
               <CalendarClock size={15} /> Reschedule
@@ -62,7 +80,8 @@ export function AppointmentCellAction({
               <X size={15} /> Cancel reservation
             </DropdownMenuItem>
           </>
-        ) : (
+        )}
+        {canDeleteThisRow && canDelete && (
           <DropdownMenuItem variant="destructive" disabled={deletingId === a.id} onClick={() => onDelete(a.id)}>
             <Trash2 size={15} /> {deletingId === a.id ? "Deleting…" : "Delete"}
           </DropdownMenuItem>

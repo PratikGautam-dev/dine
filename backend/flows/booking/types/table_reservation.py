@@ -27,6 +27,7 @@ from core.translations.booking import (
     PARTY_SIZE_SECTION_TITLE,
     TABLE_RESERVATION_CONFIRMATION_SUMMARY,
     TABLE_RESERVATION_CONFIRMED,
+    TABLE_RESERVATION_PENDING_CONFIRMATION,
     TABLE_SECTIONS_SECTION_TITLE,
     VIEW_PARTY_SIZES_BUTTON,
     VIEW_TABLE_SECTIONS_BUTTON,
@@ -203,10 +204,14 @@ def _build_table_reservation_confirmation_summary(context: dict, hospital_id: in
 
 
 def _build_table_reservation_success_summary(appointment, context: dict, hospital_id: int) -> str:
-    """TypeFlow.build_success_summary hook."""
+    """TypeFlow.build_success_summary hook. Table Bookings follow-up: a 'pending' appointment (only
+    reachable when this hospital opted into require_booking_confirmation) gets the "request received"
+    text instead -- staff confirming it from the portal sends the real TABLE_RESERVATION_CONFIRMED
+    text at that later point (portal/routes/bookings.py)."""
     language = context.get("language", "en")
+    key = TABLE_RESERVATION_PENDING_CONFIRMATION if appointment.status == "pending" else TABLE_RESERVATION_CONFIRMED
     return t(
-        TABLE_RESERVATION_CONFIRMED, language,
+        key, language,
         reference_id=appointment.reference_id,
         patient_name=context.get("patient_name"),
         party_size=appointment.party_size or context.get("party_size"),

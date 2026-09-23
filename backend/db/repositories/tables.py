@@ -22,7 +22,7 @@ from sqlalchemy import select
 
 from db.connection import IntegrityError, get_connection, get_session
 from db.display_ids import _generate_reference_id
-from db.models import SOURCE_WHATSAPP, STATUS_BOOKED, Appointment, _row_to_appointment
+from db.models import SOURCE_WHATSAPP, STATUS_BOOKED, STATUS_PENDING, Appointment, _row_to_appointment
 from db.orm_models import TableRow
 
 # Same rolling-window length doctors.py's own SLOT_DAYS_AHEAD uses --
@@ -75,12 +75,16 @@ def get_tables(hospital_id: int, department_id: str | None = None) -> list[dict]
     return [dict(r._mapping) for r in rows]
 
 
+_TABLE_COLUMNS = (
+    TableRow.id, TableRow.name, TableRow.department_id, TableRow.capacity, TableRow.is_active,
+    TableRow.status, TableRow.pos_x, TableRow.pos_y, TableRow.shape, TableRow.notes,
+)
+
+
 def get_all_tables_for_hospital(hospital_id: int) -> list[dict]:
     session = get_session()
     rows = session.execute(
-        select(
-            TableRow.id, TableRow.name, TableRow.department_id, TableRow.capacity, TableRow.is_active,
-        ).where(TableRow.hospital_id == hospital_id).order_by(TableRow.name)
+        select(*_TABLE_COLUMNS).where(TableRow.hospital_id == hospital_id).order_by(TableRow.name)
     ).all()
     return [dict(r._mapping) for r in rows]
 
@@ -88,21 +92,157 @@ def get_all_tables_for_hospital(hospital_id: int) -> list[dict]:
 def find_table(hospital_id: int, table_id: str) -> dict | None:
     session = get_session()
     row = session.execute(
-        select(
-            TableRow.id, TableRow.name, TableRow.department_id, TableRow.capacity, TableRow.is_active,
-        ).where(TableRow.hospital_id == hospital_id, TableRow.id == table_id)
+        select(*_TABLE_COLUMNS).where(TableRow.hospital_id == hospital_id, TableRow.id == table_id)
     ).first()
     return dict(row._mapping) if row else None
 
 
+# --- Live occupancy (Live Operations follow-up) ---
+
+STATUS_FREE = "free"
+STATUS_OCCUPIED = "occupied"
+STATUS_NEEDS_CLEANING = "needs_cleaning"
+# Tables page follow-up (migration 0042): deliberately out of service (maintenance, etc.) --
+# distinct from STATUS_NEEDS_CLEANING (just vacated, waiting to be cleaned for the next party).
+STATUS_BLOCKED = "blocked"
+
+
+def update_table_position(hospital_id: int, table_id: str, pos_x: float, pos_y: float) -> dict | None:
+    """Tables page follow-up: a lightweight write separate from update_table() below -- a drag on
+    the floor map shouldn't need to resend the whole edit form. Ungated (no status guard): position
+    is purely cosmetic layout, not a state transition."""
+    session = get_session()
+    result = session.execute(
+        TableRow.__table__.update()
+        .where(TableRow.hospital_id == hospital_id, TableRow.id == table_id)
+        .values(pos_x=pos_x, pos_y=pos_y)
+    )
+    session.commit()
+    if result.rowcount == 0:
+        return None
+    return find_table(hospital_id, table_id)
+
+
+def set_table_status(hospital_id: int, table_id: str, new_status: str, expected_status: str) -> dict | None:
+    """Guarded UPDATE ... WHERE status = '<expected_status>', same shape
+    db/repositories/food_orders.py's advance_order_status() uses -- returns
+    None (not an error) if the table's actual status didn't match
+    expected_status (a double-tapped button, or someone else already moved
+    it), so the portal action can treat that as "refresh and look again"
+    rather than a crash."""
+    session = get_session()
+    result = session.execute(
+        TableRow.__table__.update()
+        .where(TableRow.hospital_id == hospital_id, TableRow.id == table_id, TableRow.status == expected_status)
+        .values(status=new_status)
+    )
+    session.commit()
+    if result.rowcount == 0:
+        return None
+    return find_table(hospital_id, table_id)
+
+
+def get_current_occupants(hospital_id: int, table_ids: list[str], now: datetime | None = None) -> dict[str, dict]:
+    """Tables page follow-up: which real reservation or walk-in is currently sitting at each
+    occupied table -- tables.status='occupied' alone carries no such reference (set_table_status()
+    just flips the flag), so this resolves it by joining TODAY's rows that reference the table:
+    an attended appointment (a real reservation staff marked arrived), or an assigned waitlist entry
+    (a real walk-in seated from the queue). Returns {table_id: {...}} only for tables with a real
+    match -- an occupied table with neither (e.g. seated without going through either flow) is
+    legitimately absent from the result, never guessed at."""
+    if not table_ids:
+        return {}
+    from db.orm_models import AppointmentRow, WaitlistEntry
+    from db.models import STATUS_ATTENDED
+    from db.repositories.patients import get_patient_names_by_phone
+
+    now = now or datetime.now()
+    day_start = datetime.combine(now.date(), datetime.min.time()).isoformat()
+    day_end = datetime.combine(now.date(), datetime.max.time()).isoformat()
+    session = get_session()
+
+    occupants: dict[str, dict] = {}
+
+    appt_rows = session.execute(
+        select(
+            AppointmentRow.table_id, AppointmentRow.reference_id, AppointmentRow.phone,
+            AppointmentRow.party_size, AppointmentRow.updated_at, AppointmentRow.created_at,
+            AppointmentRow.turnover_minutes,
+        ).where(
+            AppointmentRow.hospital_id == hospital_id, AppointmentRow.table_id.in_(table_ids),
+            AppointmentRow.status == STATUS_ATTENDED,
+            AppointmentRow.scheduled_at >= day_start, AppointmentRow.scheduled_at <= day_end,
+        )
+    ).all()
+    names = get_patient_names_by_phone(hospital_id, [r.phone for r in appt_rows])
+    for r in appt_rows:
+        arrived_at = r.updated_at or r.created_at
+        expected_release = None
+        if arrived_at and r.turnover_minutes:
+            expected_release = (datetime.fromisoformat(arrived_at) + timedelta(minutes=r.turnover_minutes)).isoformat()
+        occupants[r.table_id] = {
+            "source": "reservation", "guest_name": names.get(r.phone), "party_size": r.party_size,
+            "reference_id": r.reference_id, "arrived_at": arrived_at, "expected_release_at": expected_release,
+        }
+
+    remaining = [t for t in table_ids if t not in occupants]
+    if remaining:
+        from db.orm_models import HospitalSettings
+        default_turnover = session.execute(
+            select(HospitalSettings.default_turnover_minutes).where(HospitalSettings.hospital_id == hospital_id)
+        ).scalar_one_or_none() or 90
+        wl_rows = session.execute(
+            select(
+                WaitlistEntry.assigned_table_id, WaitlistEntry.guest_name, WaitlistEntry.party_size,
+                WaitlistEntry.assigned_at,
+            ).where(
+                WaitlistEntry.hospital_id == hospital_id, WaitlistEntry.assigned_table_id.in_(remaining),
+                WaitlistEntry.status == "assigned",
+                WaitlistEntry.assigned_at >= day_start, WaitlistEntry.assigned_at <= day_end,
+            )
+        ).all()
+        for r in wl_rows:
+            expected_release = (
+                (datetime.fromisoformat(r.assigned_at) + timedelta(minutes=default_turnover)).isoformat()
+                if r.assigned_at else None
+            )
+            occupants[r.assigned_table_id] = {
+                "source": "walkin", "guest_name": r.guest_name, "party_size": r.party_size,
+                "reference_id": None, "arrived_at": r.assigned_at, "expected_release_at": expected_release,
+            }
+
+    return occupants
+
+
+def get_reserved_soon_table_ids(hospital_id: int, now: datetime | None = None, within_minutes: int = 120) -> set[str]:
+    """Tables page follow-up: which FREE tables have a real booked/pending reservation coming up
+    soon -- the "Reserved" the floor map shows is this, not a stored status (same "derive, don't
+    invent a new status value" precedent Seated already set)."""
+    from db.orm_models import AppointmentRow
+    from db.models import STATUS_BOOKED, STATUS_PENDING
+
+    now = now or datetime.now()
+    window_end = now + timedelta(minutes=within_minutes)
+    session = get_session()
+    rows = session.execute(
+        select(AppointmentRow.table_id).where(
+            AppointmentRow.hospital_id == hospital_id, AppointmentRow.table_id.is_not(None),
+            AppointmentRow.status.in_((STATUS_BOOKED, STATUS_PENDING)),
+            AppointmentRow.scheduled_at >= now.isoformat(), AppointmentRow.scheduled_at <= window_end.isoformat(),
+        )
+    ).all()
+    return {r.table_id for r in rows}
+
+
 def update_table(
     hospital_id: int, table_id: str, name: str, department_id: str, capacity: int, is_active: bool,
+    notes: str | None = None, shape: str = "rect",
 ) -> dict | None:
     session = get_session()
     session.execute(
         TableRow.__table__.update()
         .where(TableRow.hospital_id == hospital_id, TableRow.id == table_id)
-        .values(name=name, department_id=department_id, capacity=capacity, is_active=is_active)
+        .values(name=name, department_id=department_id, capacity=capacity, is_active=is_active, notes=notes, shape=shape)
     )
     session.commit()
     return find_table(hospital_id, table_id)
@@ -157,13 +297,14 @@ def _booked_spans_by_table(
     if not table_ids:
         return {}
     from db.orm_models import AppointmentRow
-    from db.models import STATUS_BOOKED
 
+    # A still-pending row (Table Bookings follow-up) holds its span too -- otherwise a second guest
+    # could book the same table/time while the first is awaiting staff confirmation.
     session = get_session()
     stmt = select(AppointmentRow.table_id, AppointmentRow.scheduled_at, AppointmentRow.turnover_minutes).where(
         AppointmentRow.hospital_id == hospital_id,
         AppointmentRow.table_id.in_(table_ids),
-        AppointmentRow.status == STATUS_BOOKED,
+        AppointmentRow.status.in_((STATUS_BOOKED, STATUS_PENDING)),
         AppointmentRow.scheduled_at >= (window_start - timedelta(hours=12)).isoformat(),
         AppointmentRow.scheduled_at <= window_end.isoformat(),
     )
@@ -258,8 +399,12 @@ def _table_free_for_span_conn(
     MOVED onto a table it already occupies must not see its own still-
     current row as a conflict with itself -- irrelevant for
     create_table_reservation()'s brand-new-row case, so it defaults to None
-    there."""
-    query = "SELECT scheduled_at, turnover_minutes FROM appointments WHERE hospital_id = ? AND table_id = ? AND status = 'booked'"
+    there. A still-pending row (Table Bookings follow-up) counts as occupying its span too, same
+    reasoning _booked_spans_by_table() gives."""
+    query = (
+        "SELECT scheduled_at, turnover_minutes FROM appointments WHERE hospital_id = ? AND table_id = ? "
+        "AND status IN ('booked', 'pending')"
+    )
     params: tuple = (hospital_id, table_id)
     if exclude_appointment_id is not None:
         query += " AND id != ?"
@@ -277,7 +422,7 @@ def create_table_reservation(
     hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
     department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
     patient_id: int | None = None, appointment_type_id: str | None = None, source: str = SOURCE_WHATSAPP,
-    exclude_appointment_id: int | None = None,
+    exclude_appointment_id: int | None = None, special_request: str | None = None,
 ) -> Appointment:
     """The table-reservation counterpart to create_procedure_appointment():
     same advisory-lock-protected BEGIN/COMMIT shape, re-checks candidate
@@ -296,6 +441,12 @@ def create_table_reservation(
     turnover_minutes = settings["default_turnover_minutes"]
     scheduled_at_iso = scheduled_at.isoformat()
     span_end = scheduled_at + timedelta(minutes=turnover_minutes)
+    # Table Bookings follow-up: same opt-in gate create_appointment() uses -- a WhatsApp reservation
+    # lands 'pending' only when this hospital turned require_booking_confirmation on; staff-created
+    # ones always land 'booked' immediately.
+    status = STATUS_BOOKED
+    if source == SOURCE_WHATSAPP and settings.get("require_booking_confirmation"):
+        status = STATUS_PENDING
 
     if patient_id is not None:
         patient_row = conn.execute(
@@ -328,11 +479,11 @@ def create_table_reservation(
         cur = conn.execute(
             "INSERT INTO appointments (hospital_id, phone, department_id, doctor_id, scheduled_at, "
             "booking_ordinal, source, reference_id, patient_id, patient_name, patient_phone, patient_age, "
-            "appointment_type_id, table_id, party_size, turnover_minutes) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "appointment_type_id, table_id, party_size, turnover_minutes, status, special_request) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             (hospital_id, phone, resolved_department_id, None, scheduled_at_iso, 0, source,
              _generate_reference_id(conn, hospital_id), patient["id"], patient["name"], phone, patient["age"],
-             appointment_type_id, chosen["id"], party_size, turnover_minutes),
+             appointment_type_id, chosen["id"], party_size, turnover_minutes, status, special_request),
         )
         new_id_row = cur.fetchone()
         assert new_id_row is not None
@@ -429,7 +580,9 @@ def reschedule_table_reservation(hospital_id: int, old_appointment_id: int, new_
     time it currently occupies), THEN retires the old one, so a lost race
     (IntegrityError, left to propagate) leaves the guest's original
     reservation intact rather than with neither. Raises ValueError for a
-    not-found/wrong-tenant/non-table/non-booked reservation."""
+    not-found/wrong-tenant/non-table/not-booked-or-pending reservation -- a still-'pending' reservation
+    (Table Bookings follow-up) can be rescheduled the same as a booked one; the new row is re-evaluated
+    against require_booking_confirmation same as any fresh booking."""
     from db.repositories.appointments import get_appointment, mark_rescheduled
 
     old = get_appointment(hospital_id, old_appointment_id)
@@ -437,7 +590,7 @@ def reschedule_table_reservation(hospital_id: int, old_appointment_id: int, new_
         raise ValueError(f"reservation {old_appointment_id} not found for hospital {hospital_id}")
     if old.table_id is None:
         raise ValueError(f"reservation {old_appointment_id} is not a table reservation")
-    if old.status != STATUS_BOOKED:
+    if old.status not in (STATUS_BOOKED, STATUS_PENDING):
         raise ValueError(f"reservation {old_appointment_id} is not booked (status={old.status!r})")
 
     new = create_table_reservation(

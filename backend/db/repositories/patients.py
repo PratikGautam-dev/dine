@@ -84,6 +84,9 @@ def _patients_with_visit_stats_stmt(hospital_id: int, search: str | None = None)
     stmt = (
         select(
             PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
+            PatientRow.email, PatientRow.loyalty_tier, PatientRow.loyalty_points,
+            PatientRow.total_orders, PatientRow.total_spend_paise, PatientRow.favorite_item,
+            PatientRow.created_at,
             last_visit.label("last_visit"), visit_count.label("visit_count"),
             visited_count.label("visited_count"),
         )
@@ -93,7 +96,12 @@ def _patients_with_visit_stats_stmt(hospital_id: int, search: str | None = None)
             and_(AppointmentRow.hospital_id == PatientRow.hospital_id, AppointmentRow.patient_id == PatientRow.id),
         )
         .where(PatientRow.hospital_id == hospital_id)
-        .group_by(PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn)
+        .group_by(
+            PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
+            PatientRow.email, PatientRow.loyalty_tier, PatientRow.loyalty_points,
+            PatientRow.total_orders, PatientRow.total_spend_paise, PatientRow.favorite_item,
+            PatientRow.created_at,
+        )
         .order_by(last_visit.desc().nulls_last(), PatientRow.name.nulls_last(), PatientRow.phone)
     )
     if search:
@@ -115,7 +123,10 @@ def list_patients(hospital_id: int, search: str | None = None, limit: int = 200)
         {
             "id": r.id, "phone": r.phone, "name": r.name, "patient_display_id": r.patient_display_id,
             "mrn": r.mrn, "last_visit": r.last_visit, "visit_count": r.visit_count,
-            "visited_count": r.visited_count,
+            "visited_count": r.visited_count, "email": r.email, "loyalty_tier": r.loyalty_tier,
+            "loyalty_points": r.loyalty_points, "total_orders": r.total_orders,
+            "total_spend_paise": r.total_spend_paise, "favorite_item": r.favorite_item,
+            "created_at": r.created_at,
         }
         for r in rows
     ]
@@ -178,6 +189,9 @@ _PATIENT_COLUMNS = (
     PatientRow.id, PatientRow.hospital_id, PatientRow.phone, PatientRow.name, PatientRow.date_of_birth,
     PatientRow.gender, PatientRow.address, PatientRow.age, PatientRow.patient_display_id, PatientRow.mrn,
     PatientRow.status, PatientRow.created_at,
+    PatientRow.email, PatientRow.dietary_preference, PatientRow.allergies, PatientRow.notes,
+    PatientRow.favorite_item, PatientRow.loyalty_tier, PatientRow.loyalty_points,
+    PatientRow.total_orders, PatientRow.total_spend_paise,
 )
 
 
@@ -753,6 +767,30 @@ def update_patient_demographics(
         update(PatientRow)
         .where(PatientRow.hospital_id == hospital_id, PatientRow.id == patient_id)
         .values(date_of_birth=date_of_birth or None, gender=gender or None, address=address or None)
+    ))
+    session.commit()
+    if result.rowcount == 0:
+        return None
+    return get_patient(hospital_id, patient_id)
+
+
+def update_patient_profile_fields(
+    hospital_id: int, patient_id: int, email: str | None, dietary_preference: str | None,
+    allergies: str | None, notes: str | None,
+) -> dict | None:
+    """Customers page ("Customer Details" panel): the subset of the mockup's fields that are
+    genuinely staff-editable free text -- same "empty string clears it" contract as
+    update_patient_demographics() above. loyalty_tier/loyalty_points/total_orders/total_spend_paise
+    are demo-seeded only and have no write path here (no loyalty program or spend tracking exists
+    in this app yet)."""
+    session = get_session()
+    result = cast(CursorResult, session.execute(
+        update(PatientRow)
+        .where(PatientRow.hospital_id == hospital_id, PatientRow.id == patient_id)
+        .values(
+            email=email or None, dietary_preference=dietary_preference or None,
+            allergies=allergies or None, notes=notes or None,
+        )
     ))
     session.commit()
     if result.rowcount == 0:

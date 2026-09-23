@@ -94,8 +94,11 @@ class Connector(abc.ABC):
         self, hospital_id: int, phone: str, department_id: str, doctor_id: str | None, scheduled_at: datetime,
         source: str = "whatsapp", patient_name: str | None = None, patient_age: int | None = None,
         patient_id: int | None = None, appointment_type_id: str | None = None,
-        consent_given_at: str | None = None,
+        consent_given_at: str | None = None, special_request: str | None = None,
     ) -> Appointment: ...
+
+    @abc.abstractmethod
+    def confirm_booking(self, hospital_id: int, appointment_id: int) -> bool: ...
 
     @abc.abstractmethod
     def get_active_appointments_for_patient(self, hospital_id: int, patient_id: int) -> list[Appointment]: ...
@@ -243,6 +246,7 @@ class Connector(abc.ABC):
         self, hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
         department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
         patient_id: int | None = None, appointment_type_id: str | None = None, source: str = "whatsapp",
+        special_request: str | None = None,
     ) -> Appointment: ...
 
     @abc.abstractmethod
@@ -375,8 +379,11 @@ class _UnimplementedTierConnector(Connector):
     def get_available_slots(self, hospital_id, doctor_id):
         self._not_implemented("get_available_slots")
 
-    def create_booking(self, hospital_id, phone, department_id, doctor_id, scheduled_at, source="whatsapp", patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, consent_given_at=None):
+    def create_booking(self, hospital_id, phone, department_id, doctor_id, scheduled_at, source="whatsapp", patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, consent_given_at=None, special_request=None):
         self._not_implemented("create_booking")
+
+    def confirm_booking(self, hospital_id, appointment_id):
+        self._not_implemented("confirm_booking")
 
     def get_procedures(self, hospital_id):
         self._not_implemented("get_procedures")
@@ -420,7 +427,7 @@ class _UnimplementedTierConnector(Connector):
     def get_available_table_slots(self, hospital_id, party_size, department_id=None, exclude_appointment_id=None):
         self._not_implemented("get_available_table_slots")
 
-    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp"):
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp", special_request=None):
         self._not_implemented("create_table_reservation")
 
     def reassign_table(self, hospital_id, appointment_id, new_table_id):

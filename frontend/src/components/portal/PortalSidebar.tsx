@@ -5,12 +5,14 @@ import {
   CalendarCheck,
   CalendarDays,
   CalendarOff,
+  ChefHat,
   ClipboardList,
   Clock,
   History,
   LayoutDashboard,
   LogOut,
   MessageCircle,
+  Radio,
   Settings,
   ShieldCheck,
   Soup,
@@ -46,15 +48,21 @@ type NavGroup = "Operations" | "Workforce" | "Admin";
 // Grouped so a long list scans quickly; a group whose items the person can't see is hidden entirely.
 const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; href: string; pageKey: string; group: NavGroup }[] = [
   { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Operations" },
-  { key: "appointments", label: "Reservations", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments", group: "Operations" },
+  // A read-only composite view over bookings/orders/handoffs/tables -- own page key (portal/permissions.py's
+  // PAGE_LIVE_OPERATIONS) so it can be shown/hidden per role independently of the four pages it draws from.
+  { key: "live-operations", label: "Live Operations", icon: Radio, href: "/portal/live-operations", pageKey: "live_operations", group: "Operations" },
+  { key: "appointments", label: "Table Bookings", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments", group: "Operations" },
   { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables", group: "Operations" },
   // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,
   // portal/permissions.py) since a role reasonably might need one without
   // the other -- same split PAGE_DOCTORS/PAGE_SCHEDULE already use.
-  { key: "food-orders", label: "Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders", group: "Operations" },
+  { key: "food-orders", label: "Food Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders", group: "Operations" },
+  // Same food_orders permission as Food Orders above -- a leaner, auto-refreshing kitchen-display
+  // view over the same real orders, not a separate data domain, so it needs no new page key.
+  { key: "kitchen-orders", label: "Kitchen Orders", icon: ChefHat, href: "/portal/kitchen-orders", pageKey: "food_orders", group: "Operations" },
   { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu", group: "Operations" },
-  { key: "patients", label: "Guests", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Operations" },
-  { key: "messages", label: "Messages", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Operations" },
+  { key: "patients", label: "Customers", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Operations" },
+  { key: "messages", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Operations" },
   { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors", group: "Workforce" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).

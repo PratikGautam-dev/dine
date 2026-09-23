@@ -61,6 +61,12 @@ def _patient_json(p: dict) -> dict:
         # 18's Patient Master state model -- "active" for every patient that
         # predates this column too (db/schema.sql's own default).
         "status": p.get("status", "active"),
+        # Customers page (migration 0044): email/dietary_preference/allergies/notes are staff-editable;
+        # loyalty_tier/loyalty_points/total_orders/total_spend_paise are demo-seeded, read-only here.
+        "email": p.get("email"), "dietary_preference": p.get("dietary_preference"),
+        "allergies": p.get("allergies"), "notes": p.get("notes"), "favorite_item": p.get("favorite_item"),
+        "loyalty_tier": p.get("loyalty_tier"), "loyalty_points": p.get("loyalty_points", 0),
+        "total_orders": p.get("total_orders", 0), "total_spend_paise": p.get("total_spend_paise", 0),
     }
 
 
@@ -108,6 +114,53 @@ async def portal_update_patient(patient_id: int, payload: dict, authorization: s
         },
     )
     return JSONResponse({"patient": _patient_json(updated)})
+
+
+@router.post("/api/portal/patients/{patient_id}/profile")
+async def portal_update_patient_profile(patient_id: int, payload: dict, authorization: str | None = Header(default=None)):
+    """Customers page's "Customer Details" panel -- Add Note plus the other staff-editable free-text
+    fields (email, dietary preference, allergies). Separate route from portal_update_patient() above
+    (demographics: DOB/gender/address) so the Customers-page panel and the Guests-page demographics
+    form can each save independently without clobbering fields the other doesn't send."""
+    principal, error = authorize(authorization, "patients", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    updated = db.update_patient_profile_fields(
+        hospital.id, patient_id,
+        email=(payload or {}).get("email") or None,
+        dietary_preference=(payload or {}).get("dietary_preference") or None,
+        allergies=(payload or {}).get("allergies") or None,
+        notes=(payload or {}).get("notes") or None,
+    )
+    if updated is None:
+        return JSONResponse({"error": "No such patient."}, status_code=404)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "patient.profile_update",
+        entity_type="patient", entity_id=str(patient_id),
+    )
+    return JSONResponse({"patient": _patient_json(updated)})
+
+
+@router.post("/api/portal/patients")
+async def portal_create_patient(payload: dict, authorization: str | None = Header(default=None)):
+    """Customers page's "Add Customer" button -- a plain staff-entered guest, same
+    create_patient_profile() the WhatsApp "Myself" registration flow uses (Spec.md Section 0), so the
+    new guest is immediately a real, linkable patient record, not a lookalike row."""
+    principal, error = authorize(authorization, "patients", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    phone = ((payload or {}).get("phone") or "").strip()
+    name = ((payload or {}).get("name") or "").strip()
+    if not db.is_valid_phone(phone) or not name:
+        return JSONResponse({"error": "name and a valid phone are required."}, status_code=400)
+    created = db.create_patient_profile(hospital.id, phone, name, age=None, relationship_label=db.RELATIONSHIP_SELF)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "patient.create",
+        entity_type="patient", entity_id=str(created["id"]),
+    )
+    return JSONResponse({"patient": _patient_json(db.get_patient(hospital.id, created["id"]))})
 
 
 @router.post("/api/portal/patients/{patient_id}/status")

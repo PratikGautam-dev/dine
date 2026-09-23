@@ -23,6 +23,8 @@ export type Appointment = {
   table_id: string | null;
   table_name: string | null;
   party_size: number | null;
+  // Table Bookings follow-up: a free-text note given at booking time, null when not given.
+  special_request: string | null;
   scheduled_at: string;
   status: string;
   source: string;
@@ -64,8 +66,9 @@ export const TYPE_LABELS: Record<string, string> = {
 };
 
 // The quick views above the list. "today" and "upcoming" are about WHEN (and only count reservations that are
-// still on), the rest are a status each.
-export type ViewFilter = "all" | "today" | "upcoming" | "attended" | "cancelled" | "no_show" | "rescheduled";
+// still on), the rest are a status each. "pending" (Table Bookings follow-up) only ever has rows when the
+// hospital opted into require_booking_confirmation -- every other hospital's count stays 0.
+export type ViewFilter = "all" | "today" | "upcoming" | "pending" | "attended" | "cancelled" | "no_show" | "rescheduled";
 
 function isSameLocalDay(iso: string, now: Date) {
   const d = new Date(iso);
@@ -133,19 +136,39 @@ export function useAppointments(ready: boolean) {
   // legitimately typeless, not a bug).
   const [typeFilter, setTypeFilter] = useState("all");
 
+  // Live Operations' real per-table occupancy (tables.status) -- fetched here purely to derive
+  // "Seated" (a still-'booked' row whose table is currently occupied) without inventing a new status.
+  const [occupiedTableIds, setOccupiedTableIds] = useState<Set<string>>(new Set());
+
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/bookings");
-    if (!result.ok) {
-      if (result.unauthorized) router.push("/portal/login");
-      else setError(result.error);
+    const [bookingsResult, tablesResult] = await Promise.all([
+      portalFetch("/api/portal/bookings"), portalFetch("/api/portal/tables"),
+    ]);
+    if (!bookingsResult.ok) {
+      if (bookingsResult.unauthorized) router.push("/portal/login");
+      else setError(bookingsResult.error);
       return;
     }
-    setAppointments((result.data as { appointments: Appointment[] }).appointments);
+    setAppointments((bookingsResult.data as { appointments: Appointment[] }).appointments);
+    if (tablesResult.ok) {
+      const tables = (tablesResult.data as { tables: { id: string; status: string }[] }).tables;
+      setOccupiedTableIds(new Set(tables.filter((t) => t.status === "occupied").map((t) => t.id)));
+    }
   }, [router]);
 
   useEffect(() => {
     if (ready) load();
   }, [ready, load]);
+
+  async function confirmBooking(id: number) {
+    const result = await portalFetch(`/api/portal/bookings/${id}/confirm`, { method: "POST" });
+    if (afterAction(result, "Reservation confirmed", "Couldn't confirm reservation")) load();
+  }
+
+  async function sendReminder(id: number) {
+    const result = await portalFetch(`/api/portal/bookings/${id}/send-reminder`, { method: "POST" });
+    afterAction(result, "Reminder sent", "Couldn't send reminder");
+  }
 
   // Shared success/error-toast handling for the many fire-and-forget row
   // actions below (attendance, lab status, procedure actions, delete) --
@@ -175,7 +198,7 @@ export function useAppointments(ready: boolean) {
   // How many reservations each quick view holds, and today's reservations in time order (for the schedule card).
   const viewCounts = useMemo(() => {
     const now = new Date();
-    const counts: Record<ViewFilter, number> = { all: 0, today: 0, upcoming: 0, attended: 0, cancelled: 0, no_show: 0, rescheduled: 0 };
+    const counts: Record<ViewFilter, number> = { all: 0, today: 0, upcoming: 0, pending: 0, attended: 0, cancelled: 0, no_show: 0, rescheduled: 0 };
     for (const a of appointments || []) {
       for (const view of Object.keys(counts) as ViewFilter[]) {
         if (matchesView(a, view, now)) counts[view] += 1;
@@ -297,7 +320,9 @@ export function useAppointments(ready: boolean) {
     });
   };
 
-  const deletableAppointments = (filteredAppointments ?? appointments ?? []).filter((a) => a.status !== "booked");
+  const deletableAppointments = (filteredAppointments ?? appointments ?? []).filter(
+    (a) => a.status !== "booked" && a.status !== "pending",
+  );
 
   const toggleSelectAll = (checked: boolean) => {
     setSelected(checked ? new Set(deletableAppointments.map((a) => a.id)) : new Set());
@@ -456,7 +481,8 @@ export function useAppointments(ready: boolean) {
   const allSelected = deletableAppointments.length > 0 && selected.size === deletableAppointments.length;
 
   return {
-    appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule,
+    appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule, occupiedTableIds,
+    confirmBooking, sendReminder,
     viewFilter, setViewFilter,
     searchQuery, setSearchQuery, statusFilter, setStatusFilter, typeFilter, setTypeFilter,
     cancellingId, cancelPanelId, cancelMessage, setCancelMessage, openCancelPanel, closeCancelPanel, handleCancel,

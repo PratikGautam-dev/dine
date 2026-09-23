@@ -50,6 +50,10 @@ def get_hospital_settings(hospital_id: int) -> dict:
         "operating_hours": [h for h in (row.operating_hours or "").split(",") if h],
         "default_turnover_minutes": row.default_turnover_minutes,
         "booking_interval_minutes": row.booking_interval_minutes,
+        # Table Bookings follow-up: opt-in, default false -- off means today's behavior unchanged
+        # (see db/repositories/appointments.py's create_appointment() / tables.py's
+        # create_table_reservation()).
+        "require_booking_confirmation": row.require_booking_confirmation,
     }
 
 
@@ -80,6 +84,21 @@ def update_restaurant_hours(
                 "default_turnover_minutes": default_turnover_minutes,
                 "booking_interval_minutes": booking_interval_minutes,
             },
+        )
+    )
+    session.commit()
+    return get_hospital_settings(hospital_id)
+
+
+def update_booking_confirmation_setting(hospital_id: int, require_booking_confirmation: bool) -> dict:
+    """Settings > Booking Rules' own save action -- a separate write path from update_hospital_settings()
+    below, same "its own portal sub-form, its own function" precedent update_restaurant_hours() sets."""
+    session = get_session()
+    session.execute(
+        pg_insert(HospitalSettings)
+        .values(hospital_id=hospital_id, require_booking_confirmation=require_booking_confirmation)
+        .on_conflict_do_update(
+            index_elements=["hospital_id"], set_={"require_booking_confirmation": require_booking_confirmation},
         )
     )
     session.commit()

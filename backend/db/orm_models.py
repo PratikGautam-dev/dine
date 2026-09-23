@@ -301,6 +301,18 @@ class TableRow(Base):
     name: Mapped[str]
     capacity: Mapped[int]
     is_active: Mapped[bool]
+    # Live Operations follow-up (migration 0039): free / occupied / needs_cleaning / blocked --
+    # staff-set via Seat/Clear/Needs cleaning/Block actions, never inferred from a reservation's
+    # turnover_minutes. 'blocked' added by migration 0042 (Tables page follow-up).
+    status: Mapped[str] = mapped_column(default="free")
+    # Tables page follow-up (migration 0042): real floor-map position, percent of the canvas --
+    # NULL until a table is ever dragged (the frontend falls back to an auto-computed grid position
+    # for anything unset, never writing a value back until staff actually drag it).
+    pos_x: Mapped[float | None]
+    pos_y: Mapped[float | None]
+    # Staff-set 'rect' | 'round' -- not inferred from capacity.
+    shape: Mapped[str] = mapped_column(default="rect")
+    notes: Mapped[str | None]
 
 
 class TableLeave(Base):
@@ -455,6 +467,8 @@ class AppointmentRow(Base):
     table_id: Mapped[str | None] = mapped_column(ForeignKey("tables.id"))
     party_size: Mapped[int | None]
     turnover_minutes: Mapped[int | None]
+    # Table Bookings follow-up (migration 0040): free-text note given at booking time. None when not given.
+    special_request: Mapped[str | None]
 
 
 class AppointmentReminder(Base):
@@ -592,6 +606,19 @@ class PatientRow(Base):
     status: Mapped[str]
     patient_display_id: Mapped[str | None]
     mrn: Mapped[str | None]
+    # Customers page (mockup-driven) demo profile fields -- migration 0044. email/dietary_preference/
+    # allergies/notes/favorite_item are staff-editable free text (same pattern as address/gender above);
+    # loyalty_tier/loyalty_points/total_orders/total_spend_paise are demo-seeded only -- no loyalty
+    # program or spend tracking exists in this app yet, so nothing here ever writes them at runtime.
+    email: Mapped[str | None]
+    dietary_preference: Mapped[str | None]
+    allergies: Mapped[str | None]
+    notes: Mapped[str | None]
+    favorite_item: Mapped[str | None]
+    loyalty_tier: Mapped[str | None]
+    loyalty_points: Mapped[int]
+    total_orders: Mapped[int]
+    total_spend_paise: Mapped[int]
 
 
 class PatientLink(Base):
@@ -849,6 +876,41 @@ class HospitalSettings(Base):
     operating_hours: Mapped[str | None]
     default_turnover_minutes: Mapped[int]
     booking_interval_minutes: Mapped[int]
+    # Table Bookings follow-up (migration 0040): opt-in, default false. Off (every existing hospital,
+    # unless they turn it on) is today's behavior unchanged -- WhatsApp bookings land 'booked'
+    # immediately. On, a WhatsApp booking lands 'pending' until staff confirm it
+    # (db/repositories/tables.py's confirm_booking()). Staff-created bookings are unaffected either way.
+    require_booking_confirmation: Mapped[bool] = mapped_column(default=False)
+
+
+class WaitlistEntry(Base):
+    """db/init_db.py's waitlist_entries table (migration 0041) -- a walk-in party waiting for a table.
+    Deliberately NOT an appointments row (no scheduled_at, no reservation): "assign" seats a real table
+    (tables.status, via db/repositories/tables.py's set_table_status()) and closes the entry."""
+    __tablename__ = "waitlist_entries"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    guest_name: Mapped[str]
+    phone: Mapped[str | None]
+    party_size: Mapped[int]
+    status: Mapped[str] = mapped_column(default="waiting")
+    created_at: Mapped[str]
+    assigned_table_id: Mapped[str | None] = mapped_column(ForeignKey("tables.id"))
+    assigned_at: Mapped[str | None]
+    assigned_by: Mapped[str | None]
+
+
+class ChefNote(Base):
+    """db/init_db.py's chef_notes table (migration 0043) -- Kitchen Orders (KDS) follow-up: a small,
+    real shared notes board, attributed to whoever actually posted it."""
+    __tablename__ = "chef_notes"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    text: Mapped[str]
+    created_by_name: Mapped[str]
+    created_at: Mapped[str]
 
 
 # Dine Connect fork: GoogleCalendarConnection (google_calendar_connections

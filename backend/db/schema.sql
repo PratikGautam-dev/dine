@@ -689,9 +689,11 @@ ALTER TABLE appointments ADD COLUMN IF NOT EXISTS followup_override_until TEXT;
 -- same fix (explicit DROP + re-ADD, safe to re-run every startup). Real
 -- constraint name confirmed against a live Postgres instance before writing
 -- this (Postgres's own default naming for an inline column CHECK).
+-- 'pending' added: table-reservation flow (db/models.py's STATUS_PENDING) writes it for an
+-- unconfirmed hold before a guest completes booking.
 ALTER TABLE appointments DROP CONSTRAINT IF EXISTS appointments_status_check;
 ALTER TABLE appointments ADD CONSTRAINT appointments_status_check
-    CHECK (status IN ('booked', 'cancelled', 'rescheduled', 'attended', 'no_show'));
+    CHECK (status IN ('booked', 'cancelled', 'rescheduled', 'attended', 'no_show', 'pending'));
 
 -- Item 8 (Spec.md Section 0): backs the new structured reference_id format
 -- (APT-<DDMMYY>-<NNN>, numeric date part per the later Item 2 follow-up;

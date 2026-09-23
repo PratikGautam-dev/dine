@@ -49,6 +49,11 @@ PAGE_FOOD_ORDERS = "food_orders"
 # the staff/schedule entity's own page (see PortalSidebar.tsx's own comment
 # on why "doctors" wasn't deleted).
 PAGE_TABLES = "tables"
+# Live Operations follow-up: a read-only composite view over bookings/orders/handoffs/tables that
+# already-existing page permissions gate individually -- this page key exists only so it can be
+# independently shown/hidden per role, same "own page key even though it has no unique write action"
+# precedent PAGE_DASHBOARD sets.
+PAGE_LIVE_OPERATIONS = "live_operations"
 
 # Staff HR: leave and attendance (docs: the CareConnect reference, adapted). my_leave is every
 # person's own leave page (and their notifications); leave_requests is the Manager's review queue;
@@ -63,7 +68,7 @@ PAGE_ATTENDANCE_SETTINGS = "attendance_settings"
 ALL_PAGES = {
     PAGE_DASHBOARD, PAGE_APPOINTMENTS, PAGE_PATIENTS, PAGE_DOCTORS,
     PAGE_MESSAGES, PAGE_SETTINGS, PAGE_STAFF, PAGE_ROLES, PAGE_SCHEDULE, PAGE_DIAGNOSTIC_TESTS,
-    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES,
+    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES, PAGE_LIVE_OPERATIONS,
     PAGE_MY_LEAVE, PAGE_LEAVE_REQUESTS, PAGE_CHECK_IN_OUT, PAGE_ATTENDANCE, PAGE_ATTENDANCE_SETTINGS,
 }
 ACTIONS = ("view", "write", "delete")
@@ -109,7 +114,12 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_DIAGNOSTIC_TESTS: dict(_NONE),
         PAGE_FOOD_MENU: dict(_VIEW_ONLY),
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
-        PAGE_TABLES: dict(_VIEW_ONLY),
+        # Live Operations follow-up: front-of-house is who actually seats/clears tables, so this
+        # moved from _VIEW_ONLY to _VIEW_WRITE (same "write" gate the new seat/clear actions use) --
+        # also unlocks the existing table create/edit form, which a host arranging the floor
+        # reasonably needs too.
+        PAGE_TABLES: dict(_VIEW_WRITE),
+        PAGE_LIVE_OPERATIONS: dict(_VIEW_ONLY),
         **_STAFF_SELF_SERVICE,
     },
     # Kitchen Staff: works the orders and the menu's availability (sold out / stock).
@@ -129,6 +139,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_FOOD_MENU: dict(_VIEW_WRITE),
         PAGE_FOOD_ORDERS: dict(_VIEW_WRITE),
         PAGE_TABLES: dict(_VIEW_ONLY),
+        PAGE_LIVE_OPERATIONS: dict(_VIEW_ONLY),
         **_STAFF_SELF_SERVICE,
     },
 }
