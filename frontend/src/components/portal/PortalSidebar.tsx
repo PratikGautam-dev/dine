@@ -8,7 +8,6 @@ import {
   ChefHat,
   ClipboardList,
   Clock,
-  History,
   LayoutDashboard,
   LogOut,
   MessageCircle,
@@ -66,8 +65,8 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors", group: "Workforce" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
-  { key: "clock", label: "Clock in / out", icon: Clock, href: "/portal/check-in-out", pageKey: "check_in_out", group: "Workforce" },
-  { key: "my-attendance", label: "My Attendance", icon: History, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
+  // Clock in/out lives on this same page now (My Attendance) -- no separate nav entry for it any more.
+  { key: "my-attendance", label: "My Attendance", icon: Clock, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
   { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
