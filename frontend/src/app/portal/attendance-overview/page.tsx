@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarOff, CircleCheck, Clock, TriangleAlert, UserX } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { cn } from "@/lib/cn";
 import { DAY_STATE, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
@@ -16,15 +18,6 @@ import { ROLE_LABEL } from "@/lib/staffRoles";
 import { useTeamAttendance, type OverviewRow } from "@/hooks/useHr";
 
 const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the browser's zone
-
-function Tile({ label, value }: { label: string; value: number }) {
-  return (
-    <Card className="p-space-4">
-      <p className="text-label mb-space-2 font-medium text-ink-600">{label}</p>
-      <span className="text-[28px] leading-none font-semibold text-ink-900">{value}</span>
-    </Card>
-  );
-}
 
 function CorrectDialog({ row, onSubmit, onClose }: { row: OverviewRow; onSubmit: (time: string, note: string) => Promise<string | null>; onClose: () => void }) {
   const [time, setTime] = useState("");
@@ -88,9 +81,17 @@ export default function TeamAttendancePage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 flex flex-wrap items-center gap-space-2">
+      <div className="mb-space-4 flex flex-wrap items-center gap-space-4 border-b border-line">
         {(["day", "month"] as const).map((t) => (
-          <button key={t} type="button" onClick={() => setTab(t)} className={cn("rounded-full px-space-3 py-1.5 text-[13px] font-semibold", tab === t ? "bg-brand-600 text-white" : "bg-paper text-ink-600 hover:text-ink-900")}>
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={cn(
+              "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
+              tab === t ? "border-brand-600 text-brand-600" : "border-transparent text-ink-600 hover:text-ink-900",
+            )}
+          >
             {t === "day" ? "By day" : "By month"}
           </button>
         ))}
@@ -104,11 +105,11 @@ export default function TeamAttendancePage() {
       {tab === "day" ? (
         <>
           <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
-            <Tile label="On time" value={counts.on_time ?? 0} />
-            <Tile label="Late" value={counts.late ?? 0} />
-            <Tile label="Clocked in now" value={(counts.clocked_in ?? 0)} />
-            <Tile label="Absent / not in" value={(counts.absent ?? 0) + (counts.not_in ?? 0)} />
-            <Tile label="On leave" value={counts.on_leave ?? 0} />
+            <StatTile icon={<CircleCheck size={22} />} label="On time" value={counts.on_time ?? 0} deltaPct={null} hint="Today" tone="brand" filled />
+            <StatTile icon={<TriangleAlert size={22} />} label="Late" value={counts.late ?? 0} deltaPct={null} hint="Today" tone="warning" filled upIsGood={false} />
+            <StatTile icon={<Clock size={22} />} label="Clocked in now" value={counts.clocked_in ?? 0} deltaPct={null} hint="Right now" tone="info" filled />
+            <StatTile icon={<UserX size={22} />} label="Absent / not in" value={(counts.absent ?? 0) + (counts.not_in ?? 0)} deltaPct={null} hint="Today" tone="clay" filled upIsGood={false} />
+            <StatTile icon={<CalendarOff size={22} />} label="On leave" value={counts.on_leave ?? 0} deltaPct={null} hint="Today" tone="violet" filled />
           </div>
           <Card className="overflow-x-auto p-space-2">
             {!rows ? (

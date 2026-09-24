@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarCheck, CalendarOff, CalendarX, Hourglass } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,6 +10,7 @@ import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { cn } from "@/lib/cn";
 import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
@@ -21,15 +23,6 @@ const TABS = [
   { value: "rejected", label: "Declined" },
   { value: "", label: "All" },
 ];
-
-function Tile({ label, value }: { label: string; value: number }) {
-  return (
-    <Card className="p-space-4">
-      <p className="text-label mb-space-2 font-medium text-ink-600">{label}</p>
-      <span className="text-[28px] leading-none font-semibold text-ink-900">{value}</span>
-    </Card>
-  );
-}
 
 function RequestCard({ r, onDecide }: { r: LeaveRequest; onDecide: (id: number, action: "approve" | "reject", note: string) => Promise<string | null> }) {
   const [note, setNote] = useState("");
@@ -112,23 +105,23 @@ export default function LeaveRequestsPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <Tile label="Pending" value={summary?.pending ?? 0} />
-        <Tile label="Approved" value={summary?.approved ?? 0} />
-        <Tile label="Declined" value={summary?.rejected ?? 0} />
-        <Tile label="On leave today" value={summary?.on_leave_today ?? 0} />
+        <StatTile icon={<Hourglass size={22} />} label="Pending" value={summary?.pending ?? 0} deltaPct={null} hint="Awaiting a decision" tone="warning" filled />
+        <StatTile icon={<CalendarCheck size={22} />} label="Approved" value={summary?.approved ?? 0} deltaPct={null} hint="This period" tone="brand" filled />
+        <StatTile icon={<CalendarX size={22} />} label="Declined" value={summary?.rejected ?? 0} deltaPct={null} hint="This period" tone="clay" filled />
+        <StatTile icon={<CalendarOff size={22} />} label="On leave today" value={summary?.on_leave_today ?? 0} deltaPct={null} hint="Right now" tone="violet" filled />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div>
-          <div className="mb-space-3 flex flex-wrap gap-space-2">
+          <div className="mb-space-3 flex flex-wrap gap-space-5 border-b border-line">
             {TABS.map((t) => (
               <button
                 key={t.label}
                 type="button"
                 onClick={() => setStatus(t.value)}
                 className={cn(
-                  "rounded-full px-space-3 py-1.5 text-[13px] font-semibold transition-colors duration-150",
-                  status === t.value ? "bg-brand-600 text-white" : "bg-paper text-ink-600 hover:text-ink-900",
+                  "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
+                  status === t.value ? "border-brand-600 text-brand-600" : "border-transparent text-ink-600 hover:text-ink-900",
                 )}
               >
                 {t.label}

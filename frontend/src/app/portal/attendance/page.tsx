@@ -1,24 +1,17 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarCheck, Clock, TrendingUp, TriangleAlert } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useAttendanceHistory } from "@/hooks/useHr";
 
 const RANGES = [7, 30, 90];
-
-function Tile({ label, value, testId }: { label: string; value: string; testId?: string }) {
-  return (
-    <Card className="p-space-4">
-      <p className="text-label mb-space-2 font-medium text-ink-600">{label}</p>
-      <span data-testid={testId} className="text-[28px] leading-none font-semibold text-ink-900">{value}</span>
-    </Card>
-  );
-}
 
 export default function MyAttendancePage() {
   const session = useStaffSession();
@@ -48,10 +41,10 @@ export default function MyAttendancePage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <Tile label="Days worked" value={String(stats?.days_present ?? 0)} testId="stat-days" />
-        <Tile label="Late arrivals" value={String(stats?.late_days ?? 0)} testId="stat-late" />
-        <Tile label="Average day" value={fmtMinutes(stats?.average_working_minutes ?? 0)} testId="stat-average" />
-        <Tile label="Overtime" value={fmtMinutes(stats?.total_overtime_minutes ?? 0)} testId="stat-overtime" />
+        <StatTile icon={<CalendarCheck size={22} />} label="Days worked" value={stats?.days_present ?? 0} deltaPct={null} hint={`Last ${days} days`} tone="brand" filled />
+        <StatTile icon={<TriangleAlert size={22} />} label="Late arrivals" value={stats?.late_days ?? 0} deltaPct={null} hint={`Last ${days} days`} tone="warning" filled upIsGood={false} />
+        <StatTile icon={<Clock size={22} />} label="Average day (hrs)" value={Math.round(((stats?.average_working_minutes ?? 0) / 60) * 10) / 10} deltaPct={null} hint="Per worked day" tone="info" filled />
+        <StatTile icon={<TrendingUp size={22} />} label="Overtime (hrs)" value={Math.round(((stats?.total_overtime_minutes ?? 0) / 60) * 10) / 10} deltaPct={null} hint={`Last ${days} days`} tone="violet" filled />
       </div>
 
       <Card className="overflow-x-auto p-space-2">

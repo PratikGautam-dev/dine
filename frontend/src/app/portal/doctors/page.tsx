@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Pencil, Plus, Search, Upload } from "lucide-react";
+import { ChevronDown, ChevronUp, CircleCheck, CircleX, Layers, Pencil, Plus, Search, Upload, Users } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
@@ -9,13 +9,26 @@ import { Input } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { DoctorScheduleForm } from "@/components/portal/DoctorScheduleForm";
 import { DoctorLeaveManager } from "@/components/portal/DoctorLeaveManager";
 import { DoctorSlotManager } from "@/components/portal/DoctorSlotManager";
 import { DoctorTodayAppointments } from "@/components/portal/DoctorTodayAppointments";
 import { DoctorCsvImport } from "@/components/portal/DoctorCsvImport";
+import { cn } from "@/lib/cn";
 import { useDoctors } from "@/hooks/useDoctors";
+
+// Same deterministic hash → color-cycle approach used across the Customers/WhatsApp Inbox pages.
+const AVATAR_TONES = [
+  "bg-brand-50 text-brand-700", "bg-info-tint text-info", "bg-success-tint text-success",
+  "bg-warning-tint text-warning", "bg-accent-violet-tint text-accent-violet", "bg-clay-100 text-clay-700",
+];
+function avatarTone(label: string): string {
+  let hash = 0;
+  for (let i = 0; i < label.length; i++) hash = (hash * 31 + label.charCodeAt(i)) >>> 0;
+  return AVATAR_TONES[hash % AVATAR_TONES.length];
+}
 
 export default function PortalDoctorsPage() {
   const { hospital, ready } = usePortalGuard();
@@ -64,15 +77,23 @@ export default function PortalDoctorsPage() {
           <p className="text-[13px] text-ink-400">Loading…</p>
         ) : (
           <>
-            <div role="tablist" className="mb-space-4 inline-flex gap-space-1 rounded-full bg-paper p-1">
+            <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-4">
+              <StatTile icon={<Users size={22} />} label="Team members" value={doctors.length} deltaPct={null} hint="Total on record" tone="brand" filled />
+              <StatTile icon={<CircleCheck size={22} />} label="Available" value={doctors.filter((d) => d.is_active).length} deltaPct={null} hint="Can be booked" tone="info" filled />
+              <StatTile icon={<CircleX size={22} />} label="Unavailable" value={doctors.filter((d) => !d.is_active).length} deltaPct={null} hint="Currently off" tone="warning" filled />
+              <StatTile icon={<Layers size={22} />} label="Sections" value={departments.length} deltaPct={null} hint="Departments in use" tone="violet" filled />
+            </div>
+
+            <div className="mb-space-4 flex flex-wrap gap-space-5 border-b border-line">
               <button
                 type="button"
                 role="tab"
                 aria-selected={activeTab === "doctors"}
                 onClick={() => setActiveTab("doctors")}
-                className={`rounded-full px-space-4 py-space-2 text-[13px] font-semibold transition-colors duration-150 ${
-                  activeTab === "doctors" ? "bg-brand-600 text-white" : "text-ink-600 hover:text-ink-900"
-                }`}
+                className={cn(
+                  "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
+                  activeTab === "doctors" ? "border-brand-600 text-brand-600" : "border-transparent text-ink-600 hover:text-ink-900",
+                )}
               >
                 Team
               </button>
@@ -81,9 +102,10 @@ export default function PortalDoctorsPage() {
                 role="tab"
                 aria-selected={activeTab === "departments"}
                 onClick={() => setActiveTab("departments")}
-                className={`rounded-full px-space-4 py-space-2 text-[13px] font-semibold transition-colors duration-150 ${
-                  activeTab === "departments" ? "bg-brand-600 text-white" : "text-ink-600 hover:text-ink-900"
-                }`}
+                className={cn(
+                  "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
+                  activeTab === "departments" ? "border-brand-600 text-brand-600" : "border-transparent text-ink-600 hover:text-ink-900",
+                )}
               >
                 Sections
               </button>
@@ -153,7 +175,7 @@ export default function PortalDoctorsPage() {
                         <li key={doc.id} className="py-space-3">
                           <div className="flex flex-col gap-space-2 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-space-3">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[13px] font-bold text-brand-700">
+                              <div className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-[13px] font-bold", avatarTone(doc.name))}>
                                 {doc.name.trim().charAt(0).toUpperCase() || "?"}
                               </div>
                               <div>

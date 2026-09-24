@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { CalendarClock, CalendarDays, CircleCheck, Hourglass } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,21 +10,13 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyLeave, type LeaveForm } from "@/hooks/useHr";
 
 const SELECT_CLASS = "h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 const blank = (): LeaveForm => ({ leave_type: "casual", from_date: "", to_date: "", is_half_day: false, reason: "" });
-
-function Tile({ label, value, testId }: { label: string; value: string; testId?: string }) {
-  return (
-    <Card className="p-space-4">
-      <p className="text-label mb-space-2 font-medium text-ink-600">{label}</p>
-      <span data-testid={testId} className="text-[28px] leading-none font-semibold text-ink-900">{value}</span>
-    </Card>
-  );
-}
 
 const days = (n: number) => `${n % 1 === 0 ? n : n.toFixed(1)} day${n === 1 ? "" : "s"}`;
 
@@ -61,10 +54,10 @@ export default function MyLeavePage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
-        <Tile label={`Yearly allowance (${balance?.year ?? ""})`} value={balance ? days(balance.allowance) : "—"} />
-        <Tile label="Used" value={balance ? days(balance.used) : "—"} testId="leave-used" />
-        <Tile label="Waiting for approval" value={balance ? days(balance.pending) : "—"} testId="leave-pending" />
-        <Tile label="Remaining" value={balance ? days(balance.remaining) : "—"} testId="leave-remaining" />
+        <StatTile icon={<CalendarDays size={22} />} label="Yearly allowance" value={balance?.allowance ?? 0} deltaPct={null} hint={balance ? `${balance.year} · in days` : "In days"} tone="brand" filled />
+        <StatTile icon={<Hourglass size={22} />} label="Used" value={balance?.used ?? 0} deltaPct={null} hint="In days" tone="warning" filled />
+        <StatTile icon={<CalendarClock size={22} />} label="Waiting for approval" value={balance?.pending ?? 0} deltaPct={null} hint="In days" tone="info" filled />
+        <StatTile icon={<CircleCheck size={22} />} label="Remaining" value={balance?.remaining ?? 0} deltaPct={null} hint="In days" tone="violet" filled />
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[380px_minmax(0,1fr)]">

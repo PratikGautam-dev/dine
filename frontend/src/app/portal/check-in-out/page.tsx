@@ -1,13 +1,14 @@
 "use client";
 
-import { Coffee, LogIn, LogOut, MapPin, Play } from "lucide-react";
-import { useEffect, useState } from "react";
+import { CalendarCheck, Clock, Coffee, LogIn, LogOut, MapPin, Play, TriangleAlert } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useAttendanceHistory, useClock } from "@/hooks/useHr";
@@ -50,6 +51,17 @@ export default function ClockInOutPage() {
   const rec = today?.record ?? null;
   const state = today?.state ?? "not_in";
   const working = rec && !rec.check_out_at ? liveMinutes(rec.check_in_at, rec.break_minutes, rec.break_started_at, nowMs) : rec?.working_minutes ?? 0;
+
+  const weekSummary = useMemo(() => {
+    const all = records ?? [];
+    const closed = all.filter((r) => r.check_out_at);
+    return {
+      daysWorked: closed.length,
+      totalMinutes: closed.reduce((sum, r) => sum + r.working_minutes, 0),
+      lateDays: all.filter((r) => r.status === "late").length,
+      missingClockOuts: all.filter((r) => r.missing_clock_out).length,
+    };
+  }, [records]);
 
   return (
     <PortalShell hospital={session?.hospital || null} active="clock">
@@ -114,6 +126,15 @@ export default function ClockInOutPage() {
           </div>
         </PermissionGate>
       </Card>
+
+      {records && records.length > 0 && (
+        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-4">
+          <StatTile icon={<CalendarCheck size={22} />} label="Days worked" value={weekSummary.daysWorked} deltaPct={null} hint="Last 7 days" tone="brand" filled />
+          <StatTile icon={<Clock size={22} />} label="Hours logged" value={Math.round((weekSummary.totalMinutes / 60) * 10) / 10} deltaPct={null} hint="Last 7 days" tone="info" filled />
+          <StatTile icon={<TriangleAlert size={22} />} label="Late days" value={weekSummary.lateDays} deltaPct={null} hint="Clocked in after shift start" tone="warning" filled upIsGood={false} />
+          <StatTile icon={<LogOut size={22} />} label="Missing clock-outs" value={weekSummary.missingClockOuts} deltaPct={null} hint="Forgot to clock out" tone="clay" filled upIsGood={false} />
+        </div>
+      )}
 
       <Card className="p-space-5">
         <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Last 7 days</h2>
