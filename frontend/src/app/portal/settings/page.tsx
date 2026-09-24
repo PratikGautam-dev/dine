@@ -2,7 +2,8 @@
 
 import { Suspense, useState } from "react";
 import {
-  ArrowRight, Banknote, CalendarClock, Globe, ListChecks, MessagesSquare, Settings as SettingsIcon, SlidersHorizontal,
+  ArrowRight, Banknote, CalendarClock, Clock, CreditCard, Globe, ListChecks, Mail, MessageSquare, MessagesSquare,
+  Printer, Settings as SettingsIcon, ShieldCheck, SlidersHorizontal,
 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,12 +14,26 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
 import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
 import { useBookingConfirmationSetting } from "@/hooks/useBookingConfirmationSetting";
+import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
+
+// Everything this app actually connects to today is the WhatsApp bot itself -- shown as genuinely
+// Active below. The rest (payments, a kitchen printer, email/SMS delivery, Zomato/Swiggy sync) has
+// no real integration behind it yet, so they're shown as not-connected placeholders rather than
+// invented "Connected 2 min ago" states -- a restaurant owner relying on a fake "Connected" payment
+// or delivery-platform status would be a real, not just cosmetic, problem.
+const PLANNED_INTEGRATIONS = [
+  { name: "Razorpay", blurb: "Payment gateway for online orders", icon: CreditCard },
+  { name: "Kitchen printer", blurb: "Print orders to the kitchen", icon: Printer },
+  { name: "Email service", blurb: "Send booking confirmations", icon: Mail },
+  { name: "SMS service", blurb: "Send order & booking updates", icon: MessageSquare },
+];
 
 type TabId = "general" | "booking" | "types" | "messaging" | "language" | "conversation" | "fees";
 type Tab = { id: TabId; label: string; icon: typeof SettingsIcon };
@@ -44,6 +59,7 @@ function PortalSettingsPageContent() {
   const hoursForm = useRestaurantHours(ready);
   const bookingConfirmation = useBookingConfirmationSetting(ready);
   const canSeeAttendanceSettings = usePermission("attendance_settings", "view");
+  const { entries: auditEntries } = usePortalAuditLog(ready);
   const [tab, setTab] = useState<TabId>("general");
 
   const tabs = TABS.filter((t) => t.id !== "types" || canManageAppointmentTypes);
@@ -51,9 +67,9 @@ function PortalSettingsPageContent() {
   return (
     <PortalShell hospital={hospital} active="settings">
         <PageHeader
-          title="Restaurant settings"
+          title="Settings"
           icon={<SettingsIcon size={22} />}
-          description="Configure how your restaurant's WhatsApp bot behaves, in the guests' own words."
+          description="Configure your restaurant, integrations and operational preferences."
           actions={
             <div className="flex flex-wrap gap-space-2">
               {canSeeAttendanceSettings && (
@@ -78,8 +94,10 @@ function PortalSettingsPageContent() {
                     onClick={() => setTab(t.id)}
                     aria-current={tab === t.id ? "page" : undefined}
                     className={cn(
-                      "flex shrink-0 items-center gap-space-2 rounded-md px-space-3 py-2.5 text-left text-[13.5px] font-semibold transition-colors duration-150",
-                      tab === t.id ? "bg-brand-50 text-brand-700" : "text-ink-600 hover:bg-paper hover:text-ink-900",
+                      "flex shrink-0 items-center gap-space-2 rounded-md border px-space-3 py-2.5 text-left text-[13.5px] font-semibold transition-colors duration-150",
+                      tab === t.id
+                        ? "border-brand-200 bg-brand-50 text-brand-700"
+                        : "border-transparent text-ink-600 hover:bg-paper hover:text-ink-900",
                     )}
                   >
                     <Icon size={16} className="shrink-0" />
@@ -91,48 +109,137 @@ function PortalSettingsPageContent() {
 
             <div className="min-w-0">
               {tab === "general" && (
-                <form onSubmit={handleSave}>
-                  <Card className="p-space-5">
-                    <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">General</h2>
-                    <Field label="Restaurant name" htmlFor="name" hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection.">
-                      <Input id="name" value={settings.name} disabled />
-                    </Field>
-                    <Field label="Welcome message text" htmlFor="welcome_message_text">
-                      <Textarea
-                        id="welcome_message_text"
-                        rows={2}
-                        value={settings.welcome_message_text}
-                        onChange={(e) => setSettings({ ...settings, welcome_message_text: e.target.value })}
-                      />
-                    </Field>
-                    <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                      <Field
-                        label="Reminder offsets (comma-separated hours)"
-                        htmlFor="reminder_offsets_hours"
-                        hint="e.g. 24,1 sends a reminder one day before and one hour before."
-                      >
-                        <Input
-                          id="reminder_offsets_hours"
-                          value={settings.reminder_offsets_hours}
-                          onChange={(e) => setSettings({ ...settings, reminder_offsets_hours: e.target.value })}
-                        />
-                      </Field>
-                      <Field label="Reminder template name" htmlFor="reminder_template_name">
-                        <Input
-                          id="reminder_template_name"
-                          value={settings.reminder_template_name}
-                          onChange={(e) => setSettings({ ...settings, reminder_template_name: e.target.value })}
-                        />
-                      </Field>
-                    </div>
-                    {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
-                    {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
-                    <Button type="submit" disabled={saving} className="mt-space-4">
-                      {saving ? "Saving…" : "Save changes"}
-                    </Button>
-                  </Card>
-                  {/* Every tab below saves through this same form/button -- switching tabs doesn't lose changes made on another one. */}
-                </form>
+                <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[1.3fr_1fr]">
+                  <div className="min-w-0 space-y-space-4">
+                    <form onSubmit={handleSave}>
+                      <Card className="p-space-5">
+                        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Restaurant Profile</h2>
+                        <Field label="Restaurant name" htmlFor="name" hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection.">
+                          <Input id="name" value={settings.name} disabled />
+                        </Field>
+                        <Field label="Welcome message text" htmlFor="welcome_message_text">
+                          <Textarea
+                            id="welcome_message_text"
+                            rows={2}
+                            value={settings.welcome_message_text}
+                            onChange={(e) => setSettings({ ...settings, welcome_message_text: e.target.value })}
+                          />
+                        </Field>
+                        <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+                          <Field
+                            label="Reminder offsets (comma-separated hours)"
+                            htmlFor="reminder_offsets_hours"
+                            hint="e.g. 24,1 sends a reminder one day before and one hour before."
+                          >
+                            <Input
+                              id="reminder_offsets_hours"
+                              value={settings.reminder_offsets_hours}
+                              onChange={(e) => setSettings({ ...settings, reminder_offsets_hours: e.target.value })}
+                            />
+                          </Field>
+                          <Field label="Reminder template name" htmlFor="reminder_template_name">
+                            <Input
+                              id="reminder_template_name"
+                              value={settings.reminder_template_name}
+                              onChange={(e) => setSettings({ ...settings, reminder_template_name: e.target.value })}
+                            />
+                          </Field>
+                        </div>
+                        {error && <p className="mt-space-2 text-[12.5px] font-medium text-error">{error}</p>}
+                        {saved && <p className="mt-space-2 text-[12.5px] font-medium text-success">Saved.</p>}
+                        <Button type="submit" disabled={saving} className="mt-space-4">
+                          {saving ? "Saving…" : "Save changes"}
+                        </Button>
+                      </Card>
+                    </form>
+
+                    <Card className="p-space-5">
+                      <div className="mb-space-3 flex items-center justify-between">
+                        <h2 className="text-[15px] font-bold text-ink-900">Operating Hours</h2>
+                        <button type="button" onClick={() => setTab("booking")} className="text-[12.5px] font-semibold text-brand-600 hover:underline">
+                          Edit
+                        </button>
+                      </div>
+                      {hoursForm.form.operating_days.length === 0 || !hoursForm.form.start_time ? (
+                        <p className="text-[13px] text-ink-400">
+                          Not set yet — table booking shows no availability until this is set on the Booking Rules tab.
+                        </p>
+                      ) : (
+                        <div className="flex items-center justify-between rounded-md border border-line px-space-3 py-space-2">
+                          <div>
+                            <p className="text-[13px] font-semibold text-ink-900">{hoursForm.form.operating_days.join(", ")}</p>
+                            <p className="text-[12.5px] text-ink-600">{hoursForm.form.start_time} – {hoursForm.form.end_time}</p>
+                          </div>
+                          <span className="inline-flex items-center gap-1 rounded-full bg-success-tint px-space-2 py-0.5 text-[11px] font-bold text-success">
+                            <Clock size={11} /> Open
+                          </span>
+                        </div>
+                      )}
+                    </Card>
+                  </div>
+
+                  <div className="min-w-0 space-y-space-4">
+                    <Card className="p-space-5">
+                      <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Quick Integrations</h2>
+                      <p className="mb-space-3 text-[12.5px] text-ink-400">Connect and manage your services.</p>
+                      <div className="space-y-space-2">
+                        <div className="flex items-center gap-space-3 rounded-md border border-line p-space-3">
+                          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-success-tint">
+                            <WhatsAppIcon size={18} />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[13px] font-semibold text-ink-900">WhatsApp Business</p>
+                            <p className="text-[12px] text-ink-600">Customer chat & order management</p>
+                          </div>
+                          <span className="flex items-center gap-1 whitespace-nowrap text-[11.5px] font-semibold text-success">
+                            <span className="h-1.5 w-1.5 rounded-full bg-success" /> Active
+                          </span>
+                        </div>
+                        {PLANNED_INTEGRATIONS.map((integration) => {
+                          const Icon = integration.icon;
+                          return (
+                            <div key={integration.name} className="flex items-center gap-space-3 rounded-md border border-line p-space-3">
+                              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-black/4 text-ink-400">
+                                <Icon size={17} />
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-[13px] font-semibold text-ink-900">{integration.name}</p>
+                                <p className="text-[12px] text-ink-600">{integration.blurb}</p>
+                              </div>
+                              <span className="flex items-center gap-1 whitespace-nowrap text-[11.5px] font-semibold text-ink-400">
+                                <span className="h-1.5 w-1.5 rounded-full bg-ink-300" /> Not connected
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </Card>
+
+                    <Card className="p-space-5">
+                      <div className="mb-space-3 flex items-center gap-space-2">
+                        <ShieldCheck size={16} className="text-ink-600" />
+                        <h2 className="text-[15px] font-bold text-ink-900">Security & Access</h2>
+                      </div>
+                      {auditEntries === undefined ? (
+                        <p className="text-[12.5px] text-ink-400">Loading…</p>
+                      ) : auditEntries === null || auditEntries.length === 0 ? (
+                        <p className="text-[12.5px] text-ink-400">No recent activity recorded yet.</p>
+                      ) : (
+                        <ul className="space-y-space-2">
+                          {auditEntries.slice(0, 3).map((entry) => (
+                            <li key={entry.id} className="rounded-md bg-paper px-space-3 py-space-2 text-[12.5px]">
+                              <p className="font-semibold text-ink-900">{entry.action}</p>
+                              <p className="text-ink-600">{entry.actor_label || "Staff"} · {entry.created_at}</p>
+                            </li>
+                          ))}
+                        </ul>
+                      )}
+                      <Button href="/portal/settings/activity" variant="secondary" size="md" className="mt-space-3 w-full">
+                        View full activity log <ArrowRight size={14} />
+                      </Button>
+                    </Card>
+                  </div>
+                </div>
               )}
 
               {tab === "booking" && (
