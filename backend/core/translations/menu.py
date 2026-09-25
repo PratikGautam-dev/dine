@@ -66,6 +66,13 @@ RECEPTION_HANDOFF_TEXT = "reception_handoff_text"
 # the fixed "hospital_info" feature reply) ---
 HOSPITAL_INFO_TEXT = "hospital_info_text"
 
+# --- Feedback (migration 0045): a guest picks 1-5 stars from the main menu -- the one real
+# feedback write path in this app (no sentiment/NPS/complaint-category system exists). ---
+FEATURE_GIVE_FEEDBACK = "feature_give_feedback"
+FEEDBACK_RATING_PROMPT = "feedback_rating_prompt"
+FEEDBACK_RATING_BUTTON = "feedback_rating_button"
+FEEDBACK_THANK_YOU = "feedback_thank_you"
+
 STRINGS: dict[str, dict[Language, str]] = {
     LANGUAGE_PICKER_BODY: {
         "en": "Please choose your language.\nकृपया अपनी भाषा चुनें।",
@@ -144,5 +151,16 @@ STRINGS: dict[str, dict[Language, str]] = {
               "- रिज़र्वेशन बुक करने, समय बदलने या रद्द करने के लिए, बस हमें कोई भी संदेश भेजें।\n"
               "- आपकी यात्रा के दौरान तुरंत मदद के लिए, कृपया होस्ट से बात करें।\n\n"
               "मुख्य मेनू पर वापस जाने के लिए कोई भी संदेश भेजें।",
+    },
+
+    FEATURE_GIVE_FEEDBACK: {"en": "Rate & Give Feedback", "hi": "रेटिंग दें और फीडबैक करें"},
+    FEEDBACK_RATING_PROMPT: {
+        "en": "How was your experience with us? Please pick a rating.",
+        "hi": "हमारे साथ आपका अनुभव कैसा रहा? कृपया एक रेटिंग चुनें।",
+    },
+    FEEDBACK_RATING_BUTTON: {"en": "Choose a rating", "hi": "रेटिंग चुनें"},
+    FEEDBACK_THANK_YOU: {
+        "en": "Thank you for your feedback — it really helps us! Send any message to return to the main menu.",
+        "hi": "आपकी प्रतिक्रिया के लिए धन्यवाद — इससे हमें बहुत मदद मिलती है! मुख्य मेनू पर वापस जाने के लिए कोई भी संदेश भेजें।",
     },
 }

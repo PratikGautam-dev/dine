@@ -621,6 +621,22 @@ class PatientRow(Base):
     total_spend_paise: Mapped[int]
 
 
+class Feedback(Base):
+    """db/schema.sql's feedback table (migration 0045) -- a guest's 1-5 star rating (+ optional
+    comment) picked from the WhatsApp main menu's "Rate & Give Feedback" row. The only write path
+    is flows/router.py's give_feedback dispatch; nothing else in this app writes here."""
+    __tablename__ = "feedback"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    patient_id: Mapped[int | None] = mapped_column(ForeignKey("patients.id"))
+    phone: Mapped[str]
+    rating: Mapped[int]
+    comment: Mapped[str | None]
+    source: Mapped[str]
+    created_at: Mapped[str]
+
+
 class PatientLink(Base):
     """db/schema.sql's patient_links table -- the full mapping. See
     PatientRow's docstring for the same "advisory-lock code stays raw"

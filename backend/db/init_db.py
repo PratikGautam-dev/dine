@@ -1606,6 +1606,16 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS total_orders INTEGER NOT NULL DEFAULT 0")
     conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS total_spend_paise BIGINT NOT NULL DEFAULT 0")
 
+    # Migration 0045 -- feedback: minimal WhatsApp guest rating (1-5 stars) + optional comment.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS feedback ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "patient_id INTEGER REFERENCES patients(id), phone TEXT NOT NULL, rating INTEGER NOT NULL, "
+        "comment TEXT, source TEXT NOT NULL DEFAULT 'whatsapp', created_at TEXT NOT NULL, "
+        "CONSTRAINT feedback_rating_range_chk CHECK (rating BETWEEN 1 AND 5))"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_hospital ON feedback(hospital_id, created_at)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

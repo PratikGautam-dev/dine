@@ -10,6 +10,7 @@ from portal.routes.auth import router as auth_router
 from portal.routes.bookings import router as bookings_router
 from portal.routes.dashboard import router as dashboard_router
 from portal.routes.doctors import router as doctors_router
+from portal.routes.feedback import router as feedback_router
 from portal.routes.food_ordering import router as food_ordering_router
 from portal.routes.handoffs import router as handoffs_router
 from portal.routes.leave import router as leave_router
@@ -39,6 +40,7 @@ router.include_router(chef_notes_router)
 router.include_router(settings_router)
 router.include_router(handoffs_router)
 router.include_router(live_operations_router)
+router.include_router(feedback_router)
 # RBAC (docs/rbac-redis-plan.md): unified staff login + the roles/permissions
 # and staff-management admin UIs -- additive alongside auth_router/
 # doctor_auth_router above, not a replacement, during the dual-path

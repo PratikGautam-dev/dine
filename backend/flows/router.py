@@ -97,6 +97,9 @@ from flows.patient_identity import (
 from flows.common import is_reset_keyword
 from core.translations import SUPPORTED_LANGUAGES, t
 from core.translations.menu import (
+    FEEDBACK_RATING_BUTTON,
+    FEEDBACK_RATING_PROMPT,
+    FEEDBACK_THANK_YOU,
     HOSPITAL_INFO_TEXT,
     LANGUAGE_PICKER_BODY,
     LANGUAGE_PICKER_BUTTON_EN,
@@ -115,6 +118,13 @@ from connectors import Connector, Tier1Connector
 import flows.faq as faq_flow
 
 logger = logging.getLogger(__name__)
+
+# Feedback (migration 0045): a WhatsApp list row id "feedback_rate_<1-5>" -- same "prefix +
+# integer" shape as MANAGE_CANCEL_PREFIX/MANAGE_RESCHEDULE_PREFIX above, checked in the same
+# always-checked-first interactive_reply block since a rating tap is a single, immediate
+# request/response (never a new session state -- the session stays wherever it already was).
+FEEDBACK_RATE_PREFIX = "feedback_rate_"
+_FEEDBACK_STAR_LABELS = {5: "5 ⭐ Excellent", 4: "4 ⭐ Good", 3: "3 ⭐ Okay", 2: "2 ⭐ Poor", 1: "1 ⭐ Very poor"}
 
 _DEFAULT_CONNECTOR = Tier1Connector()
 
@@ -414,6 +424,18 @@ async def _start_feature(
         )
         await wa.send_text(phone, t(RECEPTION_HANDOFF_TEXT, language))
         return
+    if key == "give_feedback":
+        sessions.reset(hospital_id, phone)
+        await wa.send_list(
+            to=phone,
+            body_text=t(FEEDBACK_RATING_PROMPT, language),
+            button_text=t(FEEDBACK_RATING_BUTTON, language),
+            sections=[{
+                "title": t(FEEDBACK_RATING_BUTTON, language),
+                "rows": [{"id": f"{FEEDBACK_RATE_PREFIX}{n}", "title": _FEEDBACK_STAR_LABELS[n]} for n in (5, 4, 3, 2, 1)],
+            }],
+        )
+        return
     # Defensive only -- every key in REAL_FEATURES has a branch above, so this
     # is only reachable if a new feature key is added to REAL_FEATURES without
     # a matching branch here (a coding bug), never from real user input (the
@@ -556,6 +578,16 @@ async def handle_incoming(
             )
             if appt:
                 await start_reschedule_flow_for_appointment(wa, sessions, phone, hospital_id, appt, connector, language=language or "en")
+                return
+        if rid.startswith(FEEDBACK_RATE_PREFIX):
+            try:
+                rating = int(rid[len(FEEDBACK_RATE_PREFIX):])
+            except ValueError:
+                rating = None
+            if rating in (1, 2, 3, 4, 5):
+                db.create_feedback(hospital_id, phone, rating, patient_id=active_patient_id)
+                sessions.reset(hospital_id, phone)
+                await wa.send_text(phone, t(FEEDBACK_THANK_YOU, language))
                 return
 
     if state != STATE_IDLE and state not in FREE_TEXT_INPUT_STATES and is_reset_keyword(reply):

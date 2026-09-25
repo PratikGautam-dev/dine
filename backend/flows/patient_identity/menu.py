@@ -9,6 +9,7 @@ from core.translations.menu import (
     FEATURE_CANCEL,
     FEATURE_CONSENT_PRIVACY,
     FEATURE_FAQ,
+    FEATURE_GIVE_FEEDBACK,
     FEATURE_MANAGE_LANGUAGE,
     FEATURE_MENU_UNAVAILABLE,
     FEATURE_RESCHEDULE,
@@ -38,6 +39,9 @@ _FEATURE_MENU = {
     "consent_privacy": ("menu_consent_privacy", FEATURE_CONSENT_PRIVACY),
     "manage_language": ("menu_manage_language", FEATURE_MANAGE_LANGUAGE),
     "faq": ("menu_faq_bot", FEATURE_FAQ),
+    # Feedback (migration 0045): a lightweight 1-5 star rating, handled entirely in
+    # flows/router.py (menu tap -> rating list -> immediate save), not a nested TypeFlow.
+    "give_feedback": ("menu_give_feedback", FEATURE_GIVE_FEEDBACK),
 }
 _ROW_ID_TO_FEATURE = {row_id: key for key, (row_id, _title_key) in _FEATURE_MENU.items()}
 
