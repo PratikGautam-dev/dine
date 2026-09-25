@@ -38,7 +38,7 @@ def list_feedback(hospital_id: int, limit: int = 200) -> list[dict]:
     rows = session.execute(
         select(
             Feedback.id, Feedback.phone, Feedback.rating, Feedback.comment, Feedback.source,
-            Feedback.created_at, PatientRow.name.label("patient_name"),
+            Feedback.created_at, Feedback.patient_id, PatientRow.name.label("patient_name"),
         )
         .select_from(Feedback)
         .outerjoin(PatientRow, PatientRow.id == Feedback.patient_id)

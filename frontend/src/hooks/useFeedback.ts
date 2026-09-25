@@ -9,6 +9,7 @@ export type FeedbackEntry = {
   comment: string | null;
   source: string;
   created_at: string;
+  patient_id: number | null;
   patient_name: string | null;
 };
 
