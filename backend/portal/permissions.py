@@ -60,6 +60,8 @@ PAGE_FEEDBACK = "feedback"
 # Reports: a read-only aggregate over food_orders/appointments/patients -- own page key, same
 # "no unique write action but still independently visible" precedent as Live Operations/Feedback.
 PAGE_REPORTS = "reports"
+# Offers & Coupons (migration 0046): real coupon codes redeemable at WhatsApp food-order checkout.
+PAGE_OFFERS = "offers"
 
 # Staff HR: leave and attendance (docs: the CareConnect reference, adapted). my_leave is every
 # person's own leave page (and their notifications); leave_requests is the Manager's review queue;
@@ -74,7 +76,7 @@ PAGE_ATTENDANCE_SETTINGS = "attendance_settings"
 ALL_PAGES = {
     PAGE_DASHBOARD, PAGE_APPOINTMENTS, PAGE_PATIENTS, PAGE_DOCTORS,
     PAGE_MESSAGES, PAGE_SETTINGS, PAGE_STAFF, PAGE_ROLES, PAGE_SCHEDULE, PAGE_DIAGNOSTIC_TESTS,
-    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES, PAGE_LIVE_OPERATIONS, PAGE_FEEDBACK, PAGE_REPORTS,
+    PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES, PAGE_LIVE_OPERATIONS, PAGE_FEEDBACK, PAGE_REPORTS, PAGE_OFFERS,
     PAGE_MY_LEAVE, PAGE_LEAVE_REQUESTS, PAGE_CHECK_IN_OUT, PAGE_ATTENDANCE, PAGE_ATTENDANCE_SETTINGS,
 }
 ACTIONS = ("view", "write", "delete")
@@ -128,6 +130,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_LIVE_OPERATIONS: dict(_VIEW_ONLY),
         PAGE_FEEDBACK: dict(_VIEW_ONLY),
         PAGE_REPORTS: dict(_VIEW_ONLY),
+        PAGE_OFFERS: dict(_VIEW_ONLY),
         **_STAFF_SELF_SERVICE,
     },
     # Kitchen Staff: works the orders and the menu's availability (sold out / stock).
@@ -150,6 +153,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_LIVE_OPERATIONS: dict(_VIEW_ONLY),
         PAGE_FEEDBACK: dict(_VIEW_ONLY),
         PAGE_REPORTS: dict(_NONE),
+        PAGE_OFFERS: dict(_NONE),
         **_STAFF_SELF_SERVICE,
     },
 }

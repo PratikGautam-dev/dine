@@ -64,7 +64,7 @@ def get_delivery_fee_paise(hospital_id: int, fulfillment_type: str) -> int | Non
 def create_food_order(
     hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
     delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
-    payment_method: str = PAYMENT_ONLINE,
+    payment_method: str = PAYMENT_ONLINE, coupon_code: str | None = None,
 ) -> dict:
     """Checkout. `items` is [{"menu_item_id": str, "quantity": int}, ...] --
     every item's current name/price is read and snapshotted here (not passed
@@ -115,22 +115,37 @@ def create_food_order(
             })
             subtotal_paise += menu_row["price_paise"] * quantity
 
+        # Offers (migration 0046): checked and applied INSIDE this same transaction (not before
+        # it) so a capped coupon's usage-count check is atomic against a genuinely concurrent
+        # redemption of the same code -- see redeem_offer_in_conn()'s own docstring.
+        offer_id = None
+        discount_paise = 0
+        if coupon_code:
+            from db.repositories.offers import redeem_offer_in_conn
+            # OfferError (a ValueError) propagates as-is -- the outer except below still rolls
+            # back the transaction (stock already decremented above), it's just a different
+            # exception type than the stock-only IntegrityError case so callers can tell the two
+            # apart and show the guest the right message.
+            offer_id, discount_paise = redeem_offer_in_conn(conn, hospital_id, coupon_code, subtotal_paise, fulfillment_type)
+
         # Flat delivery fee (hospital_settings.home_collection_charge, shown in the
-        # portal as "Delivery fee"); no distance-based pricing.
+        # portal as "Delivery fee"); no distance-based pricing. Discount applies to the
+        # subtotal only, same "before the fee" convention a coupon almost always means.
         delivery_fee_paise = get_delivery_fee_paise(hospital_id, fulfillment_type)
-        total_paise = subtotal_paise + (delivery_fee_paise or 0)
+        total_paise = max(0, subtotal_paise - discount_paise) + (delivery_fee_paise or 0)
 
         reference_id = _generate_reference_id(conn, hospital_id, prefix=ORDER_REFERENCE_ID_PREFIX)
         cur = conn.execute(
             "INSERT INTO food_orders (hospital_id, patient_id, phone, status, fulfillment_type, "
             "delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id, payment_method, "
-            "created_at, updated_at) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "created_at, updated_at, offer_id, discount_paise) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             (hospital_id, resolved_patient_id, phone,
              STATUS_PLACED if payment_method == PAYMENT_AT_RESTAURANT else STATUS_PENDING_PAYMENT,
              fulfillment_type, delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id,
              payment_method,
-             datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat()),
+             datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(),
+             offer_id, discount_paise),
         )
         order_id_row = cur.fetchone()
         assert order_id_row is not None
@@ -234,7 +249,7 @@ _ORDER_COLUMNS = (
     FoodOrder.delivery_fee_paise, FoodOrder.total_paise, FoodOrder.razorpay_order_id,
     FoodOrder.razorpay_payment_id, FoodOrder.razorpay_payment_link_url, FoodOrder.payment_method,
     FoodOrder.reference_id,
-    FoodOrder.created_at, FoodOrder.updated_at,
+    FoodOrder.created_at, FoodOrder.updated_at, FoodOrder.offer_id, FoodOrder.discount_paise,
 )
 
 

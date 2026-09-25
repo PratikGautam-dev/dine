@@ -31,8 +31,10 @@ from core.translations.food_ordering import (
     CATEGORY_ITEM_COUNT,
     CHECKOUT_BUTTON,
     CONFIRM_ORDER_BUTTON,
+    COUPON_HINT_LINE,
     DELIVERY_BUTTON,
     DELIVERY_FEE_LABEL,
+    DISCOUNT_LABEL,
     EDIT_CART_BUTTON,
     EDIT_CART_ITEMS_SECTION,
     EDIT_CART_OTHER_SECTION,
@@ -288,12 +290,21 @@ async def _send_order_review(
     subtotal = _cart_total_paise(cart)
     fee = connector.get_delivery_fee_paise(hospital_id, fulfillment_type)
 
+    coupon = context.get("coupon")  # {"code": str, "offer_id": int, "discount_paise": int} or None
+    discount = coupon["discount_paise"] if coupon else 0
+
     lines = [t(ORDER_REVIEW_HEADING, language), "", _cart_lines_text(cart, language=language), ""]
-    if fee:
+    if fee or discount:
         lines.append(f"{t(SUBTOTAL_LABEL, language)}: {format_price(subtotal)}")
-        lines.append(f"{t(DELIVERY_FEE_LABEL, language)}: {format_price(fee)}")
-    lines.append(f"*{t(TOTAL_LABEL, language)}: {format_price(subtotal + (fee or 0))}*")
+        if discount:
+            lines.append(f"{t(DISCOUNT_LABEL, language, code=coupon['code'])}: -{format_price(discount)}")
+        if fee:
+            lines.append(f"{t(DELIVERY_FEE_LABEL, language)}: {format_price(fee)}")
+    lines.append(f"*{t(TOTAL_LABEL, language)}: {format_price(max(0, subtotal - discount) + (fee or 0))}*")
     lines.append("")
+    if not coupon:
+        lines.append(t(COUPON_HINT_LINE, language))
+        lines.append("")
     if fulfillment_type == "delivery":
         lines.append(t(REVIEW_DELIVERY_LINE, language, address=context.get("delivery_address", "")))
     else:

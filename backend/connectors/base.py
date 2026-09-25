@@ -272,8 +272,11 @@ class Connector(abc.ABC):
     def create_food_order(
         self, hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
         delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
-        payment_method: str = "online",
+        payment_method: str = "online", coupon_code: str | None = None,
     ) -> dict: ...
+
+    @abc.abstractmethod
+    def preview_offer(self, hospital_id: int, coupon_code: str, subtotal_paise: int, fulfillment_type: str) -> dict: ...
 
     @abc.abstractmethod
     def get_menu_item(self, hospital_id: int, menu_item_id: str) -> dict | None: ...
@@ -439,8 +442,11 @@ class _UnimplementedTierConnector(Connector):
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         self._not_implemented("get_menu_items")
 
-    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online"):
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online", coupon_code=None):
         self._not_implemented("create_food_order")
+
+    def preview_offer(self, hospital_id, coupon_code, subtotal_paise, fulfillment_type):
+        self._not_implemented("preview_offer")
 
     def get_menu_item(self, hospital_id, menu_item_id):
         self._not_implemented("get_menu_item")

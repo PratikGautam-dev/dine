@@ -390,6 +390,33 @@ class FoodOrder(Base):
     reference_id: Mapped[str | None]
     created_at: Mapped[str]
     updated_at: Mapped[str]
+    # Offers (migration 0046): the coupon this order redeemed, if any -- offer_id null and
+    # discount_paise 0 for every order placed without a code, including every one that predates
+    # this feature.
+    offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id"))
+    discount_paise: Mapped[int]
+
+
+class Offer(Base):
+    """db/schema.sql's offers table (migration 0046) -- a real coupon code redeemable at
+    WhatsApp food-order checkout (flows/food_ordering/dispatch.py's order-review step). Status is
+    never stored directly; it's derived at read time from is_active/valid_from/valid_to/
+    max_redemptions vs. the real redemption count (db/repositories/offers.py's list_offers())."""
+    __tablename__ = "offers"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    name: Mapped[str]
+    discount_type: Mapped[str]
+    discount_value: Mapped[int]
+    coupon_code: Mapped[str]
+    valid_from: Mapped[str]
+    valid_to: Mapped[str]
+    min_order_value_paise: Mapped[int]
+    max_redemptions: Mapped[int | None]
+    fulfillment_type: Mapped[str | None]
+    is_active: Mapped[bool]
+    created_at: Mapped[str]
 
 
 class FoodOrderItem(Base):

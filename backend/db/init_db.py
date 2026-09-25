@@ -1616,6 +1616,22 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_feedback_hospital ON feedback(hospital_id, created_at)")
 
+    # Migration 0046 -- offers: real coupon codes redeemable at WhatsApp food-order checkout.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS offers ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "name TEXT NOT NULL, discount_type TEXT NOT NULL, discount_value INTEGER NOT NULL, "
+        "coupon_code TEXT NOT NULL, valid_from TEXT NOT NULL, valid_to TEXT NOT NULL, "
+        "min_order_value_paise INTEGER NOT NULL DEFAULT 0, max_redemptions INTEGER, "
+        "fulfillment_type TEXT, is_active BOOLEAN NOT NULL DEFAULT true, created_at TEXT NOT NULL, "
+        "CONSTRAINT offers_discount_type_chk CHECK (discount_type IN ('percentage', 'flat')), "
+        "CONSTRAINT offers_fulfillment_type_chk CHECK (fulfillment_type IS NULL OR fulfillment_type IN ('pickup', 'delivery')))"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_offers_hospital ON offers(hospital_id)")
+    conn.execute("CREATE UNIQUE INDEX IF NOT EXISTS ux_offers_hospital_code ON offers(hospital_id, coupon_code)")
+    conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS offer_id INTEGER REFERENCES offers(id)")
+    conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

@@ -19,6 +19,8 @@ from core.translations import t
 from core.translations.food_ordering import (
     CART_FULL,
     CART_NOW_EMPTY,
+    COUPON_APPLIED,
+    COUPON_INVALID,
     INVALID_CUSTOMER_NAME,
     INVALID_DELIVERY_ADDRESS,
     ITEM_ADDED_TO_CART,
@@ -31,6 +33,7 @@ from core.translations.food_ordering import (
     PAYMENT_NOT_CONFIGURED,
     AWAITING_PAYMENT_REMINDER,
 )
+from db.repositories.offers import OfferError
 from core.whatsapp import WhatsAppClient
 
 from flows.food_ordering.messages import (
@@ -55,7 +58,7 @@ from flows.food_ordering.state import (
     STATE_AWAITING_CART_ACTION, STATE_AWAITING_CART_EDIT, STATE_AWAITING_CUSTOMER_NAME,
     STATE_AWAITING_DELIVERY_ADDRESS, STATE_AWAITING_FULFILLMENT_TYPE, STATE_AWAITING_ITEM_DETAIL,
     STATE_AWAITING_MENU_BROWSE, STATE_AWAITING_MENU_CATEGORY, STATE_AWAITING_ORDER_REVIEW, STATE_AWAITING_PAYMENT,
-    _cart_add_item, _cart_remove_one, _group_by_category, _parse_customer_name,
+    _cart_add_item, _cart_remove_one, _cart_total_paise, _group_by_category, _parse_customer_name,
     _parse_delivery_address,
 )
 
@@ -376,6 +379,19 @@ async def _handle_awaiting_order_review(
         if reply_id == PAY_ONLINE_ID and connector.has_online_payment(hospital_id):
             await _place_order(wa, sessions, phone, hospital_id, context, connector, language, payment_method="online")
             return
+    elif reply["type"] == "text" and reply["text"].strip():
+        # Offers (migration 0046): the order-review screen's only free-text input -- any text
+        # typed here is a coupon-code attempt, checked read-only (preview_offer, no redemption
+        # reserved yet); the real, race-safe redemption happens once at _place_order().
+        code = reply["text"].strip()
+        subtotal = _cart_total_paise(context.get("cart", []))
+        try:
+            preview = connector.preview_offer(hospital_id, code, subtotal, context["fulfillment_type"])
+        except OfferError as exc:
+            await wa.send_text(phone, t(COUPON_INVALID, language, reason=str(exc)))
+        else:
+            context = {**context, "coupon": {"code": preview["coupon_code"], "offer_id": preview["offer_id"], "discount_paise": preview["discount_paise"]}}
+            await wa.send_text(phone, t(COUPON_APPLIED, language, code=preview["coupon_code"]))
     sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_REVIEW, context)
     await _send_order_review(wa, phone, connector, hospital_id, context, language=language)
 
@@ -398,12 +414,25 @@ async def _place_order(
 
     cart = context.get("cart", [])
     items = [{"menu_item_id": line["menu_item_id"], "quantity": line["quantity"]} for line in cart]
+    coupon = context.get("coupon")
     try:
         order = connector.create_food_order(
             hospital_id, phone, items, context["fulfillment_type"],
             delivery_address=context.get("delivery_address"), patient_name=context.get("customer_name"),
             patient_id=context.get("active_patient_id"), payment_method=payment_method,
+            coupon_code=coupon["code"] if coupon else None,
         )
+    except OfferError as exc:
+        # The coupon went stale between the review-screen preview and this confirm tap (its cap
+        # was just hit, it expired, or a staff member deactivated it) -- drop it and let the
+        # guest confirm again at the real (un-discounted) total, same "re-check, don't guess"
+        # discipline as the stock race below.
+        logger.info("coupon redemption failed at checkout for hospital=%s phone=%s: %s", hospital_id, phone, exc)
+        context = {k: v for k, v in context.items() if k != "coupon"}
+        sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_REVIEW, context)
+        await wa.send_text(phone, t(COUPON_INVALID, language, reason=str(exc)))
+        await _send_order_review(wa, phone, connector, hospital_id, context, language=language)
+        return
     except IntegrityError as exc:
         logger.info("food order checkout failed for hospital=%s phone=%s: %s", hospital_id, phone, exc)
         sessions.set(hospital_id, phone, STATE_AWAITING_CART_ACTION, context)

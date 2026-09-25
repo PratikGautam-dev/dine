@@ -155,11 +155,15 @@ class Tier1Connector(Connector):
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         return repo.get_menu_items(hospital_id, category=category, available_only=available_only)
 
-    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online"):
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online", coupon_code=None):
         return repo.create_food_order(
             hospital_id, phone, items, fulfillment_type, delivery_address=delivery_address,
             patient_name=patient_name, patient_id=patient_id, payment_method=payment_method,
+            coupon_code=coupon_code,
         )
+
+    def preview_offer(self, hospital_id, coupon_code, subtotal_paise, fulfillment_type):
+        return repo.preview_offer(hospital_id, coupon_code, subtotal_paise, fulfillment_type)
 
     def get_menu_item(self, hospital_id, menu_item_id):
         return repo.get_menu_item(hospital_id, menu_item_id)

@@ -57,7 +57,13 @@ CART_NOW_EMPTY = "cart_now_empty"
 ORDER_REVIEW_HEADING = "order_review_heading"
 SUBTOTAL_LABEL = "subtotal_label"
 DELIVERY_FEE_LABEL = "delivery_fee_label"
+DISCOUNT_LABEL = "discount_label"
 TOTAL_LABEL = "total_label"
+# Offers (migration 0046): typed at the order-review step, same real coupon a staff member sees
+# usage/revenue for on the portal's Offers page.
+COUPON_HINT_LINE = "coupon_hint_line"
+COUPON_INVALID = "coupon_invalid"
+COUPON_APPLIED = "coupon_applied"
 REVIEW_TAKEAWAY_LINE = "review_takeaway_line"
 REVIEW_DELIVERY_LINE = "review_delivery_line"
 REVIEW_NAME_LINE = "review_name_line"
@@ -185,7 +191,11 @@ STRINGS: dict[str, dict[Language, str]] = {
     ORDER_REVIEW_HEADING: {"en": "🧾 Please review your order", "hi": "🧾 कृपया अपना ऑर्डर देख लें"},
     SUBTOTAL_LABEL: {"en": "Subtotal", "hi": "उप-योग"},
     DELIVERY_FEE_LABEL: {"en": "Delivery fee", "hi": "डिलीवरी शुल्क"},
+    DISCOUNT_LABEL: {"en": "Discount ({code})", "hi": "छूट ({code})"},
     TOTAL_LABEL: {"en": "Total", "hi": "कुल"},
+    COUPON_HINT_LINE: {"en": "💡 Have a coupon? Reply with the code.", "hi": "💡 आपके पास कूपन है? कोड के साथ जवाब दें।"},
+    COUPON_INVALID: {"en": "⚠️ {reason}", "hi": "⚠️ {reason}"},
+    COUPON_APPLIED: {"en": "✅ Coupon {code} applied!", "hi": "✅ कूपन {code} लागू हो गया!"},
     REVIEW_TAKEAWAY_LINE: {"en": "🥡 Takeaway", "hi": "🥡 टेकअवे"},
     REVIEW_DELIVERY_LINE: {"en": "🛵 Delivery to: {address}", "hi": "🛵 डिलीवरी का पता: {address}"},
     REVIEW_NAME_LINE: {"en": "Name: {name}", "hi": "नाम: {name}"},
