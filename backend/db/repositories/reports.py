@@ -22,7 +22,7 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
 
     def _orders_between(start: datetime, end: datetime):
         return session.execute(
-            select(FoodOrder.total_paise, FoodOrder.created_at)
+            select(FoodOrder.total_paise, FoodOrder.created_at, FoodOrder.fulfillment_type)
             .where(
                 FoodOrder.hospital_id == hospital_id, FoodOrder.status.not_in(_TERMINAL_CANCELLED_ORDER_STATUSES),
                 FoodOrder.created_at >= start.isoformat(), FoodOrder.created_at < end.isoformat(),
@@ -126,6 +126,49 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
     ).all()
     top_items = [{"name": r.item_name_snapshot, "orders": r.qty, "revenue_paise": r.revenue_paise} for r in top_items_rows]
 
+    # --- Order channel breakdown: pickup ("Takeaway") vs delivery -- the two real fulfillment
+    # types this app has (no Swiggy/Zomato order channel exists). Dine-in's order COUNT is real
+    # (table reservations in this period); its revenue has no real source (a table booking
+    # doesn't record spend) so it's estimated at the same average order value as WhatsApp food
+    # orders -- an estimate, not a measurement, flagged as such in the field name. ---
+    _FULFILLMENT_LABEL = {"pickup": "Takeaway", "delivery": "Delivery"}
+    channel_totals: dict[str, dict[str, int]] = {"Takeaway": {"orders": 0, "revenue_paise": 0}, "Delivery": {"orders": 0, "revenue_paise": 0}}
+    for o in current_orders:
+        label = _FULFILLMENT_LABEL.get(o.fulfillment_type)
+        if label is None:
+            continue
+        channel_totals[label]["orders"] += 1
+        channel_totals[label]["revenue_paise"] += o.total_paise
+    channel_breakdown = [
+        {
+            "channel": label, "total_orders": t["orders"], "revenue_paise": t["revenue_paise"],
+            "average_order_value_paise": round(t["revenue_paise"] / t["orders"]) if t["orders"] else 0,
+            "revenue_is_estimated": False,
+        }
+        for label, t in channel_totals.items()
+    ]
+    channel_breakdown.append({
+        "channel": "Dine-in", "total_orders": total_reservations,
+        "revenue_paise": total_reservations * avg_order_value, "average_order_value_paise": avg_order_value,
+        "revenue_is_estimated": True,
+    })
+
+    # --- Retention trend: last 6 weeks, % of that week's attended-visit guests who'd ALSO
+    # attended before that week started -- a real, if simple, repeat-rate-over-time series. ---
+    all_attended = session.execute(
+        select(AppointmentRow.patient_id, AppointmentRow.scheduled_at)
+        .where(AppointmentRow.hospital_id == hospital_id, AppointmentRow.status == STATUS_ATTENDED, AppointmentRow.patient_id.isnot(None))
+        .order_by(AppointmentRow.scheduled_at)
+    ).all()
+    retention_trend = []
+    for w in range(5, -1, -1):
+        week_end = now - timedelta(days=7 * w)
+        week_start = week_end - timedelta(days=7)
+        seen_before = {r.patient_id for r in all_attended if r.scheduled_at < week_start.isoformat()}
+        this_week = {r.patient_id for r in all_attended if week_start.isoformat() <= r.scheduled_at < week_end.isoformat()}
+        pct = round((len(this_week & seen_before) / len(this_week)) * 100) if this_week else 0
+        retention_trend.append({"label": week_start.strftime("%d %b"), "repeat_pct": pct})
+
     return {
         "kpis": {
             "total_revenue_paise": revenue, "total_revenue_change_pct": _pct_change(revenue, prev_revenue),
@@ -141,5 +184,7 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
         "reservation_outcomes": reservation_outcomes,
         "peak_order_hours": hours,
         "top_items": top_items,
+        "channel_breakdown": channel_breakdown,
+        "retention_trend": retention_trend,
         "period_days": days,
     }

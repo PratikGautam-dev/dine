@@ -19,6 +19,8 @@ export type ReportsSummary = {
   reservation_outcomes: { department_name: string; count: number }[];
   peak_order_hours: number[];
   top_items: { name: string; orders: number; revenue_paise: number }[];
+  channel_breakdown: { channel: string; total_orders: number; revenue_paise: number; average_order_value_paise: number; revenue_is_estimated: boolean }[];
+  retention_trend: { label: string; repeat_pct: number }[];
   period_days: number;
 };
 
