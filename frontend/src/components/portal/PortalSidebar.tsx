@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  BarChart3,
   CalendarCheck,
   CalendarDays,
   CalendarOff,
@@ -64,6 +65,7 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "patients", label: "Customers", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Operations" },
   { key: "messages", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Operations" },
   { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Operations" },
+  { key: "reports", label: "Reports", icon: BarChart3, href: "/portal/reports", pageKey: "reports", group: "Operations" },
   { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors", group: "Workforce" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
