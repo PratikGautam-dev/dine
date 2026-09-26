@@ -13,9 +13,42 @@ from pydantic import BaseModel
 import db.repository as db
 from portal.deps import get_current_staff, require_permission
 from portal.permission_cache import invalidate
-from portal.permissions import ALL_PAGES, VALID_ROLES, get_permission_matrix
+from portal.permissions import ALL_PAGES, get_assignable_roles, get_permission_matrix, role_key_from_name
 
 router = APIRouter()
+
+
+class CreateRolePayload(BaseModel):
+    name: str
+
+
+@router.post("/api/portal/roles")
+async def create_role(payload: CreateRolePayload, authorization: str | None = Header(default=None)):
+    """Staff & Access's "Add Role" -- a brand-new custom role, starting with every page
+    unchecked (Owner/Manager then grants it whatever it needs from the matrix, same as editing
+    any other role's cells)."""
+    principal = get_current_staff(authorization)
+    if principal is None:
+        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    forbidden = require_permission(principal, "roles", "write")
+    if forbidden:
+        return forbidden
+    name = payload.name.strip()
+    if not name:
+        return JSONResponse({"error": "Role name is required."}, status_code=400)
+    role_key = role_key_from_name(name)
+    if not role_key:
+        return JSONResponse({"error": "Role name must contain at least one letter or number."}, status_code=400)
+    hospital_id = principal.hospital.id
+    if role_key in get_assignable_roles(hospital_id):
+        return JSONResponse({"error": f'A role named "{name}" already exists.'}, status_code=409)
+    db.create_role(hospital_id, role_key, list(ALL_PAGES))
+    invalidate(hospital_id)
+    db.record_audit_log(
+        "portal", hospital_id, f"{principal.name} <staff:{principal.staff_id}>", "roles.create_role",
+        entity_type="role", entity_id=role_key, after={"name": name, "role_key": role_key},
+    )
+    return JSONResponse({"role_key": role_key, "name": name, "permissions": get_permission_matrix(hospital_id)}, status_code=201)
 
 
 @router.get("/api/portal/roles/permissions")
@@ -50,7 +83,7 @@ async def update_permissions(payload: PermissionsUpdatePayload, authorization: s
     if forbidden:
         return forbidden
 
-    valid_roles = set(VALID_ROLES)
+    valid_roles = set(get_assignable_roles(principal.hospital.id))
     errors = []
     rows = []
     for update in payload.updates:

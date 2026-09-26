@@ -14,7 +14,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { cn } from "@/lib/cn";
 import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import { ROLE_LABEL } from "@/lib/staffRoles";
+import { roleLabel } from "@/lib/staffRoles";
 import { useLeaveRequests, type LeaveRequest } from "@/hooks/useHr";
 
 const TABS = [
@@ -43,7 +43,7 @@ function RequestCard({ r, onDecide }: { r: LeaveRequest; onDecide: (id: number, 
       <div className="flex flex-wrap items-start justify-between gap-space-2">
         <div>
           <p className="text-[14px] font-semibold text-ink-900">{r.staff_name}</p>
-          <p className="text-[12px] text-ink-600">{ROLE_LABEL[(r.staff_role ?? "receptionist") as keyof typeof ROLE_LABEL]}</p>
+          <p className="text-[12px] text-ink-600">{roleLabel(r.staff_role ?? "receptionist")}</p>
         </div>
         <Badge tone={LEAVE_STATUS_TONE[r.status]}>{r.status}</Badge>
       </div>
@@ -55,7 +55,7 @@ function RequestCard({ r, onDecide }: { r: LeaveRequest; onDecide: (id: number, 
         <>
           <p className={cn("mt-space-2 text-[12.5px]", crowded ? "font-semibold text-clay-700" : "text-ink-600")}>
             {crowded
-              ? `${r.conflicts!.role_off} of ${r.conflicts!.role_total} other ${ROLE_LABEL[(r.staff_role ?? "receptionist") as keyof typeof ROLE_LABEL]} team member${r.conflicts!.role_total === 1 ? "" : "s"} already off then.`
+              ? `${r.conflicts!.role_off} of ${r.conflicts!.role_total} other ${roleLabel(r.staff_role ?? "receptionist")} team member${r.conflicts!.role_total === 1 ? "" : "s"} already off then.`
               : "No one else in their role is off then."}
             {r.balance && ` ${r.balance.remaining} day${r.balance.remaining === 1 ? "" : "s"} of allowance left.`}
           </p>

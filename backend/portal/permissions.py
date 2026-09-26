@@ -19,6 +19,8 @@ what makes ONE row per (hospital, role, page) (db/schema.sql's
 role_permissions table) sufficient, rather than needing a row per staff
 member.
 """
+import re
+
 from db.repositories.role_permissions import get_role_permissions
 from portal.permission_cache import get_cached_matrix, set_cached_matrix
 
@@ -164,10 +166,29 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
     },
 }
 
-# The three roles a restaurant has (Owner/Manager, Front of House, Kitchen Staff), in display order.
-# The old "doctor" (linked table manager) login role is retired.
+# The three built-in roles every restaurant starts with (Owner/Manager, Front of House, Kitchen
+# Staff), in display order. The old "doctor" (linked table manager) login role is retired.
 ASSIGNABLE_ROLES = ("admin", "receptionist", "kitchen")
 VALID_ROLES = ASSIGNABLE_ROLES
+
+def role_key_from_name(name: str) -> str:
+    """"Cashier" -> "cashier", "Front Desk Lead" -> "front_desk_lead" -- the same role string
+    stored on staff_details.role and role_permissions.role. Collapses any run of non-alphanumeric
+    characters to a single underscore and strips leading/trailing ones, so two names that only
+    differ in punctuation/spacing land on the same key (caught as a duplicate, not silently
+    creating two rows for what a staff member would read as the same role)."""
+    return re.sub(r"[^a-z0-9]+", "_", name.strip().lower()).strip("_")
+
+
+def get_assignable_roles(hospital_id: int) -> tuple[str, ...]:
+    """The 3 built-in roles plus any custom role this hospital has created (create_role() in
+    db/repositories/role_permissions.py seeds a full, real permission-grid row per page for a new
+    role_key -- any role_permissions row for this hospital whose role isn't one of the built-in 3
+    IS a custom role by definition, no separate roles table needed). Used everywhere a role
+    assignment gets validated: staff create/edit (portal/routes/staff.py) and the
+    permission-matrix PUT (portal/routes/roles.py)."""
+    custom = sorted({row["role"] for row in get_role_permissions(hospital_id)} - set(ASSIGNABLE_ROLES))
+    return ASSIGNABLE_ROLES + tuple(custom)
 
 
 def resolve_default_permissions(role: str) -> dict[str, dict[str, bool]]:

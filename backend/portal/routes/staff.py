@@ -20,7 +20,7 @@ import db.repository as db
 from db.repositories.hospitals import hash_portal_password
 from portal.attendance_rules import WEEKDAYS, parse_days, valid_hhmm
 from portal.deps import authorize
-from portal.permissions import ASSIGNABLE_ROLES
+from portal.permissions import get_assignable_roles
 
 router = APIRouter()
 
@@ -177,8 +177,8 @@ async def create_staff(payload: CreateStaffPayload, authorization: str | None = 
         errors.append("A valid email is required.")
     if len(payload.password) < _MIN_PASSWORD:
         errors.append(f"A password of at least {_MIN_PASSWORD} characters is required.")
-    if payload.role not in ASSIGNABLE_ROLES:
-        errors.append("Choose a role: Owner / Manager, Front of House or Kitchen Staff.")
+    if payload.role not in get_assignable_roles(hospital_id):
+        errors.append("Choose a valid role.")
     clean, profile_errors = _clean_profile(hospital_id, None, {k: getattr(payload, k) for k in _EDITABLE})
     errors += profile_errors
     if errors:
@@ -234,8 +234,8 @@ async def update_staff(staff_id: int, payload: UpdateStaffPayload, authorization
 
     new_role = payload.role if "role" in sent else None
     if "role" in sent:
-        if payload.role not in ASSIGNABLE_ROLES:
-            errors.append("Choose a role: Owner / Manager, Front of House or Kitchen Staff.")
+        if payload.role not in get_assignable_roles(hospital_id):
+            errors.append("Choose a valid role.")
         elif is_self and payload.role != target["role"]:
             errors.append("You can't change your own role -- ask another Owner / Manager.")
     new_active = payload.is_active if "is_active" in sent else None

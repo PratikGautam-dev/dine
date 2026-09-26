@@ -14,7 +14,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { cn } from "@/lib/cn";
 import { DAY_STATE, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import { ROLE_LABEL } from "@/lib/staffRoles";
+import { roleLabel } from "@/lib/staffRoles";
 import { useTeamAttendance, type OverviewRow } from "@/hooks/useHr";
 
 const today = () => new Date().toLocaleDateString("en-CA"); // YYYY-MM-DD in the browser's zone
@@ -135,7 +135,7 @@ export default function TeamAttendancePage() {
                       <tr key={r.staff_id} data-testid="overview-row" data-state={r.state} className="border-b border-line last:border-0">
                         <td className="px-space-3 py-space-2">
                           <p className="font-semibold text-ink-900">{r.name}</p>
-                          <p className="text-[12px] text-ink-600">{ROLE_LABEL[r.role as keyof typeof ROLE_LABEL] ?? r.role}</p>
+                          <p className="text-[12px] text-ink-600">{roleLabel(r.role)}</p>
                         </td>
                         <td className="px-space-3 py-space-2">{r.shift_start ? `${r.shift_start}–${r.shift_end}` : "—"}</td>
                         <td className="px-space-3 py-space-2">

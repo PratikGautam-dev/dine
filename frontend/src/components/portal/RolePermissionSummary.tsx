@@ -1,6 +1,5 @@
 import { Card } from "@/components/ui/Card";
 import type { Matrix } from "@/hooks/usePortalRoles";
-import type { StaffRole } from "@/lib/staffAuth";
 
 /** Page keys -> the names people see in the sidebar. Kept next to the roles grid's own labels. */
 export const PAGE_LABEL: Record<string, string> = {
@@ -12,7 +11,7 @@ export const PAGE_LABEL: Record<string, string> = {
 };
 
 /** The pages a role can change and the pages it can only look at, from the live permission matrix. */
-export function summariseRole(matrix: Matrix, role: StaffRole) {
+export function summariseRole(matrix: Matrix, role: string) {
   const cells = matrix[role] || {};
   const label = (key: string) => PAGE_LABEL[key] || key;
   const change = Object.keys(cells).filter((k) => cells[k].write && PAGE_LABEL[k]).map(label);
@@ -21,7 +20,7 @@ export function summariseRole(matrix: Matrix, role: StaffRole) {
 }
 
 /** "What can they do?" for the selected staff member's role -- the real permissions, not a description of them. */
-export function RolePermissionSummary({ matrix, role }: { matrix: Matrix; role: StaffRole }) {
+export function RolePermissionSummary({ matrix, role }: { matrix: Matrix; role: string }) {
   const { change, viewOnly } = summariseRole(matrix, role);
   return (
     <Card className="mt-space-4 p-space-4">

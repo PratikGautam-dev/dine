@@ -1,9 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  Check, ChefHat, CircleCheck, KeyRound, Mail, MoreHorizontal, Pencil, Phone, Plus, Power, Search, ShieldCheck,
+  ChefHat, CircleCheck, KeyRound, Mail, MoreHorizontal, Pencil, Phone, Plus, Power, Search, ShieldCheck,
   Users, UtensilsCrossed, X,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -14,6 +14,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
@@ -27,17 +28,31 @@ import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
 import { cn } from "@/lib/cn";
 import { formatOrderTime } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
-import { usePermission, useStaffSession, type StaffRole } from "@/lib/staffAuth";
-import { ROLE_LABEL, ROLE_OPTIONS, ROLE_TONE } from "@/lib/staffRoles";
+import { usePermission, useStaffSession } from "@/lib/staffAuth";
+import { roleLabel, roleTone, ROLE_OPTIONS } from "@/lib/staffRoles";
 import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { useStaffManagement, type StaffMember } from "@/hooks/useStaffManagement";
+import { createRoleColumns } from "./_components/role-columns";
 
 const SELECT_CLASS = "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 
-// A handful of representative pages for the compact matrix card -- the full grid (every page key)
-// lives on /portal/settings/roles; this is a glance-and-click-through summary, not a duplicate editor.
-const MATRIX_PREVIEW_KEYS = ["appointments", "tables", "food_menu", "food_orders", "staff", "roles"];
-const MATRIX_ROLES: StaffRole[] = ["admin", "receptionist", "kitchen"];
+// Kept in step with backend/portal/permissions.py's ALL_PAGES -- the pages a restaurant actually has.
+const PAGE_KEYS = [
+  "dashboard", "appointments", "patients", "tables", "food_menu", "food_orders", "messages",
+  "doctors", "settings", "staff", "roles", "reports", "offers", "feedback", "automations", "live_operations",
+  "check_in_out", "my_leave", "leave_requests", "attendance", "attendance_settings",
+];
+
+const BUILT_IN_ROLES = ROLE_OPTIONS.map((r) => r.value);
+
+/** Built-in roles first (in their fixed display order), then any hospital-created custom roles
+ * alphabetically -- the order both the role filter dropdown and the matrix cards render in. */
+function orderedRoles(matrix: Record<string, unknown> | null): string[] {
+  if (!matrix) return [];
+  const known = BUILT_IN_ROLES.filter((r) => r in matrix);
+  const custom = Object.keys(matrix).filter((r) => !(BUILT_IN_ROLES as readonly string[]).includes(r)).sort();
+  return [...known, ...custom];
+}
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
@@ -75,7 +90,7 @@ function columnsFor(matrix: ReturnType<typeof usePortalRoles>["matrix"]): Column
       header: "Role",
       cell: ({ row }) => (
         <div className="whitespace-nowrap">
-          <Badge tone={ROLE_TONE[row.original.role]}>{ROLE_LABEL[row.original.role]}</Badge>
+          <Badge tone={roleTone(row.original.role)}>{roleLabel(row.original.role)}</Badge>
         </div>
       ),
     },
@@ -160,9 +175,30 @@ export default function StaffManagementPage() {
   } = useStaffManagement(canView);
   // The real permission matrix, for the "what this role can do" summary (only people who may see Roles get it).
   const canSeeRoles = usePermission("roles", "view");
-  const { matrix } = usePortalRoles(canSeeRoles);
+  const canWriteRoles = usePermission("roles", "write");
+  const { matrix, savingCell, handleToggle, creatingRole, createRole } = usePortalRoles(canSeeRoles);
   const { entries: auditEntries } = usePortalAuditLog(canView);
   const selfId = session?.id ?? null;
+  // Falls back to just the 3 built-ins if this viewer can't see the roles matrix (canSeeRoles
+  // false, so `matrix` never loads) -- the role filter/Add-staff dropdowns must still work.
+  const roles = useMemo(() => (matrix ? orderedRoles(matrix) : BUILT_IN_ROLES), [matrix]);
+  const [addRoleOpen, setAddRoleOpen] = useState(false);
+  const [newRoleName, setNewRoleName] = useState("");
+  const [addRoleError, setAddRoleError] = useState<string | null>(null);
+
+  async function handleAddRole(e: React.FormEvent) {
+    e.preventDefault();
+    setAddRoleError(null);
+    if (!newRoleName.trim()) {
+      setAddRoleError("Role name is required.");
+      return;
+    }
+    const ok = await createRole(newRoleName.trim());
+    if (ok) {
+      setNewRoleName("");
+      setAddRoleOpen(false);
+    }
+  }
   async function reactivate(member: StaffMember) {
     const problem = await setActive(member, true);
     if (problem) toast.error("Couldn't reactivate", problem);
@@ -246,10 +282,10 @@ export default function StaffManagementPage() {
                 onChange={(e) => setSearch(e.target.value)}
               />
             </div>
-            <select aria-label="Filter by role" className={SELECT_CLASS} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value as typeof roleFilter)}>
+            <select aria-label="Filter by role" className={SELECT_CLASS} value={roleFilter} onChange={(e) => setRoleFilter(e.target.value)}>
               <option value="">All roles</option>
-              {ROLE_OPTIONS.map((r) => (
-                <option key={r.value} value={r.value}>{r.label}</option>
+              {roles.map((r) => (
+                <option key={r} value={r}>{roleLabel(r)}</option>
               ))}
             </select>
             <select aria-label="Filter by status" className={SELECT_CLASS} value={statusFilter} onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}>
@@ -276,48 +312,47 @@ export default function StaffManagementPage() {
             )}
           </Card>
 
-          <div className="mt-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">
-            {canSeeRoles && matrix && (
-              <Card className="p-space-4">
-                <div className="mb-space-3 flex items-center justify-between">
-                  <h3 className="text-[15px] font-bold text-ink-900">Roles & Permissions Matrix</h3>
-                  <Button href="/portal/settings/roles" variant="secondary" size="md">View All</Button>
+          {canSeeRoles && (
+            <div className="mt-space-4">
+              <div className="mb-space-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[15px] font-bold text-ink-900">Roles &amp; Permissions</h3>
+                  <p className="text-hint">What each role can view, change, and delete across the portal.</p>
                 </div>
-                <div className="overflow-x-auto">
-                  <table className="w-full text-[12.5px]">
-                    <thead>
-                      <tr className="border-b border-line text-left text-ink-600">
-                        <th className="py-space-2 pr-space-2 font-semibold">Permission</th>
-                        {MATRIX_ROLES.map((r) => (
-                          <th key={r} className="px-space-2 py-space-2 text-center font-semibold whitespace-nowrap">{ROLE_LABEL[r]}</th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {MATRIX_PREVIEW_KEYS.map((key) => (
-                        <tr key={key} className="border-b border-line last:border-0">
-                          <td className="py-space-2 pr-space-2 font-medium text-ink-900 whitespace-nowrap">{PAGE_LABEL[key] || key}</td>
-                          {MATRIX_ROLES.map((r) => {
-                            const cell = matrix[r]?.[key];
-                            return (
-                              <td key={r} className="px-space-2 py-space-2 text-center">
-                                {cell?.write ? (
-                                  <Check size={15} className="mx-auto text-success" />
-                                ) : cell?.view ? (
-                                  <Check size={15} className="mx-auto text-warning" />
-                                ) : (
-                                  <X size={15} className="mx-auto text-ink-300" />
-                                )}
-                              </td>
-                            );
-                          })}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                <PermissionGate page="roles" action="write">
+                  <Button size="md" onClick={() => setAddRoleOpen(true)}><Plus size={14} /> Add Role</Button>
+                </PermissionGate>
+              </div>
+              {!matrix ? (
+                <p className="text-[13px] text-ink-400">Loading…</p>
+              ) : (
+                <div className="space-y-space-4">
+                  {roles.map((role) => {
+                    const columns = createRoleColumns({
+                      pageLabel: PAGE_LABEL,
+                      cellFor: (pageKey) => matrix[role]?.[pageKey] || { view: false, write: false, delete: false },
+                      canWrite: canWriteRoles,
+                      isSaving: (pageKey, action) => savingCell === `${role}:${pageKey}:${action}`,
+                      onToggle: (pageKey, action, next) => handleToggle(role, pageKey, action, next),
+                    });
+                    return (
+                      <Card key={role} className="p-space-4">
+                        <div className="mb-space-3 flex items-center gap-space-2">
+                          <Badge tone={roleTone(role)}>{roleLabel(role)}</Badge>
+                          {!(BUILT_IN_ROLES as readonly string[]).includes(role) && (
+                            <span className="text-[11px] text-ink-400">Custom role</span>
+                          )}
+                        </div>
+                        <DataTable columns={columns} data={PAGE_KEYS} getRowId={(pageKey) => pageKey} />
+                      </Card>
+                    );
+                  })}
                 </div>
-              </Card>
-            )}
+              )}
+            </div>
+          )}
+
+          <div className="mt-space-4">
             <StaffActivityCard ready={canView} staff={staff} />
           </div>
         </div>
@@ -340,7 +375,7 @@ export default function StaffManagementPage() {
                     <h3 className="truncate text-[15px] font-bold text-ink-900">{selected.name}</h3>
                     <Badge tone={selected.is_active ? "success" : "neutral"}>{selected.is_active ? "Active" : "Deactivated"}</Badge>
                   </div>
-                  <p className="text-[12.5px] text-ink-600">{ROLE_LABEL[selected.role]}</p>
+                  <p className="text-[12.5px] text-ink-600">{roleLabel(selected.role)}</p>
                 </div>
               </div>
               <div className="mb-space-4 space-y-space-2 text-[13px]">
@@ -400,7 +435,11 @@ export default function StaffManagementPage() {
       </div>
 
       {dialog?.kind === "add" && (
-        <StaffFormDialog member={null} isSelf={false} sections={sections} managers={managersFor(null)} onSubmit={addStaff} onClose={() => setDialog(null)} />
+        <StaffFormDialog
+          member={null} isSelf={false} sections={sections} managers={managersFor(null)}
+          customRoles={roles.filter((r) => !(BUILT_IN_ROLES as readonly string[]).includes(r))}
+          onSubmit={addStaff} onClose={() => setDialog(null)}
+        />
       )}
       {dialog?.kind === "edit" && (
         <StaffFormDialog
@@ -408,6 +447,7 @@ export default function StaffManagementPage() {
           isSelf={dialog.member.id === selfId}
           sections={sections}
           managers={managersFor(dialog.member.id)}
+          customRoles={roles.filter((r) => !(BUILT_IN_ROLES as readonly string[]).includes(r))}
           onSubmit={(values) => editStaff(dialog.member, values)}
           onClose={() => setDialog(null)}
         />
@@ -429,6 +469,27 @@ export default function StaffManagementPage() {
           if (problem) toast.error("Couldn't deactivate", problem);
         }}
       />
+
+      {addRoleOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={() => setAddRoleOpen(false)}>
+          <div className="w-full max-w-[380px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-space-4 flex items-center justify-between">
+              <h2 className="text-[16px] font-semibold text-ink-900">Add Role</h2>
+              <button type="button" onClick={() => setAddRoleOpen(false)} className="text-ink-400 hover:text-ink-900"><X size={18} /></button>
+            </div>
+            <form onSubmit={handleAddRole}>
+              <Field label="Role name" htmlFor="new-role-name" required hint='e.g. "Cashier" -- starts with no access; grant it what it needs from the matrix below.'>
+                <Input id="new-role-name" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. Cashier" autoFocus />
+              </Field>
+              {addRoleError && <p className="mb-space-3 text-[12.5px] font-medium text-error">{addRoleError}</p>}
+              <div className="flex justify-end gap-space-2">
+                <Button type="button" variant="secondary" onClick={() => setAddRoleOpen(false)} disabled={creatingRole}>Cancel</Button>
+                <Button type="submit" disabled={creatingRole || !newRoleName.trim()}>{creatingRole ? "Adding…" : "Add Role"}</Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </PortalShell>
   );
 }

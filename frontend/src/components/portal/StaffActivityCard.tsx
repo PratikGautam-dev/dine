@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
 import type { StaffMember } from "@/hooks/useStaffManagement";
 import { formatOrderTime } from "@/lib/foodOrders";
-import { ROLE_LABEL } from "@/lib/staffRoles";
+import { roleLabel } from "@/lib/staffRoles";
 import { usePermission } from "@/lib/staffAuth";
 
 type Icon = typeof UserPlus;
@@ -16,8 +16,8 @@ const who = (label: string | undefined) => (label || "Someone").replace(/\s*<[^>
 function describe(action: string, person: string, after: Record<string, unknown> | null): { text: string; icon: Icon } | null {
   switch (action) {
     case "staff.create": {
-      const role = after?.role as keyof typeof ROLE_LABEL | undefined;
-      return { text: `Added ${person}${role && ROLE_LABEL[role] ? ` as ${ROLE_LABEL[role]}` : ""}`, icon: UserPlus };
+      const role = after?.role as string | undefined;
+      return { text: `Added ${person}${role ? ` as ${roleLabel(role)}` : ""}`, icon: UserPlus };
     }
     case "staff.change_role": return { text: `Changed the role of ${person}`, icon: UserCog };
     case "staff.reset_password": return { text: `Reset the password of ${person}`, icon: KeyRound };

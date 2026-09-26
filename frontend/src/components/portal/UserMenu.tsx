@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { clearPortalSession } from "@/lib/portalAuth";
 import { useStaffSession } from "@/lib/staffAuth";
-import { ROLE_LABEL } from "@/lib/staffRoles";
+import { roleLabel } from "@/lib/staffRoles";
 
 /** The signed-in person, top right: their initial, name and role, with Log out in the menu. All from the real
  * staff session -- renders nothing until it has loaded. */
@@ -27,7 +27,7 @@ export function UserMenu() {
         </span>
         <span className="hidden text-left leading-tight sm:block">
           <span className="block max-w-[160px] truncate text-[13px] font-semibold text-ink-900">{session.name}</span>
-          <span className="block text-[11.5px] text-ink-600">{ROLE_LABEL[session.role]}</span>
+          <span className="block text-[11.5px] text-ink-600">{roleLabel(session.role)}</span>
         </span>
         <ChevronDown size={15} className="hidden text-ink-400 sm:block" />
       </DropdownMenuTrigger>

@@ -1648,6 +1648,12 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_automation_runs_automation ON automation_runs(automation_id)")
 
+    # Migration 0048 -- custom_roles: roles are no longer a fixed 3-value enum (Staff & Access's
+    # "Add Role"); drop the CHECK constraints that used to enforce that list. No replacement --
+    # DROP CONSTRAINT IF EXISTS makes this safe to re-run even after the constraint is long gone.
+    conn.execute("ALTER TABLE role_permissions DROP CONSTRAINT IF EXISTS ck_role_permissions_role")
+    conn.execute("ALTER TABLE staff_details DROP CONSTRAINT IF EXISTS ck_staff_details_role")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

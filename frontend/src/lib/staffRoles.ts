@@ -21,3 +21,21 @@ export const ROLE_TONE: Record<StaffRole, "brand" | "clay" | "neutral"> = {
   kitchen: "neutral",
   doctor: "neutral",
 };
+
+// Staff & Access "Add Role": a hospital-created custom role is just another role_permissions.role
+// value the backend already treats as a first-class role (portal.permissions.get_permission_matrix()
+// groups by whatever it finds, no fixed list) -- these two helpers give it a readable label/badge
+// color without needing every one of ROLE_LABEL/ROLE_TONE's call sites to know about custom roles.
+const CUSTOM_ROLE_TONES = ["violet", "warning", "success"] as const;
+
+export function roleLabel(role: string): string {
+  if (role in ROLE_LABEL) return ROLE_LABEL[role as StaffRole];
+  return role.split("_").filter(Boolean).map((w) => w[0].toUpperCase() + w.slice(1)).join(" ");
+}
+
+export function roleTone(role: string): "brand" | "clay" | "neutral" | "violet" | "warning" | "success" {
+  if (role in ROLE_TONE) return ROLE_TONE[role as StaffRole];
+  let hash = 0;
+  for (let i = 0; i < role.length; i++) hash = (hash * 31 + role.charCodeAt(i)) >>> 0;
+  return CUSTOM_ROLE_TONES[hash % CUSTOM_ROLE_TONES.length];
+}

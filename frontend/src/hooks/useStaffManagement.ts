@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { staffFetch, type StaffRole } from "@/lib/staffAuth";
+import { staffFetch } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 export type StaffMember = {
   id: number;
   name: string;
   email: string;
-  role: StaffRole;
+  // A plain string, not the fixed StaffRole union -- Staff & Access's "Add Role" means this can
+  // be any hospital-created custom role_key, not just the 3 built-ins.
+  role: string;
   is_active: boolean;
   employee_id: string | null;
   phone: string | null;
@@ -27,7 +29,7 @@ export type StaffFormValues = {
   name: string;
   email: string;
   password: string;
-  role: StaffRole;
+  role: string;
   phone: string;
   address: string;
   department_id: string;
@@ -61,7 +63,7 @@ export function useStaffManagement(canView: boolean) {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [dialog, setDialog] = useState<StaffDialog>(null);
   const [search, setSearch] = useState("");
-  const [roleFilter, setRoleFilter] = useState<"" | StaffRole>("");
+  const [roleFilter, setRoleFilter] = useState<string>("");
   const [statusFilter, setStatusFilter] = useState<"" | "active" | "inactive">("");
 
   const load = useCallback(async () => {

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { staffFetch, type StaffRole } from "@/lib/staffAuth";
+import { staffFetch } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 export type Action = "view" | "write" | "delete";
 export type PagePerms = Record<Action, boolean>;
-export type Matrix = Record<StaffRole, Record<string, PagePerms>>;
+// A plain string role key, not the fixed StaffRole union -- a hospital-created custom role
+// (Staff & Access's "Add Role") shows up here as just another key, same as the 3 built-in roles.
+export type Matrix = Record<string, Record<string, PagePerms>>;
 
 /** Loads + owns every mutation on the /portal/settings/roles permission
  * matrix -- one optimistic-update PUT per checkbox toggle, rolled back on
@@ -17,6 +19,7 @@ export function usePortalRoles(canView: boolean) {
   // Tracks the single cell currently in flight, e.g. "admin:staff:write", so
   // only that checkbox shows a pending state while its PUT resolves.
   const [savingCell, setSavingCell] = useState<string | null>(null);
+  const [creatingRole, setCreatingRole] = useState(false);
 
   const load = useCallback(async () => {
     const result = await staffFetch("/api/portal/roles/permissions");
@@ -32,7 +35,25 @@ export function usePortalRoles(canView: boolean) {
     if (canView) load();
   }, [canView, load]);
 
-  async function handleToggle(role: StaffRole, pageKey: string, action: Action, next: boolean) {
+  async function createRole(name: string): Promise<boolean> {
+    setCreatingRole(true);
+    const result = await staffFetch("/api/portal/roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name }),
+    });
+    setCreatingRole(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't add role", result.error);
+      return false;
+    }
+    toast.success(`"${name}" added`, "Grant it access from the matrix below.");
+    setMatrix((result.data as { permissions: Matrix }).permissions);
+    return true;
+  }
+
+  async function handleToggle(role: string, pageKey: string, action: Action, next: boolean) {
     if (!matrix) return;
     const cellKey = `${role}:${pageKey}:${action}`;
     const prevCell = matrix[role][pageKey];
@@ -73,5 +94,5 @@ export function usePortalRoles(canView: boolean) {
     }
   }
 
-  return { matrix, error, savingCell, handleToggle };
+  return { matrix, error, savingCell, handleToggle, creatingRole, createRole };
 }

@@ -16,7 +16,6 @@ import {
   MessageSquareText,
   Radio,
   Settings,
-  ShieldCheck,
   Soup,
   UserCheck,
   UtensilsCrossed,
@@ -82,8 +81,9 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
   { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
-  { key: "staff", label: "Staff", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
-  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },
+  // Roles & Permissions used to be its own page -- folded into Staff & Access (its matrix now
+  // lives there directly, with "Add Role") since the two were always edited side by side anyway.
+  { key: "staff", label: "Staff & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
 ];
 
 type Props = {

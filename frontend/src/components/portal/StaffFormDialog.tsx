@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { WEEKDAYS } from "@/lib/hr";
-import { ROLE_OPTIONS } from "@/lib/staffRoles";
+import { roleLabel, ROLE_OPTIONS } from "@/lib/staffRoles";
 import type { Section, StaffFormValues, StaffMember } from "@/hooks/useStaffManagement";
 import { emptyStaffForm } from "@/hooks/useStaffManagement";
 
@@ -19,13 +19,16 @@ type Props = {
   sections: Section[];
   /** Active teammates the person could report to (already excludes the person being edited). */
   managers: { id: number; name: string }[];
+  /** Hospital-created custom role_keys (Staff & Access's "Add Role") beyond the 3 built-in
+   * ROLE_OPTIONS -- shown with a computed label (roleLabel()), no blurb. */
+  customRoles?: string[];
   onSubmit: (values: StaffFormValues) => Promise<string | null>;
   onClose: () => void;
 };
 
 /** Add or edit a team member. Email and password are only asked for when adding (a password is reset
  * separately, and the email is their sign-in). The server has the final say on every rule. */
-export function StaffFormDialog({ member, isSelf, sections, managers, onSubmit, onClose }: Props) {
+export function StaffFormDialog({ member, isSelf, sections, managers, customRoles = [], onSubmit, onClose }: Props) {
   const [form, setForm] = useState<StaffFormValues>(
     member
       ? {
@@ -80,9 +83,12 @@ export function StaffFormDialog({ member, isSelf, sections, managers, onSubmit, 
               </>
             )}
             <Field label="Role" htmlFor="sf-role" hint={isSelf ? "You can't change your own role." : blurb} className="sm:col-span-2">
-              <select id="sf-role" className={SELECT_CLASS} value={form.role} disabled={isSelf} onChange={(e) => set({ role: e.target.value as StaffFormValues["role"] })}>
+              <select id="sf-role" className={SELECT_CLASS} value={form.role} disabled={isSelf} onChange={(e) => set({ role: e.target.value })}>
                 {ROLE_OPTIONS.map((r) => (
                   <option key={r.value} value={r.value}>{r.label}</option>
+                ))}
+                {customRoles.map((key) => (
+                  <option key={key} value={key}>{roleLabel(key)}</option>
                 ))}
               </select>
             </Field>

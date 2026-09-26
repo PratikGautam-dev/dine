@@ -50,6 +50,27 @@ def seed_default_role_permissions(hospital_id: int, rows: list[dict]) -> None:
     session.commit()
 
 
+def create_role(hospital_id: int, role_key: str, page_keys: list[str]) -> None:
+    """Staff & Access's "Add Role" -- seeds a full, real all-False permission grid (one row per
+    page) for a brand-new custom role, same shape seed_default_role_permissions() gives the 3
+    built-in roles at onboarding, just triggered by an admin instead of the onboarding wizard.
+    Once these rows exist, portal.permissions.get_permission_matrix() picks the role up
+    automatically (it groups by whatever `role` values it finds, not a fixed list) -- there's
+    nothing else to "register" a role. ON CONFLICT DO NOTHING makes a duplicate call (a retried
+    request) a safe no-op; the caller (the roles route) already checks for a name collision
+    up front and returns a clear 409 before ever reaching here."""
+    if not page_keys:
+        return
+    session = get_session()
+    stmt = pg_insert(RolePermission).values([
+        {"hospital_id": hospital_id, "role": role_key, "page_key": page, "can_view": False, "can_write": False, "can_delete": False}
+        for page in page_keys
+    ])
+    stmt = stmt.on_conflict_do_nothing(index_elements=[RolePermission.hospital_id, RolePermission.role, RolePermission.page_key])
+    session.execute(stmt)
+    session.commit()
+
+
 def upsert_role_permissions(hospital_id: int, updates: list[dict]) -> None:
     """PUT /api/portal/roles/permissions's write path -- `updates` is a list
     of {role, page_key, can_view, can_write, can_delete} dicts for the cells
