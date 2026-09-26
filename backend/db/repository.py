@@ -33,6 +33,7 @@ from db.repositories.patients import *  # noqa: F401,F403
 from db.repositories.feedback import *  # noqa: F401,F403
 from db.repositories.reports import *  # noqa: F401,F403
 from db.repositories.offers import *  # noqa: F401,F403
+from db.repositories.automations import *  # noqa: F401,F403
 from db.repositories.patient_records import *  # noqa: F401,F403
 from db.repositories.appointment_types import *  # noqa: F401,F403
 from db.repositories.procedures import *  # noqa: F401,F403

@@ -1632,6 +1632,22 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS offer_id INTEGER REFERENCES offers(id)")
     conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS discount_paise INTEGER NOT NULL DEFAULT 0")
 
+    # Migration 0047 -- automations: real trigger -> WhatsApp message rules (feedback_received wired first).
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS automations ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "name TEXT NOT NULL, trigger_event TEXT NOT NULL, message_text TEXT NOT NULL, "
+        "delay_minutes INTEGER NOT NULL DEFAULT 0, is_active BOOLEAN NOT NULL DEFAULT true, created_at TEXT NOT NULL, "
+        "CONSTRAINT automations_trigger_event_chk CHECK (trigger_event IN ('feedback_received')))"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_automations_hospital_trigger ON automations(hospital_id, trigger_event, is_active)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS automation_runs ("
+        "id SERIAL PRIMARY KEY, automation_id INTEGER NOT NULL REFERENCES automations(id), "
+        "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), phone TEXT NOT NULL, ran_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_automation_runs_automation ON automation_runs(automation_id)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

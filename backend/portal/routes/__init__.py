@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from portal.routes.appointment_types import router as appointment_types_router
 from portal.routes.attendance import router as attendance_router
+from portal.routes.automations import router as automations_router
 from portal.routes.auth import router as auth_router
 from portal.routes.bookings import router as bookings_router
 from portal.routes.dashboard import router as dashboard_router
@@ -45,6 +46,7 @@ router.include_router(live_operations_router)
 router.include_router(feedback_router)
 router.include_router(reports_router)
 router.include_router(offers_router)
+router.include_router(automations_router)
 # RBAC (docs/rbac-redis-plan.md): unified staff login + the roles/permissions
 # and staff-management admin UIs -- additive alongside auth_router/
 # doctor_auth_router above, not a replacement, during the dual-path

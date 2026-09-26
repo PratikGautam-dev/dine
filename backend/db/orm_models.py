@@ -664,6 +664,37 @@ class Feedback(Base):
     created_at: Mapped[str]
 
 
+class Automation(Base):
+    """db/schema.sql's automations table (migration 0047) -- a real trigger -> WhatsApp message
+    rule. Today only trigger_event='feedback_received' is actually wired (flows/router.py's
+    give_feedback dispatch checks for an active one and sends its message.text instead of the
+    hardcoded thank-you); more trigger types get added here as each one is really wired, per
+    docs/Spec.md's phased plan -- never add a value the dispatch layer doesn't actually handle.
+    delay_minutes is stored but NOT enforced (no job scheduler exists for an arbitrary delay)."""
+    __tablename__ = "automations"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    name: Mapped[str]
+    trigger_event: Mapped[str]
+    message_text: Mapped[str]
+    delay_minutes: Mapped[int]
+    is_active: Mapped[bool]
+    created_at: Mapped[str]
+
+
+class AutomationRun(Base):
+    """db/schema.sql's automation_runs table (migration 0047) -- one row per real send, so the
+    portal's "times triggered" is always a live count, never a stored counter that can drift."""
+    __tablename__ = "automation_runs"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    automation_id: Mapped[int] = mapped_column(ForeignKey("automations.id"))
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    phone: Mapped[str]
+    ran_at: Mapped[str]
+
+
 class PatientLink(Base):
     """db/schema.sql's patient_links table -- the full mapping. See
     PatientRow's docstring for the same "advisory-lock code stays raw"

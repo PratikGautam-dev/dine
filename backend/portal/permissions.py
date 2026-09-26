@@ -62,6 +62,9 @@ PAGE_FEEDBACK = "feedback"
 PAGE_REPORTS = "reports"
 # Offers & Coupons (migration 0046): real coupon codes redeemable at WhatsApp food-order checkout.
 PAGE_OFFERS = "offers"
+# Automations (migration 0047): real trigger -> WhatsApp message rules (feedback_received wired
+# first) -- the Messages & Automations page's one real section.
+PAGE_AUTOMATIONS = "automations"
 
 # Staff HR: leave and attendance (docs: the CareConnect reference, adapted). my_leave is every
 # person's own leave page (and their notifications); leave_requests is the Manager's review queue;
@@ -77,6 +80,7 @@ ALL_PAGES = {
     PAGE_DASHBOARD, PAGE_APPOINTMENTS, PAGE_PATIENTS, PAGE_DOCTORS,
     PAGE_MESSAGES, PAGE_SETTINGS, PAGE_STAFF, PAGE_ROLES, PAGE_SCHEDULE, PAGE_DIAGNOSTIC_TESTS,
     PAGE_FOOD_MENU, PAGE_FOOD_ORDERS, PAGE_TABLES, PAGE_LIVE_OPERATIONS, PAGE_FEEDBACK, PAGE_REPORTS, PAGE_OFFERS,
+    PAGE_AUTOMATIONS,
     PAGE_MY_LEAVE, PAGE_LEAVE_REQUESTS, PAGE_CHECK_IN_OUT, PAGE_ATTENDANCE, PAGE_ATTENDANCE_SETTINGS,
 }
 ACTIONS = ("view", "write", "delete")
@@ -131,6 +135,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_FEEDBACK: dict(_VIEW_ONLY),
         PAGE_REPORTS: dict(_VIEW_ONLY),
         PAGE_OFFERS: dict(_VIEW_ONLY),
+        PAGE_AUTOMATIONS: dict(_NONE),
         **_STAFF_SELF_SERVICE,
     },
     # Kitchen Staff: works the orders and the menu's availability (sold out / stock).
@@ -154,6 +159,7 @@ DEFAULT_PERMISSIONS_BY_ROLE: dict[str, dict[str, dict[str, bool]]] = {
         PAGE_FEEDBACK: dict(_VIEW_ONLY),
         PAGE_REPORTS: dict(_NONE),
         PAGE_OFFERS: dict(_NONE),
+        PAGE_AUTOMATIONS: dict(_NONE),
         **_STAFF_SELF_SERVICE,
     },
 }

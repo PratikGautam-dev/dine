@@ -4,27 +4,33 @@ import { useState } from "react";
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import {
   ArrowLeft, Bell, Cake, Calendar, CalendarClock, CheckCircle2, Circle, Clock, Copy, Edit3, Headphones,
-  Megaphone, MessageCircle, MoreHorizontal, Plus, Power, Search, Send, ShoppingCart, UserX, XCircle,
+  Megaphone, MessageCircle, MoreHorizontal, Plus, Power, Search, Send, ShoppingCart, Star, UserX, XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Input } from "@/components/ui/Input";
+import { Field } from "@/components/ui/Field";
+import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
+import { useAutomations, type NewAutomationFields } from "@/hooks/useAutomations";
 
 // ---------------------------------------------------------------------------------------------
-// PREVIEW ONLY. Every value on this page is static, hardcoded demo data -- nothing here is
-// fetched from the backend or written to the database. There is no Meta message-template system,
-// no delivery-status tracking, and no automation rule engine in this app yet -- see docs/Spec.md's
-// "Messages & Automations (planned — not yet built)" note for what real would actually require
-// and the order it'd need to be built in. Confirmed with the user: build the look now, the
-// substance later.
+// Templates, template preview, performance analytics, and most of Trigger & Event Mapping below
+// are still a PREVIEW ONLY -- static, hardcoded demo data, nothing fetched or persisted. See
+// docs/Spec.md's "Messages & Automations (planned — not yet built)" note.
+//
+// The "Automation Workflow" card and the "Feedback Received" trigger row ARE real (migration
+// 0047): a guest who rates you 1-5 on WhatsApp genuinely gets whichever message you configure
+// there, logged for real in automation_runs -- the one wired trigger so far, per Spec.md's
+// phased plan. "Wait N minutes" is stored but NOT enforced yet (no job scheduler exists for an
+// arbitrary delay) -- every automation sends immediately regardless of its configured delay.
 // ---------------------------------------------------------------------------------------------
 
 function comingSoon(label: string) {
@@ -63,19 +69,14 @@ const TEMPLATES: Template[] = [
   { id: 8, name: "abandoned_cart", category: "order", categoryLabel: "Order", icon: ShoppingCart, messageType: "Marketing", status: "Active", approval: "Pending", lastUpdated: "16 Apr 2025", preview: "You left some tasty items in your cart 🛒 Complete your order before they're gone!" },
 ];
 
-const AUTOMATION_STEPS = [
-  { icon: Calendar, tone: "success", label: "Trigger", detail: "New booking created" },
-  { icon: Clock, tone: "warning", label: "Delay", detail: "Wait 1 minute" },
-  { icon: MessageCircle, tone: "brand", label: "Send WhatsApp Message", detail: "booking_confirmation" },
-  { icon: CheckCircle2, tone: "info", label: "End", detail: "Workflow complete" },
-] as const;
-
 const STEP_TONE: Record<string, string> = {
   success: "bg-success-tint text-success border-success/20",
   warning: "bg-warning-tint text-warning border-warning/20",
   brand: "bg-brand-50 text-brand-700 border-brand-200",
   info: "bg-info-tint text-info border-info/20",
 };
+
+const TRIGGER_EVENT_LABEL: Record<string, string> = { feedback_received: "Feedback Received" };
 
 const ANALYTICS_TREND = [
   { label: "22 Apr", sent: 620, delivered: 590, failed: 40, replied: 190 },
@@ -87,16 +88,18 @@ const ANALYTICS_TREND = [
   { label: "28 Apr", sent: 1248, delivered: 1180, failed: 22, replied: 525 },
 ];
 
-type TriggerRow = { icon: typeof Calendar; event: string; sub?: string; automation: string; status: "Active" | "Paused" };
+// Feedback Received is rendered separately, from real automations data -- these are the
+// remaining rows the mockup showed, kept as an honest "Preview" (not "Active") since none of
+// them are wired to a real dispatch call site yet.
+type TriggerRow = { icon: typeof Calendar; event: string; sub?: string; automation: string };
 const TRIGGER_ROWS: TriggerRow[] = [
-  { icon: Calendar, event: "New Booking Created", automation: "Send confirmation", status: "Active" },
-  { icon: Clock, event: "Booking Reminder", sub: "(2 hours before)", automation: "Send reminder", status: "Active" },
-  { icon: ShoppingCart, event: "Order Placed", automation: "Send confirmation", status: "Active" },
-  { icon: Send, event: "Order Out for Delivery", automation: "Send update", status: "Active" },
-  { icon: Headphones, event: "Support Ticket Created", automation: "Send acknowledgement", status: "Active" },
-  { icon: MessageCircle, event: "Feedback Received", automation: "Send thank you", status: "Active" },
-  { icon: UserX, event: "Inactive Customer", sub: "(7 days)", automation: "Send re-engagement offer", status: "Paused" },
-  { icon: Cake, event: "Birthday (from profile)", automation: "Send special offer", status: "Active" },
+  { icon: Calendar, event: "New Booking Created", automation: "Send confirmation" },
+  { icon: Clock, event: "Booking Reminder", sub: "(2 hours before)", automation: "Send reminder" },
+  { icon: ShoppingCart, event: "Order Placed", automation: "Send confirmation" },
+  { icon: Send, event: "Order Out for Delivery", automation: "Send update" },
+  { icon: Headphones, event: "Support Ticket Created", automation: "Send acknowledgement" },
+  { icon: UserX, event: "Inactive Customer", sub: "(7 days)", automation: "Send re-engagement offer" },
+  { icon: Cake, event: "Birthday (from profile)", automation: "Send special offer" },
 ];
 
 export default function PortalMessagesAutomationsPage() {
@@ -104,9 +107,20 @@ export default function PortalMessagesAutomationsPage() {
   const [tab, setTab] = useState<(typeof CATEGORY_TABS)[number]["key"]>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Template>(TEMPLATES[0]);
-  const [workflow, setWorkflow] = useState("Booking Confirmation Flow");
+  const { automations, triggerEvents, creating, createAutomation, toggleAutomation } = useAutomations(ready);
+  const [newAutomation, setNewAutomation] = useState<NewAutomationFields>({ name: "", trigger_event: "feedback_received", message_text: "", delay_minutes: 0 });
+  const [showNewForm, setShowNewForm] = useState(false);
 
   const visibleTemplates = TEMPLATES.filter((t) => (tab === "all" || t.category === tab) && (!search.trim() || t.name.toLowerCase().includes(search.trim().toLowerCase())));
+
+  async function handleCreateAutomation(e: React.FormEvent) {
+    e.preventDefault();
+    const ok = await createAutomation(newAutomation);
+    if (ok) {
+      setNewAutomation({ name: "", trigger_event: "feedback_received", message_text: "", delay_minutes: 0 });
+      setShowNewForm(false);
+    }
+  }
 
   return (
     <PortalShell hospital={hospital} active="settings">
@@ -118,12 +132,12 @@ export default function PortalMessagesAutomationsPage() {
       />
 
       <div className="mb-space-3 rounded-md border border-warning/30 bg-warning-tint px-space-3 py-space-2 text-[12.5px] font-medium text-warning">
-        Preview only — templates, workflows and analytics below are illustrative demo data, not real yet. See docs/Spec.md for the build plan.
+        Preview only below (templates, performance analytics, most trigger rows) — illustrative demo data, not real yet. The <strong>Automation Workflow</strong> card and the <strong>Feedback Received</strong> row are real. See docs/Spec.md for the build plan.
       </div>
 
       <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile icon={<MessageCircle size={22} />} label="Active templates" value={24} deltaPct={20} tone="brand" filled />
-        <StatTile icon={<Power size={22} />} label="Live automations" value={8} deltaPct={33} tone="warning" filled />
+        <StatTile icon={<Power size={22} />} label="Live automations" value={(automations ?? []).filter((a) => a.is_active).length} deltaPct={null} hint="Real -- currently active" tone="warning" filled />
         <StatTile icon={<Send size={22} />} label="Messages sent today" value={1248} deltaPct={18} tone="info" filled />
         <StatTile icon={<CheckCircle2 size={22} />} label="Delivery rate" value={98.2} deltaPct={2} tone="success" filled />
         <StatTile icon={<XCircle size={22} />} label="Failed messages" value={22} deltaPct={-45} tone="clay" filled upIsGood={false} />
@@ -239,38 +253,102 @@ export default function PortalMessagesAutomationsPage() {
         <Card className="p-space-4">
           <div className="mb-space-3 flex items-center justify-between">
             <h3 className="text-[15px] font-bold text-ink-900">Automation Workflow</h3>
-            <Badge tone="success">Active</Badge>
+            <Badge tone="brand">Real</Badge>
           </div>
-          <select
-            value={workflow}
-            onChange={(e) => setWorkflow(e.target.value)}
-            className="mb-space-3 h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
-          >
-            <option>Booking Confirmation Flow</option>
-            <option>Order Update Flow</option>
-            <option>Feedback Request Flow</option>
-            <option>Re-engagement Flow</option>
-          </select>
-          <div className="space-y-space-2">
-            {AUTOMATION_STEPS.map((step, i) => {
-              const Icon = step.icon;
-              return (
-                <div key={step.label}>
-                  <div className={cn("flex items-center gap-space-3 rounded-md border px-space-3 py-space-2", STEP_TONE[step.tone])}>
-                    <Icon size={16} />
+
+          {!automations ? (
+            <p className="text-[13px] text-ink-400">Loading…</p>
+          ) : automations.length === 0 && !showNewForm ? (
+            <div className="py-space-4 text-center">
+              <p className="mb-space-3 text-[13px] text-ink-400">No automations yet — create one to send a real WhatsApp message when a guest rates you.</p>
+              <PermissionGate page="automations" action="write">
+                <Button onClick={() => setShowNewForm(true)}><Plus size={14} /> Create Automation</Button>
+              </PermissionGate>
+            </div>
+          ) : (
+            <div className="space-y-space-3">
+              {(automations ?? []).map((a) => (
+                <div key={a.id} className="rounded-md border border-line p-space-3">
+                  <div className="mb-space-2 flex items-start justify-between gap-space-2">
                     <div className="min-w-0">
-                      <p className="text-[13px] font-semibold">{step.label}</p>
-                      <p className="text-[11.5px] opacity-80">{step.detail}</p>
+                      <p className="truncate text-[13.5px] font-semibold text-ink-900">{a.name}</p>
+                      <p className="text-[11.5px] text-ink-600">Trigger: {TRIGGER_EVENT_LABEL[a.trigger_event] ?? a.trigger_event}</p>
+                    </div>
+                    <Badge tone={a.is_active ? "success" : "neutral"}>{a.is_active ? "Active" : "Paused"}</Badge>
+                  </div>
+                  <div className="space-y-space-2">
+                    <div className={cn("flex items-center gap-space-3 rounded-md border px-space-3 py-space-2", STEP_TONE.success)}>
+                      <Star size={16} />
+                      <div className="min-w-0"><p className="text-[13px] font-semibold">Trigger</p><p className="text-[11.5px] opacity-80">{TRIGGER_EVENT_LABEL[a.trigger_event] ?? a.trigger_event}</p></div>
+                    </div>
+                    <div className="mx-auto h-4 w-px bg-line" />
+                    {a.delay_minutes > 0 && (
+                      <>
+                        <div className={cn("flex items-center gap-space-3 rounded-md border px-space-3 py-space-2", STEP_TONE.warning)}>
+                          <Clock size={16} />
+                          <div className="min-w-0">
+                            <p className="text-[13px] font-semibold">Delay</p>
+                            <p className="text-[11.5px] opacity-80">Wait {a.delay_minutes} min (not enforced yet — sends immediately)</p>
+                          </div>
+                        </div>
+                        <div className="mx-auto h-4 w-px bg-line" />
+                      </>
+                    )}
+                    <div className={cn("flex items-center gap-space-3 rounded-md border px-space-3 py-space-2", STEP_TONE.brand)}>
+                      <MessageCircle size={16} />
+                      <div className="min-w-0"><p className="text-[13px] font-semibold">Send WhatsApp Message</p><p className="truncate text-[11.5px] opacity-80">{a.message_text}</p></div>
+                    </div>
+                    <div className="mx-auto h-4 w-px bg-line" />
+                    <div className={cn("flex items-center gap-space-3 rounded-md border px-space-3 py-space-2", STEP_TONE.info)}>
+                      <CheckCircle2 size={16} />
+                      <div className="min-w-0"><p className="text-[13px] font-semibold">End</p><p className="text-[11.5px] opacity-80">{a.run_count} real send{a.run_count === 1 ? "" : "s"} so far</p></div>
                     </div>
                   </div>
-                  {i < AUTOMATION_STEPS.length - 1 && <div className="mx-auto h-4 w-px bg-line" />}
+                  <PermissionGate page="automations" action="write">
+                    <Button variant="secondary" className="mt-space-3 w-full" onClick={() => toggleAutomation(a)}>
+                      <Power size={14} /> {a.is_active ? "Pause" : "Activate"}
+                    </Button>
+                  </PermissionGate>
                 </div>
-              );
-            })}
-          </div>
-          <Button variant="secondary" className="mt-space-3 w-full" onClick={() => comingSoon("Edit Flow")}>
-            <Edit3 size={14} /> Edit Flow
-          </Button>
+              ))}
+              {!showNewForm && (
+                <PermissionGate page="automations" action="write">
+                  <Button variant="secondary" className="w-full" onClick={() => setShowNewForm(true)}><Plus size={14} /> Add Automation</Button>
+                </PermissionGate>
+              )}
+            </div>
+          )}
+
+          {showNewForm && (
+            <form onSubmit={handleCreateAutomation} className="mt-space-3 border-t border-line pt-space-3">
+              <Field label="Name" htmlFor="auto-name" required>
+                <Input id="auto-name" value={newAutomation.name} onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })} placeholder="e.g. Feedback Thank You" />
+              </Field>
+              <Field label="Trigger" htmlFor="auto-trigger" required>
+                <select
+                  id="auto-trigger" value={newAutomation.trigger_event}
+                  onChange={(e) => setNewAutomation({ ...newAutomation, trigger_event: e.target.value })}
+                  className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                >
+                  {(triggerEvents.length ? triggerEvents : ["feedback_received"]).map((ev) => (
+                    <option key={ev} value={ev}>{TRIGGER_EVENT_LABEL[ev] ?? ev}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Message" htmlFor="auto-message" required hint="Sent exactly as written -- no placeholders yet.">
+                <Textarea id="auto-message" rows={3} value={newAutomation.message_text} onChange={(e) => setNewAutomation({ ...newAutomation, message_text: e.target.value })} />
+              </Field>
+              <Field label="Delay (minutes)" htmlFor="auto-delay" hint="Stored, not enforced yet -- sends immediately regardless.">
+                <Input id="auto-delay" type="number" min={0} value={newAutomation.delay_minutes} onChange={(e) => setNewAutomation({ ...newAutomation, delay_minutes: Number(e.target.value) })} />
+              </Field>
+              <div className="flex gap-space-2">
+                <Button type="button" variant="secondary" onClick={() => setShowNewForm(false)}>Cancel</Button>
+                <Button type="submit" disabled={creating || !newAutomation.name.trim() || !newAutomation.message_text.trim()} className="flex-1">
+                  {creating ? "Creating…" : "Create Automation"}
+                </Button>
+              </div>
+            </form>
+          )}
         </Card>
 
         <Card className="p-space-4">
@@ -317,6 +395,16 @@ export default function PortalMessagesAutomationsPage() {
             <Button variant="secondary" size="md" onClick={() => comingSoon("Add Trigger")}><Plus size={14} /> Add Trigger</Button>
           </div>
           <ul className="divide-y divide-line">
+            {(automations ?? []).map((a) => (
+              <li key={`real-${a.id}`} className="flex items-center gap-space-3 py-space-2">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-success-tint text-success"><Star size={14} /></span>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[12.5px] font-semibold text-ink-900">{TRIGGER_EVENT_LABEL[a.trigger_event] ?? a.trigger_event}</p>
+                  <p className="text-[11.5px] text-ink-600">{a.name}</p>
+                </div>
+                <Badge tone={a.is_active ? "success" : "warning"}>{a.is_active ? "Active" : "Paused"}</Badge>
+              </li>
+            ))}
             {TRIGGER_ROWS.map((r) => {
               const Icon = r.icon;
               return (
@@ -326,7 +414,7 @@ export default function PortalMessagesAutomationsPage() {
                     <p className="truncate text-[12.5px] font-semibold text-ink-900">{r.event} {r.sub && <span className="font-normal text-ink-400">{r.sub}</span>}</p>
                     <p className="text-[11.5px] text-ink-600">{r.automation}</p>
                   </div>
-                  <Badge tone={r.status === "Active" ? "success" : "warning"}>{r.status}</Badge>
+                  <Badge tone="neutral">Preview</Badge>
                 </li>
               );
             })}

@@ -587,7 +587,15 @@ async def handle_incoming(
             if rating in (1, 2, 3, 4, 5):
                 db.create_feedback(hospital_id, phone, rating, patient_id=active_patient_id)
                 sessions.reset(hospital_id, phone)
-                await wa.send_text(phone, t(FEEDBACK_THANK_YOU, language))
+                # Automations (migration 0047): the one real, wired trigger today. A hospital
+                # that's configured an active "feedback_received" automation gets ITS message
+                # instead of the hardcoded thank-you; one that hasn't sees zero behavior change.
+                automation = db.get_active_automation(hospital_id, "feedback_received")
+                if automation:
+                    await wa.send_text(phone, automation["message_text"])
+                    db.record_automation_run(hospital_id, automation["id"], phone)
+                else:
+                    await wa.send_text(phone, t(FEEDBACK_THANK_YOU, language))
                 return
 
     if state != STATE_IDLE and state not in FREE_TEXT_INPUT_STATES and is_reset_keyword(reply):
