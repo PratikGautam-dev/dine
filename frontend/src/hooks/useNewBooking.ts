@@ -12,16 +12,11 @@ export type NewBookingContext = {
   slots_by_doctor: Record<string, Record<string, Slot[]>>;
 };
 
-export type BookingType = "table" | "doctor";
-
-/** Loads department/doctor/slot context + submits the /portal/new-booking
- * staff-created booking form. Two distinct booking types, chosen explicitly
- * up front rather than guessed from hospital type (Table Reservation --
- * party size -> section preference -> date/time -> auto-assigned table,
- * same connector.get_available_table_slots()/create_table_reservation()
- * path the WhatsApp flow uses; Doctor Appointment -- the original
- * department/doctor/slot flow, kept for any hospital still using a custom
- * appointment type that routes through it). */
+/** Loads department/slot context + submits the /portal/new-booking staff-created table-reservation
+ * form (party size -> section preference -> date/time -> auto-assigned table, the same
+ * connector.get_available_table_slots()/create_table_reservation() path the WhatsApp flow uses).
+ * The "Doctor Appointment" booking type was removed from this form -- this restaurant doesn't take
+ * doctor appointments -- but booking_type="doctor" is left alone server-side, untouched by this. */
 export function useNewBooking(ready: boolean) {
   const router = useRouter();
   const [ctx, setCtx] = useState<NewBookingContext | null>(null);
@@ -30,14 +25,10 @@ export function useNewBooking(ready: boolean) {
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  const [bookingType, setBookingTypeRaw] = useState<BookingType>("table");
-
   const [patientName, setPatientName] = useState("");
   const [patientPhone, setPatientPhone] = useState("");
   const [specialRequest, setSpecialRequest] = useState("");
   const [departmentId, setDepartmentIdRaw] = useState("");
-  const [doctorId, setDoctorIdRaw] = useState("");
-  const [date, setDateRaw] = useState("");
   const [slotId, setSlotId] = useState("");
 
   const [partySize, setPartySizeRaw] = useState<number | "">("");
@@ -58,33 +49,10 @@ export function useNewBooking(ready: boolean) {
     if (ready) load();
   }, [ready, load]);
 
-  function setBookingType(type: BookingType) {
-    setBookingTypeRaw(type);
-    setDepartmentIdRaw("");
-    setDoctorIdRaw("");
-    setDateRaw("");
-    setSlotId("");
-    setPartySizeRaw("");
-    setTableSlots(null);
-  }
-
   function setDepartmentId(id: string) {
     setDepartmentIdRaw(id);
-    setDoctorIdRaw("");
-    setDateRaw("");
     setSlotId("");
     setTableSlots(null);
-  }
-
-  function setDoctorId(id: string) {
-    setDoctorIdRaw(id);
-    setDateRaw("");
-    setSlotId("");
-  }
-
-  function setDate(d: string) {
-    setDateRaw(d);
-    setSlotId("");
   }
 
   function setPartySize(n: number | "") {
@@ -92,10 +60,6 @@ export function useNewBooking(ready: boolean) {
     setSlotId("");
     setTableSlots(null);
   }
-
-  const doctors = departmentId && ctx ? ctx.doctors_by_department[departmentId] || [] : [];
-  const datesForDoctor = doctorId && ctx ? Object.keys(ctx.slots_by_doctor[doctorId] || {}).sort() : [];
-  const slotsForDate = doctorId && date && ctx ? ctx.slots_by_doctor[doctorId]?.[date] || [] : [];
 
   const loadTableSlots = useCallback(async () => {
     if (!partySize || partySize < 1) return;
@@ -118,20 +82,12 @@ export function useNewBooking(ready: boolean) {
     e.preventDefault();
     setSubmitting(true);
     setErrors([]);
-    const body =
-      bookingType === "table"
-        ? {
-            booking_type: "table",
-            patient_name: patientName, patient_phone: patientPhone,
-            party_size: partySize, department_id: departmentId || null, slot_id: slotId,
-            special_request: specialRequest || null,
-          }
-        : {
-            booking_type: "doctor",
-            patient_name: patientName, patient_phone: patientPhone,
-            department_id: departmentId, doctor_id: doctorId, slot_id: slotId,
-            special_request: specialRequest || null,
-          };
+    const body = {
+      booking_type: "table",
+      patient_name: patientName, patient_phone: patientPhone,
+      party_size: partySize, department_id: departmentId || null, slot_id: slotId,
+      special_request: specialRequest || null,
+    };
     const result = await portalFetch("/api/portal/new-booking", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -158,11 +114,9 @@ export function useNewBooking(ready: boolean) {
 
   return {
     ctx, error, errors, submitting, success,
-    bookingType, setBookingType,
     patientName, setPatientName, patientPhone, setPatientPhone,
     specialRequest, setSpecialRequest,
-    departmentId, setDepartmentId, doctorId, setDoctorId, date, setDate, slotId, setSlotId,
-    doctors, datesForDoctor, slotsForDate,
+    departmentId, setDepartmentId, slotId, setSlotId,
     partySize, setPartySize, tableSlots, loadingTableSlots, loadTableSlots,
     handleSubmit,
   };
