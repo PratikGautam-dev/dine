@@ -983,6 +983,26 @@ Once the FAQ flow ships, DaaPrime's tenant record should be edited (via the now-
 
 
 
+- ⚠️ **New tracked opportunity, not acted on now** (same "flagged for a later pass" precedent as the two notes above): **Messages & Automations (planned — not yet built).**
+
+**Status:** the portal page at `/portal/settings/messages-automations` is a **visual preview only** — every number, template, workflow and trigger row on it is static, hardcoded demo data (never fetched, never persisted). No backend exists for any of it. This note records what "real" would actually require, so a future pass builds against a plan instead of guessing.
+
+**Why this is a bigger lift than it looks:** this app already sends real WhatsApp messages (booking confirmations/reminders, order updates, handoff replies — all via `core/whatsapp.py`'s `WhatsAppClient.send_text()`), but only as **free-form text**, not WhatsApp's approved **Message Template** objects. The mockup's page assumes three separate pieces of real infrastructure that don't exist yet:
+
+1. **Meta Message Templates** (the "Template Library" card: name, category, message type, Approved/Pending status). WhatsApp Business requires every template a business wants to reuse to be submitted to Meta for review (typically hours, sometimes days) via the Business Management API before it can be sent — this is an external approval loop this codebase has no client for (`core/whatsapp.py` has no template-CRUD methods, no template-send call shape distinct from `send_text`). Building this for real means: a `message_templates` table (name, category, body with `{{n}}` placeholders, Meta template id, approval status), a Meta template-submission API client, and a webhook handler for Meta's template-status-change callback (approved/rejected) — none of which can be exercised meaningfully without a real Meta App in Business Manager and a real review turnaround.
+2. **Delivery-status analytics** (Delivery Rate/Failed Messages/the Sent-Delivered-Failed-Replied trend chart). WhatsApp reports per-message delivery status (`sent`/`delivered`/`read`/`failed`) via **separate webhook callbacks** after the send — `webhook/routes.py` today only handles *inbound* guest messages, not these outbound status callbacks. Real analytics need a `message_log` table (one row per outbound send, hospital_id, template/free-text, recipient, status, timestamps) updated as those status webhooks arrive.
+3. **Automation workflows** (the Trigger → Delay → Send Message → End builder, and the Trigger & Event Mapping table). This app's real "automations" today are hardcoded call sites — e.g. the reminder scheduler (Section 3.5) sends a fixed reminder text at a fixed offset; a booking confirmation is sent inline by the booking flow itself. There is no generic rule engine (configurable trigger event → delay → templated action) anywhere in the codebase. Building this for real means designing an actual trigger/action data model and a scheduler/executor for it — a genuinely new subsystem, not a wiring-up of something that half-exists.
+
+**If/when this gets built for real**, the natural order (each phase provides real data the next phase's UI can honestly show, same "don't build the display before the substance" discipline Section 14's flow-type work followed):
+1. `message_log` table + have every existing real send (`send_text` call site) write a row to it — gives real "Messages Sent Today" and a real send history, with no Meta dependency at all.
+2. Outbound delivery-status webhook handling, updating `message_log.status` — gives real Delivery Rate / Failed Messages / the trend chart, still with no template system needed.
+3. Meta template submission + approval-webhook handling — gives a real Template Library with real Approved/Pending status (this phase is the one gated on external Meta review turnaround, not on anything in this codebase).
+4. A real trigger/action automation model, starting with the ALREADY-real cases (reminder scheduler, booking confirmation) reimplemented as configurable rows instead of hardcoded call sites — gives a real Automation Workflow / Trigger & Event Mapping UI, proven against flows that already exist before any net-new trigger type is added.
+
+Confirmed with the user (2026-09-26): build the page as a visual-only preview now, record this plan here, revisit for real implementation later.
+
+
+
 ## 15. Instructions for Claude Code
 
 When implementing:

@@ -75,6 +75,7 @@ function PortalSettingsPageContent() {
               {canSeeAttendanceSettings && (
                 <Button href="/portal/settings/attendance" variant="secondary">Attendance rules <ArrowRight size={14} /></Button>
               )}
+              <Button href="/portal/settings/messages-automations" variant="secondary">Messages &amp; Automations <ArrowRight size={14} /></Button>
               <Button href="/portal/settings/activity" variant="secondary">Activity log <ArrowRight size={14} /></Button>
             </div>
           }
