@@ -25,12 +25,17 @@ DAYS_BACK = 30
 DECIDED_BY = 9  # owner@daaprimetech.com -- the leave approval's "decided_by"
 
 # identity_id -> working pattern. Kavya/Arjun/Suresh/Divya already have one set (their real schedule);
-# Test Staff/Test Cashier don't yet, so COALESCE below only fills those two.
+# the rest don't, so COALESCE below only fills those. The 3 admin/owner logins were left unscheduled
+# at first (an Owner/Manager isn't necessarily expected to clock in), but that also means their own
+# Attendance page shows nothing -- given one of them here, give all three a normal schedule too.
 STAFF = {
+    2: {"working_days": "Mon,Tue,Wed,Thu,Fri,Sat", "shift": ("09:00", "18:00")},
+    4: {"working_days": "Mon,Tue,Wed,Thu,Fri,Sat", "shift": ("09:00", "18:00")},
     5: {"working_days": "Mon,Tue,Wed,Thu,Fri", "shift": ("10:00", "19:00")},
     6: {"working_days": "Wed,Thu,Fri,Sat,Sun", "shift": ("12:00", "21:00")},
     7: {"working_days": "Mon,Tue,Wed,Thu,Fri,Sat", "shift": ("09:00", "18:00")},
     8: {"working_days": "Tue,Wed,Thu,Fri,Sat,Sun", "shift": ("13:00", "22:00")},
+    9: {"working_days": "Mon,Tue,Wed,Thu,Fri,Sat", "shift": ("09:00", "18:00")},
     10: {"working_days": "Mon,Tue,Wed,Thu,Fri,Sat", "shift": ("09:00", "18:00")},
     11: {"working_days": "Mon,Tue,Wed,Thu,Fri,Sat", "shift": ("09:00", "18:00")},
 }
