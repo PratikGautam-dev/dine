@@ -22,6 +22,7 @@ import {
   UtensilsCrossed,
   Users,
   X,
+  Zap,
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -65,6 +66,10 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu", group: "Operations" },
   { key: "patients", label: "Customers", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Operations" },
   { key: "messages", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Operations" },
+  // Preview-only page (docs/Spec.md's "Messages & Automations (planned — not yet built)" note) --
+  // lives under /portal/settings since nothing on it is real yet, but linked here too since a
+  // button buried in Settings' own header turned out to not be discoverable enough on its own.
+  { key: "messages-automations", label: "Messages & Automations", icon: Zap, href: "/portal/settings/messages-automations", pageKey: "settings", group: "Operations" },
   { key: "offers", label: "Offers", icon: Tag, href: "/portal/offers", pageKey: "offers", group: "Operations" },
   { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Operations" },
   { key: "reports", label: "Reports", icon: BarChart3, href: "/portal/reports", pageKey: "reports", group: "Operations" },
