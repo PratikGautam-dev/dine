@@ -37,7 +37,8 @@ const TONE_CLASSES_FILLED: Record<Tone, string> = {
 
 type Props = {
   label: string;
-  value: number;
+  /** A plain number is comma-grouped; a string (e.g. fmtMinutes()'s "8h 20m") is shown as-is. */
+  value: number | string;
   deltaPct: number | null;
   /** Shown before the number, e.g. "₹". */
   prefix?: string;
@@ -76,7 +77,7 @@ export function StatTile({ label, value, deltaPct, prefix, icon, tone = "brand",
       <div className="min-w-0">
         <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}</p>
         <div className="mt-1 flex items-baseline gap-space-2">
-          <span className="text-[30px] leading-none font-bold text-ink-900">{prefix}{value.toLocaleString()}</span>
+          <span className="text-[30px] leading-none font-bold text-ink-900">{prefix}{typeof value === "number" ? value.toLocaleString() : value}</span>
           {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
           {deltaPct !== null && (
             <span

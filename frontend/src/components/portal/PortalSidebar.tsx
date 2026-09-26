@@ -11,6 +11,7 @@ import {
   ClipboardList,
   Clock,
   LayoutDashboard,
+  LogIn,
   LogOut,
   MessageCircle,
   MessageSquareText,
@@ -75,8 +76,11 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors", group: "Workforce" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
-  // Clock in/out lives on this same page now (My Attendance) -- no separate nav entry for it any more.
-  { key: "my-attendance", label: "My Attendance", icon: Clock, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
+  // Attendance (history/stats) and Check-in/Check-out (the clock itself) are two pages sharing the
+  // same check_in_out permission -- split back out, matching the reference design, after an earlier
+  // pass had briefly merged them into one page.
+  { key: "my-attendance", label: "Attendance", icon: Clock, href: "/portal/attendance", pageKey: "check_in_out", group: "Workforce" },
+  { key: "check-in-out", label: "Check-in / Check-out", icon: LogIn, href: "/portal/check-in-out", pageKey: "check_in_out", group: "Workforce" },
   { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },

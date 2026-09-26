@@ -1430,16 +1430,15 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("UPDATE staff_details SET role = 'receptionist', doctor_id = NULL WHERE role = 'doctor'")
     conn.execute("DELETE FROM role_permissions WHERE role = 'doctor'")
+    # Migration 0048 dropped these for good (custom roles, Staff & Access's "Add Role") -- drop only,
+    # never re-add: the fixed 3-value list these once enforced is no longer valid once any hospital has
+    # a real custom-role row, and there's no way for a migration to enumerate the set any more.
     for table, names in (
         ("staff_details", ("ck_staff_details_role", "staff_details_role_check")),
         ("role_permissions", ("ck_role_permissions_role", "role_permissions_role_check")),
     ):
         for name in names:
             conn.execute(f"ALTER TABLE {table} DROP CONSTRAINT IF EXISTS {name}")
-        conn.execute(
-            f"ALTER TABLE {table} ADD CONSTRAINT {names[0]} "
-            "CHECK (role IN ('admin', 'receptionist', 'kitchen'))"
-        )
     # Migration 0035 -- staff profile fields + per-restaurant employee ids.
     conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS phone TEXT")
     conn.execute("ALTER TABLE staff_details ADD COLUMN IF NOT EXISTS address TEXT")
@@ -1647,12 +1646,6 @@ def init_db_on_connection(conn) -> int:
         "hospital_id INTEGER NOT NULL REFERENCES hospitals(id), phone TEXT NOT NULL, ran_at TEXT NOT NULL)"
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_automation_runs_automation ON automation_runs(automation_id)")
-
-    # Migration 0048 -- custom_roles: roles are no longer a fixed 3-value enum (Staff & Access's
-    # "Add Role"); drop the CHECK constraints that used to enforce that list. No replacement --
-    # DROP CONSTRAINT IF EXISTS makes this safe to re-run even after the constraint is long gone.
-    conn.execute("ALTER TABLE role_permissions DROP CONSTRAINT IF EXISTS ck_role_permissions_role")
-    conn.execute("ALTER TABLE staff_details DROP CONSTRAINT IF EXISTS ck_staff_details_role")
 
     conn.commit()
     _settings = get_settings()

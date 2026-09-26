@@ -287,6 +287,87 @@ def _on_leave(spans: list[tuple[date, date]] | None, d: date) -> bool:
     return any(a <= d <= b for a, b in (spans or []))
 
 
+@router.get("/api/portal/attendance/my-summary")
+async def attendance_my_summary(month: str = "", authorization: str | None = Header(default=None)):
+    """The caller's OWN present/late/absent/leave days for one month (YYYY-MM, default this month), a
+    day-by-day row per scheduled/leave/worked day (for the history table), and a weekly present-rate
+    trend -- reuses day_state(), the same per-day classifier the Owner/Manager team view is built on,
+    just scoped to a single person on their own check_in_out permission instead of "attendance"."""
+    principal, error = authorize(authorization, "check_in_out", "view")
+    if error:
+        return error
+    h = principal.hospital
+    now = _utcnow()
+    now_local = now.astimezone(rules.tz(h.timezone))
+    try:
+        first = date.fromisoformat((month or now_local.strftime("%Y-%m")) + "-01")
+    except ValueError:
+        return JSONResponse({"error": "Choose a valid month (YYYY-MM)."}, status_code=400)
+    nxt = date(first.year + (first.month == 12), first.month % 12 + 1, 1)
+    last = min(nxt - timedelta(days=1), now_local.date())
+
+    staff = db.get_staff_user_by_id(principal.staff_id) or {}
+    settings = db.get_hr_settings(h.id)
+    records: dict[str, dict] = {}
+    if last >= first:
+        records = {r["work_date"]: r for r in db.attendance_between(h.id, first.isoformat(), last.isoformat(), principal.staff_id)}
+    leave_spans = _leave_days(db.approved_leave_between(h.id, first.isoformat(), last.isoformat())).get(principal.staff_id, [])
+
+    present = late = absent = on_leave = 0
+    day_rows: list[dict] = []
+    weeks: list[dict] = []
+    joined = _started_on(staff)
+    d = max(first, joined) if joined else first
+    week_start = d
+    week_present = week_scheduled = 0
+    while d <= last:
+        rec = records.get(d.isoformat())
+        covered = _on_leave(leave_spans, d)
+        state = day_state(staff, d, rec, covered, settings, now_local, h.timezone)
+        if state in ("on_time", "clocked_in", "missing_clock_out"):
+            present += 1
+        elif state == "late":
+            present += 1
+            late += 1
+        elif state == "on_leave":
+            on_leave += 1
+        elif state == "absent":
+            absent += 1
+        if state not in ("off", "upcoming"):
+            r = _rec_json(rec, h.timezone, now) if rec else None
+            day_rows.append({
+                "work_date": d.isoformat(), "status": state,
+                "check_in_local": r["check_in_local"] if r else None,
+                "check_out_local": r["check_out_local"] if r else None,
+                "break_minutes": r["break_minutes"] if r else 0,
+                "working_minutes": r["working_minutes"] if r else 0,
+                "overtime_minutes": r["overtime_minutes"] if r else 0,
+            })
+        if rules.is_scheduled(staff, d):
+            week_scheduled += 1
+            if state in ("on_time", "late", "clocked_in", "missing_clock_out"):
+                week_present += 1
+        if (d - week_start).days == 6 or d == last:
+            pct = round((week_present / week_scheduled) * 100) if week_scheduled else 0
+            weeks.append({"label": f"Week {len(weeks) + 1}", "pct": pct})
+            week_present = week_scheduled = 0
+            week_start = d + timedelta(days=1)
+        d += timedelta(days=1)
+
+    finished = [r for r in records.values() if r["check_out_at"]]
+    return JSONResponse({
+        "month": first.strftime("%Y-%m"),
+        "stats": {
+            "present_days": present, "late_days": late, "absent_days": absent, "leave_days": on_leave,
+            "working_minutes": sum(r["working_minutes"] for r in finished),
+            "overtime_minutes": sum(r["overtime_minutes"] for r in finished),
+            "missing_clock_outs": sum(1 for r in records.values() if _rec_json(r, h.timezone, now)["missing_clock_out"]),
+        },
+        "weekly_trend": weeks,
+        "records": list(reversed(day_rows)),
+    })
+
+
 @router.get("/api/portal/attendance/overview")
 async def attendance_overview(date_: str = Query("", alias="date"), authorization: str | None = Header(default=None)):
     """Everyone's state for one date (default today): who's in, late, absent, on leave, off."""

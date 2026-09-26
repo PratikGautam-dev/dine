@@ -169,25 +169,34 @@ export function useClock(canView: boolean) {
 
 // ---------------------------------------------------------------- My attendance
 
-export type HistoryStats = {
-  days_present: number; late_days: number; total_working_minutes: number; average_working_minutes: number;
-  total_overtime_minutes: number; missing_clock_outs: number;
+export type MyMonthStats = {
+  present_days: number; late_days: number; absent_days: number; leave_days: number;
+  working_minutes: number; overtime_minutes: number; missing_clock_outs: number;
+};
+/** One day on MY OWN month view -- a leaner row than AttendanceRecord (team view's), since a Leave/Absent
+ * day has no underlying attendance row at all: `status` is day_state()'s classifier (on_time/late/
+ * missing_clock_out/on_leave/absent/not_in -- never off/upcoming, those days aren't included). */
+export type MyMonthRow = {
+  work_date: string; status: string;
+  check_in_local: string | null; check_out_local: string | null;
+  break_minutes: number; working_minutes: number; overtime_minutes: number;
 };
 
 /** `refreshKey` changes when something the list depends on changed (e.g. the person just clocked out), reloading it. */
-export function useAttendanceHistory(canView: boolean, days: number, refreshKey = "") {
+export function useMyMonthlyAttendance(canView: boolean, month: string, refreshKey = "") {
   const guard = useSessionGuard();
-  const [records, setRecords] = useState<AttendanceRecord[] | null>(null);
-  const [stats, setStats] = useState<HistoryStats | null>(null);
+  const [records, setRecords] = useState<MyMonthRow[] | null>(null);
+  const [stats, setStats] = useState<MyMonthStats | null>(null);
+  const [weeklyTrend, setWeeklyTrend] = useState<{ label: string; pct: number }[]>([]);
   const [error, setError] = useState<string | null>(null);
   const load = useCallback(async () => {
-    const { data, error: err, unauthorized } = await staffJson<{ records: AttendanceRecord[]; stats: HistoryStats }>(`/api/portal/attendance/history?days=${days}`);
+    const { data, error: err, unauthorized } = await staffJson<{ records: MyMonthRow[]; stats: MyMonthStats; weekly_trend: { label: string; pct: number }[] }>(`/api/portal/attendance/my-summary?month=${month}`);
     guard(unauthorized);
     if (err || !data) return setError(err);
-    setError(null); setRecords(data.records); setStats(data.stats);
-  }, [guard, days]);
+    setError(null); setRecords(data.records); setStats(data.stats); setWeeklyTrend(data.weekly_trend);
+  }, [guard, month]);
   useLoad(canView, load, refreshKey);
-  return { records, stats, error };
+  return { records, stats, weeklyTrend, error };
 }
 
 // ---------------------------------------------------------------- Team attendance (Owner / Manager)
