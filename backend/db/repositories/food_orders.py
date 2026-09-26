@@ -271,13 +271,17 @@ def get_food_order(hospital_id: int, order_id: int) -> dict | None:
     return order
 
 
-def list_food_orders(hospital_id: int, status: str | None = None, since: datetime | None = None) -> list[dict]:
+def list_food_orders(
+    hospital_id: int, status: str | None = None, since: datetime | None = None,
+    phone: str | None = None, limit: int | None = None,
+) -> list[dict]:
     """Portal's order-list read point -- newest first. `since` (a timezone-aware datetime) leaves out orders placed
     before it, so a page load doesn't return every order the restaurant has ever taken. Includes each order's
     line items via one batched query (same "fetch once, group in-memory"
     shape _booked_spans_by_table() uses for table availability), not N+1 --
     a kitchen/front-of-house view genuinely needs to see what was ordered,
-    not just the header row."""
+    not just the header row. `phone`/`limit` added for the WhatsApp Inbox's Customer Details panel
+    (one guest's own recent orders, not the whole restaurant's)."""
     session = get_session()
     stmt = select(*_ORDER_COLUMNS).where(FoodOrder.hospital_id == hospital_id)
     if status is not None:
@@ -285,7 +289,12 @@ def list_food_orders(hospital_id: int, status: str | None = None, since: datetim
     if since is not None:
         # created_at is stored as ISO text; compare it as the instant it is
         stmt = stmt.where(cast(FoodOrder.created_at, DateTime(timezone=True)) >= since)
-    rows = session.execute(stmt.order_by(FoodOrder.created_at.desc())).all()
+    if phone is not None:
+        stmt = stmt.where(FoodOrder.phone == phone)
+    stmt = stmt.order_by(FoodOrder.created_at.desc())
+    if limit is not None:
+        stmt = stmt.limit(limit)
+    rows = session.execute(stmt).all()
     orders = [dict(r._mapping) for r in rows]
 
     order_ids = [o["id"] for o in orders]

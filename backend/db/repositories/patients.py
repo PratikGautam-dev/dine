@@ -86,6 +86,7 @@ def _patients_with_visit_stats_stmt(hospital_id: int, search: str | None = None)
             PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
             PatientRow.email, PatientRow.loyalty_tier, PatientRow.loyalty_points,
             PatientRow.total_orders, PatientRow.total_spend_paise, PatientRow.favorite_item,
+            PatientRow.address, PatientRow.dietary_preference, PatientRow.gender,
             PatientRow.created_at,
             last_visit.label("last_visit"), visit_count.label("visit_count"),
             visited_count.label("visited_count"),
@@ -100,6 +101,7 @@ def _patients_with_visit_stats_stmt(hospital_id: int, search: str | None = None)
             PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
             PatientRow.email, PatientRow.loyalty_tier, PatientRow.loyalty_points,
             PatientRow.total_orders, PatientRow.total_spend_paise, PatientRow.favorite_item,
+            PatientRow.address, PatientRow.dietary_preference, PatientRow.gender,
             PatientRow.created_at,
         )
         .order_by(last_visit.desc().nulls_last(), PatientRow.name.nulls_last(), PatientRow.phone)
@@ -126,6 +128,7 @@ def list_patients(hospital_id: int, search: str | None = None, limit: int = 200)
             "visited_count": r.visited_count, "email": r.email, "loyalty_tier": r.loyalty_tier,
             "loyalty_points": r.loyalty_points, "total_orders": r.total_orders,
             "total_spend_paise": r.total_spend_paise, "favorite_item": r.favorite_item,
+            "address": r.address, "dietary_preference": r.dietary_preference, "gender": r.gender,
             "created_at": r.created_at,
         }
         for r in rows
