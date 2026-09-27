@@ -348,11 +348,6 @@ class MenuItem(Base):
     stock_count: Mapped[int | None]
     # migration 0033 -- merchant-pasted photo link; NULL = text-only item.
     image_url: Mapped[str | None]
-    # migration 0049 -- Combo Offers: NULL = a regular item; set = a combo listing this many dishes
-    # (the actual dishes are just named in `description`, e.g. "Includes 2 Naan, Dal Makhani, Coke" --
-    # no separate combo_items/combo_lines table, since the WhatsApp bot already renders description
-    # verbatim and a portal-only structured breakdown wasn't asked for).
-    combo_item_count: Mapped[int | None]
     created_at: Mapped[str]
     updated_at: Mapped[str]
 

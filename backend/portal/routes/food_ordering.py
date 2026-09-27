@@ -34,8 +34,6 @@ class MenuItemPayload(BaseModel):
     is_available: bool = True
     stock_count: int | None = None
     image_url: str | None = None
-    # Combo Offers: how many dishes this item bundles. None = a regular (non-combo) item.
-    combo_item_count: int | None = None
 
 
 class RestockPayload(BaseModel):
@@ -104,8 +102,6 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
         return JSONResponse({"error": "Price cannot be negative."}, status_code=400)
     if payload.stock_count is not None and payload.stock_count < 0:
         return JSONResponse({"error": "Stock cannot be negative."}, status_code=400)
-    if payload.combo_item_count is not None and payload.combo_item_count < 1:
-        return JSONResponse({"error": "A combo's item count must be at least 1."}, status_code=400)
     image_url, image_error = _clean_image_url(payload.image_url)
     if image_error:
         return JSONResponse({"error": image_error}, status_code=400)
@@ -113,7 +109,7 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
         hospital.id, name, price_paise=round(payload.price_rupees * 100),
         description=payload.description, category=db.canonical_category(hospital.id, payload.category),
         stock_count=payload.stock_count,
-        image_url=image_url, is_available=payload.is_available, combo_item_count=payload.combo_item_count,
+        image_url=image_url, is_available=payload.is_available,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.create",
@@ -139,8 +135,6 @@ async def portal_update_menu_item(
         return JSONResponse({"error": "Price cannot be negative."}, status_code=400)
     if payload.stock_count is not None and payload.stock_count < 0:
         return JSONResponse({"error": "Stock cannot be negative."}, status_code=400)
-    if payload.combo_item_count is not None and payload.combo_item_count < 1:
-        return JSONResponse({"error": "A combo's item count must be at least 1."}, status_code=400)
     image_url, image_error = _clean_image_url(payload.image_url)
     if image_error:
         return JSONResponse({"error": image_error}, status_code=400)
@@ -150,7 +144,7 @@ async def portal_update_menu_item(
         description=payload.description, category=db.canonical_category(hospital.id, payload.category),
         is_available=payload.is_available,
         stock_count=payload.stock_count if "stock_count" in payload.model_fields_set else db.KEEP_STOCK,
-        image_url=image_url, combo_item_count=payload.combo_item_count,
+        image_url=image_url,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.update",

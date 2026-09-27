@@ -1647,9 +1647,6 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_automation_runs_automation ON automation_runs(automation_id)")
 
-    # Migration 0049 -- Combo Offers: a combo is a menu item with combo_item_count set.
-    conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS combo_item_count INTEGER")
-
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME
