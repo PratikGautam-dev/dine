@@ -22,13 +22,22 @@ type Props = {
   /** Hospital-created custom role_keys (Staff & Access's "Add Role") beyond the 3 built-in
    * ROLE_OPTIONS -- shown with a computed label (roleLabel()), no blurb. */
   customRoles?: string[];
+  /** "Give portal access" on a roster-only person: pre-fills the add form (name/section) without
+   * treating this as an edit -- `member` stays null so email/password are still asked for. Ignored
+   * when `member` is set. */
+  initialValues?: Partial<StaffFormValues>;
+  /** Overrides the dialog's title/submit button when adding (e.g. "Give portal access" instead of
+   * "Add staff member") -- ignored when editing. */
+  addTitle?: string;
   onSubmit: (values: StaffFormValues) => Promise<string | null>;
   onClose: () => void;
 };
 
 /** Add or edit a team member. Email and password are only asked for when adding (a password is reset
  * separately, and the email is their sign-in). The server has the final say on every rule. */
-export function StaffFormDialog({ member, isSelf, sections, managers, customRoles = [], onSubmit, onClose }: Props) {
+export function StaffFormDialog({
+  member, isSelf, sections, managers, customRoles = [], initialValues, addTitle, onSubmit, onClose,
+}: Props) {
   const [form, setForm] = useState<StaffFormValues>(
     member
       ? {
@@ -37,7 +46,7 @@ export function StaffFormDialog({ member, isSelf, sections, managers, customRole
           reports_to_id: member.reports_to_id ? String(member.reports_to_id) : "",
           working_days: member.working_days ?? [], shift_start: member.shift_start ?? "", shift_end: member.shift_end ?? "",
         }
-      : emptyStaffForm(),
+      : { ...emptyStaffForm(), ...initialValues },
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -65,7 +74,7 @@ export function StaffFormDialog({ member, isSelf, sections, managers, customRole
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="staff-form-title" className="text-[16px] font-semibold text-ink-900">
-          {adding ? "Add staff member" : `Edit ${member.name}`}
+          {adding ? addTitle ?? "Add staff member" : `Edit ${member.name}`}
         </h2>
         <form onSubmit={handleSubmit} className="mt-space-4">
           <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
@@ -143,7 +152,7 @@ export function StaffFormDialog({ member, isSelf, sections, managers, customRole
           <div className="flex justify-end gap-space-2">
             <Button type="button" variant="secondary" onClick={onClose} disabled={saving}>Cancel</Button>
             <Button type="submit" disabled={saving || !form.name.trim() || (adding && (!form.email.trim() || form.password.length < 8))}>
-              {saving ? "Saving…" : adding ? "Add staff member" : "Save changes"}
+              {saving ? "Saving…" : adding ? addTitle ?? "Add staff member" : "Save changes"}
             </Button>
           </div>
         </form>

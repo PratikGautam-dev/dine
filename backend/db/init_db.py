@@ -790,11 +790,9 @@ def init_db_on_connection(conn) -> int:
         "CREATE UNIQUE INDEX IF NOT EXISTS ux_staff_details_doctor_id ON staff_details(doctor_id) "
         "WHERE doctor_id IS NOT NULL"
     )
+    # Migration 0050 -- Team & Access merge: doctor_id no longer means "the retired role='doctor'
+    # login role" (drop only, never re-add; see that migration's own docstring).
     conn.execute("ALTER TABLE staff_details DROP CONSTRAINT IF EXISTS ck_staff_details_doctor_role_pairing")
-    conn.execute(
-        "ALTER TABLE staff_details ADD CONSTRAINT ck_staff_details_doctor_role_pairing "
-        "CHECK ((role = 'doctor') = (doctor_id IS NOT NULL))"
-    )
     conn.execute(
         "CREATE TABLE IF NOT EXISTS super_admin_details ("
         "identity_id INTEGER PRIMARY KEY REFERENCES identities(id)"

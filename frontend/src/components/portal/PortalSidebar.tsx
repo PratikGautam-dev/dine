@@ -36,17 +36,15 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // duplicated Doctors (same /portal/doctors page manages both) so it was a
 // second sidebar entry pointing at a page already reachable via "Doctors."
 //
-// Table reservations, portal follow-up: the "doctors" entry below used to be
-// labeled "Tables" (Stage 2's vocabulary-only remap, before real tables
-// existed) -- relabeled "Team" now that /portal/tables is a genuine, separate
-// interface to the `tables` table (physical dining tables, migration 0030).
-// "doctors" itself was deliberately NOT deleted: it's still the live
-// staff/schedule entity (working hours/breaks/leave, RBAC's own "doctor"
-// role, appointment_reminders/staff_details FKs) -- just functionally
-// unused by the actual guest-facing table-reservation/food-ordering flows,
-// which never reference doctor_id. "Team" avoids colliding with the
-// existing "Staff" entry below (/portal/settings/staff, login ACCOUNTS --
-// a different concept from a scheduled team member/doctor row).
+// "Team" (the old /portal/doctors page, `doctors` table) was later merged
+// INTO Staff & Access (now "Team & Access", /portal/settings/staff) rather
+// than kept as its own entry: a restaurant person was two disconnected
+// records -- a roster/schedule row here, a login there -- with no way to go
+// from one to the other. staff_details.doctor_id (previously dead/legacy)
+// now links a real login back to the roster entry it was granted access
+// from. The `doctors` table/booking engine itself is untouched -- still real
+// infrastructure other tenant types in this fork use -- only this portal's
+// nav entry and dedicated page for it are gone.
 type NavGroup = "Operations" | "Workforce" | "Admin";
 
 // Grouped so a long list scans quickly; a group whose items the person can't see is hidden entirely.
@@ -74,7 +72,6 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "offers", label: "Offers", icon: Tag, href: "/portal/offers", pageKey: "offers", group: "Operations" },
   { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Operations" },
   { key: "reports", label: "Reports", icon: BarChart3, href: "/portal/reports", pageKey: "reports", group: "Operations" },
-  { key: "doctors", label: "Team", icon: Users, href: "/portal/doctors", pageKey: "doctors", group: "Workforce" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
   // Attendance (history/stats) and Check-in/Check-out (the clock itself) are two pages sharing the
@@ -86,7 +83,7 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
   { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
-  { key: "staff", label: "Staff & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
+  { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
   // Split back out into its own page (was folded into Staff & Access for a while) -- a dedicated
   // Role Management + Module Access Overview dashboard, not just an inline matrix.
   { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },

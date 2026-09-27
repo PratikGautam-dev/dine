@@ -57,9 +57,12 @@ def create_staff_user(
     staff, OAuth owners and super admins, per the "no hospital selector at login" decision).
     Two inserts in one transaction: the Identity row (the credential), then the StaffDetail row
     (restaurant, role and profile) that actually makes it a staff login; the new person is given
-    the restaurant's next employee id (EMP-ST-00001...). `doctor_id` is legacy and ignored by the
-    portal now (the linked-doctor login role is retired). The CALLER is responsible for checking
-    that department_id / reports_to_id belong to this restaurant."""
+    the restaurant's next employee id (EMP-ST-00001...). `doctor_id`, when given, links this new
+    login back to the roster (`doctors` table) entry it was granted access from -- Team & Access's
+    "Give portal access" (portal/routes/staff.py's create_staff()) is the only caller that passes
+    it; every other caller leaves it None. The CALLER is responsible for checking that
+    department_id / reports_to_id belong to this restaurant, and that doctor_id (if given) is a
+    real, currently-unlinked roster entry for this hospital."""
     session = get_session()
     try:
         new_id = session.execute(

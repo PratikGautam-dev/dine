@@ -10,7 +10,7 @@ from sqlalchemy import delete, func, insert, select, update
 from sqlalchemy.engine import CursorResult
 
 from db.connection import get_connection, get_session, reraise_as_driver_integrity_error
-from db.orm_models import Department, DoctorRow, DoctorSlot
+from db.orm_models import Department, DoctorRow, DoctorSlot, StaffDetail
 
 _SLOT_DAYS_AHEAD = 14
 
@@ -172,6 +172,26 @@ def get_all_doctors_for_hospital(hospital_id: int) -> list[dict]:
         )
         .join(Department, Department.id == DoctorRow.department_id)
         .where(DoctorRow.hospital_id == hospital_id)
+        .order_by(Department.name, DoctorRow.name)
+    ).all()
+    return [dict(r._mapping) for r in rows]
+
+
+def get_unlinked_doctors(hospital_id: int) -> list[dict]:
+    """Team & Access merge: the "roster-only, no portal login yet" half of the merged staff list --
+    every active doctors row with no staff_details.doctor_id pointing at it. Excludes inactive rows
+    (a deactivated roster entry shouldn't show up as someone to grant access to) -- unlike
+    get_all_doctors_for_hospital(), which is the older, full doctor-management list this replaces
+    for restaurant tenants."""
+    session = get_session()
+    linked = select(StaffDetail.doctor_id).where(StaffDetail.hospital_id == hospital_id, StaffDetail.doctor_id.is_not(None))
+    rows = session.execute(
+        select(
+            DoctorRow.id, DoctorRow.department_id, Department.name.label("department_name"),
+            DoctorRow.name, DoctorRow.is_active,
+        )
+        .join(Department, Department.id == DoctorRow.department_id)
+        .where(DoctorRow.hospital_id == hospital_id, DoctorRow.is_active.is_(True), DoctorRow.id.not_in(linked))
         .order_by(Department.name, DoctorRow.name)
     ).all()
     return [dict(r._mapping) for r in rows]

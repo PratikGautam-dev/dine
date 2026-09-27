@@ -138,6 +138,18 @@ async def list_staff(authorization: str | None = Header(default=None)):
     return JSONResponse([_staff_row(s) for s in db.list_staff_users_for_hospital(principal.hospital.id)])
 
 
+@router.get("/api/portal/staff/roster")
+async def staff_roster(authorization: str | None = Header(default=None)):
+    """Team & Access merge: the "roster-only, no portal login yet" half of the merged list -- every
+    active `doctors` row (this restaurant's real people who haven't been given a login) with no
+    staff_details already linked to it. Gated on "staff" (not "doctors") -- Sections/roster now
+    belong to this page, not the retired Team one."""
+    principal, error = authorize(authorization, "staff", "view")
+    if error:
+        return error
+    return JSONResponse(db.get_unlinked_doctors(principal.hospital.id))
+
+
 @router.get("/api/portal/staff/options")
 async def staff_options(authorization: str | None = Header(default=None)):
     """{id, name} of every ACTIVE team member -- feeds the "reports to" picker."""
@@ -162,6 +174,9 @@ class CreateStaffPayload(BaseModel):
     working_days: list[str] | None = None
     shift_start: str | None = None
     shift_end: str | None = None
+    # Team & Access's "Give portal access" -- a roster-only doctors.id this new login is granted
+    # access from. None for every other caller (a login created directly, no prior roster entry).
+    from_doctor_id: str | None = None
 
 
 @router.post("/api/portal/staff")
@@ -179,6 +194,9 @@ async def create_staff(payload: CreateStaffPayload, authorization: str | None = 
         errors.append(f"A password of at least {_MIN_PASSWORD} characters is required.")
     if payload.role not in get_assignable_roles(hospital_id):
         errors.append("Choose a valid role.")
+    doctor_id = (payload.from_doctor_id or "").strip() or None
+    if doctor_id and doctor_id not in {d["id"] for d in db.get_unlinked_doctors(hospital_id)}:
+        errors.append("That roster entry isn't available to link (already linked, inactive, or not yours).")
     clean, profile_errors = _clean_profile(hospital_id, None, {k: getattr(payload, k) for k in _EDITABLE})
     errors += profile_errors
     if errors:
@@ -188,6 +206,7 @@ async def create_staff(payload: CreateStaffPayload, authorization: str | None = 
     try:
         staff = db.create_staff_user(
             hospital_id, payload.role, email, hash_portal_password(payload.password), clean["name"],
+            doctor_id=doctor_id,
             phone=clean.get("phone"), address=clean.get("address"), department_id=clean.get("department_id"),
             reports_to_id=clean.get("reports_to_id"), working_days=clean.get("working_days"),
             shift_start=clean.get("shift_start"), shift_end=clean.get("shift_end"),

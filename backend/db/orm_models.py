@@ -871,7 +871,11 @@ class StaffDetail(Base):
     identity_id: Mapped[int] = mapped_column(ForeignKey("identities.id"), primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
     role: Mapped[str]
-    # Legacy (the retired "doctor" login role linked a login to a doctors row). Always NULL now.
+    # Team & Access merge: an optional link to the `doctors` row (the roster entity, not a
+    # consultation resource, for a restaurant) this login was granted portal access from -- "Give
+    # portal access" on a roster-only person sets this on the new staff_details row it creates.
+    # NULL for a login created directly (no prior roster entry) or one predating this feature.
+    # Previously retired/always-NULL (migration 0035, the old "doctor" login role); repurposed here.
     doctor_id: Mapped[str | None] = mapped_column(ForeignKey("doctors.id"))
     # migration 0035 -- the Staff page's profile fields
     phone: Mapped[str | None]

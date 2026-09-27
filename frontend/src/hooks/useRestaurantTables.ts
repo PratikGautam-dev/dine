@@ -51,9 +51,9 @@ export function emptyTableForm(departments: Department[]): TableFormState {
 
 /** Loads + owns every mutation on the /portal/tables page -- the REAL
  * tables (physical dining tables, migration 0030) CRUD surface. Not to be
- * confused with /portal/doctors ("Staff & sections"), which manages the
- * doctors entity kept as this product's staff/schedule concept -- see
- * PortalSidebar.tsx's own comment on why both pages exist. */
+ * confused with the `doctors` table/API (no portal page of its own any
+ * more -- merged into Team & Access, /portal/settings/staff; see
+ * PortalSidebar.tsx's own comment on that merge). */
 export function useRestaurantTables(ready: boolean) {
   const [departments, setDepartments] = useState<Department[] | null>(null);
   const [sections, setSections] = useState<Section[]>([]);

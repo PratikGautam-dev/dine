@@ -26,9 +26,19 @@ async def portal_doctors(authorization: str | None = Header(default=None)):
     return JSONResponse({"departments": departments, "doctors": doctors})
 
 
+@router.get("/api/portal/departments")
+async def portal_departments(authorization: str | None = Header(default=None)):
+    """Sections list -- Team & Access merge: gated on "staff" (Sections management moved there),
+    not "doctors" (the old Team page this replaced)."""
+    principal, error = authorize(authorization, "staff", "view")
+    if error:
+        return error
+    return JSONResponse({"departments": db.get_departments(principal.hospital.id)})
+
+
 @router.post("/api/portal/departments")
 async def portal_create_department(payload: dict, authorization: str | None = Header(default=None)):
-    principal, error = authorize(authorization, "doctors", "write")
+    principal, error = authorize(authorization, "staff", "write")
     if error:
         return error
     hospital = principal.hospital
