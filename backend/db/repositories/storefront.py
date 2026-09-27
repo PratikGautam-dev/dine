@@ -14,7 +14,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from db.connection import get_session
 from db.orm_models import CustomerOtp, FoodOrder, HospitalRow
-from db.repositories.food_orders import STATUS_PAID, STATUS_PENDING_PAYMENT, advance_order_status
+from db.repositories.food_orders import STATUS_PAID, STATUS_PENDING_PAYMENT, advance_order_status, get_food_order
 from portal.attendance_rules import WEEKDAYS, to_minutes, tz
 
 _OTP_TTL_MINUTES = 10
@@ -277,6 +277,52 @@ def verify_otp(phone: str, code: str) -> bool:
     session.execute(update(CustomerOtp).where(CustomerOtp.id == row.id).values(consumed_at=now.isoformat()))
     session.commit()
     return True
+
+
+# ---------------------------------------------------------------- customer order reads (cross-hospital)
+
+def _restaurant_stub(session, hospital_id: int) -> dict | None:
+    row = session.execute(select(HospitalRow.name, HospitalRow.storefront_slug).where(HospitalRow.id == hospital_id)).first()
+    return {"name": row.name, "slug": row.storefront_slug} if row else None
+
+
+def get_order_hospital_id(order_id: int) -> int | None:
+    """A customer only ever has an order id, never a hospital_id -- this resolves which restaurant
+    an order belongs to so the public API can then call the existing hospital-scoped
+    get_food_order()/advance_order_status()/mark_order_paid_mock() without duplicating their logic."""
+    session = get_session()
+    row = session.execute(select(FoodOrder.hospital_id).where(FoodOrder.id == order_id)).first()
+    return row[0] if row else None
+
+
+def get_public_order(order_id: int) -> dict | None:
+    hospital_id = get_order_hospital_id(order_id)
+    if hospital_id is None:
+        return None
+    order = get_food_order(hospital_id, order_id)
+    if order is None:
+        return None
+    order["restaurant"] = _restaurant_stub(get_session(), hospital_id)
+    return order
+
+
+def list_orders_for_phone(phone: str, limit: int = 50) -> list[dict]:
+    """This phone's orders across every web-enabled restaurant, newest first -- deliberately not
+    scoped to `web` source only: a returning WhatsApp customer who also orders on the website
+    should see their whole history in one place, same "one person across channels" principle
+    patients already follow when a phone number matches."""
+    session = get_session()
+    rows = session.execute(
+        select(FoodOrder.id, FoodOrder.hospital_id).where(FoodOrder.phone == phone)
+        .order_by(FoodOrder.created_at.desc()).limit(limit)
+    ).all()
+    orders = []
+    for r in rows:
+        order = get_food_order(r.hospital_id, r.id)
+        if order is not None:
+            order["restaurant"] = _restaurant_stub(session, r.hospital_id)
+            orders.append(order)
+    return orders
 
 
 # ---------------------------------------------------------------- mock payment

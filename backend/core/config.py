@@ -82,6 +82,11 @@ class Settings(BaseSettings):
     # when this is empty, so it's never accidentally blank (an empty JWT secret would be worse: an
     # unsigned-in-practice token).
     CUSTOMER_JWT_SECRET: str = ""
+    # Web Storefront's OTP is mocked (shown on screen, never actually sent by SMS) until a real
+    # SMS sender is wired in -- this one flag is the entire seam: web/routes.py only includes the
+    # plain code in its response while this is true. Default true matches "mock until told
+    # otherwise" for a feature with no real SMS integration yet.
+    WEB_OTP_MOCK: bool = True
     # See this module's own docstring above -- the one exception to "REDIS_URL
     # isn't covered here", scoped to core/redis_client.py's get_redis() alone.
     REDIS_URL: str | None = None
