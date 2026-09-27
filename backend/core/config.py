@@ -75,6 +75,13 @@ class Settings(BaseSettings):
     # and vice versa.
     JWT_SECRET: str = ""
     SUPER_ADMIN_JWT_SECRET: str = ""
+    # Web Storefront customer login (auth/customer_session.py) -- its own secret, same "a leaked
+    # secret should only forge the one thing it's for" precedent as JWT_SECRET/SUPER_ADMIN_JWT_SECRET
+    # above: a leaked customer token must never verify as a staff/super-admin one, and vice versa.
+    # Left blank in most environments on purpose -- customer_session.py derives one from JWT_SECRET
+    # when this is empty, so it's never accidentally blank (an empty JWT secret would be worse: an
+    # unsigned-in-practice token).
+    CUSTOMER_JWT_SECRET: str = ""
     # See this module's own docstring above -- the one exception to "REDIS_URL
     # isn't covered here", scoped to core/redis_client.py's get_redis() alone.
     REDIS_URL: str | None = None

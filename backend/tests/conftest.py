@@ -25,6 +25,7 @@ os.environ.setdefault("TENANTS_ADMIN_SECRET", "test-tenants-admin-secret")
 # depends on these being set before first import the way ADMIN_SECRET does.
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret")
 os.environ.setdefault("SUPER_ADMIN_JWT_SECRET", "test-super-admin-jwt-secret")
+os.environ.setdefault("CUSTOMER_JWT_SECRET", "test-customer-jwt-secret")
 
 # SPEC Section 6/12.6: the app moved off SQLite onto Postgres (Neon), so tests
 # need a real Postgres to run against -- an in-memory swap-in-a-connection
