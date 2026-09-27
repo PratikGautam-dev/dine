@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { CircleCheck, CirclePause, Layers, Package, PackageX, Plus, Search, Soup, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -20,6 +20,7 @@ import { parseOrderTime, rupees } from "@/lib/foodOrders";
 import { usePermission } from "@/lib/staffAuth";
 
 const UNCATEGORISED = "__none__";
+const COMBOS_ONLY = "__combos__";
 type AvailabilityView = "all" | "available" | "sold_out" | "out_of_stock";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -82,12 +83,26 @@ export default function PortalFoodMenuPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (items || []).filter((i) => {
-      const cat = (i.category || "").trim() || UNCATEGORISED;
-      if (categoryFilter !== "all" && cat !== categoryFilter) return false;
+      if (categoryFilter === COMBOS_ONLY) {
+        if (!i.is_combo) return false;
+      } else {
+        const cat = (i.category || "").trim() || UNCATEGORISED;
+        if (categoryFilter !== "all" && cat !== categoryFilter) return false;
+      }
       if (availabilityView !== "all" && availability(i) !== availabilityView) return false;
       return !q || i.name.toLowerCase().includes(q) || (i.description || "").toLowerCase().includes(q) || (i.category || "").toLowerCase().includes(q);
     });
   }, [items, categoryFilter, availabilityView, search]);
+
+  const combos = useMemo(() => (items || []).filter((i) => i.is_combo), [items]);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  function viewAllCombos() {
+    setCategoryFilter(COMBOS_ONLY);
+    setSearch("");
+    setAvailabilityView("all");
+    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
 
   // Most-ordered dishes over the last 30 days, from the order lines themselves (cancelled orders left out).
   const popular = useMemo(() => {
@@ -241,6 +256,47 @@ export default function PortalFoodMenuPage() {
         </div>
       )}
 
+      {combos.length > 0 && (
+        <Card className="mb-space-4 p-space-4">
+          <div className="mb-space-3 flex items-center justify-between">
+            <h3 className="flex items-center gap-space-2 text-[15px] font-bold text-ink-900">
+              <Package size={16} className="text-accent-violet" /> Combo Offers
+            </h3>
+            <button type="button" onClick={viewAllCombos} className="text-[12.5px] font-semibold text-brand-700 hover:underline">
+              View all →
+            </button>
+          </div>
+          <table className="w-full text-left text-[13px]">
+            <thead>
+              <tr className="text-label border-b border-line text-ink-600">
+                <th className="w-8 py-space-2 font-medium">#</th>
+                <th className="py-space-2 font-medium">Combo Name</th>
+                <th className="py-space-2 font-medium">Items</th>
+                <th className="py-space-2 font-medium">Price</th>
+                <th className="py-space-2 font-medium">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {combos.map((c, i) => (
+                <tr
+                  key={c.id}
+                  onClick={canManage ? () => openEditForm(c) : undefined}
+                  className={cn("border-b border-line last:border-0", canManage && "cursor-pointer hover:bg-black/[0.02]")}
+                >
+                  <td className="py-space-2 text-ink-400">{i + 1}</td>
+                  <td className="py-space-2 font-semibold text-ink-900">{c.name}</td>
+                  <td className="py-space-2 text-ink-600">{c.combo_item_count} items</td>
+                  <td className="py-space-2 font-semibold tabular-nums text-ink-900">{rupees(c.price_paise)}</td>
+                  <td className="py-space-2">
+                    <Badge tone={c.is_available ? "success" : "neutral"}>{c.is_available ? "Active" : "Inactive"}</Badge>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </Card>
+      )}
+
       <div className={cn("grid grid-cols-1 items-start gap-space-4", showForm && "xl:grid-cols-[minmax(0,1fr)_380px]")}>
         {/* the add / edit panel: beside the list on wide screens, above it on narrower ones */}
         {showForm && (
@@ -254,7 +310,7 @@ export default function PortalFoodMenuPage() {
           </div>
         )}
 
-        <div className="min-w-0 xl:col-start-1 xl:row-start-1">
+        <div ref={listRef} className="min-w-0 xl:col-start-1 xl:row-start-1">
           <div className="mb-space-3 flex flex-wrap gap-space-2">
             {tabs.map((t) => (
               <button
