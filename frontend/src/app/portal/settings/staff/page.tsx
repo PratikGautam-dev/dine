@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   ChefHat, CircleCheck, KeyRound, Mail, MoreHorizontal, Pencil, Phone, Plus, Power, Search, ShieldCheck,
-  Users, UtensilsCrossed, X,
+  Users, UtensilsCrossed,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -14,13 +15,12 @@ import { DataTable } from "@/components/ui/DataTable";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { ResetStaffPasswordDialog } from "@/components/portal/ResetStaffPasswordDialog";
-import { PAGE_LABEL, RolePermissionSummary, summariseRole } from "@/components/portal/RolePermissionSummary";
+import { RolePermissionSummary, summariseRole } from "@/components/portal/RolePermissionSummary";
 import { StaffActivityCard } from "@/components/portal/StaffActivityCard";
 import { StatTile } from "@/components/portal/StatTile";
 import { StaffFormDialog } from "@/components/portal/StaffFormDialog";
@@ -29,30 +29,11 @@ import { cn } from "@/lib/cn";
 import { formatOrderTime } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import { roleLabel, roleTone, ROLE_OPTIONS } from "@/lib/staffRoles";
+import { BUILT_IN_ROLES, orderedRoles, roleLabel, roleTone } from "@/lib/staffRoles";
 import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { useStaffManagement, type StaffMember } from "@/hooks/useStaffManagement";
-import { createRoleColumns } from "./_components/role-columns";
 
 const SELECT_CLASS = "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
-
-// Kept in step with backend/portal/permissions.py's ALL_PAGES -- the pages a restaurant actually has.
-const PAGE_KEYS = [
-  "dashboard", "appointments", "patients", "tables", "food_menu", "food_orders", "messages",
-  "doctors", "settings", "staff", "roles", "reports", "offers", "feedback", "automations", "live_operations",
-  "check_in_out", "my_leave", "leave_requests", "attendance", "attendance_settings",
-];
-
-const BUILT_IN_ROLES = ROLE_OPTIONS.map((r) => r.value);
-
-/** Built-in roles first (in their fixed display order), then any hospital-created custom roles
- * alphabetically -- the order both the role filter dropdown and the matrix cards render in. */
-function orderedRoles(matrix: Record<string, unknown> | null): string[] {
-  if (!matrix) return [];
-  const known = BUILT_IN_ROLES.filter((r) => r in matrix);
-  const custom = Object.keys(matrix).filter((r) => !(BUILT_IN_ROLES as readonly string[]).includes(r)).sort();
-  return [...known, ...custom];
-}
 
 function initials(name: string) {
   return name.split(/\s+/).filter(Boolean).slice(0, 2).map((p) => p[0]?.toUpperCase()).join("") || "?";
@@ -173,32 +154,25 @@ export default function StaffManagementPage() {
     search, setSearch, roleFilter, setRoleFilter, statusFilter, setStatusFilter,
     addStaff, editStaff, setActive, resetPassword,
   } = useStaffManagement(canView);
-  // The real permission matrix, for the "what this role can do" summary (only people who may see Roles get it).
+  // The real permission matrix, for the "what this role can do" summary and the role filter/Add-staff
+  // dropdowns -- editing it lives on its own Roles & Permissions page now (only people who may see
+  // Roles get it here at all).
   const canSeeRoles = usePermission("roles", "view");
-  const canWriteRoles = usePermission("roles", "write");
-  const { matrix, savingCell, handleToggle, creatingRole, createRole } = usePortalRoles(canSeeRoles);
+  const { matrix } = usePortalRoles(canSeeRoles);
   const { entries: auditEntries } = usePortalAuditLog(canView);
   const selfId = session?.id ?? null;
   // Falls back to just the 3 built-ins if this viewer can't see the roles matrix (canSeeRoles
   // false, so `matrix` never loads) -- the role filter/Add-staff dropdowns must still work.
   const roles = useMemo(() => (matrix ? orderedRoles(matrix) : BUILT_IN_ROLES), [matrix]);
-  const [addRoleOpen, setAddRoleOpen] = useState(false);
-  const [newRoleName, setNewRoleName] = useState("");
-  const [addRoleError, setAddRoleError] = useState<string | null>(null);
 
-  async function handleAddRole(e: React.FormEvent) {
-    e.preventDefault();
-    setAddRoleError(null);
-    if (!newRoleName.trim()) {
-      setAddRoleError("Role name is required.");
-      return;
-    }
-    const ok = await createRole(newRoleName.trim());
-    if (ok) {
-      setNewRoleName("");
-      setAddRoleOpen(false);
-    }
-  }
+  // Roles & Permissions' "Manage Users" link (?role=cashier) lands here pre-filtered.
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const role = searchParams.get("role");
+    if (role) setRoleFilter(role);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
   async function reactivate(member: StaffMember) {
     const problem = await setActive(member, true);
     if (problem) toast.error("Couldn't reactivate", problem);
@@ -313,43 +287,13 @@ export default function StaffManagementPage() {
           </Card>
 
           {canSeeRoles && (
-            <div className="mt-space-4">
-              <div className="mb-space-3 flex items-center justify-between">
-                <div>
-                  <h3 className="text-[15px] font-bold text-ink-900">Roles &amp; Permissions</h3>
-                  <p className="text-hint">What each role can view, change, and delete across the portal.</p>
-                </div>
-                <PermissionGate page="roles" action="write">
-                  <Button size="md" onClick={() => setAddRoleOpen(true)}><Plus size={14} /> Add Role</Button>
-                </PermissionGate>
+            <Card className="mt-space-4 flex items-center justify-between p-space-4">
+              <div>
+                <h3 className="text-[15px] font-bold text-ink-900">Roles &amp; Permissions</h3>
+                <p className="text-hint">{roles.length} role{roles.length === 1 ? "" : "s"} -- what each can view, change, and delete across the portal.</p>
               </div>
-              {!matrix ? (
-                <p className="text-[13px] text-ink-400">Loading…</p>
-              ) : (
-                <div className="space-y-space-4">
-                  {roles.map((role) => {
-                    const columns = createRoleColumns({
-                      pageLabel: PAGE_LABEL,
-                      cellFor: (pageKey) => matrix[role]?.[pageKey] || { view: false, write: false, delete: false },
-                      canWrite: canWriteRoles,
-                      isSaving: (pageKey, action) => savingCell === `${role}:${pageKey}:${action}`,
-                      onToggle: (pageKey, action, next) => handleToggle(role, pageKey, action, next),
-                    });
-                    return (
-                      <Card key={role} className="p-space-4">
-                        <div className="mb-space-3 flex items-center gap-space-2">
-                          <Badge tone={roleTone(role)}>{roleLabel(role)}</Badge>
-                          {!(BUILT_IN_ROLES as readonly string[]).includes(role) && (
-                            <span className="text-[11px] text-ink-400">Custom role</span>
-                          )}
-                        </div>
-                        <DataTable columns={columns} data={PAGE_KEYS} getRowId={(pageKey) => pageKey} />
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
+              <Button variant="secondary" size="md" href="/portal/settings/roles">Manage roles →</Button>
+            </Card>
           )}
 
           <div className="mt-space-4">
@@ -469,27 +413,6 @@ export default function StaffManagementPage() {
           if (problem) toast.error("Couldn't deactivate", problem);
         }}
       />
-
-      {addRoleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={() => setAddRoleOpen(false)}>
-          <div className="w-full max-w-[380px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]" onClick={(e) => e.stopPropagation()}>
-            <div className="mb-space-4 flex items-center justify-between">
-              <h2 className="text-[16px] font-semibold text-ink-900">Add Role</h2>
-              <button type="button" onClick={() => setAddRoleOpen(false)} className="text-ink-400 hover:text-ink-900"><X size={18} /></button>
-            </div>
-            <form onSubmit={handleAddRole}>
-              <Field label="Role name" htmlFor="new-role-name" required hint='e.g. "Cashier" -- starts with no access; grant it what it needs from the matrix below.'>
-                <Input id="new-role-name" value={newRoleName} onChange={(e) => setNewRoleName(e.target.value)} placeholder="e.g. Cashier" autoFocus />
-              </Field>
-              {addRoleError && <p className="mb-space-3 text-[12.5px] font-medium text-error">{addRoleError}</p>}
-              <div className="flex justify-end gap-space-2">
-                <Button type="button" variant="secondary" onClick={() => setAddRoleOpen(false)} disabled={creatingRole}>Cancel</Button>
-                <Button type="submit" disabled={creatingRole || !newRoleName.trim()}>{creatingRole ? "Adding…" : "Add Role"}</Button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </PortalShell>
   );
 }

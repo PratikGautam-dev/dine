@@ -5,7 +5,7 @@ get_permission_matrix() reads this on every permission check (Redis-cached
 by portal/permission_cache.py, so the row-per-cell shape isn't a per-request
 cost in practice) and the Roles & Permissions admin UI edits it cell-by-cell
 via PUT /api/portal/roles/permissions."""
-from sqlalchemy import insert, select
+from sqlalchemy import delete, insert, select
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from db.connection import get_session
@@ -68,6 +68,15 @@ def create_role(hospital_id: int, role_key: str, page_keys: list[str]) -> None:
     ])
     stmt = stmt.on_conflict_do_nothing(index_elements=[RolePermission.hospital_id, RolePermission.role, RolePermission.page_key])
     session.execute(stmt)
+    session.commit()
+
+
+def delete_role(hospital_id: int, role_key: str) -> None:
+    """Roles & Permissions' delete action -- removes every permission row for this custom role.
+    The caller (the roles route) is responsible for refusing to delete a built-in role or one that
+    still has staff assigned; this just does the row deletion once that's already been checked."""
+    session = get_session()
+    session.execute(delete(RolePermission).where(RolePermission.hospital_id == hospital_id, RolePermission.role == role_key))
     session.commit()
 
 

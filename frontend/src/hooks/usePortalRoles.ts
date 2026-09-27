@@ -20,6 +20,7 @@ export function usePortalRoles(canView: boolean) {
   // only that checkbox shows a pending state while its PUT resolves.
   const [savingCell, setSavingCell] = useState<string | null>(null);
   const [creatingRole, setCreatingRole] = useState(false);
+  const [deletingRole, setDeletingRole] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await staffFetch("/api/portal/roles/permissions");
@@ -51,6 +52,27 @@ export function usePortalRoles(canView: boolean) {
     toast.success(`"${name}" added`, "Grant it access from the matrix below.");
     setMatrix((result.data as { permissions: Matrix }).permissions);
     return true;
+  }
+
+  /** Only succeeds for a custom role with nobody currently assigned (the backend enforces this too --
+   * see portal/routes/roles.py's DELETE handler). Returns an error string to show, or null on success. */
+  async function deleteRole(roleKey: string): Promise<string | null> {
+    setDeletingRole(roleKey);
+    const result = await staffFetch(`/api/portal/roles/${roleKey}`, { method: "DELETE" });
+    setDeletingRole(null);
+    if (!result.ok) {
+      if (result.unauthorized) {
+        router.push("/portal/login");
+        return null;
+      }
+      return result.error;
+    }
+    if (matrix) {
+      const rest = { ...matrix };
+      delete rest[roleKey];
+      setMatrix(rest);
+    }
+    return null;
   }
 
   async function handleToggle(role: string, pageKey: string, action: Action, next: boolean) {
@@ -94,5 +116,5 @@ export function usePortalRoles(canView: boolean) {
     }
   }
 
-  return { matrix, error, savingCell, handleToggle, creatingRole, createRole };
+  return { matrix, error, savingCell, handleToggle, creatingRole, createRole, deletingRole, deleteRole };
 }

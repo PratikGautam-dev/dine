@@ -15,10 +15,10 @@ type CreateRoleColumnsOptions = {
   onToggle: (pageKey: string, action: Action, next: boolean) => void;
 };
 
-/** Column definitions for one role's permission grid on /portal/settings/
- * roles -- "Page" plus one checkbox column per action (view/write/delete).
- * Rows are just page keys (strings); the actual {view,write,delete} cell
- * comes from `cellFor`, closing over that role's slice of the matrix. */
+/** Column definitions for one role's permission grid (Staff & Access's per-role cards, and Roles &
+ * Permissions' "Edit Permissions" panel) -- "Page" plus one checkbox column per action
+ * (view/write/delete). Rows are just page keys (strings); the actual {view,write,delete} cell comes
+ * from `cellFor`, closing over that role's slice of the matrix. */
 export function createRoleColumns({
   pageLabel, cellFor, canWrite, isSaving, onToggle,
 }: CreateRoleColumnsOptions): ColumnDef<string>[] {

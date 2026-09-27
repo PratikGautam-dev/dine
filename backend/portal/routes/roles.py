@@ -13,7 +13,7 @@ from pydantic import BaseModel
 import db.repository as db
 from portal.deps import get_current_staff, require_permission
 from portal.permission_cache import invalidate
-from portal.permissions import ALL_PAGES, get_assignable_roles, get_permission_matrix, role_key_from_name
+from portal.permissions import ALL_PAGES, ASSIGNABLE_ROLES, get_assignable_roles, get_permission_matrix, role_key_from_name
 
 router = APIRouter()
 
@@ -49,6 +49,35 @@ async def create_role(payload: CreateRolePayload, authorization: str | None = He
         entity_type="role", entity_id=role_key, after={"name": name, "role_key": role_key},
     )
     return JSONResponse({"role_key": role_key, "name": name, "permissions": get_permission_matrix(hospital_id)}, status_code=201)
+
+
+@router.delete("/api/portal/roles/{role_key}")
+async def delete_role(role_key: str, authorization: str | None = Header(default=None)):
+    """Roles & Permissions' delete action -- only a custom role with nobody currently assigned to it
+    can be deleted; a built-in role (admin/receptionist/kitchen) can never be, and a custom role with
+    staff on it must be reassigned first (same "don't silently orphan a real account" discipline
+    staff deactivation already follows elsewhere)."""
+    principal = get_current_staff(authorization)
+    if principal is None:
+        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    forbidden = require_permission(principal, "roles", "write")
+    if forbidden:
+        return forbidden
+    hospital_id = principal.hospital.id
+    if role_key in ASSIGNABLE_ROLES:
+        return JSONResponse({"error": "Built-in roles can't be deleted."}, status_code=400)
+    if role_key not in get_assignable_roles(hospital_id):
+        return JSONResponse({"error": "No such role."}, status_code=404)
+    assigned = sum(1 for s in db.list_staff_users_for_hospital(hospital_id) if s["role"] == role_key)
+    if assigned:
+        return JSONResponse({"error": f"{assigned} staff member(s) still have this role -- reassign them first."}, status_code=409)
+    db.delete_role(hospital_id, role_key)
+    invalidate(hospital_id)
+    db.record_audit_log(
+        "portal", hospital_id, f"{principal.name} <staff:{principal.staff_id}>", "roles.delete_role",
+        entity_type="role", entity_id=role_key,
+    )
+    return JSONResponse({"ok": True})
 
 
 @router.get("/api/portal/roles/permissions")

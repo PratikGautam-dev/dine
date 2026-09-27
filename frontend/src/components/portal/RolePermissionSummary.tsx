@@ -3,12 +3,20 @@ import type { Matrix } from "@/hooks/usePortalRoles";
 
 /** Page keys -> the names people see in the sidebar. Kept next to the roles grid's own labels. */
 export const PAGE_LABEL: Record<string, string> = {
-  dashboard: "Dashboard", appointments: "Reservations", patients: "Guests", tables: "Tables", food_menu: "Menu",
-  food_orders: "Orders", messages: "Messages", doctors: "Team", settings: "Settings", staff: "Staff",
+  dashboard: "Dashboard", appointments: "Table Bookings", patients: "Customers", tables: "Tables", food_menu: "Menu",
+  food_orders: "Food Orders", messages: "WhatsApp Inbox", doctors: "Team", settings: "Settings", staff: "Staff & Access",
   roles: "Roles & Permissions", check_in_out: "Clock in / out", my_leave: "My Leave",
   leave_requests: "Leave Requests (review)", attendance: "Team Attendance", attendance_settings: "Attendance Settings",
-  diagnostic_tests: "Tests",
+  diagnostic_tests: "Tests", offers: "Offers", feedback: "Feedback", automations: "Messages & Automations",
+  live_operations: "Live Operations", reports: "Reports",
 };
+
+// Kept in step with backend/portal/permissions.py's ALL_PAGES -- the pages a restaurant actually has.
+export const ALL_PAGE_KEYS = [
+  "dashboard", "appointments", "patients", "tables", "food_menu", "food_orders", "messages",
+  "doctors", "settings", "staff", "roles", "reports", "offers", "feedback", "automations", "live_operations",
+  "check_in_out", "my_leave", "leave_requests", "attendance", "attendance_settings",
+];
 
 /** The pages a role can change and the pages it can only look at, from the live permission matrix. */
 export function summariseRole(matrix: Matrix, role: string) {

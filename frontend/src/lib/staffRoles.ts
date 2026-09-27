@@ -39,3 +39,21 @@ export function roleTone(role: string): "brand" | "clay" | "neutral" | "violet" 
   for (let i = 0; i < role.length; i++) hash = (hash * 31 + role.charCodeAt(i)) >>> 0;
   return CUSTOM_ROLE_TONES[hash % CUSTOM_ROLE_TONES.length];
 }
+
+/** A role's real blurb (ROLE_OPTIONS, the 3 built-ins) or a generic line for a hospital-created
+ * custom role -- there's no stored description field for those, so this is the honest fallback. */
+export function roleDescription(role: string): string {
+  return ROLE_OPTIONS.find((r) => r.value === role)?.blurb ?? "Custom role -- access set from its permission grid.";
+}
+
+export const BUILT_IN_ROLES = ROLE_OPTIONS.map((r) => r.value);
+
+/** Built-in roles first (in their fixed display order), then any hospital-created custom roles
+ * alphabetically -- the order the role filter dropdown, the permission matrix cards, and the Roles
+ * & Permissions page all render roles in. */
+export function orderedRoles(matrix: Record<string, unknown> | null): string[] {
+  if (!matrix) return [];
+  const known = BUILT_IN_ROLES.filter((r) => r in matrix);
+  const custom = Object.keys(matrix).filter((r) => !(BUILT_IN_ROLES as readonly string[]).includes(r)).sort();
+  return [...known, ...custom];
+}
