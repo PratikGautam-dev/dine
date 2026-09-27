@@ -21,7 +21,7 @@ from db.orm_models import MenuItem
 def create_menu_item(
     hospital_id: int, name: str, price_paise: int, description: str | None = None,
     category: str | None = None, stock_count: int | None = None, image_url: str | None = None,
-    is_available: bool = True,
+    is_available: bool = True, combo_item_count: int | None = None,
 ) -> dict:
     item_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
@@ -29,7 +29,7 @@ def create_menu_item(
         MenuItem.__table__.insert().values(
             id=item_id, hospital_id=hospital_id, name=name, description=description,
             price_paise=price_paise, category=category, is_available=is_available, stock_count=stock_count,
-            image_url=image_url,
+            image_url=image_url, combo_item_count=combo_item_count,
         )
     )
     session.commit()
@@ -42,7 +42,7 @@ KEEP_STOCK = object()  # update_menu_item(stock_count=KEEP_STOCK): leave the liv
 def update_menu_item(
     hospital_id: int, menu_item_id: str, name: str, price_paise: int, description: str | None = None,
     category: str | None = None, is_available: bool = True, stock_count: "int | None | object" = KEEP_STOCK,
-    image_url: str | None = None,
+    image_url: str | None = None, combo_item_count: int | None = None,
 ) -> dict | None:
     """stock_count set here is a direct portal correction (a manual count adjustment) -- distinct from
     decrement_stock() below, which is the atomic per-order guard used at checkout, never a plain overwrite.
@@ -50,7 +50,7 @@ def update_menu_item(
     would otherwise write its stale count over the orders that have decremented it since."""
     values = dict(
         name=name, description=description, price_paise=price_paise, category=category,
-        is_available=is_available, image_url=image_url,
+        is_available=is_available, image_url=image_url, combo_item_count=combo_item_count,
         updated_at=datetime.now(timezone.utc).isoformat(),
     )
     if stock_count is not KEEP_STOCK:
@@ -121,7 +121,7 @@ def get_menu_items(hospital_id: int, category: str | None = None, available_only
     session = get_session()
     stmt = select(
         MenuItem.id, MenuItem.name, MenuItem.description, MenuItem.price_paise, MenuItem.category,
-        MenuItem.is_available, MenuItem.stock_count, MenuItem.image_url,
+        MenuItem.is_available, MenuItem.stock_count, MenuItem.image_url, MenuItem.combo_item_count,
     ).where(MenuItem.hospital_id == hospital_id)
     if category is not None:
         stmt = stmt.where(MenuItem.category == category)
@@ -138,7 +138,7 @@ def get_menu_item(hospital_id: int, menu_item_id: str) -> dict | None:
     row = session.execute(
         select(
             MenuItem.id, MenuItem.name, MenuItem.description, MenuItem.price_paise, MenuItem.category,
-            MenuItem.is_available, MenuItem.stock_count, MenuItem.image_url,
+            MenuItem.is_available, MenuItem.stock_count, MenuItem.image_url, MenuItem.combo_item_count,
         ).where(MenuItem.hospital_id == hospital_id, MenuItem.id == menu_item_id)
     ).first()
     return dict(row._mapping) if row else None

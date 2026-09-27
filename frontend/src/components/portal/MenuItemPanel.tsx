@@ -123,6 +123,23 @@ export function MenuItemPanel({
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
         </Field>
+        <CheckboxRow
+          checked={form.is_combo}
+          onChange={(checked) => setForm({ ...form, is_combo: checked, combo_item_count: checked ? form.combo_item_count : "" })}
+        >
+          This is a combo (bundles multiple dishes into one item)
+        </CheckboxRow>
+        {form.is_combo && (
+          <Field
+            label="Number of dishes included" htmlFor="mi-combo-count" required
+            hint='List what the combo includes in the Description above, e.g. "2 Butter Naan, Dal Makhani, Mango Lassi" -- guests see that on WhatsApp.'
+          >
+            <Input
+              id="mi-combo-count" type="number" min="1" step="1" value={form.combo_item_count}
+              onChange={(e) => setForm({ ...form, combo_item_count: e.target.value })}
+            />
+          </Field>
+        )}
         <CheckboxRow checked={form.is_available} onChange={(checked) => setForm({ ...form, is_available: checked })}>
           Available for ordering
         </CheckboxRow>

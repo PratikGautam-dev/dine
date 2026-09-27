@@ -11,6 +11,8 @@ export type MenuItem = {
   is_available: boolean;
   stock_count: number | null;
   image_url: string | null;
+  /** Combo Offers: how many dishes this item bundles. null = a regular (non-combo) item. */
+  combo_item_count: number | null;
 };
 
 export type MenuItemFormState = {
@@ -22,12 +24,14 @@ export type MenuItemFormState = {
   stock_count: string; // "" means unlimited (null)
   stock_original: string; // what the count was when the form opened -- the count is only sent when changed
   image_url: string; // a public https link to a photo; "" means text-only
+  is_combo: boolean;
+  combo_item_count: string; // "" while is_combo is false
 };
 
 export function emptyMenuItemForm(): MenuItemFormState {
   return {
     name: "", description: "", price_rupees: "", category: "", is_available: true,
-    stock_count: "", stock_original: "", image_url: "",
+    stock_count: "", stock_original: "", image_url: "", is_combo: false, combo_item_count: "",
   };
 }
 
@@ -39,6 +43,7 @@ function formToPayload(form: MenuItemFormState, editing: boolean) {
     category: form.category.trim() || null,
     is_available: form.is_available,
     image_url: form.image_url.trim() || null,
+    combo_item_count: form.is_combo && form.combo_item_count.trim() ? Number(form.combo_item_count) : null,
   };
   // An edit form loaded a while ago must not write its stale count over orders that have since used stock,
   // so on edit the count is only sent when staff actually changed it.
@@ -95,6 +100,8 @@ export function useMenuItems(ready: boolean) {
       stock_count: item.stock_count === null ? "" : item.stock_count.toString(),
       stock_original: item.stock_count === null ? "" : item.stock_count.toString(),
       image_url: item.image_url ?? "",
+      is_combo: item.combo_item_count !== null,
+      combo_item_count: item.combo_item_count === null ? "" : item.combo_item_count.toString(),
     });
     setFormError(null);
     setShowForm(true);
@@ -110,6 +117,10 @@ export function useMenuItems(ready: boolean) {
     e.preventDefault();
     if (!form.name.trim()) {
       setFormError("Item name is required.");
+      return;
+    }
+    if (form.is_combo && (!form.combo_item_count.trim() || Number(form.combo_item_count) < 1)) {
+      setFormError("Enter how many dishes this combo includes.");
       return;
     }
     setSaving(true);
