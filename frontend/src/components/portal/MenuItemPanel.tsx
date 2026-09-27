@@ -8,6 +8,7 @@ import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
+import { ComboLinesEditor } from "@/components/portal/ComboLinesEditor";
 import type { MenuItem, MenuItemFormState } from "@/hooks/useMenuItems";
 
 const NEW_CATEGORY = "__new__";
@@ -123,6 +124,15 @@ export function MenuItemPanel({
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
         </Field>
+        <CheckboxRow
+          checked={form.is_combo}
+          onChange={(checked) => setForm({ ...form, is_combo: checked, combo_lines: checked ? form.combo_lines : [] })}
+        >
+          This is a combo (bundles multiple menu items into one)
+        </CheckboxRow>
+        {form.is_combo && (
+          <ComboLinesEditor lines={form.combo_lines} onChange={(combo_lines) => setForm({ ...form, combo_lines })} />
+        )}
         <CheckboxRow checked={form.is_available} onChange={(checked) => setForm({ ...form, is_available: checked })}>
           Available for ordering
         </CheckboxRow>

@@ -2,6 +2,11 @@ import { useCallback, useEffect, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
+/** One line of a combo: a real, ordinary menu item plus how many. */
+export type ComboLine = { component_item_id: string; name: string; price_paise: number; quantity: number };
+/** A candidate item for a combo builder's dropdown -- every non-combo item. */
+export type ComboCandidate = { id: string; name: string; price_paise: number };
+
 export type MenuItem = {
   id: string;
   name: string;
@@ -11,6 +16,10 @@ export type MenuItem = {
   is_available: boolean;
   stock_count: number | null;
   image_url: string | null;
+  is_combo: boolean;
+  /** SUM(quantity) across combo_lines -- the mockup's "Items" count. null for a non-combo. */
+  combo_item_count: number | null;
+  combo_lines: ComboLine[];
 };
 
 export type MenuItemFormState = {
@@ -22,12 +31,14 @@ export type MenuItemFormState = {
   stock_count: string; // "" means unlimited (null)
   stock_original: string; // what the count was when the form opened -- the count is only sent when changed
   image_url: string; // a public https link to a photo; "" means text-only
+  is_combo: boolean;
+  combo_lines: { component_item_id: string; quantity: string }[];
 };
 
 export function emptyMenuItemForm(): MenuItemFormState {
   return {
     name: "", description: "", price_rupees: "", category: "", is_available: true,
-    stock_count: "", stock_original: "", image_url: "",
+    stock_count: "", stock_original: "", image_url: "", is_combo: false, combo_lines: [],
   };
 }
 
@@ -39,6 +50,12 @@ function formToPayload(form: MenuItemFormState, editing: boolean) {
     category: form.category.trim() || null,
     is_available: form.is_available,
     image_url: form.image_url.trim() || null,
+    is_combo: form.is_combo,
+    combo_lines: form.is_combo
+      ? form.combo_lines
+          .filter((l) => l.component_item_id)
+          .map((l) => ({ component_item_id: l.component_item_id, quantity: Number(l.quantity) || 1 }))
+      : [],
   };
   // An edit form loaded a while ago must not write its stale count over orders that have since used stock,
   // so on edit the count is only sent when staff actually changed it.
@@ -95,6 +112,8 @@ export function useMenuItems(ready: boolean) {
       stock_count: item.stock_count === null ? "" : item.stock_count.toString(),
       stock_original: item.stock_count === null ? "" : item.stock_count.toString(),
       image_url: item.image_url ?? "",
+      is_combo: item.is_combo,
+      combo_lines: item.combo_lines.map((l) => ({ component_item_id: l.component_item_id, quantity: String(l.quantity) })),
     });
     setFormError(null);
     setShowForm(true);
@@ -110,6 +129,10 @@ export function useMenuItems(ready: boolean) {
     e.preventDefault();
     if (!form.name.trim()) {
       setFormError("Item name is required.");
+      return;
+    }
+    if (form.is_combo && form.combo_lines.filter((l) => l.component_item_id).length === 0) {
+      setFormError("Add at least one item to the combo.");
       return;
     }
     setSaving(true);

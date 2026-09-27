@@ -1647,6 +1647,19 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_automation_runs_automation ON automation_runs(automation_id)")
 
+    # Migration 0049 -- Combo Offers: a combo is a menu item flagged is_combo, with its contents
+    # (real menu items + quantities, not free text) in menu_item_combo_lines.
+    conn.execute("ALTER TABLE menu_items ADD COLUMN IF NOT EXISTS is_combo BOOLEAN NOT NULL DEFAULT false")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS menu_item_combo_lines ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "combo_item_id TEXT NOT NULL REFERENCES menu_items(id), "
+        "component_item_id TEXT NOT NULL REFERENCES menu_items(id), "
+        "quantity INTEGER NOT NULL DEFAULT 1)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_menu_item_combo_lines_combo ON menu_item_combo_lines(combo_item_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_menu_item_combo_lines_component ON menu_item_combo_lines(component_item_id)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

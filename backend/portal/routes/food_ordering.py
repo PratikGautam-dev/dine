@@ -26,6 +26,11 @@ from portal.deps import _authenticate, require_capability, authorize
 router = APIRouter()
 
 
+class ComboLinePayload(BaseModel):
+    component_item_id: str
+    quantity: int = 1
+
+
 class MenuItemPayload(BaseModel):
     name: str = ""
     description: str | None = None
@@ -34,6 +39,10 @@ class MenuItemPayload(BaseModel):
     is_available: bool = True
     stock_count: int | None = None
     image_url: str | None = None
+    # Combo Offers: is_combo flags this item as a bundle; combo_lines is what it bundles (each a
+    # real, ordinary menu item + how many). Ignored when is_combo is false.
+    is_combo: bool = False
+    combo_lines: list[ComboLinePayload] = []
 
 
 class RestockPayload(BaseModel):
@@ -63,6 +72,27 @@ def _clean_image_url(raw: str | None) -> tuple[str | None, str | None]:
     return url, None
 
 
+def _validate_combo_lines(
+    hospital_id: int, is_combo: bool, lines: list[ComboLinePayload], editing_item_id: str | None = None,
+) -> str | None:
+    """None on success, else the error message. Requires at least one line, every quantity >= 1,
+    and every component to actually exist for this hospital and not itself be a combo (no combos of
+    combos) -- `editing_item_id` excludes the item being edited from its own candidate list, since on
+    an edit that turns a plain item INTO a combo, the row is still is_combo=False in the DB at
+    validation time and would otherwise look like a valid (self-referencing) component."""
+    if not is_combo:
+        return None
+    if not lines:
+        return "A combo needs at least one item."
+    candidate_ids = {c["id"] for c in db.list_combo_candidates(hospital_id)} - {editing_item_id}
+    for line in lines:
+        if line.quantity < 1:
+            return "Each item in a combo needs a quantity of at least 1."
+        if line.component_item_id not in candidate_ids:
+            return "One of the combo's items isn't a valid, non-combo menu item."
+    return None
+
+
 def _require_food_ordering(authorization: str | None, page: str, action: str):
     """Shared guard every route below opens with -- returns (hospital, None) on success or
     (None, JSONResponse) to return as-is, same "if error: return error" early-return shape
@@ -90,6 +120,15 @@ async def portal_menu_items(authorization: str | None = Header(default=None)):
     return JSONResponse({"menu_items": items, "categories": db.list_menu_categories(hospital.id)})
 
 
+@router.get("/api/portal/menu-items/combo-candidates")
+async def portal_combo_candidates(authorization: str | None = Header(default=None)):
+    """Every non-combo item, for the Add/Edit panel's combo builder dropdown."""
+    hospital, error = _require_food_ordering(authorization, "food_menu", "view")
+    if error:
+        return error
+    return JSONResponse({"items": db.list_combo_candidates(hospital.id)})
+
+
 @router.post("/api/portal/menu-items")
 async def portal_create_menu_item(payload: MenuItemPayload, authorization: str | None = Header(default=None)):
     hospital, error = _require_food_ordering(authorization, "food_menu", "write")
@@ -105,11 +144,15 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
     image_url, image_error = _clean_image_url(payload.image_url)
     if image_error:
         return JSONResponse({"error": image_error}, status_code=400)
+    combo_error = _validate_combo_lines(hospital.id, payload.is_combo, payload.combo_lines)
+    if combo_error:
+        return JSONResponse({"error": combo_error}, status_code=400)
     item = db.create_menu_item(
         hospital.id, name, price_paise=round(payload.price_rupees * 100),
         description=payload.description, category=db.canonical_category(hospital.id, payload.category),
         stock_count=payload.stock_count,
-        image_url=image_url, is_available=payload.is_available,
+        image_url=image_url, is_available=payload.is_available, is_combo=payload.is_combo,
+        combo_lines=[line.model_dump() for line in payload.combo_lines],
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.create",
@@ -138,13 +181,17 @@ async def portal_update_menu_item(
     image_url, image_error = _clean_image_url(payload.image_url)
     if image_error:
         return JSONResponse({"error": image_error}, status_code=400)
+    combo_error = _validate_combo_lines(hospital.id, payload.is_combo, payload.combo_lines, editing_item_id=menu_item_id)
+    if combo_error:
+        return JSONResponse({"error": combo_error}, status_code=400)
     # stock_count only overwrites the live count when the request actually carries it (see update_menu_item).
     item = db.update_menu_item(
         hospital.id, menu_item_id, name=name, price_paise=round(payload.price_rupees * 100),
         description=payload.description, category=db.canonical_category(hospital.id, payload.category),
         is_available=payload.is_available,
         stock_count=payload.stock_count if "stock_count" in payload.model_fields_set else db.KEEP_STOCK,
-        image_url=image_url,
+        image_url=image_url, is_combo=payload.is_combo,
+        combo_lines=[line.model_dump() for line in payload.combo_lines],
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "menu_item.update",

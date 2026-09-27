@@ -121,10 +121,27 @@ async def _send_category_list(wa: WhatsAppClient, phone: str, items: list[dict],
     await _send_back_button(wa, phone, language=language)
 
 
+def _combo_includes_line(item: dict) -> str | None:
+    """"Includes: 2x Butter Naan, 1x Dal Makhani" -- built from the combo's real, structured lines
+    (portal/Combo Offers), never staff-typed text, so it's always accurate. None for a plain item."""
+    if not item.get("is_combo") or not item.get("combo_lines"):
+        return None
+    parts = ", ".join(f"{line['quantity']}x {line['name']}" for line in item["combo_lines"])
+    return f"Includes: {parts}"
+
+
+def _full_description(item: dict) -> str | None:
+    """The combo "Includes:" line (if any) followed by the staff-written description (if any) --
+    whichever parts exist, joined; None if neither does."""
+    parts = [p for p in (_combo_includes_line(item), item.get("description")) if p]
+    return " · ".join(parts) if parts else None
+
+
 def _item_row(item: dict) -> dict:
     description = format_price(item["price_paise"])
-    if item.get("description"):
-        description = f"{description} · {item['description']}"
+    full_description = _full_description(item)
+    if full_description:
+        description = f"{description} · {full_description}"
     return {
         "id": item["id"], "title": _truncate(item["name"], _ROW_TITLE_MAX),
         "description": _truncate(description, _ROW_DESC_MAX),
@@ -167,8 +184,9 @@ async def _send_item_card(wa: WhatsAppClient, phone: str, item: dict, language: 
     If Meta can't fetch the link the same card goes out as plain text, so a bad
     URL never blocks ordering."""
     body = f"*{item['name']}* — {format_price(item['price_paise'])}"
-    if item.get("description"):
-        body += f"\n{item['description']}"
+    full_description = _full_description(item)
+    if full_description:
+        body += f"\n{full_description}"
     body = _truncate(body, _BUTTON_BODY_MAX)
     buttons = [
         {"id": ITEM_ADD_ID, "title": t(ADD_TO_CART_BUTTON, language)},

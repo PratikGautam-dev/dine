@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { CircleCheck, CirclePause, Layers, PackageX, Plus, Search, Soup, Utensils } from "lucide-react";
+import { CircleCheck, CirclePause, Layers, Package, PackageX, Plus, Search, Soup, Utensils } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -59,6 +59,7 @@ export default function PortalFoodMenuPage() {
       soldOut: all.filter((i) => availability(i) === "sold_out").length,
       outOfStock: all.filter((i) => availability(i) === "out_of_stock").length,
       categories: new Set(all.map((i) => (i.category || "").trim()).filter(Boolean)).size,
+      combos: all.filter((i) => i.is_combo).length,
     };
   }, [items]);
 
@@ -129,12 +130,25 @@ export default function PortalFoodMenuPage() {
                 </span>
               )}
               <div className="min-w-0">
-                <div className="font-semibold text-ink-900">{item.name}</div>
+                <div className="flex items-center gap-space-2">
+                  <span className="font-semibold text-ink-900">{item.name}</span>
+                  {item.is_combo && <Badge tone="violet">Combo</Badge>}
+                </div>
                 {item.description && <div className="max-w-[260px] truncate text-[12px] text-ink-600">{item.description}</div>}
               </div>
             </div>
           );
         },
+      },
+      {
+        id: "items",
+        header: "Items",
+        cell: ({ row }) =>
+          row.original.is_combo ? (
+            <span className="whitespace-nowrap text-ink-900">{row.original.combo_item_count} items</span>
+          ) : (
+            <span className="text-ink-400">—</span>
+          ),
       },
       {
         id: "category",
@@ -217,12 +231,13 @@ export default function PortalFoodMenuPage() {
       )}
 
       {items && (
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           <StatTile icon={<Soup size={22} />} label="Menu items" value={stats.total} deltaPct={null} hint="On your menu" />
           <StatTile icon={<CircleCheck size={22} />} label="Available" value={stats.available} deltaPct={null} hint="Guests can order" />
           <StatTile icon={<CirclePause size={22} />} label="Sold out" value={stats.soldOut} deltaPct={null} hint="Switched off" />
           <StatTile icon={<PackageX size={22} />} label="Out of stock" value={stats.outOfStock} deltaPct={null} hint="Stock count is 0" />
           <StatTile icon={<Layers size={22} />} label="Categories" value={stats.categories} deltaPct={null} hint="Guests browse by these" />
+          <StatTile icon={<Package size={22} />} label="Combo offers" value={stats.combos} deltaPct={null} hint="Bundled items" tone="violet" />
         </div>
       )}
 

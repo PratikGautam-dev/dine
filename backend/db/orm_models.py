@@ -348,8 +348,26 @@ class MenuItem(Base):
     stock_count: Mapped[int | None]
     # migration 0033 -- merchant-pasted photo link; NULL = text-only item.
     image_url: Mapped[str | None]
+    # migration 0049 -- Combo Offers: a combo is a normal menu item (same price/category/
+    # availability/stock/WhatsApp ordering path) flagged is_combo, with its contents in
+    # MenuItemComboLine below -- real menu items + quantities, not free text.
+    is_combo: Mapped[bool]
     created_at: Mapped[str]
     updated_at: Mapped[str]
+
+
+class MenuItemComboLine(Base):
+    """One component of a combo -- migration 0049. `combo_item_id` is the combo's own menu_items row
+    (is_combo=True); `component_item_id` is a real, ordinary menu item it bundles (is_combo=False,
+    enforced in portal/routes/food_ordering.py, not here). A combo's lines are replaced wholesale on
+    every save (delete-then-insert), never patched line-by-line."""
+    __tablename__ = "menu_item_combo_lines"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    combo_item_id: Mapped[str] = mapped_column(ForeignKey("menu_items.id"))
+    component_item_id: Mapped[str] = mapped_column(ForeignKey("menu_items.id"))
+    quantity: Mapped[int]
 
 
 class FoodOrder(Base):
