@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   ChefHat, CircleCheck, KeyRound, Mail, MoreHorizontal, Pencil, Phone, Plus, Power, Search, ShieldCheck,
@@ -165,13 +164,14 @@ export default function StaffManagementPage() {
   // false, so `matrix` never loads) -- the role filter/Add-staff dropdowns must still work.
   const roles = useMemo(() => (matrix ? orderedRoles(matrix) : BUILT_IN_ROLES), [matrix]);
 
-  // Roles & Permissions' "Manage Users" link (?role=cashier) lands here pre-filtered.
-  const searchParams = useSearchParams();
+  // Roles & Permissions' "Manage Users" link (?role=cashier) lands here pre-filtered. Read directly
+  // off window.location rather than next/navigation's useSearchParams(), which would force this
+  // whole page out of static prerendering unless wrapped in its own <Suspense> boundary.
   useEffect(() => {
-    const role = searchParams.get("role");
+    const role = new URLSearchParams(window.location.search).get("role");
     if (role) setRoleFilter(role);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, []);
 
   async function reactivate(member: StaffMember) {
     const problem = await setActive(member, true);
