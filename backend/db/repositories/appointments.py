@@ -620,6 +620,20 @@ def get_upcoming_appointments_for_phone(hospital_id: int, phone: str, now: datet
     return [_row_to_appointment(r._mapping) for r in rows]
 
 
+def get_pending_appointment_for_phone(hospital_id: int, phone: str) -> Appointment | None:
+    """This phone's soonest still-'pending' booking (awaiting staff confirmation -- see
+    confirm_booking()), or None. Messages page's "Confirm Booking" quick action uses this to find
+    what a Confirm click should act on, without staff having to look it up themselves."""
+    session = get_session()
+    row = session.execute(
+        _appointment_select_stmt()
+        .where(AppointmentRow.hospital_id == hospital_id, AppointmentRow.phone == phone, AppointmentRow.status == STATUS_PENDING)
+        .order_by(AppointmentRow.scheduled_at.asc())
+        .limit(1)
+    ).first()
+    return _row_to_appointment(row._mapping) if row else None
+
+
 def get_appointments_for_account_in_range(
     hospital_id: int, care_connect_account_id: int, range_start: datetime, range_end: datetime,
     statuses: list[str] | None = None,

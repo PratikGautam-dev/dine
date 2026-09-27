@@ -3,7 +3,9 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
+from core.money import format_price
 from core.whatsapp import WhatsAppClient
+from db.repositories.food_orders import STATUS_PENDING_PAYMENT, STATUS_PREPARING, STATUS_READY_FOR_PICKUP, STATUS_OUT_FOR_DELIVERY
 from portal.deps import _authenticate, _session_id, authorize
 
 router = APIRouter()
@@ -136,6 +138,133 @@ async def portal_reply_handoff(handoff_id: int, payload: dict, authorization: st
     wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
     await wa.send_text(phone, text)
     message = db.add_handoff_message(hospital.id, handoff_id, "outbound", text)
+    return JSONResponse({"ok": True, "message": message})
+
+
+def _menu_text(hospital_id: int) -> str | None:
+    items = db.get_menu_items(hospital_id, available_only=True)
+    if not items:
+        return None
+    by_category: dict[str, list[dict]] = {}
+    for item in items:
+        by_category.setdefault(item["category"] or "Menu", []).append(item)
+    lines = ["*Today's menu*"]
+    for category, group in by_category.items():
+        lines.append(f"\n*{category}*")
+        lines += [f"- {i['name']} — {format_price(i['price_paise'])}" for i in group]
+    lines.append("\nReply with what you'd like and we'll get it started!")
+    return "\n".join(lines)
+
+
+def _ready_status_for_order(order: dict) -> str:
+    return STATUS_OUT_FOR_DELIVERY if order["fulfillment_type"] == "delivery" else STATUS_READY_FOR_PICKUP
+
+
+# action -> a function of (hospital, phone) returning (text, error) -- exactly one is not None.
+# Each either performs a real state change (confirm_booking/advance_order_status) or composes a
+# message from real, already-stored data (the menu, a stored payment link, an order's own status).
+# None of these fabricate anything: an action with no matching real record for this guest errors
+# instead of sending something misleading.
+async def _run_quick_action(action: str, hospital, phone: str) -> tuple[str | None, str | None]:
+    if action == "send_menu":
+        text = _menu_text(hospital.id)
+        return (text, None) if text else (None, "No available menu items to send.")
+
+    if action == "confirm_booking":
+        appt = db.get_pending_appointment_for_phone(hospital.id, phone)
+        if appt is None:
+            return None, "No pending booking to confirm for this guest."
+        if not db.confirm_booking(hospital.id, appt.id):
+            return None, "That booking isn't pending confirmation any more."
+        where = appt.table_name or appt.department_name
+        text = (
+            f"✅ Your reservation is confirmed!\n\n"
+            f"🆔 Reservation ID: {appt.reference_id}\n"
+            f"📍 {where}\n"
+            f"📅 Date: {appt.scheduled_at.strftime('%A, %d %B %Y')}\n"
+            f"🕐 Time: {appt.scheduled_at.strftime('%I:%M %p')}\n\n"
+            f"We look forward to seeing you."
+        )
+        return text, None
+
+    if action == "mark_ready":
+        order = next((o for o in db.list_food_orders(hospital.id, phone=phone, limit=5) if o["status"] == STATUS_PREPARING), None)
+        if order is None:
+            return None, "No order in preparation for this guest to mark ready."
+        updated = db.advance_order_status(hospital.id, order["id"], _ready_status_for_order(order), expected_status=STATUS_PREPARING)
+        if updated is None:
+            return None, "That order isn't in preparation any more."
+        verb = "out for delivery" if updated["fulfillment_type"] == "delivery" else "ready for pickup"
+        return f"🍽️ Your order #{updated['reference_id']} is {verb}!", None
+
+    if action == "send_payment_link":
+        order = next(
+            (o for o in db.list_food_orders(hospital.id, phone=phone, limit=5)
+             if o["status"] == STATUS_PENDING_PAYMENT and o["razorpay_payment_link_url"]),
+            None,
+        )
+        if order is None:
+            return None, "No order awaiting payment for this guest."
+        return f"Here's your payment link for order #{order['reference_id']}: {order['razorpay_payment_link_url']}", None
+
+    if action == "take_order":
+        return "Ready to order? Reply with what you'd like from our menu, or say \"menu\" to browse first.", None
+
+    if action == "reschedule":
+        upcoming = db.get_upcoming_appointments_for_phone(hospital.id, phone)
+        if upcoming:
+            when = upcoming[0].scheduled_at.strftime("%A, %d %B at %I:%M %p")
+            return f"Would you like to reschedule your reservation currently set for {when}? Reply with your preferred new date and time.", None
+        return "Would you like to reschedule? Reply with your preferred new date and time.", None
+
+    if action == "send_update":
+        orders = db.list_food_orders(hospital.id, phone=phone, limit=1)
+        if orders:
+            o = orders[0]
+            return f"Update on order #{o['reference_id']}: it's currently {o['status'].replace('_', ' ')}.", None
+        upcoming = db.get_upcoming_appointments_for_phone(hospital.id, phone)
+        if upcoming:
+            when = upcoming[0].scheduled_at.strftime("%A, %d %B at %I:%M %p")
+            return f"Update on your reservation: still confirmed for {when}.", None
+        return None, "Nothing to send an update about for this guest yet."
+
+    return None, f"Unknown quick action: {action!r}"
+
+
+@router.post("/api/portal/handoffs/{handoff_id}/quick-action")
+async def portal_handoff_quick_action(handoff_id: int, payload: dict, authorization: str | None = Header(default=None)):
+    """WhatsApp Inbox's quick-action row above the reply box -- one click does a real thing (confirm
+    a pending booking, mark an in-progress order ready, resend a stored payment link, ...) and sends
+    the guest a real WhatsApp text about it, logged into the same two-way thread portal_reply_handoff()
+    writes to. Errors (no matching order/booking for this guest) come back as a message, not a silent
+    no-op or a fabricated send."""
+    principal, error = authorize(authorization, "messages", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+
+    action = (payload or {}).get("action", "").strip()
+    if not action:
+        return JSONResponse({"error": "action is required."}, status_code=400)
+
+    matches = [h for h in db.get_handoff_requests(hospital.id, status=None) if h["id"] == handoff_id]
+    if not matches:
+        return JSONResponse({"error": "No such handoff request."}, status_code=404)
+    phone = matches[0]["phone"]
+
+    text, action_error = await _run_quick_action(action, hospital, phone)
+    if action_error:
+        return JSONResponse({"error": action_error}, status_code=409)
+
+    if not (hospital.whatsapp_phone_number_id and hospital.access_token):
+        return JSONResponse({"error": "WhatsApp is not configured for this hospital yet."}, status_code=400)
+    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+    await wa.send_text(phone, text)
+    message = db.add_handoff_message(hospital.id, handoff_id, "outbound", text)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", f"handoff.quick_action.{action}",
+        entity_type="handoff", entity_id=str(handoff_id),
+    )
     return JSONResponse({"ok": True, "message": message})
 
 

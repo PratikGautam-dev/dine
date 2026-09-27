@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { AlertTriangle, BellRing, Check, CircleCheck, Clock, MessageCircle, Send, Trash2 } from "lucide-react";
+import {
+  AlertTriangle, BellRing, CalendarCheck, Check, CircleCheck, Clock, CreditCard, MessageCircle,
+  RefreshCw, Send, ShoppingBag, Soup, Trash2,
+} from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -18,6 +21,7 @@ import { useGuestSummary, useHandoffOverview } from "@/hooks/useMessagesInsight"
 import { cn } from "@/lib/cn";
 import { formatOrderTime, isSameLocalDay, parseOrderTime } from "@/lib/foodOrders";
 import { formatDate } from "@/lib/formatDate";
+import { toast } from "@/lib/toast";
 import { usePermission } from "@/lib/staffAuth";
 
 /** "12m", "3h 20m", "2d" -- how long ago something was, compact enough for the "waiting longest" tile. */
@@ -48,12 +52,26 @@ function Avatar({ label, className }: { label: string; className?: string }) {
   );
 }
 
+// Each does one real thing server-side (confirm a pending booking, mark an in-progress order ready,
+// resend a stored payment link, ...) and sends the guest a real WhatsApp message about it --
+// portal_handoff_quick_action(). An action with nothing to act on for this guest right now (no
+// pending booking, no order awaiting payment, ...) comes back as a toasted error, not a silent no-op.
+const QUICK_ACTIONS = [
+  { id: "send_menu", label: "Send Menu", icon: Soup },
+  { id: "confirm_booking", label: "Confirm Booking", icon: CalendarCheck },
+  { id: "reschedule", label: "Reschedule", icon: RefreshCw },
+  { id: "take_order", label: "Take Order", icon: ShoppingBag },
+  { id: "send_payment_link", label: "Send Payment Link", icon: CreditCard },
+  { id: "mark_ready", label: "Mark Ready", icon: CircleCheck },
+] as const;
+
 export default function PortalMessagesPage() {
   const { hospital, ready } = usePortalGuard();
   const {
     filter, setFilter, handoffs, error, dateFilter, setDateFilter,
     selectedId, setSelectedId, selected,
     replyText, setReplyText, sending, handleSend,
+    quickActionId, handleQuickAction,
     thread, threadError,
     resolvingId, handleResolve,
     deletingId, handleDelete,
@@ -304,17 +322,49 @@ export default function PortalMessagesPage() {
                   </div>
 
                   <PermissionGate page="messages" action="write">
-                    <div className="mt-auto flex items-end gap-space-2 border-t border-line pt-space-4">
-                      <textarea
-                        value={replyText}
-                        onChange={(e) => setReplyText(e.target.value)}
-                        placeholder="Reply on WhatsApp…"
-                        rows={2}
-                        className="h-20 flex-1 resize-none rounded-md border border-line bg-card px-space-3 py-space-2 text-[13.5px] text-ink-900 outline-none focus:border-brand-400"
-                      />
-                      <Button onClick={handleSend} disabled={sending || !replyText.trim()}>
-                        <Send size={14} /> {sending ? "Sending…" : "Send"}
-                      </Button>
+                    <div className="mt-auto border-t border-line pt-space-4">
+                      <div className="mb-space-3 grid grid-cols-2 gap-space-2 sm:grid-cols-3">
+                        {QUICK_ACTIONS.map(({ id, label, icon: Icon }) => (
+                          <button
+                            key={id}
+                            type="button"
+                            disabled={quickActionId !== null}
+                            onClick={async () => {
+                              const err = await handleQuickAction(id);
+                              if (err) toast.error(`Couldn't ${label.toLowerCase()}`, err);
+                              else toast.success(label, "Sent on WhatsApp.");
+                            }}
+                            className="flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
+                          >
+                            <Icon size={14} className="shrink-0 text-brand-600" />
+                            {quickActionId === id ? "Sending…" : label}
+                          </button>
+                        ))}
+                      </div>
+                      <button
+                        type="button"
+                        disabled={quickActionId !== null}
+                        onClick={async () => {
+                          const err = await handleQuickAction("send_update");
+                          if (err) toast.error("Couldn't send update", err);
+                          else toast.success("Update sent", "Sent on WhatsApp.");
+                        }}
+                        className="mb-space-3 flex w-full items-center justify-center gap-space-2 rounded-md border border-brand-200 bg-brand-50 px-space-3 py-space-2 text-[12.5px] font-semibold text-brand-700 hover:bg-brand-100 disabled:opacity-50"
+                      >
+                        <Send size={14} /> {quickActionId === "send_update" ? "Sending…" : "Send Update"}
+                      </button>
+                      <div className="flex items-end gap-space-2">
+                        <textarea
+                          value={replyText}
+                          onChange={(e) => setReplyText(e.target.value)}
+                          placeholder="Reply on WhatsApp…"
+                          rows={2}
+                          className="h-20 flex-1 resize-none rounded-md border border-line bg-card px-space-3 py-space-2 text-[13.5px] text-ink-900 outline-none focus:border-brand-400"
+                        />
+                        <Button onClick={handleSend} disabled={sending || !replyText.trim()}>
+                          <Send size={14} /> {sending ? "Sending…" : "Send"}
+                        </Button>
+                      </div>
                     </div>
                   </PermissionGate>
                 </div>

@@ -62,6 +62,7 @@ export function useMessages(ready: boolean) {
   const [threadError, setThreadError] = useState<string | null>(null);
   const [resolvingId, setResolvingId] = useState<number | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [quickActionId, setQuickActionId] = useState<string | null>(null);
   // Item 6 (Spec.md Section 0): status filtering already existed (the
   // Open/Resolved/All tabs above) -- this adds a date filter alongside it.
   const [dateFilter, setDateFilter] = useState("");
@@ -213,6 +214,26 @@ export function useMessages(ready: boolean) {
     }
   }
 
+  /** A quick-action button above the reply box: one click does a real thing (confirm a pending
+   * booking, mark an in-progress order ready, resend a stored payment link, ...) server-side and
+   * sends the guest a real WhatsApp message about it -- see portal_handoff_quick_action(). Returns
+   * an error message to toast on failure (e.g. no matching order/booking for this guest right now). */
+  async function handleQuickAction(action: string): Promise<string | null> {
+    if (!selected) return "Select a conversation first.";
+    setQuickActionId(action);
+    const result = await portalFetch(`/api/portal/handoffs/${selected.id}/quick-action`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+    setQuickActionId(null);
+    if (result.ok) {
+      loadThread(selected.id);
+      return null;
+    }
+    return result.unauthorized ? "Session expired — please log in again." : result.error;
+  }
+
   async function handleResolve(id: number) {
     setResolvingId(id);
     const result = await portalFetch(`/api/portal/handoffs/${id}/resolve`, { method: "POST" });
@@ -236,6 +257,7 @@ export function useMessages(ready: boolean) {
     filter, setFilter, handoffs, error, dateFilter, setDateFilter,
     selectedId, setSelectedId, selected,
     replyText, setReplyText, sending, handleSend,
+    quickActionId, handleQuickAction,
     thread, threadError,
     resolvingId, handleResolve,
     deletingId, handleDelete,
