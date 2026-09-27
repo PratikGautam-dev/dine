@@ -47,6 +47,12 @@ STATUS_CANCELLED = "cancelled"
 PAYMENT_ONLINE = "online"
 PAYMENT_AT_RESTAURANT = "pay_at_restaurant"
 
+# food_orders.source -- mirrors migration 0051's CHECK constraint. Every order was WhatsApp-only
+# until the web storefront; SOURCE_WHATSAPP stays the default so no existing caller needs an edit.
+SOURCE_WHATSAPP = "whatsapp"
+SOURCE_WEB = "web"
+ORDER_SOURCES = (SOURCE_WHATSAPP, SOURCE_WEB)
+
 
 def get_delivery_fee_paise(hospital_id: int, fulfillment_type: str) -> int | None:
     """The flat delivery fee for this restaurant, in paise -- None (not a fake
@@ -64,7 +70,7 @@ def get_delivery_fee_paise(hospital_id: int, fulfillment_type: str) -> int | Non
 def create_food_order(
     hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
     delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
-    payment_method: str = PAYMENT_ONLINE, coupon_code: str | None = None,
+    payment_method: str = PAYMENT_ONLINE, coupon_code: str | None = None, source: str = SOURCE_WHATSAPP,
 ) -> dict:
     """Checkout. `items` is [{"menu_item_id": str, "quantity": int}, ...] --
     every item's current name/price is read and snapshotted here (not passed
@@ -81,6 +87,8 @@ def create_food_order(
         raise ValueError(f"Invalid fulfillment_type: {fulfillment_type!r}")
     if payment_method not in (PAYMENT_ONLINE, PAYMENT_AT_RESTAURANT):
         raise ValueError(f"Invalid payment_method: {payment_method!r}")
+    if source not in ORDER_SOURCES:
+        raise ValueError(f"Invalid source: {source!r}")
 
     conn = get_connection()
 
@@ -138,14 +146,14 @@ def create_food_order(
         cur = conn.execute(
             "INSERT INTO food_orders (hospital_id, patient_id, phone, status, fulfillment_type, "
             "delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id, payment_method, "
-            "created_at, updated_at, offer_id, discount_paise) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            "created_at, updated_at, offer_id, discount_paise, source) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
             (hospital_id, resolved_patient_id, phone,
              STATUS_PLACED if payment_method == PAYMENT_AT_RESTAURANT else STATUS_PENDING_PAYMENT,
              fulfillment_type, delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id,
              payment_method,
              datetime.now(timezone.utc).isoformat(), datetime.now(timezone.utc).isoformat(),
-             offer_id, discount_paise),
+             offer_id, discount_paise, source),
         )
         order_id_row = cur.fetchone()
         assert order_id_row is not None
@@ -250,6 +258,7 @@ _ORDER_COLUMNS = (
     FoodOrder.razorpay_payment_id, FoodOrder.razorpay_payment_link_url, FoodOrder.payment_method,
     FoodOrder.reference_id,
     FoodOrder.created_at, FoodOrder.updated_at, FoodOrder.offer_id, FoodOrder.discount_paise,
+    FoodOrder.source, FoodOrder.mock_payment_ref,
 )
 
 

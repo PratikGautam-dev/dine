@@ -413,6 +413,13 @@ class FoodOrder(Base):
     # this feature.
     offer_id: Mapped[int | None] = mapped_column(ForeignKey("offers.id"))
     discount_paise: Mapped[int]
+    # Web Storefront (migration 0051): 'whatsapp' | 'web' -- which front door this order came
+    # through. Every order predating this is 'whatsapp' (the column's own DB default), so no
+    # existing row or caller needs touching.
+    source: Mapped[str]
+    # Set by the mock payment gateway's "Pay" button (mark_order_paid_mock()) -- a real Razorpay
+    # order keeps using razorpay_payment_id instead; this is never set for a WhatsApp/Razorpay order.
+    mock_payment_ref: Mapped[str | None]
 
 
 class Offer(Base):
@@ -623,6 +630,39 @@ class HospitalRow(Base):
     razorpay_key_id: Mapped[str | None]
     razorpay_key_secret_ref: Mapped[str | None]
     razorpay_webhook_secret_ref: Mapped[str | None]
+    # Web Storefront (migration 0051) -- this restaurant's public marketplace profile. A second,
+    # independent ordering channel alongside the WhatsApp bot (web_ordering_enabled toggles it);
+    # storefront_slug is the /order/<slug> URL, unique when set (a disabled/never-enabled restaurant
+    # has no slug and never appears on the marketplace). Nothing here is ever exposed on a STAFF
+    # response shape by accident -- db/repositories/storefront.py builds the public card dict
+    # explicitly, never by serializing this row.
+    web_ordering_enabled: Mapped[bool]
+    storefront_slug: Mapped[str | None]
+    cuisine_tags: Mapped[str | None]
+    tagline: Mapped[str | None]
+    address_line: Mapped[str | None]
+    city: Mapped[str | None]
+    logo_url: Mapped[str | None]
+    cover_image_url: Mapped[str | None]
+    min_order_paise: Mapped[int]
+    avg_prep_minutes: Mapped[int]
+
+
+class CustomerOtp(Base):
+    """db/schema.sql's customer_otps table (migration 0051) -- the web storefront's mock-SMS OTP
+    login. code_hash is sha256(f"{phone}:{code}"), never the plain code (db/repositories/
+    storefront.py's request_otp() returns the plain code to the CALLER once, for the mock "show it
+    on screen instead of sending it" delivery -- it's never persisted). attempts caps guesses at 5
+    per code; consumed_at makes a code single-use."""
+    __tablename__ = "customer_otps"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    phone: Mapped[str]
+    code_hash: Mapped[str]
+    expires_at: Mapped[str]
+    attempts: Mapped[int]
+    consumed_at: Mapped[str | None]
+    created_at: Mapped[str]
 
 
 class PatientRow(Base):

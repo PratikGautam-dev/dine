@@ -1658,6 +1658,35 @@ def init_db_on_connection(conn) -> int:
     conn.execute("CREATE INDEX IF NOT EXISTS idx_menu_item_combo_lines_combo ON menu_item_combo_lines(combo_item_id)")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_menu_item_combo_lines_component ON menu_item_combo_lines(component_item_id)")
 
+    # Migration 0051 -- Web Storefront: a public marketplace website (/order), a second ordering
+    # channel alongside the WhatsApp bot, feeding the same food_orders/menu_items data.
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS web_ordering_enabled BOOLEAN NOT NULL DEFAULT false")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS storefront_slug TEXT")
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS ux_hospitals_storefront_slug ON hospitals(storefront_slug) "
+        "WHERE storefront_slug IS NOT NULL"
+    )
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS cuisine_tags TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS tagline TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS address_line TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS city TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS logo_url TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS cover_image_url TEXT")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS min_order_paise INTEGER NOT NULL DEFAULT 0")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS avg_prep_minutes INTEGER NOT NULL DEFAULT 30")
+
+    conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'whatsapp'")
+    conn.execute("ALTER TABLE food_orders DROP CONSTRAINT IF EXISTS food_orders_source_chk")
+    conn.execute("ALTER TABLE food_orders ADD CONSTRAINT food_orders_source_chk CHECK (source IN ('whatsapp', 'web'))")
+    conn.execute("ALTER TABLE food_orders ADD COLUMN IF NOT EXISTS mock_payment_ref TEXT")
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS customer_otps ("
+        "id SERIAL PRIMARY KEY, phone TEXT NOT NULL, code_hash TEXT NOT NULL, expires_at TEXT NOT NULL, "
+        "attempts INTEGER NOT NULL DEFAULT 0, consumed_at TEXT, created_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_customer_otps_phone_created ON customer_otps(phone, created_at)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME
