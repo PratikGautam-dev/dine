@@ -34,12 +34,19 @@ import { useWizardState } from "./useWizardState";
 import { getUserToken } from "@/lib/userAuth";
 import { getAdminToken } from "@/lib/adminAuth";
 
-const TOTAL_STEPS = RAIL_TITLES.length;
+const ALL_STEPS = RAIL_TITLES.map((_, i) => i);
+// Website-only channel skips 1-5 (the Meta/WhatsApp setup guides, access
+// token, and phone/app secret) -- those steps exist purely to connect a
+// WhatsApp number, which a website-only restaurant never needs.
+const WEBSITE_ONLY_STEPS = [0, 6, 7, 8];
 
 export function OnboardingWizard() {
   const router = useRouter();
   const [state, dispatch] = useWizardState();
   const [currentStep, setCurrentStep] = useState(0);
+  const visibleSteps = state.channel === "website" ? WEBSITE_ONLY_STEPS : ALL_STEPS;
+  const TOTAL_STEPS = visibleSteps.length;
+  const visiblePosition = Math.max(0, visibleSteps.indexOf(currentStep));
   const [maxUnlockedStep, setMaxUnlockedStep] = useState(0);
   const [stepError, setStepError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -93,7 +100,7 @@ export function OnboardingWizard() {
       return;
     }
     setStepError(null);
-    const next = currentStep + 1;
+    const next = visibleSteps[visibleSteps.indexOf(currentStep) + 1] ?? currentStep;
     setMaxUnlockedStep((prev) => Math.max(prev, next));
     setCurrentStep(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -137,16 +144,16 @@ export function OnboardingWizard() {
           </div>
         </div>
         <span className="rounded-full bg-brand-50 px-space-3 py-1 text-[12px] font-bold text-brand-700">
-          Step {currentStep + 1} of {TOTAL_STEPS}
+          Step {visiblePosition + 1} of {TOTAL_STEPS}
         </span>
       </div>
 
       <Card className="p-space-5 sm:p-space-6">
         <HorizontalStepRail
-          steps={RAIL_TITLES.map((title) => ({ title }))}
-          currentStep={currentStep}
-          maxUnlockedStep={maxUnlockedStep}
-          onStepClick={goToStep}
+          steps={visibleSteps.map((i) => ({ title: RAIL_TITLES[i] }))}
+          currentStep={visiblePosition}
+          maxUnlockedStep={Math.max(0, visibleSteps.indexOf(maxUnlockedStep))}
+          onStepClick={(pos) => goToStep(visibleSteps[pos])}
           className="mb-space-6"
         />
 
@@ -302,14 +309,14 @@ export function OnboardingWizard() {
         {currentStep !== 8 && (
           <div className="mt-space-6 flex items-center justify-between border-t border-line pt-space-4">
             {currentStep > 0 ? (
-              <Button variant="secondary" onClick={() => goToStep(currentStep - 1)}>
+              <Button variant="secondary" onClick={() => goToStep(visibleSteps[visibleSteps.indexOf(currentStep) - 1] ?? 0)}>
                 <ArrowLeft size={15} /> Previous
               </Button>
             ) : (
               <span />
             )}
             <span className="hidden text-[12.5px] text-ink-400 sm:block">
-              Step {currentStep + 1} of {TOTAL_STEPS}
+              Step {visiblePosition + 1} of {TOTAL_STEPS}
             </span>
             <Button onClick={handleNext} disabled={nextDisabled}>
               Continue <ArrowRight size={15} />

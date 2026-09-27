@@ -3,8 +3,14 @@ import { Compass } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import type { DataTier, WizardState } from "../types";
+import type { Channel, DataTier, WizardState } from "../types";
 import type { WizardDispatch } from "../useWizardState";
+
+const CHANNELS: { channel: Channel; title: string; description: string }[] = [
+  { channel: "whatsapp", title: "WhatsApp Bot", description: "Guests order and book through your WhatsApp number." },
+  { channel: "website", title: "Website Only", description: "A public ordering website -- no WhatsApp setup needed." },
+  { channel: "both", title: "WhatsApp + Website", description: "Both a WhatsApp bot and a public ordering website." },
+];
 
 const TIERS: {
   tier: DataTier;
@@ -51,8 +57,31 @@ export function Step0DataConnection({ state, dispatch }: Props) {
 
   return (
     <div>
-      <p className="text-eyebrow mb-space-2">Step 0 of 9</p>
-      <h2 className="text-display mb-space-2">0. Choose your restaurant setup</h2>
+      <h2 className="text-display mb-space-2">How will guests order?</h2>
+      <p className="text-body mb-space-4">
+        Choose Website Only to skip WhatsApp/Meta setup entirely -- you can always add WhatsApp later from Settings.
+      </p>
+      <div className="mb-space-6 grid grid-cols-1 gap-space-3 sm:grid-cols-3">
+        {CHANNELS.map(({ channel, title, description }) => {
+          const selected = state.channel === channel;
+          return (
+            <button
+              key={channel}
+              type="button"
+              onClick={() => dispatch({ type: "set", field: "channel", value: channel })}
+              className={cn(
+                "rounded-lg border p-space-3 text-left transition-all duration-150 ease-(--ease-standard)",
+                selected ? "border-brand-400 bg-brand-50 ring-2 ring-brand-100" : "border-line bg-card hover:border-brand-200",
+              )}
+            >
+              <p className="text-[13.5px] font-bold text-ink-900">{title}</p>
+              <p className="text-[12px] leading-relaxed text-ink-600">{description}</p>
+            </button>
+          );
+        })}
+      </div>
+
+      <h2 className="text-display mb-space-2">Choose your restaurant setup</h2>
       <p className="text-body mb-space-5">
         Select the option that best describes your current setup. We&apos;ll customize the rest of this wizard
         around it.

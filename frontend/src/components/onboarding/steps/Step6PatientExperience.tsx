@@ -44,8 +44,7 @@ type Props = { state: WizardState; dispatch: WizardDispatch; error?: string };
 export function Step6PatientExperience({ state, dispatch, error }: Props) {
   return (
     <div>
-      <p className="text-eyebrow mb-space-2">Step 6 of 9</p>
-      <h2 className="text-display mb-space-2">What should guests be able to do on WhatsApp?</h2>
+      <h2 className="text-display mb-space-2">What should guests be able to do?</h2>
       <p className="text-body mb-space-4">
         Select every capability this restaurant wants to offer — guests only ever see the ones you turn on here.
         You can change this later.

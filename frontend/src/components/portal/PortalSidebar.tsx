@@ -10,6 +10,7 @@ import {
   ChefHat,
   ClipboardList,
   Clock,
+  Globe,
   LayoutDashboard,
   LogIn,
   LogOut,
@@ -83,6 +84,10 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
   { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
+  // Web Storefront: a public ordering website (/order/<slug>) alongside the WhatsApp bot -- own nav
+  // row under Settings, same "linked here too, not just buried in Settings' own list" precedent
+  // messages-automations above already set.
+  { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "settings", group: "Admin" },
   { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
   // Split back out into its own page (was folded into Staff & Access for a while) -- a dedicated
   // Role Management + Module Access Overview dashboard, not just an inline matrix.

@@ -68,7 +68,11 @@ function OrderCard({ order, canWrite, busy, delayedAfter, onAction }: {
         </span>
       </div>
       <div className="mb-space-2 flex items-center gap-2 text-[12px] text-ink-600">
-        <span className="flex items-center gap-1"><WhatsAppIcon size={13} /> WhatsApp</span>
+        {order.source === "web" ? (
+          <span className="flex items-center gap-1 font-semibold text-brand-700">Web</span>
+        ) : (
+          <span className="flex items-center gap-1"><WhatsAppIcon size={13} /> WhatsApp</span>
+        )}
         <span className="flex items-center gap-1"><FulfillmentIcon size={13} className="text-ink-400" /> {order.fulfillment_type === "delivery" ? "Delivery" : "Takeaway"}</span>
       </div>
       <ul className="mb-space-3 space-y-0.5 text-[13px] text-ink-900">

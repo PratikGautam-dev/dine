@@ -35,7 +35,6 @@ export function Step7HospitalDetails({ state, dispatch, error }: Props) {
 
   return (
     <div>
-      <p className="text-eyebrow mb-space-2">Step 7 of 9</p>
       <h2 className="text-display mb-space-2">{heading}</h2>
       <p className="text-body mb-space-4">{desc}</p>
 

@@ -27,6 +27,7 @@ from portal.deps import get_current_super_admin
 from portal.permissions import DEFAULT_PERMISSIONS_BY_ROLE, resolve_default_permissions
 
 _VALID_TENANT_TYPES = set(DEFAULT_CAPABILITIES_BY_TYPE.keys())
+_VALID_CHANNELS = {"whatsapp", "website", "both"}
 
 
 router = APIRouter()
@@ -84,6 +85,11 @@ class OnboardingSubmission(BaseModel):
     # header normally.
     super_admin_token: str = ""
     name: str = ""
+    # How guests will place orders/bookings -- "whatsapp" (default, today's
+    # unchanged behavior), "website", or "both". Only gates whether
+    # whatsapp_phone_number_id is required below; the actual web-ordering
+    # toggle is set on the new hospital right after creation.
+    channel: str = "whatsapp"
     whatsapp_phone_number_id: str = ""
     access_token: str = ""
     app_secret: str = ""
@@ -293,10 +299,11 @@ async def submit_onboarding(
     name = payload.name.strip()
     whatsapp_phone_number_id = payload.whatsapp_phone_number_id.strip()
     admin_email = payload.admin_email.strip()
+    channel = payload.channel if payload.channel in _VALID_CHANNELS else "whatsapp"
     errors: list[str] = []
     if not name:
         errors.append("Restaurant name is required.")
-    if not whatsapp_phone_number_id:
+    if not whatsapp_phone_number_id and channel != "website":
         errors.append("WhatsApp phone_number_id is required.")
     # RBAC: every new hospital gets its first staff_users admin row created
     # right here (below) -- this is that person's real login, so it's
@@ -359,7 +366,7 @@ async def submit_onboarding(
     try:
         hospital = db.create_hospital(
             name=name,
-            whatsapp_phone_number_id=whatsapp_phone_number_id,
+            whatsapp_phone_number_id=whatsapp_phone_number_id or None,
             access_token=payload.access_token.strip() or None,
             app_secret=payload.app_secret.strip() or None,
             welcome_message_text=payload.welcome_message_text.strip() or None,
@@ -385,6 +392,12 @@ async def submit_onboarding(
         )
 
     db.link_hospital_owner(hospital.id, user.id)
+
+    # Web Storefront: "website"/"both" channels list this restaurant on the
+    # public marketplace immediately -- update_storefront() auto-generates a
+    # slug from the name since none is collected in this wizard.
+    if channel in ("website", "both"):
+        db.update_storefront(hospital.id, {"web_ordering_enabled": True})
 
     # RBAC (docs/rbac-redis-plan.md): this hospital's first staff_users
     # admin row + the default role_permissions matrix, seeded explicitly

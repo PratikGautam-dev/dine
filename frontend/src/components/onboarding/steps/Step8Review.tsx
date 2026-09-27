@@ -65,7 +65,6 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
 
   return (
     <div>
-      <p className="text-eyebrow mb-space-2">Step 8 of 9</p>
       <h2 className="text-display mb-space-2">Review &amp; go live</h2>
       <p className="text-body mb-space-4">One last look before this restaurant is created and immediately ready for reservations.</p>
 
@@ -79,14 +78,18 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
         )}
       </ReviewSection>
 
-      <ReviewSection title="Access token (Step 4)" onEdit={() => onGoToStep(4)}>
-        <Row label="Access token" value={maskSecret(state.accessToken)} />
-      </ReviewSection>
+      {state.channel !== "website" && (
+        <>
+          <ReviewSection title="Access token (Step 4)" onEdit={() => onGoToStep(4)}>
+            <Row label="Access token" value={maskSecret(state.accessToken)} />
+          </ReviewSection>
 
-      <ReviewSection title="WhatsApp connection (Step 5)" onEdit={() => onGoToStep(5)}>
-        <Row label="Phone number ID" value={state.whatsappPhoneNumberId || "(not set)"} />
-        <Row label="App secret" value={maskSecret(state.appSecret)} />
-      </ReviewSection>
+          <ReviewSection title="WhatsApp connection (Step 5)" onEdit={() => onGoToStep(5)}>
+            <Row label="Phone number ID" value={state.whatsappPhoneNumberId || "(not set)"} />
+            <Row label="App secret" value={maskSecret(state.appSecret)} />
+          </ReviewSection>
+        </>
+      )}
 
       <ReviewSection title="Guest experience (Step 6)" onEdit={() => onGoToStep(6)}>
         <Row
@@ -172,7 +175,9 @@ export function Step8Review({ state, dispatch, onGoToStep, onSubmit, submitting,
       </ReviewSection>
 
       <p className="mb-space-4 text-[13.5px] font-medium text-brand-700">
-        Once you submit, your restaurant will be live and ready for reservations through WhatsApp within a few minutes.
+        {state.channel === "website"
+          ? "Once you submit, your restaurant will be live and ready for orders on the web within a few minutes."
+          : "Once you submit, your restaurant will be live and ready for reservations through WhatsApp within a few minutes."}
       </p>
 
       {submitErrors.length > 0 && (

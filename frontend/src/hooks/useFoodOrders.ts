@@ -26,6 +26,10 @@ export type FoodOrder = {
   // Was already returned by the backend (advance_order_status() stamps it on every transition) but
   // never declared here until the Kitchen Orders page's real avg-order-time metric needed it.
   updated_at: string;
+  // Web Storefront: which front door this order came through. Every order predates 'web' as
+  // 'whatsapp' (the column's own DB default) -- see food-orders/page.tsx's own Source column.
+  source: "whatsapp" | "web";
+  mock_payment_ref: string | null;
   items?: FoodOrderItem[];
 };
 

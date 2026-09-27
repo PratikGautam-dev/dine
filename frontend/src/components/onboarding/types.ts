@@ -2,6 +2,11 @@ export type DataTier = "tier1" | "tier2" | "tier3";
 
 export type TenantType = "hospital" | "clinic";
 
+// How guests place orders/bookings. "whatsapp" is the default -- today's
+// unchanged behavior for anyone who doesn't touch this. "website" skips the
+// Meta/WhatsApp setup steps (1-5) entirely; "both" keeps them.
+export type Channel = "whatsapp" | "website" | "both";
+
 export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 export type Weekday = (typeof WEEKDAYS)[number];
 
@@ -37,6 +42,7 @@ export type FeatureKey =
   | "faq";
 
 export type WizardState = {
+  channel: Channel;
   dataTier: DataTier;
   apiBaseUrl: string;
   apiKey: string;
@@ -86,6 +92,7 @@ export function emptyTopic(): TopicForm {
 
 export function initialWizardState(): WizardState {
   return {
+    channel: "whatsapp",
     dataTier: "tier1",
     apiBaseUrl: "",
     apiKey: "",
@@ -150,6 +157,7 @@ export function buildSubmissionPayload(state: WizardState) {
     // handler merges it into this object right before POSTing (same
     // pattern getUserToken() already follows for the Google-auth header).
     tenant_type: state.tenantType,
+    channel: state.channel,
     name: state.name,
     whatsapp_phone_number_id: state.whatsappPhoneNumberId,
     access_token: state.accessToken,

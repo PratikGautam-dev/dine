@@ -37,11 +37,8 @@ const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
   { id: "awaiting_payment", label: "Awaiting payment", always: false },
 ];
 
-// Every order in this product is placed via the WhatsApp bot -- "source" only ever has this one real
-// value today. The tab still exists (rather than being folded into "All") so the page's own
-// information architecture doesn't have to change the day a second real channel is added; it never
-// pretends a Swiggy/Zomato/dine-in channel exists when none does.
-type SourceFilter = "all" | "whatsapp";
+// Web Storefront: a second real channel now exists alongside the WhatsApp bot.
+type SourceFilter = "all" | "whatsapp" | "web";
 type TypeFilter = "all" | "pickup" | "delivery";
 
 const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
@@ -142,10 +139,7 @@ export default function PortalFoodOrdersPage() {
     const q = search.trim().toLowerCase();
     return (orders || []).filter((o) => {
       if (!matchesOrderView(o.status, view)) return false;
-      // sourceFilter has no real effect yet -- every order is WhatsApp-sourced today, so
-      // "WhatsApp only" and "All sources" match the identical set. Kept as a real, honest no-op
-      // rather than removed, so the filter is already wired the day a second real channel exists.
-      void sourceFilter;
+      if (sourceFilter !== "all" && o.source !== sourceFilter) return false;
       if (typeFilter !== "all" && o.fulfillment_type !== typeFilter) return false;
       if (!q) return true;
       return (
@@ -160,7 +154,7 @@ export default function PortalFoodOrdersPage() {
   function exportCsv() {
     const header = ["Order ID", "Customer", "Phone", "Source", "Order Type", "Placed", "Amount (INR)", "Payment", "Status"];
     const rows = visible.map((o) => [
-      o.reference_id ?? `#${o.id}`, o.patient_name || "", o.phone, "WhatsApp",
+      o.reference_id ?? `#${o.id}`, o.patient_name || "", o.phone, o.source === "web" ? "Web" : "WhatsApp",
       o.fulfillment_type === "delivery" ? "Delivery" : "Takeaway", formatOrderTime(o.created_at),
       (o.total_paise / 100).toFixed(2), paymentLine(o), STATUS_LABELS[o.status] ?? o.status,
     ]);
@@ -196,11 +190,14 @@ export default function PortalFoodOrdersPage() {
       {
         id: "source",
         header: "Source",
-        cell: () => (
-          <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12.5px] font-semibold text-ink-700">
-            <WhatsAppIcon size={16} /> WhatsApp
-          </span>
-        ),
+        cell: ({ row }) =>
+          row.original.source === "web" ? (
+            <Badge tone="brand">Web</Badge>
+          ) : (
+            <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12.5px] font-semibold text-ink-700">
+              <WhatsAppIcon size={16} /> WhatsApp
+            </span>
+          ),
       },
       {
         id: "items",
@@ -371,6 +368,7 @@ export default function PortalFoodOrdersPage() {
         >
           <option value="all">All sources</option>
           <option value="whatsapp">WhatsApp only</option>
+          <option value="web">Web only</option>
         </select>
         <select
           aria-label="Filter by order type" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}

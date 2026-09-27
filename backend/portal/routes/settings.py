@@ -316,6 +316,34 @@ async def portal_update_booking_confirmation_setting(payload: dict, authorizatio
     return JSONResponse({"ok": True})
 
 
+@router.get("/api/portal/settings/storefront")
+async def portal_get_storefront(authorization: str | None = Header(default=None)):
+    """Web Storefront's own Settings sub-page -- the toggle plus the marketplace profile fields."""
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    storefront = db.get_storefront(principal.hospital.id)
+    return JSONResponse({**storefront, "public_url_path": f"/order/{storefront['slug']}" if storefront["slug"] else None})
+
+
+@router.post("/api/portal/settings/storefront")
+async def portal_update_storefront(payload: dict, authorization: str | None = Header(default=None)):
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    before = db.get_storefront(hospital.id)
+    try:
+        storefront = db.update_storefront(hospital.id, payload or {})
+    except db.StorefrontError as e:
+        return JSONResponse({"error": str(e)}, status_code=400)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "settings.storefront",
+        entity_type="hospital", entity_id=str(hospital.id), before=before, after=storefront,
+    )
+    return JSONResponse({**storefront, "public_url_path": f"/order/{storefront['slug']}" if storefront["slug"] else None})
+
+
 @router.get("/api/portal/audit-log")
 async def portal_audit_log(authorization: str | None = Header(default=None)):
     """This tenant's own 'portal'-level audit rows only -- never

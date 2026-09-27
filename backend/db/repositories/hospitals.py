@@ -196,7 +196,7 @@ def find_hospital_by_portal_password(password: str) -> Hospital | None:
 
 def create_hospital(
     name: str,
-    whatsapp_phone_number_id: str,
+    whatsapp_phone_number_id: str | None,
     access_token: str | None = None,
     app_secret: str | None = None,
     timezone: str = "UTC",
