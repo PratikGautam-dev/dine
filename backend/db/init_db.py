@@ -1687,6 +1687,20 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_customer_otps_phone_created ON customer_otps(phone, created_at)")
 
+    # Migration 0052 -- real send/receive counts for the Messages & Automations page's analytics
+    # (one row per outbound send attempt or inbound message, written from core/whatsapp.py and
+    # webhook/dispatch.py -- see that migration's own docstring for why).
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS message_log ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "direction TEXT NOT NULL, status TEXT, created_at TEXT NOT NULL)"
+    )
+    conn.execute("ALTER TABLE message_log DROP CONSTRAINT IF EXISTS message_log_direction_chk")
+    conn.execute("ALTER TABLE message_log ADD CONSTRAINT message_log_direction_chk CHECK (direction IN ('inbound', 'outbound'))")
+    conn.execute("ALTER TABLE message_log DROP CONSTRAINT IF EXISTS message_log_status_chk")
+    conn.execute("ALTER TABLE message_log ADD CONSTRAINT message_log_status_chk CHECK (status IS NULL OR status IN ('sent', 'failed'))")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_hospital_created ON message_log(hospital_id, created_at)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

@@ -208,7 +208,7 @@ async def portal_confirm_booking(appointment_id: int, authorization: str | None 
 
     appointment = db.get_appointment(hospital.id, appointment_id)
     if appointment is not None and hospital.whatsapp_phone_number_id and hospital.access_token:
-        wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+        wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
         where = appointment.table_name or appointment.department_name
         text = (
             f"✅ Your reservation is confirmed!\n\n"
@@ -243,7 +243,7 @@ async def portal_send_booking_reminder(appointment_id: int, authorization: str |
     if not (hospital.whatsapp_phone_number_id and hospital.access_token):
         return JSONResponse({"error": "WhatsApp is not configured for this hospital yet."}, status_code=400)
 
-    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
     where = appointment.table_name or appointment.department_name
     status_line = "still awaiting confirmation" if appointment.status == "pending" else "confirmed"
     text = (
@@ -299,7 +299,7 @@ async def _notify_patient_best_effort(hospital, phone: str, message: str, appoin
         )
         return
     try:
-        wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+        wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
         await wa.send_text(phone, message)
     except Exception:
         logger.exception("Failed to send %s message for appointment %s", context, appointment_id)
@@ -517,7 +517,7 @@ async def portal_cancel_booking(
     message = ((payload or {}).get("message") or "").strip()
     if message and hospital.whatsapp_phone_number_id and hospital.access_token:
         try:
-            wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+            wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
             await wa.send_text(appointment.phone, message)
         except Exception:
             # The cancellation itself already committed -- a WhatsApp delivery
@@ -658,7 +658,7 @@ async def portal_reschedule_booking(
     message = ((payload or {}).get("message") or "").strip()
     if message and hospital.whatsapp_phone_number_id and hospital.access_token:
         try:
-            wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+            wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
             await wa.send_text(appointment.phone, message)
         except Exception:
             logger.exception("Failed to send reschedule message for appointment %s", appointment_id)

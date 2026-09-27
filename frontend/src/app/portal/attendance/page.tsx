@@ -11,9 +11,14 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
 import { StatTile } from "@/components/portal/StatTile";
 import { DAY_STATE, fmtDate, fmtMinutes } from "@/lib/hr";
-import { toast } from "@/lib/toast";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyMonthlyAttendance } from "@/hooks/useHr";
+
+// Same escaping precedent as food-orders/page.tsx's own exportCsv -- not extracted to a shared
+// helper since that page keeps its own local copy too.
+function csvCell(value: string): string {
+  return /[,"\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
 
 const SELECT_CLASS = "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 const STATUS_FILTERS = ["", "on_time", "late", "on_leave", "absent", "missing_clock_out"];
@@ -45,6 +50,22 @@ export default function MyAttendancePage() {
 
   const filtered = useMemo(() => (records ?? []).filter((r) => !status || r.status === status), [records, status]);
 
+  function exportCsv() {
+    const header = ["Date", "Check-in", "Check-out", "Break (min)", "Working (min)", "Status"];
+    const rows = filtered.map((r) => [
+      r.work_date, r.check_in_local ?? "", r.check_out_local ?? "", String(r.break_minutes ?? 0),
+      String(r.working_minutes ?? 0), DAY_STATE[r.status]?.label ?? r.status,
+    ]);
+    const csv = [header, ...rows].map((r) => r.map((c) => csvCell(c)).join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance-${month}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   const trendData = useMemo(() => weeklyTrend.map((w) => ({ ...w, isLatest: false })).map((w, i, arr) => ({ ...w, isLatest: i === arr.length - 1 })), [weeklyTrend]);
 
   if (!canView) {
@@ -71,7 +92,7 @@ export default function MyAttendancePage() {
         title="Attendance"
         description="See your own hours, overtime, and attendance history. Clock in from Check-in / Check-out."
         actions={
-          <Button variant="secondary" onClick={() => toast.success("Report export is coming soon")}>
+          <Button variant="secondary" onClick={exportCsv} disabled={filtered.length === 0}>
             <Download size={16} /> Download Report
           </Button>
         }

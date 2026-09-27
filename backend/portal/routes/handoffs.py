@@ -135,7 +135,7 @@ async def portal_reply_handoff(handoff_id: int, payload: dict, authorization: st
 
     if not (hospital.whatsapp_phone_number_id and hospital.access_token):
         return JSONResponse({"error": "WhatsApp is not configured for this hospital yet."}, status_code=400)
-    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
     await wa.send_text(phone, text)
     message = db.add_handoff_message(hospital.id, handoff_id, "outbound", text)
     return JSONResponse({"ok": True, "message": message})
@@ -258,7 +258,7 @@ async def portal_handoff_quick_action(handoff_id: int, payload: dict, authorizat
 
     if not (hospital.whatsapp_phone_number_id and hospital.access_token):
         return JSONResponse({"error": "WhatsApp is not configured for this hospital yet."}, status_code=400)
-    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token)
+    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
     await wa.send_text(phone, text)
     message = db.add_handoff_message(hospital.id, handoff_id, "outbound", text)
     db.record_audit_log(

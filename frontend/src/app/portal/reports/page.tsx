@@ -5,7 +5,7 @@ import {
   Area, Bar, CartesianGrid, ComposedChart, Line, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import {
-  BarChart3, Banknote, CalendarCheck, Download, FileSpreadsheet, FileText, Repeat, ShoppingBag, Wallet,
+  BarChart3, Banknote, CalendarCheck, Download, Globe, Repeat, ShoppingBag, Wallet,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,14 +18,30 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
 import { rupees } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
-import { useReports } from "@/hooks/useReports";
+import { API_BASE_URL, getStaffAccessToken } from "@/lib/staffAuth";
+import { useReports, type ReportChannel } from "@/hooks/useReports";
 
 const RANGES = [
   { label: "Today", days: 1 },
   { label: "7 Days", days: 7 },
   { label: "30 Days", days: 30 },
 ];
-const CHANNEL_CHIPS = ["All Channels", "WhatsApp", "Dine-in", "Takeaway", "Delivery"];
+// "web" is real since the Web Storefront's food_orders.source column exists -- a second real
+// order channel alongside WhatsApp, not just fulfillment_type's pickup/delivery split.
+const CHANNEL_CHIPS: { label: string; value: ReportChannel }[] = [
+  { label: "All Channels", value: "" },
+  { label: "WhatsApp", value: "whatsapp" },
+  { label: "Website", value: "web" },
+  { label: "Dine-in", value: "dine_in" },
+  { label: "Takeaway", value: "takeaway" },
+  { label: "Delivery", value: "delivery" },
+];
+const DOWNLOAD_KINDS: { kind: "sales" | "orders" | "customers" | "bookings"; label: string }[] = [
+  { kind: "sales", label: "Sales Report (CSV)" },
+  { kind: "orders", label: "Orders Report (CSV)" },
+  { kind: "customers", label: "Customer Report (CSV)" },
+  { kind: "bookings", label: "Booking Report (CSV)" },
+];
 const BRAND = "#e21220";
 const BLUE = "#2f6fed";
 
@@ -58,21 +74,38 @@ const CHANNEL_ICON: Record<string, React.ReactNode> = {
 export default function PortalReportsPage() {
   const { hospital, ready } = usePortalGuard();
   const [days, setDays] = useState(30);
-  const [channel, setChannel] = useState("All Channels");
-  const { data, error } = useReports(ready, days);
+  const [channel, setChannel] = useState<ReportChannel>("");
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const { data, error } = useReports(ready, days, channel);
 
   const paymentSplit = useMemo(() => {
     if (!data) return [];
     return PAYMENT_SPLIT_RATIOS.map((r) => ({ department_name: r.label, count: Math.round(data.kpis.total_orders * r.pct) }));
   }, [data]);
 
-  function handleChannelTap(c: string) {
-    setChannel(c);
-    if (c !== "All Channels") toast.success("Per-channel filtering is coming soon", "Showing all channels for now.");
-  }
-
-  function handleDownload(kind: string) {
-    toast.success(`${kind} export is coming soon`);
+  async function handleDownload(kind: string, label: string) {
+    const token = getStaffAccessToken();
+    if (!token) return;
+    setDownloading(kind);
+    const params = new URLSearchParams({ kind, days: String(days) });
+    if (channel) params.set("channel", channel);
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/portal/reports/export?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error();
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `${kind}-report-${new Date().toISOString().slice(0, 10)}.csv`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      toast.error(`Couldn't generate the ${label}.`);
+    } finally {
+      setDownloading(null);
+    }
   }
 
   return (
@@ -80,7 +113,7 @@ export default function PortalReportsPage() {
         <PageHeader
           title="Reports"
           icon={<BarChart3 size={22} />}
-          description="Insights from your WhatsApp orders and table reservations."
+          description="Insights from your WhatsApp and website orders, and table reservations."
         />
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
@@ -101,16 +134,17 @@ export default function PortalReportsPage() {
           <span className="mx-space-1 h-6 w-px bg-line" />
           {CHANNEL_CHIPS.map((c) => (
             <button
-              key={c}
+              key={c.label}
               type="button"
-              onClick={() => handleChannelTap(c)}
+              onClick={() => setChannel(c.value)}
               className={cn(
                 "inline-flex items-center gap-1 rounded-md px-space-3 py-2 text-[13px] font-semibold transition-colors duration-150",
-                channel === c ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "border border-line bg-card text-ink-600 hover:bg-paper",
+                channel === c.value ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200" : "border border-line bg-card text-ink-600 hover:bg-paper",
               )}
             >
-              {c === "WhatsApp" && <WhatsAppIcon size={13} />}
-              {c}
+              {c.value === "whatsapp" && <WhatsAppIcon size={13} />}
+              {c.value === "web" && <Globe size={13} />}
+              {c.label}
             </button>
           ))}
         </div>
@@ -277,19 +311,15 @@ export default function PortalReportsPage() {
             <Card className="p-space-4">
               <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Download Reports</h3>
               <div className="flex flex-wrap gap-space-2">
-                {[
-                  { label: "Sales Report (PDF)", icon: FileText },
-                  { label: "Orders Report (Excel)", icon: FileSpreadsheet },
-                  { label: "Customer Report (CSV)", icon: Download },
-                  { label: "Booking Report (PDF)", icon: FileText },
-                ].map(({ label, icon: Icon }) => (
+                {DOWNLOAD_KINDS.map(({ kind, label }) => (
                   <button
-                    key={label}
+                    key={kind}
                     type="button"
-                    onClick={() => handleDownload(label)}
-                    className="inline-flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-700 hover:bg-paper"
+                    onClick={() => handleDownload(kind, label)}
+                    disabled={downloading !== null}
+                    className="inline-flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-700 hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Icon size={14} /> {label}
+                    <Download size={14} /> {downloading === kind ? "Generating…" : label}
                   </button>
                 ))}
               </div>

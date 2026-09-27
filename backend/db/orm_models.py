@@ -665,6 +665,21 @@ class CustomerOtp(Base):
     created_at: Mapped[str]
 
 
+class MessageLog(Base):
+    """db/schema.sql's message_log table (migration 0052) -- one row per outbound WhatsApp send
+    attempt (status "sent"/"failed", from the WhatsApp API's own HTTP response) or inbound message
+    received, written from core/whatsapp.py's WhatsAppClient and webhook/dispatch.py's
+    _process_message() respectively. Backs the Messages & Automations page's real analytics --
+    no delivered/read status (that needs Meta's own status-callback webhook, out of scope)."""
+    __tablename__ = "message_log"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    direction: Mapped[str]
+    status: Mapped[str | None]
+    created_at: Mapped[str]
+
+
 class PatientRow(Base):
     """db/schema.sql's patients table -- the full mapping (12 columns, matches
     the table exactly). Named PatientRow, not Patient, to leave that name

@@ -22,24 +22,33 @@ export type ReportsSummary = {
   channel_breakdown: { channel: string; total_orders: number; revenue_paise: number; average_order_value_paise: number; revenue_is_estimated: boolean }[];
   retention_trend: { label: string; repeat_pct: number }[];
   period_days: number;
+  channel: string | null;
 };
 
+// whatsapp/web (food_orders.source) and takeaway/delivery (fulfillment_type) are real order-level
+// filters; dine_in has no orders at all (a reservation isn't a FoodOrder) so it zeroes every
+// order-derived number and leaves reservation KPIs, which are never channel-scoped, untouched.
+export type ReportChannel = "" | "whatsapp" | "web" | "takeaway" | "delivery" | "dine_in";
+
 /** Loads /api/portal/reports -- an aggregate over real food_orders + appointments + patients data.
- * No multi-channel (Swiggy/Zomato), payment-method-split, or export exists in this app. */
-export function useReports(ready: boolean, days: number) {
+ * `channel` is a real backend filter (db/repositories/reports.py's _channel_where()), not
+ * decorative -- payment-method-split is still the one illustrative-only card on this page. */
+export function useReports(ready: boolean, days: number, channel: ReportChannel = "") {
   const router = useRouter();
   const [data, setData] = useState<ReportsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const result = await portalFetch(`/api/portal/reports?days=${days}`);
+    const params = new URLSearchParams({ days: String(days) });
+    if (channel) params.set("channel", channel);
+    const result = await portalFetch(`/api/portal/reports?${params.toString()}`);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);
       return;
     }
     setData(result.data as ReportsSummary);
-  }, [router, days]);
+  }, [router, days, channel]);
 
   useEffect(() => {
     if (ready) load();

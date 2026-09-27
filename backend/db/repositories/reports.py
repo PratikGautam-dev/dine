@@ -1,33 +1,61 @@
 # db/repositories/reports.py
 """Reports page: one aggregate read over the two real revenue-generating domains this app
-actually has -- WhatsApp food orders and table reservations. No multi-channel (Swiggy/Zomato),
-payment-method-split (only "online"/"pay_at_restaurant" exist), or export/PDF generation exists,
-so none of that is computed here -- confirmed with the user rather than approximated."""
+actually has -- food orders (now two real sources: whatsapp and web, since the Web Storefront
+migration 0051 added FoodOrder.source) and table reservations. No payment-method-split (only
+"online"/"pay_at_restaurant" exist) is computed -- that's still decorative on the frontend --
+but channel filtering and CSV export below are both real, not placeholders."""
+import csv
+import io
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select
 
 from db.connection import get_session
 from db.models import STATUS_ATTENDED, STATUS_CANCELLED, STATUS_NO_SHOW, STATUS_RESCHEDULED
-from db.orm_models import AppointmentRow, FoodOrder, FoodOrderItem, PatientRow
+from db.orm_models import AppointmentRow, Department, FoodOrder, FoodOrderItem, PatientRow, TableRow
 
 _TERMINAL_CANCELLED_ORDER_STATUSES = ("cancelled",)
 
+_VALID_CHANNELS = ("whatsapp", "web", "takeaway", "delivery", "dine_in")
 
-def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None = None) -> dict:
+
+def _channel_where(channel: str | None):
+    """A "channel" mixes two real, independent axes this app actually has: how the order
+    arrived (source: whatsapp/web) and how it's fulfilled (fulfillment_type: pickup/delivery),
+    plus table reservations (which aren't orders at all -- "dine_in" excludes every order,
+    matching nothing here, since a dine-in visit is an appointment, not a FoodOrder row).
+    Reservation KPIs (reservations/repeat-rate/retention) stay unfiltered by channel always --
+    a guest's visit history isn't scoped to a single order channel. Returns a SQLAlchemy
+    condition to AND into an order query's WHERE, or None for "no filter" (channel is
+    None/"all"/unrecognized)."""
+    if channel == "whatsapp":
+        return FoodOrder.source == "whatsapp"
+    if channel == "web":
+        return FoodOrder.source == "web"
+    if channel == "takeaway":
+        return FoodOrder.fulfillment_type == "pickup"
+    if channel == "delivery":
+        return FoodOrder.fulfillment_type == "delivery"
+    if channel == "dine_in":
+        return FoodOrder.id.is_(None)  # matches no order row -- dine-in isn't a FoodOrder
+    return None
+
+
+def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None = None, channel: str | None = None) -> dict:
     now = now or datetime.now()
     period_start = now - timedelta(days=days)
     prev_start = now - timedelta(days=days * 2)
     session = get_session()
+    channel_cond = _channel_where(channel)
 
     def _orders_between(start: datetime, end: datetime):
-        return session.execute(
-            select(FoodOrder.total_paise, FoodOrder.created_at, FoodOrder.fulfillment_type)
-            .where(
-                FoodOrder.hospital_id == hospital_id, FoodOrder.status.not_in(_TERMINAL_CANCELLED_ORDER_STATUSES),
-                FoodOrder.created_at >= start.isoformat(), FoodOrder.created_at < end.isoformat(),
-            )
-        ).all()
+        stmt = select(FoodOrder.total_paise, FoodOrder.created_at, FoodOrder.fulfillment_type, FoodOrder.source).where(
+            FoodOrder.hospital_id == hospital_id, FoodOrder.status.not_in(_TERMINAL_CANCELLED_ORDER_STATUSES),
+            FoodOrder.created_at >= start.isoformat(), FoodOrder.created_at < end.isoformat(),
+        )
+        if channel_cond is not None:
+            stmt = stmt.where(channel_cond)
+        return session.execute(stmt).all()
 
     current_orders = _orders_between(period_start, now)
     previous_orders = _orders_between(prev_start, period_start)
@@ -109,7 +137,7 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
             continue
 
     # --- Top selling items, by quantity, over the period. ---
-    top_items_rows = session.execute(
+    top_items_stmt = (
         select(
             FoodOrderItem.item_name_snapshot, func.sum(FoodOrderItem.quantity).label("qty"),
             func.sum(FoodOrderItem.quantity * FoodOrderItem.unit_price_paise_snapshot).label("revenue_paise"),
@@ -123,7 +151,10 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
         .group_by(FoodOrderItem.item_name_snapshot)
         .order_by(func.sum(FoodOrderItem.quantity).desc())
         .limit(8)
-    ).all()
+    )
+    if channel_cond is not None:
+        top_items_stmt = top_items_stmt.where(channel_cond)
+    top_items_rows = session.execute(top_items_stmt).all()
     top_items = [{"name": r.item_name_snapshot, "orders": r.qty, "revenue_paise": r.revenue_paise} for r in top_items_rows]
 
     # --- Order channel breakdown: pickup ("Takeaway") vs delivery -- the two real fulfillment
@@ -187,4 +218,94 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
         "channel_breakdown": channel_breakdown,
         "retention_trend": retention_trend,
         "period_days": days,
+        "channel": channel if channel in _VALID_CHANNELS else None,
     }
+
+
+def _csv_from_rows(header: list[str], rows: list[list]) -> str:
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(header)
+    writer.writerows(rows)
+    return buf.getvalue()
+
+
+def export_report_csv(hospital_id: int, kind: str, days: int = 30, channel: str | None = None, now: datetime | None = None) -> str:
+    """Real CSV rows for the Reports page's "Download Reports" card -- built from the exact same
+    tables/period the on-screen summary above uses, not a re-serialization of the aggregate KPIs.
+    "sales" and "orders" respect the channel filter (they're order-shaped); "customers" and
+    "bookings" don't (a guest or a table reservation isn't scoped to one order channel)."""
+    now = now or datetime.now()
+    period_start = now - timedelta(days=days)
+    session = get_session()
+    channel_cond = _channel_where(channel) if kind in ("sales", "orders") else None
+
+    if kind == "sales":
+        stmt = select(FoodOrder.created_at, FoodOrder.total_paise).where(
+            FoodOrder.hospital_id == hospital_id, FoodOrder.status.not_in(_TERMINAL_CANCELLED_ORDER_STATUSES),
+            FoodOrder.created_at >= period_start.isoformat(),
+        )
+        if channel_cond is not None:
+            stmt = stmt.where(channel_cond)
+        by_day: dict[str, dict[str, int]] = {}
+        for created_at, total_paise in session.execute(stmt).all():
+            day = created_at[:10]
+            entry = by_day.setdefault(day, {"orders": 0, "revenue_paise": 0})
+            entry["orders"] += 1
+            entry["revenue_paise"] += total_paise
+        rows = [[day, v["orders"], round(v["revenue_paise"] / 100, 2)] for day, v in sorted(by_day.items())]
+        return _csv_from_rows(["Date", "Orders", "Revenue (INR)"], rows)
+
+    if kind == "orders":
+        stmt = select(
+            FoodOrder.id, FoodOrder.reference_id, FoodOrder.created_at, FoodOrder.phone, FoodOrder.source,
+            FoodOrder.fulfillment_type, FoodOrder.payment_method, FoodOrder.status, FoodOrder.total_paise,
+        ).where(
+            FoodOrder.hospital_id == hospital_id, FoodOrder.created_at >= period_start.isoformat(),
+        ).order_by(FoodOrder.created_at.desc())
+        if channel_cond is not None:
+            stmt = stmt.where(channel_cond)
+        rows = [
+            [oid, ref or "", created_at, phone, source, fulfillment_type, payment_method, status, round(total_paise / 100, 2)]
+            for oid, ref, created_at, phone, source, fulfillment_type, payment_method, status, total_paise in session.execute(stmt).all()
+        ]
+        return _csv_from_rows(
+            ["Order ID", "Reference", "Placed At", "Phone", "Source", "Fulfillment", "Payment Method", "Status", "Total (INR)"], rows,
+        )
+
+    if kind == "customers":
+        from db.repositories.patients import list_patients
+        patients = list_patients(hospital_id, limit=100000)
+        rows = [
+            [
+                p["id"], p["name"] or "", p["phone"], p.get("visit_count") or 0, p.get("total_orders") or 0,
+                round((p.get("total_spend_paise") or 0) / 100, 2), p.get("loyalty_tier") or "", p.get("last_visit") or "",
+            ]
+            for p in patients
+        ]
+        return _csv_from_rows(
+            ["Patient ID", "Name", "Phone", "Visit Count", "Total Orders", "Total Spend (INR)", "Loyalty Tier", "Last Visit"], rows,
+        )
+
+    if kind == "bookings":
+        stmt = (
+            select(
+                AppointmentRow.id, AppointmentRow.reference_id, AppointmentRow.phone, Department.name,
+                TableRow.name, AppointmentRow.scheduled_at, AppointmentRow.status,
+            )
+            .select_from(AppointmentRow)
+            .join(Department, Department.id == AppointmentRow.department_id)
+            .outerjoin(TableRow, TableRow.id == AppointmentRow.table_id)
+            .where(
+                AppointmentRow.hospital_id == hospital_id, AppointmentRow.scheduled_at >= period_start.isoformat(),
+                AppointmentRow.status != STATUS_RESCHEDULED, AppointmentRow.deleted_at.is_(None),
+            )
+            .order_by(AppointmentRow.scheduled_at.desc())
+        )
+        rows = [
+            [bid, ref or "", phone, dept or "", table or "", scheduled_at, status]
+            for bid, ref, phone, dept, table, scheduled_at, status in session.execute(stmt).all()
+        ]
+        return _csv_from_rows(["Booking ID", "Reference", "Phone", "Section", "Table", "Scheduled At", "Status"], rows)
+
+    raise ValueError(f"Unknown report kind: {kind!r}")

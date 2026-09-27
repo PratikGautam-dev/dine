@@ -18,6 +18,18 @@ async def portal_automations(authorization: str | None = Header(default=None)):
     })
 
 
+@router.get("/api/portal/automations/analytics")
+async def portal_automations_analytics(days: int = 7, authorization: str | None = Header(default=None)):
+    """Real send/receive counts (message_log, migration 0052) for the Messages & Automations
+    page's Performance Analytics card -- replaces what used to be hardcoded fake numbers."""
+    principal, error = authorize(authorization, "automations", "view")
+    if error:
+        return error
+    if days not in (7, 30):
+        days = 7
+    return JSONResponse(db.get_message_analytics(principal.hospital.id, days=days))
+
+
 @router.post("/api/portal/automations")
 async def portal_create_automation(payload: dict, authorization: str | None = Header(default=None)):
     principal, error = authorize(authorization, "automations", "write")

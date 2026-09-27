@@ -60,6 +60,7 @@ def _get_whatsapp_client(hospital: Hospital) -> WhatsAppClient:
         client = WhatsAppClient(
             phone_number_id=hospital.whatsapp_phone_number_id,
             access_token=hospital.access_token,
+            hospital_id=hospital.id,
         )
         _wa_clients[hospital.id] = client
     return client
@@ -135,6 +136,10 @@ async def _process_message(
         phone, hospital.id, hospital.enabled_features, reply,
     )
     HISTORY.add(phone, "user", reply.get("text") or reply.get("title") or f"[{reply.get('type')}]")
+    try:
+        db.record_message(hospital.id, "inbound")
+    except Exception:
+        logger.exception("Failed to record inbound message log (hospital %s) -- processing continues", hospital.id)
     # SPEC Section 12.6.2: resolve this hospital's data_tier to a concrete
     # connector exactly once, here, and hand it down -- flow handlers never
     # look at hospital.data_tier themselves.

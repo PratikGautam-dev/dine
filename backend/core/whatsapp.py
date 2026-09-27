@@ -22,14 +22,28 @@ def validate_webhook_signature(body: bytes, signature: str, app_secret: str | No
 
 
 class WhatsAppClient:
-    def __init__(self, phone_number_id: str, access_token: str):
+    def __init__(self, phone_number_id: str, access_token: str, hospital_id: int | None = None):
         self._phone_number_id = phone_number_id
         self._token = access_token
+        # Optional: which hospital this client sends for, purely so successful/failed sends can be
+        # counted for the portal's Messages & Automations analytics (db/repositories/message_log.py).
+        # None (a caller that doesn't know/care, e.g. a unit test) just means sends go unlogged --
+        # never affects whether a message is actually sent.
+        self._hospital_id = hospital_id
         self._client = httpx.AsyncClient(timeout=30)
 
     @property
     def _headers(self) -> dict:
         return {"Authorization": f"Bearer {self._token}"}
+
+    def _log_send(self, ok: bool) -> None:
+        if self._hospital_id is None:
+            return
+        try:
+            from db.repositories.message_log import record_message
+            record_message(self._hospital_id, "outbound", "sent" if ok else "failed")
+        except Exception:
+            logger.exception("Failed to record outbound message log (hospital %s) -- send itself was unaffected", self._hospital_id)
 
     async def send_text(self, to: str, text: str) -> None:
         to = normalize_phone(to)
@@ -45,11 +59,13 @@ class WhatsAppClient:
             resp = await self._client.post(url, json=payload, headers=self._headers)
         except httpx.HTTPError:
             logger.exception("WhatsApp send_text request to %s failed (network/transport error)", url)
+            self._log_send(False)
             return
         if resp.is_success:
             logger.info("WhatsApp send_text: %s OK for %s", resp.status_code, to)
         else:
             logger.error("WhatsApp send_text error %s: %s", resp.status_code, resp.text)
+        self._log_send(resp.is_success)
 
     async def download_media(self, media_id: str) -> tuple[bytes, str]:
         url = f"{WA_API_BASE}/{media_id}"
@@ -99,11 +115,13 @@ class WhatsAppClient:
             resp = await self._client.post(url, json=payload, headers=self._headers)
         except httpx.HTTPError:
             logger.exception("WhatsApp send_list request to %s failed (network/transport error)", url)
+            self._log_send(False)
             return
         if resp.is_success:
             logger.info("WhatsApp send_list: %s OK for %s", resp.status_code, to)
         else:
             logger.error("WhatsApp send_list error %s: %s", resp.status_code, resp.text)
+        self._log_send(resp.is_success)
 
     async def send_buttons(
         self,
@@ -151,11 +169,14 @@ class WhatsAppClient:
             resp = await self._client.post(url, json=payload, headers=self._headers)
         except httpx.HTTPError:
             logger.exception("WhatsApp send_buttons request to %s failed (network/transport error)", url)
+            self._log_send(False)
             return False
         if resp.is_success:
             logger.info("WhatsApp send_buttons: %s OK for %s", resp.status_code, to)
+            self._log_send(True)
             return True
         logger.error("WhatsApp send_buttons error %s: %s", resp.status_code, resp.text)
+        self._log_send(False)
         return False
 
     async def send_document(self, to: str, document_url: str, filename: str, caption: str | None = None) -> bool:
@@ -191,11 +212,14 @@ class WhatsAppClient:
             resp = await self._client.post(url, json=payload, headers=self._headers)
         except httpx.HTTPError:
             logger.exception("WhatsApp send_document request to %s failed (network/transport error)", url)
+            self._log_send(False)
             return False
         if resp.is_success:
             logger.info("WhatsApp send_document: %s OK for %s", resp.status_code, to)
+            self._log_send(True)
             return True
         logger.error("WhatsApp send_document error %s: %s", resp.status_code, resp.text)
+        self._log_send(False)
         return False
 
 

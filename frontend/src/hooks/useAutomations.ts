@@ -77,3 +77,36 @@ export function useAutomations(ready: boolean) {
 
   return { automations, triggerEvents, error, creating, createAutomation, toggleAutomation };
 }
+
+export type MessageAnalytics = {
+  trend: { date: string; label: string; sent: number; failed: number; received: number }[];
+  totals: { sent: number; failed: number; received: number };
+  send_success_rate: number | null;
+  period_days: number;
+};
+
+/** Loads /api/portal/automations/analytics -- real send/receive counts (message_log, migration
+ * 0052), not the hardcoded numbers this card used to show. No "delivered"/"read" rate exists
+ * here (that needs Meta's own status-callback webhook) -- only what the WhatsApp API itself
+ * confirmed (sent/failed) and what actually arrived (received). */
+export function useMessageAnalytics(ready: boolean, days: number = 7) {
+  const router = useRouter();
+  const [data, setData] = useState<MessageAnalytics | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const result = await portalFetch(`/api/portal/automations/analytics?days=${days}`);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else setError(result.error);
+      return;
+    }
+    setData(result.data as MessageAnalytics);
+  }, [router, days]);
+
+  useEffect(() => {
+    if (ready) load();
+  }, [ready, load]);
+
+  return { data, error };
+}

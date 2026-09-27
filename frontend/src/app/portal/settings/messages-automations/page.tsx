@@ -19,18 +19,24 @@ import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
 import { toast } from "@/lib/toast";
-import { useAutomations, type NewAutomationFields } from "@/hooks/useAutomations";
+import { useAutomations, useMessageAnalytics, type NewAutomationFields } from "@/hooks/useAutomations";
 
 // ---------------------------------------------------------------------------------------------
-// Templates, template preview, performance analytics, and most of Trigger & Event Mapping below
-// are still a PREVIEW ONLY -- static, hardcoded demo data, nothing fetched or persisted. See
-// docs/Spec.md's "Messages & Automations (planned — not yet built)" note.
+// Template Library/Template Preview and most of Trigger & Event Mapping below are still a
+// PREVIEW ONLY -- static, hardcoded demo data, nothing fetched or persisted. Real WhatsApp
+// template management needs Meta's own Business API template-approval process, deliberately out
+// of scope for this pass. See docs/Spec.md's "Messages & Automations (planned — not yet built)"
+// note.
 //
-// The "Automation Workflow" card and the "Feedback Received" trigger row ARE real (migration
-// 0047): a guest who rates you 1-5 on WhatsApp genuinely gets whichever message you configure
-// there, logged for real in automation_runs -- the one wired trigger so far, per Spec.md's
-// phased plan. "Wait N minutes" is stored but NOT enforced yet (no job scheduler exists for an
-// arbitrary delay) -- every automation sends immediately regardless of its configured delay.
+// The "Automation Workflow" card, the "Feedback Received" trigger row, and Performance Analytics
+// ARE real. Automations: migration 0047 -- a guest who rates you 1-5 on WhatsApp genuinely gets
+// whichever message you configure there, logged for real in automation_runs -- the one wired
+// trigger so far. "Wait N minutes" is stored but NOT enforced yet (no job scheduler exists for
+// an arbitrary delay) -- every automation sends immediately regardless of its configured delay.
+// Analytics: migration 0052's message_log -- every WhatsApp send/receive this app makes is
+// logged there now (core/whatsapp.py, webhook/dispatch.py), so "Sent"/"Failed"/"Received" below
+// are real counts. There is no "Delivered"/"Read" rate -- that needs Meta's own status-callback
+// webhook, which this pass deliberately didn't add.
 // ---------------------------------------------------------------------------------------------
 
 function comingSoon(label: string) {
@@ -78,16 +84,6 @@ const STEP_TONE: Record<string, string> = {
 
 const TRIGGER_EVENT_LABEL: Record<string, string> = { feedback_received: "Feedback Received" };
 
-const ANALYTICS_TREND = [
-  { label: "22 Apr", sent: 620, delivered: 590, failed: 40, replied: 190 },
-  { label: "23 Apr", sent: 480, delivered: 460, failed: 20, replied: 150 },
-  { label: "24 Apr", sent: 700, delivered: 665, failed: 30, replied: 210 },
-  { label: "25 Apr", sent: 640, delivered: 605, failed: 45, replied: 230 },
-  { label: "26 Apr", sent: 780, delivered: 745, failed: 25, replied: 260 },
-  { label: "27 Apr", sent: 820, delivered: 790, failed: 35, replied: 280 },
-  { label: "28 Apr", sent: 1248, delivered: 1180, failed: 22, replied: 525 },
-];
-
 // Feedback Received is rendered separately, from real automations data -- these are the
 // remaining rows the mockup showed, kept as an honest "Preview" (not "Active") since none of
 // them are wired to a real dispatch call site yet.
@@ -108,6 +104,7 @@ export default function PortalMessagesAutomationsPage() {
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Template>(TEMPLATES[0]);
   const { automations, triggerEvents, creating, createAutomation, toggleAutomation } = useAutomations(ready);
+  const { data: analytics } = useMessageAnalytics(ready, 7);
   const [newAutomation, setNewAutomation] = useState<NewAutomationFields>({ name: "", trigger_event: "feedback_received", message_text: "", delay_minutes: 0 });
   const [showNewForm, setShowNewForm] = useState(false);
 
@@ -132,15 +129,15 @@ export default function PortalMessagesAutomationsPage() {
       />
 
       <div className="mb-space-3 rounded-md border border-warning/30 bg-warning-tint px-space-3 py-space-2 text-[12.5px] font-medium text-warning">
-        Preview only below (templates, performance analytics, most trigger rows) — illustrative demo data, not real yet. The <strong>Automation Workflow</strong> card and the <strong>Feedback Received</strong> row are real. See docs/Spec.md for the build plan.
+        <strong>Template Library</strong> below is still preview only — illustrative demo data, since real WhatsApp template management needs Meta&apos;s own approval process. <strong>Automation Workflow</strong>, the <strong>Feedback Received</strong> row, and <strong>Performance Analytics</strong> are all real.
       </div>
 
       <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
         <StatTile icon={<MessageCircle size={22} />} label="Active templates" value={24} deltaPct={20} tone="brand" filled />
         <StatTile icon={<Power size={22} />} label="Live automations" value={(automations ?? []).filter((a) => a.is_active).length} deltaPct={null} hint="Real -- currently active" tone="warning" filled />
-        <StatTile icon={<Send size={22} />} label="Messages sent today" value={1248} deltaPct={18} tone="info" filled />
-        <StatTile icon={<CheckCircle2 size={22} />} label="Delivery rate" value={98.2} deltaPct={2} tone="success" filled />
-        <StatTile icon={<XCircle size={22} />} label="Failed messages" value={22} deltaPct={-45} tone="clay" filled upIsGood={false} />
+        <StatTile icon={<Send size={22} />} label="Messages sent (7d)" value={analytics?.totals.sent ?? 0} deltaPct={null} hint="Real" tone="info" filled />
+        <StatTile icon={<CheckCircle2 size={22} />} label="Send success rate" value={analytics?.send_success_rate ?? 0} deltaPct={null} hint={analytics?.send_success_rate === null ? "No sends yet" : "Real -- accepted by WhatsApp"} tone="success" filled />
+        <StatTile icon={<XCircle size={22} />} label="Failed sends (7d)" value={analytics?.totals.failed ?? 0} deltaPct={null} hint="Real" tone="clay" filled upIsGood={false} />
       </div>
 
       <div className="mb-space-4 flex flex-wrap items-center gap-space-2">
@@ -354,38 +351,41 @@ export default function PortalMessagesAutomationsPage() {
         <Card className="p-space-4">
           <div className="mb-space-3 flex items-center justify-between">
             <h3 className="text-[15px] font-bold text-ink-900">Performance Analytics</h3>
-            <span className="text-hint">Last 7 days</span>
+            <span className="text-hint">Last 7 days · Real</span>
           </div>
           <div className="mb-space-3 grid grid-cols-3 gap-space-2 text-center">
             <div className="rounded-md bg-paper px-space-2 py-space-2">
-              <p className="text-[16px] font-bold text-ink-900">1,248</p>
+              <p className="text-[16px] font-bold text-ink-900">{analytics?.totals.sent ?? 0}</p>
               <p className="text-[11px] text-ink-600">Messages Sent</p>
             </div>
             <div className="rounded-md bg-paper px-space-2 py-space-2">
-              <p className="text-[16px] font-bold text-success">98.2%</p>
-              <p className="text-[11px] text-ink-600">Delivery Rate</p>
+              <p className="text-[16px] font-bold text-success">{analytics?.send_success_rate ?? "—"}{analytics?.send_success_rate !== null && analytics?.send_success_rate !== undefined ? "%" : ""}</p>
+              <p className="text-[11px] text-ink-600">Send Success Rate</p>
             </div>
             <div className="rounded-md bg-paper px-space-2 py-space-2">
-              <p className="text-[16px] font-bold text-ink-900">42%</p>
-              <p className="text-[11px] text-ink-600">Response Rate</p>
+              <p className="text-[16px] font-bold text-ink-900">{analytics?.totals.received ?? 0}</p>
+              <p className="text-[11px] text-ink-600">Replies Received</p>
             </div>
           </div>
-          <ResponsiveContainer width="100%" height={160}>
-            <LineChart data={ANALYTICS_TREND} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
-              <CartesianGrid stroke="#ebe0d6" vertical={false} />
-              <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#ebe0d6" }} tick={{ fontSize: 10, fill: "#6b5f56" }} />
-              <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#6b5f56" }} />
-              <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: "var(--line)" }} />
-              <Line type="monotone" dataKey="sent" stroke="#2f6fed" strokeWidth={2} dot={false} name="Sent" />
-              <Line type="monotone" dataKey="delivered" stroke="#22c55e" strokeWidth={2} dot={false} name="Delivered" />
-              <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} dot={false} name="Failed" />
-              <Line type="monotone" dataKey="replied" stroke="#f59e0b" strokeWidth={2} dot={false} name="Replied" />
-            </LineChart>
-          </ResponsiveContainer>
+          {!analytics || analytics.trend.every((t) => t.sent === 0 && t.failed === 0 && t.received === 0) ? (
+            <div className="flex h-[160px] items-center justify-center text-[13px] text-ink-400">No message activity in the last 7 days.</div>
+          ) : (
+            <ResponsiveContainer width="100%" height={160}>
+              <LineChart data={analytics.trend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
+                <CartesianGrid stroke="#ebe0d6" vertical={false} />
+                <XAxis dataKey="label" tickLine={false} axisLine={{ stroke: "#ebe0d6" }} tick={{ fontSize: 10, fill: "#6b5f56" }} />
+                <YAxis tickLine={false} axisLine={false} tick={{ fontSize: 10, fill: "#6b5f56" }} allowDecimals={false} />
+                <Tooltip contentStyle={{ fontSize: 12, borderRadius: 8, borderColor: "var(--line)" }} />
+                <Line type="monotone" dataKey="sent" stroke="#2f6fed" strokeWidth={2} dot={false} name="Sent" />
+                <Line type="monotone" dataKey="failed" stroke="#ef4444" strokeWidth={2} dot={false} name="Failed" />
+                <Line type="monotone" dataKey="received" stroke="#f59e0b" strokeWidth={2} dot={false} name="Received" />
+              </LineChart>
+            </ResponsiveContainer>
+          )}
           <div className="mt-space-2 grid grid-cols-3 gap-space-2 text-center text-[11px]">
-            <div><p className="font-bold text-success">1,180</p><p className="text-ink-600">Delivered</p></div>
-            <div><p className="font-bold text-info">525</p><p className="text-ink-600">Customer Replied</p></div>
-            <div><p className="font-bold text-error">22</p><p className="text-ink-600">Failed</p></div>
+            <div><p className="font-bold text-success">{analytics?.totals.sent ?? 0}</p><p className="text-ink-600">Sent</p></div>
+            <div><p className="font-bold text-warning">{analytics?.totals.received ?? 0}</p><p className="text-ink-600">Received</p></div>
+            <div><p className="font-bold text-error">{analytics?.totals.failed ?? 0}</p><p className="text-ink-600">Failed</p></div>
           </div>
         </Card>
 
