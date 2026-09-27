@@ -34,6 +34,43 @@ into the existing `food_orders` table through the existing `create_food_order()`
 existing **Food Orders** and **Kitchen Orders** portal pages and move them along with the existing
 buttons. Don't build a parallel order system, menu system or customer table.
 
+### How it works: who does what
+
+**1. A restaurant joins (one time).**
+- The owner goes through the existing onboarding wizard.
+- A new **Channels** step asks: WhatsApp bot, Website, or Both.
+- Picking Website only skips the WhatsApp/Meta setup steps.
+
+**2. The restaurant sets up its shop, in the staff portal it already uses.**
+- **Settings → Online Storefront** (new):
+  - switch on "Accept orders on the website";
+  - fill in the shop card: store link (e.g. `/order/spice-garden`), cuisines, tagline, address, city, logo, cover photo, minimum order and average prep time.
+- **Food Menu page** (exists): add or edit dishes, with name, description, price, category, photo, stock and sold-out.
+  - The same menu feeds WhatsApp and the website, so nothing is entered twice.
+- **Offers page** (exists): the same coupon codes work on the website.
+- **Opening hours** (exists): the website shows the shop as Open or Closed from them.
+
+**3. A customer orders on the website.**
+1. They open `/order`, see every restaurant that turned the website on, and search or filter by city or cuisine.
+2. They open a restaurant and tap **ADD** on dishes, and a cart bar appears. The cart holds one restaurant at a time.
+3. In the cart they choose pickup or delivery, pay online or at the restaurant, apply a coupon, and see the bill.
+4. They log in with a phone number and a 6-digit code. The code is shown on screen in demo mode, and no SMS is sent.
+5. If they chose online payment, the mock payment page appears. **Pay** marks the order paid; **Simulate failure** lets them retry.
+6. A live tracker follows the order: paid or placed, accepted, preparing, ready or out for delivery, completed.
+
+**4. The restaurant handles the order** with the same portal buttons as today.
+- The order appears in Food Orders and Kitchen Orders with a **Web** badge, next to WhatsApp orders.
+- Accept, then Preparing, then Ready, then Complete. The customer's tracker follows within about 10 s.
+- The customer appears on the Customers page. It's one person across WhatsApp and web when the phone matches.
+
+**5. Platform admin.**
+- The admin enters no restaurant data; each restaurant manages its own.
+- The existing admin Tenants page can deactivate a restaurant, which removes it from the marketplace.
+- The demo seed script (§11) fills sample data.
+
+**Known gap:** photos are pasted image links today, because the portal has no file upload. Real image upload
+(S3/R2/Cloudinary) is a recommended follow-up. It's not part of this plan.
+
 ---
 
 ## 2. What already exists and must be reused
