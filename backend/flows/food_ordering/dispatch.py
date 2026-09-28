@@ -145,7 +145,9 @@ async def _handle_awaiting_order_channel(
             await _send_order_channel_menu(wa, phone, language=language)
             return
         if reply["id"] == ORDER_HERE_ID:
-            await _show_menu(wa, sessions, phone, hospital_id, {k: v for k, v in context.items() if k != "web_url"}, connector, language)
+            # web_url stays in context (not stripped) so _back_out_of_menu below knows there's a
+            # channel screen to return to, further down this same flow.
+            await _show_menu(wa, sessions, phone, hospital_id, context, connector, language)
             return
     # BACK_ID, or anything else unrecognized (including a stale tap from an earlier copy of
     # this same message): re-show this screen rather than exiting to the main menu -- Back
@@ -176,11 +178,17 @@ async def _handle_awaiting_menu_category(
 async def _back_out_of_menu(
     wa: WhatsAppClient, sessions, phone: str, hospital_id: int, context: dict, connector, language: str,
 ) -> None:
-    """Back from the top of the menu: to the cart if the guest already has items
-    in it, otherwise out to the restaurant's main menu."""
+    """Back from the top of the menu: to the cart if the guest already has items in it; otherwise,
+    for a restaurant that also takes web orders, to the "how would you like to order?" screen
+    that led here (it's a real preceding step now, not the top of the flow); otherwise -- no web
+    ordering, so there was no such screen -- out to the restaurant's main menu, same as before."""
     if context.get("cart"):
         sessions.set(hospital_id, phone, STATE_AWAITING_CART_ACTION, context)
         await _resend_current_state(wa, phone, hospital_id, STATE_AWAITING_CART_ACTION, context, connector, language=language)
+        return
+    if context.get("web_url"):
+        sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_CHANNEL, context)
+        await _send_order_channel_menu(wa, phone, language=language)
         return
     await _leave_to_main_menu(wa, sessions, phone, hospital_id, language)
 
