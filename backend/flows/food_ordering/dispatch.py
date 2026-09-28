@@ -135,16 +135,22 @@ async def _handle_awaiting_order_channel(
     language: str = "en", closing_message_text: str | None = None,
 ) -> None:
     if reply["type"] == "interactive_reply":
-        if reply["id"] == BACK_ID:
-            await _leave_to_main_menu(wa, sessions, phone, hospital_id, language)
-            return
         if reply["id"] == ORDER_WEB_ID:
             await wa.send_text(phone, t(WEBSITE_ORDER_LINK, language, url=context["web_url"]))
-            sessions.reset(hospital_id, phone)
+            # Deliberately NOT sessions.reset() here (confirmed with the user): staying on this
+            # same screen means the channel question is always what a guest lands back on --
+            # tapping Back, tapping "Order on website" again, or any other stray tap all just
+            # re-show it, instead of a stale button dead-ending at the unrelated main menu.
+            sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_CHANNEL, context)
+            await _send_order_channel_menu(wa, phone, language=language)
             return
         if reply["id"] == ORDER_HERE_ID:
             await _show_menu(wa, sessions, phone, hospital_id, {k: v for k, v in context.items() if k != "web_url"}, connector, language)
             return
+    # BACK_ID, or anything else unrecognized (including a stale tap from an earlier copy of
+    # this same message): re-show this screen rather than exiting to the main menu -- Back
+    # here means "I don't want that answer," not "leave the ordering flow" (confirmed with
+    # the user, unlike every other step's Back, which does exit).
     await _send_order_channel_menu(wa, phone, language=language)
 
 
