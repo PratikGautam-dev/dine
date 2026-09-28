@@ -32,6 +32,7 @@ from core.translations.food_ordering import (
     PAYMENT_LINK_MESSAGE,
     PAYMENT_NOT_CONFIGURED,
     AWAITING_PAYMENT_REMINDER,
+    WEBSITE_ORDER_LINK,
 )
 from db.repositories.offers import OfferError
 from core.whatsapp import WhatsAppClient
@@ -47,6 +48,7 @@ from flows.food_ordering.messages import (
     _send_item_card,
     _send_item_list,
     _send_menu_entry,
+    _send_order_channel_menu,
     _send_order_review,
     fulfillment_line,
     pay_note,
@@ -54,7 +56,7 @@ from flows.food_ordering.messages import (
 from flows.food_ordering.state import (
     ADD_ANOTHER_ITEM_ID, BACK_ID, CANCEL_ORDER_ID, CART_REMOVE_ONE_PREFIX, CATEGORY_ID_PREFIX, CHECKOUT_ID,
     CONFIRM_ORDER_ID, DELIVERY_ID, EDIT_CART_ID, ITEM_ADD_ID, MAX_CART_LINES, MORE_ITEMS_ID_PREFIX,
-    PAY_ONLINE_ID, PICKUP_ID,
+    ORDER_HERE_ID, ORDER_WEB_ID, PAY_ONLINE_ID, PICKUP_ID, STATE_AWAITING_ORDER_CHANNEL,
     STATE_AWAITING_CART_ACTION, STATE_AWAITING_CART_EDIT, STATE_AWAITING_CUSTOMER_NAME,
     STATE_AWAITING_DELIVERY_ADDRESS, STATE_AWAITING_FULFILLMENT_TYPE, STATE_AWAITING_ITEM_DETAIL,
     STATE_AWAITING_MENU_BROWSE, STATE_AWAITING_MENU_CATEGORY, STATE_AWAITING_ORDER_REVIEW, STATE_AWAITING_PAYMENT,
@@ -102,7 +104,48 @@ async def start_food_ordering_flow(
         if match is not None:
             context["active_patient_id"] = match["id"]
             context["customer_name"] = match["name"]
+    web_url = _storefront_url(hospital_id)
+    if web_url:
+        # The restaurant also takes web orders: let the guest pick where to order.
+        sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_CHANNEL, {**context, "web_url": web_url})
+        await _send_order_channel_menu(wa, phone, language=language)
+        return
     await _show_menu(wa, sessions, phone, hospital_id, context, connector, language)
+
+
+def _storefront_url(hospital_id: int) -> str | None:
+    """Public /order/<slug> link when this restaurant has web ordering switched on
+    (Online Storefront settings), else None -- in which case the bot behaves exactly as
+    it always did and goes straight to the menu."""
+    import db.repository as db
+    from core.config import get_settings
+
+    try:
+        storefront = db.get_storefront(hospital_id)
+    except Exception:
+        logger.exception("Couldn't read storefront settings (hospital %s) -- skipping the channel question", hospital_id)
+        return None
+    if not storefront["web_ordering_enabled"] or not storefront["slug"]:
+        return None
+    return f"{get_settings().FRONTEND_ORIGIN}/order/{storefront['slug']}"
+
+
+async def _handle_awaiting_order_channel(
+    wa: WhatsAppClient, sessions, phone: str, hospital_id: int, reply: dict, context: dict, connector,
+    language: str = "en", closing_message_text: str | None = None,
+) -> None:
+    if reply["type"] == "interactive_reply":
+        if reply["id"] == BACK_ID:
+            await _leave_to_main_menu(wa, sessions, phone, hospital_id, language)
+            return
+        if reply["id"] == ORDER_WEB_ID:
+            await wa.send_text(phone, t(WEBSITE_ORDER_LINK, language, url=context["web_url"]))
+            sessions.reset(hospital_id, phone)
+            return
+        if reply["id"] == ORDER_HERE_ID:
+            await _show_menu(wa, sessions, phone, hospital_id, {k: v for k, v in context.items() if k != "web_url"}, connector, language)
+            return
+    await _send_order_channel_menu(wa, phone, language=language)
 
 
 async def _handle_awaiting_menu_category(
@@ -482,6 +525,7 @@ async def _handle_awaiting_payment(
 
 
 _HANDLERS = {
+    STATE_AWAITING_ORDER_CHANNEL: _handle_awaiting_order_channel,
     STATE_AWAITING_MENU_CATEGORY: _handle_awaiting_menu_category,
     STATE_AWAITING_MENU_BROWSE: _handle_awaiting_menu_browse,
     STATE_AWAITING_ITEM_DETAIL: _handle_awaiting_item_detail,

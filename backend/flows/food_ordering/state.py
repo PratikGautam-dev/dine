@@ -12,6 +12,7 @@ shape flows/booking/types/table_reservation.py's own party_size/date/time
 context fields already use before create_table_reservation() runs."""
 # Category-first browse: AWAITING_MENU_CATEGORY (the category list) -> AWAITING_MENU_BROWSE
 # (one category's items, paged) -> AWAITING_ITEM_DETAIL (a dish with a photo).
+STATE_AWAITING_ORDER_CHANNEL = "AWAITING_ORDER_CHANNEL"  # only when the restaurant also takes web orders
 STATE_AWAITING_MENU_CATEGORY = "AWAITING_MENU_CATEGORY"
 STATE_AWAITING_MENU_BROWSE = "AWAITING_MENU_BROWSE"
 STATE_AWAITING_ITEM_DETAIL = "AWAITING_ITEM_DETAIL"
@@ -31,6 +32,8 @@ STATE_AWAITING_PAYMENT = "AWAITING_PAYMENT"
 FREE_TEXT_INPUT_STATES = {STATE_AWAITING_DELIVERY_ADDRESS, STATE_AWAITING_CUSTOMER_NAME}
 
 BACK_ID = "food_nav_back"
+ORDER_HERE_ID = "order_channel_here"
+ORDER_WEB_ID = "order_channel_web"
 
 ADD_ANOTHER_ITEM_ID = "cart_add_more"
 CHECKOUT_ID = "cart_checkout"

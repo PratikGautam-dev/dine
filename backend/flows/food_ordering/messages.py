@@ -24,6 +24,9 @@ from core.translations.food_ordering import (
     ASK_EDIT_CART,
     ASK_FULFILLMENT_TYPE,
     ASK_ITEMS_IN_CATEGORY,
+    ASK_ORDER_CHANNEL,
+    ORDER_HERE_BUTTON,
+    ORDER_ON_WEBSITE_BUTTON,
     ASK_MENU_CATEGORY,
     CANCEL_ORDER_BUTTON,
     CART_EMPTY_LINE,
@@ -64,7 +67,7 @@ from flows.common import cap_rows
 from flows.food_ordering.state import (
     ADD_ANOTHER_ITEM_ID, BACK_ID, CART_REMOVE_ONE_PREFIX, CATEGORY_ID_PREFIX, CONFIRM_ORDER_ID, DELIVERY_ID,
     EDIT_CART_ID, CANCEL_ORDER_ID, CHECKOUT_ID, ITEM_ADD_ID, MORE_ITEMS_ID_PREFIX, PAY_ONLINE_ID, PICKUP_ID,
-    ROWS_PER_PAGE,
+    ORDER_HERE_ID, ORDER_WEB_ID, ROWS_PER_PAGE, STATE_AWAITING_ORDER_CHANNEL,
     STATE_AWAITING_CART_ACTION, STATE_AWAITING_CART_EDIT, STATE_AWAITING_CUSTOMER_NAME,
     STATE_AWAITING_DELIVERY_ADDRESS, STATE_AWAITING_FULFILLMENT_TYPE, STATE_AWAITING_ITEM_DETAIL,
     STATE_AWAITING_MENU_BROWSE, STATE_AWAITING_MENU_CATEGORY, STATE_AWAITING_ORDER_REVIEW,
@@ -262,6 +265,17 @@ async def _send_cart_edit_menu(wa: WhatsAppClient, phone: str, cart: list[dict],
     await _send_back_button(wa, phone, language=language)
 
 
+async def _send_order_channel_menu(wa: WhatsAppClient, phone: str, language: str = "en") -> None:
+    await wa.send_buttons(
+        to=phone, body_text=t(ASK_ORDER_CHANNEL, language),
+        buttons=[
+            {"id": ORDER_HERE_ID, "title": t(ORDER_HERE_BUTTON, language)},
+            {"id": ORDER_WEB_ID, "title": t(ORDER_ON_WEBSITE_BUTTON, language)},
+        ],
+    )
+    await _send_back_button(wa, phone, language=language)
+
+
 async def _send_fulfillment_type_menu(wa: WhatsAppClient, phone: str, language: str = "en") -> None:
     await wa.send_buttons(
         to=phone, body_text=t(ASK_FULFILLMENT_TYPE, language),
@@ -358,7 +372,9 @@ async def _resend_current_state(
     states (found during the table-reservation build's back-navigation
     tests). The menu states re-read the live menu, so a dish that sold out
     meanwhile disappears from what is re-sent."""
-    if state in (STATE_AWAITING_MENU_CATEGORY, STATE_AWAITING_MENU_BROWSE, STATE_AWAITING_ITEM_DETAIL):
+    if state == STATE_AWAITING_ORDER_CHANNEL:
+        await _send_order_channel_menu(wa, phone, language=language)
+    elif state in (STATE_AWAITING_MENU_CATEGORY, STATE_AWAITING_MENU_BROWSE, STATE_AWAITING_ITEM_DETAIL):
         items = connector.get_menu_items(hospital_id)
         groups = _group_by_category(items)
         category = context.get("browse_category")

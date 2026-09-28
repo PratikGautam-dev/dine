@@ -20,6 +20,11 @@ CHECKOUT_BUTTON = "checkout_button"
 CANCEL_ORDER_BUTTON = "cancel_order_button"
 ORDER_CANCELLED_TEXT = "order_cancelled_text"
 
+ASK_ORDER_CHANNEL = "ask_order_channel"
+ORDER_HERE_BUTTON = "order_here_button"
+ORDER_ON_WEBSITE_BUTTON = "order_on_website_button"
+WEBSITE_ORDER_LINK = "website_order_link"
+
 ASK_FULFILLMENT_TYPE = "ask_fulfillment_type"
 PICKUP_BUTTON = "pickup_button"
 DELIVERY_BUTTON = "delivery_button"
@@ -103,6 +108,17 @@ STRINGS: dict[str, dict[Language, str]] = {
     CHECKOUT_BUTTON: {"en": "Checkout", "hi": "चेकआउट"},
     CANCEL_ORDER_BUTTON: {"en": "Cancel Order", "hi": "ऑर्डर रद्द करें"},
     ORDER_CANCELLED_TEXT: {"en": "Your order has been cancelled.", "hi": "आपका ऑर्डर रद्द कर दिया गया है।"},
+
+    ASK_ORDER_CHANNEL: {
+        "en": "How would you like to order?",
+        "hi": "आप कैसे ऑर्डर करना चाहेंगे?",
+    },
+    ORDER_HERE_BUTTON: {"en": "Order here", "hi": "यहीं ऑर्डर करें"},
+    ORDER_ON_WEBSITE_BUTTON: {"en": "Order on website", "hi": "वेबसाइट पर ऑर्डर"},
+    WEBSITE_ORDER_LINK: {
+        "en": "🌐 Order from our website:\n{url}\n\nBrowse the full menu, pay online and track your order live. Send *hi* anytime to come back to this chat.",
+        "hi": "🌐 हमारी वेबसाइट से ऑर्डर करें:\n{url}\n\nपूरा मेन्यू देखें, ऑनलाइन भुगतान करें और अपना ऑर्डर लाइव ट्रैक करें। इस चैट में लौटने के लिए कभी भी *hi* भेजें।",
+    },
 
     ASK_FULFILLMENT_TYPE: {
         "en": "Would you like this for takeaway or delivery?",
