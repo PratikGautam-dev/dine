@@ -137,11 +137,12 @@ async def _handle_awaiting_order_channel(
     if reply["type"] == "interactive_reply":
         if reply["id"] == ORDER_WEB_ID:
             await wa.send_text(phone, t(WEBSITE_ORDER_LINK, language, url=context["web_url"]))
-            # Deliberately NOT sessions.reset() here: staying on this same screen means tapping
-            # "Order on website" again, or "Order here" instead, both still work right after --
-            # only Back (below) exits, same as it would from a fresh visit to this screen.
-            sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_CHANNEL, context)
-            await _send_order_channel_menu(wa, phone, language=language)
+            # The link is the end of this conversation -- don't immediately re-ask the same
+            # question right underneath it (confirmed with the user: that looked like the bot
+            # glitching, not a real second prompt). A stale tap on any button from this screen
+            # afterward still lands safely on the main menu via the router's own IDLE fallback,
+            # same as any other unrecognized/expired button anywhere else in the app.
+            sessions.reset(hospital_id, phone)
             return
         if reply["id"] == ORDER_HERE_ID:
             # web_url stays in context (not stripped) so _back_out_of_menu below knows there's a
