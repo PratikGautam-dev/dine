@@ -56,9 +56,14 @@ async def public_restaurant_detail(slug: str):
             "price_paise": item["price_paise"], "category": item["category"], "image_url": item["image_url"],
             "stock_count": item["stock_count"], "is_combo": item["is_combo"], "combo_item_count": item.get("combo_item_count"),
         })
+    bestsellers = db.get_bestseller_item_ids(restaurant["hospital_id"])
+    for group in by_category.values():
+        for entry in group:
+            entry["is_bestseller"] = entry["id"] in bestsellers
     categories = [{"name": name, "items": group} for name, group in by_category.items()]
     return JSONResponse({
-        "restaurant": restaurant, "categories": categories,
+        "restaurant": {**restaurant, "rating": db.get_public_rating(restaurant["hospital_id"])},
+        "categories": categories, "bestseller_ids": bestsellers,
         "delivery_fee_paise": {
             "pickup": 0,
             "delivery": db.get_delivery_fee_paise(restaurant["hospital_id"], "delivery"),

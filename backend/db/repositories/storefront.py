@@ -13,7 +13,7 @@ from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 
 from db.connection import get_session
-from db.orm_models import CustomerOtp, FoodOrder, HospitalRow
+from db.orm_models import CustomerOtp, FoodOrder, FoodOrderItem, HospitalRow
 from db.repositories.food_orders import STATUS_PAID, STATUS_PENDING_PAYMENT, advance_order_status, get_food_order
 from portal.attendance_rules import WEEKDAYS, to_minutes, tz
 
@@ -343,3 +343,29 @@ def mark_order_paid_mock(hospital_id: int, order_id: int) -> dict | None:
     if row is None:
         return None
     return advance_order_status(hospital_id, order_id, STATUS_PAID, expected_status=STATUS_PENDING_PAYMENT)
+
+
+# ---------------------------------------------------------------- storefront menu extras
+
+def get_bestseller_item_ids(hospital_id: int, limit: int = 6) -> list[str]:
+    """Menu items ranked by real units sold (non-cancelled orders, both channels). Empty until the
+    restaurant has any sales -- the storefront simply shows no Bestsellers section then."""
+    session = get_session()
+    rows = session.execute(
+        select(FoodOrderItem.menu_item_id, func.sum(FoodOrderItem.quantity).label("qty"))
+        .join(FoodOrder, FoodOrder.id == FoodOrderItem.order_id)
+        .where(FoodOrder.hospital_id == hospital_id, FoodOrder.status != "cancelled")
+        .group_by(FoodOrderItem.menu_item_id)
+        .order_by(func.sum(FoodOrderItem.quantity).desc())
+        .limit(limit)
+    ).all()
+    return [r.menu_item_id for r in rows]
+
+
+def get_public_rating(hospital_id: int) -> dict | None:
+    """Average of real guest feedback (1-5 stars), or None when nobody has rated yet."""
+    from db.repositories.feedback import get_feedback_summary
+    summary = get_feedback_summary(hospital_id)
+    if not summary["total"]:
+        return None
+    return {"average": summary["average_rating"], "count": summary["total"]}
