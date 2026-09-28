@@ -137,10 +137,9 @@ async def _handle_awaiting_order_channel(
     if reply["type"] == "interactive_reply":
         if reply["id"] == ORDER_WEB_ID:
             await wa.send_text(phone, t(WEBSITE_ORDER_LINK, language, url=context["web_url"]))
-            # Deliberately NOT sessions.reset() here (confirmed with the user): staying on this
-            # same screen means the channel question is always what a guest lands back on --
-            # tapping Back, tapping "Order on website" again, or any other stray tap all just
-            # re-show it, instead of a stale button dead-ending at the unrelated main menu.
+            # Deliberately NOT sessions.reset() here: staying on this same screen means tapping
+            # "Order on website" again, or "Order here" instead, both still work right after --
+            # only Back (below) exits, same as it would from a fresh visit to this screen.
             sessions.set(hospital_id, phone, STATE_AWAITING_ORDER_CHANNEL, context)
             await _send_order_channel_menu(wa, phone, language=language)
             return
@@ -149,11 +148,10 @@ async def _handle_awaiting_order_channel(
             # channel screen to return to, further down this same flow.
             await _show_menu(wa, sessions, phone, hospital_id, context, connector, language)
             return
-    # BACK_ID, or anything else unrecognized (including a stale tap from an earlier copy of
-    # this same message): re-show this screen rather than exiting to the main menu -- Back
-    # here means "I don't want that answer," not "leave the ordering flow" (confirmed with
-    # the user, unlike every other step's Back, which does exit).
-    await _send_order_channel_menu(wa, phone, language=language)
+    # BACK_ID, or anything else unrecognized: exit to the main menu, same as Back on any other
+    # feature's very first screen (confirmed with the user -- an earlier version of this made
+    # Back re-show this same screen forever instead, which was a dead end with no way out).
+    await _leave_to_main_menu(wa, sessions, phone, hospital_id, language)
 
 
 async def _handle_awaiting_menu_category(
