@@ -83,7 +83,7 @@ def _tenant_detail(h) -> dict:
         # mirrors portal/routes/settings.py's own settings endpoint, for a readable
         # checklist label per key.
         "enabled_features": h.enabled_features,
-        "feature_default_labels": {key: t(f"feature_{key}", "en") for key in REAL_FEATURES},
+        "feature_default_labels": {key: t(_FEATURE_MENU[key][1], "en") for key in REAL_FEATURES},
         # Tenant-type-driven capability gating (tenant-capability-gating-plan.md):
         # get_capabilities() resolves the type default whenever
         # admin_capabilities is unset (None), so this always reflects the

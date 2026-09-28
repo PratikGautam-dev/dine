@@ -15,7 +15,7 @@ from pydantic import BaseModel
 
 import db.repository as db
 from core.translations import t
-from flows import REAL_FEATURES
+from flows import _FEATURE_MENU, REAL_FEATURES
 from portal.deps import get_current_super_admin
 
 router = APIRouter()
@@ -41,7 +41,7 @@ async def get_platform_settings_route(request: Request, authorization: str | Non
     # show it as this field's placeholder ("leave blank to use the
     # default") -- same convention portal/routes/settings.py's old
     # per-hospital GET used before this moved here.
-    settings["feature_default_labels"] = {key: t(f"feature_{key}", "en") for key in REAL_FEATURES}
+    settings["feature_default_labels"] = {key: t(_FEATURE_MENU[key][1], "en") for key in REAL_FEATURES}
     return JSONResponse(settings)
 
 

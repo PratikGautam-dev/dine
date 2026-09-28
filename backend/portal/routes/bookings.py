@@ -503,6 +503,14 @@ async def portal_cancel_booking(
     if appointment is None:
         return JSONResponse({"error": "No such reservation."}, status_code=404)
 
+    # Only a live reservation can be cancelled. Without this, cancelling an already-cancelled one
+    # re-messaged the guest, and cancelling an attended/no-show one overwrote that history.
+    if appointment.status not in (db.STATUS_BOOKED, db.STATUS_PENDING):
+        return JSONResponse(
+            {"error": f"This reservation is already {appointment.status.replace('_', ' ')} and can't be cancelled."},
+            status_code=409,
+        )
+
     connector = connectors.get_connector_for_hospital(hospital)
     try:
         connector.cancel_booking(hospital.id, appointment_id)

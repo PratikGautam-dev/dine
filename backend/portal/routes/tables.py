@@ -32,6 +32,16 @@ class PositionPayload(BaseModel):
     pos_y: float = 0
 
 
+def _table_name_taken(hospital_id: int, department_id: str, name: str, exclude_table_id: str | None = None) -> bool:
+    """Two tables with the same name in one section can't be told apart on the floor plan or in a
+    booking -- same rule sections already apply to their own names (case-insensitive)."""
+    wanted = " ".join(name.split()).lower()
+    return any(
+        t["id"] != exclude_table_id and t["department_id"] == department_id and " ".join(t["name"].split()).lower() == wanted
+        for t in db.get_all_tables_for_hospital(hospital_id)
+    )
+
+
 def _require_tables(authorization: str | None, action: str):
     """Signed in, holds `action` on the Tables page, and the tenant has table management."""
     principal, error = authorize(authorization, "tables", action)
@@ -171,6 +181,8 @@ async def portal_create_table(payload: TablePayload, authorization: str | None =
         return JSONResponse({"error": "Choose a valid section."}, status_code=400)
     if payload.capacity < 1:
         return JSONResponse({"error": "Capacity must be at least 1."}, status_code=400)
+    if _table_name_taken(hospital.id, payload.department_id, name):
+        return JSONResponse({"error": f'A table named "{name}" already exists in this section.'}, status_code=409)
     table = db.create_table(hospital.id, payload.department_id, name, payload.capacity)
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "table.create",
@@ -194,6 +206,8 @@ async def portal_update_table(table_id: str, payload: TablePayload, authorizatio
         return JSONResponse({"error": "Choose a valid section."}, status_code=400)
     if payload.capacity < 1:
         return JSONResponse({"error": "Capacity must be at least 1."}, status_code=400)
+    if _table_name_taken(hospital.id, payload.department_id, name, exclude_table_id=table_id):
+        return JSONResponse({"error": f'A table named "{name}" already exists in this section.'}, status_code=409)
     table = db.update_table(
         hospital.id, table_id, name, payload.department_id, payload.capacity, payload.is_active,
         notes=(payload.notes or "").strip() or None, shape=payload.shape if payload.shape in ("rect", "round") else "rect",
