@@ -40,6 +40,7 @@ from core.whatsapp import WhatsAppClient
 from flows.food_ordering.messages import (
     _cart_lines_text,
     _resend_current_state,
+    _send_back_button,
     _send_cart_action_menu,
     _send_cart_edit_menu,
     _send_customer_name_prompt,
@@ -137,12 +138,14 @@ async def _handle_awaiting_order_channel(
     if reply["type"] == "interactive_reply":
         if reply["id"] == ORDER_WEB_ID:
             await wa.send_text(phone, t(WEBSITE_ORDER_LINK, language, url=context["web_url"]))
-            # The link is the end of this conversation -- don't immediately re-ask the same
-            # question right underneath it (confirmed with the user: that looked like the bot
-            # glitching, not a real second prompt). A stale tap on any button from this screen
-            # afterward still lands safely on the main menu via the router's own IDLE fallback,
-            # same as any other unrecognized/expired button anywhere else in the app.
+            # The link is the end of this conversation -- don't re-ask the same question right
+            # underneath it (confirmed with the user: that looked like the bot glitching, not a
+            # real second prompt) -- but still leave a visible Back so there's something to tap
+            # (also confirmed with the user: a bare text message with nothing after it looked
+            # like a dead end). Tapping it lands on the main menu via the router's own IDLE
+            # fallback, same as any other unrecognized/expired button anywhere else in the app.
             sessions.reset(hospital_id, phone)
+            await _send_back_button(wa, phone, language=language)
             return
         if reply["id"] == ORDER_HERE_ID:
             # web_url stays in context (not stripped) so _back_out_of_menu below knows there's a
