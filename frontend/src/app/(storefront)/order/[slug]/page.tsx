@@ -341,7 +341,7 @@ export default function RestaurantMenuPage() {
 
       {!search && (heroSlide || restaurant.cover_image_url) && (
         <div className="px-space-4">
-          <div className="relative h-[200px] overflow-hidden rounded-2xl bg-ink-900 sm:h-[260px]">
+          <div className="relative h-[200px] overflow-hidden rounded-2xl bg-ink-900 md:h-[260px]">
             {heroImage && (
               // eslint-disable-next-line @next/next/no-img-element
               <img key={heroImage} src={heroImage} alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -349,7 +349,7 @@ export default function RestaurantMenuPage() {
             <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent" />
             <div className="relative flex h-full max-w-[65%] flex-col justify-center p-space-5">
               <p className="mb-1 text-[10.5px] font-bold tracking-[0.2em] text-white/80 uppercase">{restaurant.name}</p>
-              <h2 className="font-display text-[24px] leading-tight font-extrabold text-white sm:text-[32px]">
+              <h2 className="font-display text-[24px] leading-tight font-extrabold text-white md:text-[32px]">
                 {restaurant.tagline || "Fresh, made-to-order favourites"}
               </h2>
               {heroSlide && <p className="mt-1 text-[13px] text-white/85">Relish our signature {heroSlide.name}</p>}
@@ -392,7 +392,7 @@ export default function RestaurantMenuPage() {
             {searchResults.length === 0 ? (
               <p className="py-space-6 text-center text-[13.5px] text-ink-400">Nothing matches that. Try another dish.</p>
             ) : (
-              <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">{searchResults.map((i) => <Row key={i.id} item={i} />)}</div>
+              <div className="grid grid-cols-1 gap-space-3 md:grid-cols-2">{searchResults.map((i) => <Row key={i.id} item={i} />)}</div>
             )}
           </section>
         ) : (
@@ -404,7 +404,7 @@ export default function RestaurantMenuPage() {
                   {activeCat === ALL && <button type="button" onClick={() => pickCategory(BESTSELLERS)} className="inline-flex items-center gap-1 text-[13px] font-bold text-brand-600">See all <ArrowRight size={14} /></button>}
                 </div>
                 {activeCat === BESTSELLERS ? (
-                  <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">{bestsellers.map((i) => <Row key={i.id} item={i} />)}</div>
+                  <div className="grid grid-cols-1 gap-space-3 md:grid-cols-2">{bestsellers.map((i) => <Row key={i.id} item={i} />)}</div>
                 ) : (
                   <div className="-mx-space-4 flex snap-x gap-space-3 overflow-x-auto px-space-4 pb-1">{bestsellers.map((i) => <BigCard key={i.id} item={i} />)}</div>
                 )}
@@ -421,7 +421,7 @@ export default function RestaurantMenuPage() {
             {activeCat !== BESTSELLERS && visibleCategories.map((cat) => (
               <section key={cat.name}>
                 <h2 className="mb-space-3 text-[20px] font-extrabold text-ink-900">{cat.name}</h2>
-                <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">{cat.items.map((i) => <Row key={i.id} item={i} />)}</div>
+                <div className="grid grid-cols-1 gap-space-3 md:grid-cols-2">{cat.items.map((i) => <Row key={i.id} item={i} />)}</div>
               </section>
             ))}
 

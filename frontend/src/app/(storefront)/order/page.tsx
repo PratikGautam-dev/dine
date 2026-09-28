@@ -53,11 +53,11 @@ export default function StorefrontMarketplacePage() {
     <div>
       <div className="border-b border-line bg-gradient-to-b from-brand-50 to-paper">
         <div className="mx-auto max-w-[1200px] px-space-4 py-space-8 text-center">
-          <h1 className="text-display mb-space-2 text-[28px] leading-tight sm:text-[36px]">
+          <h1 className="text-display mb-space-2 text-[28px] leading-tight md:text-[36px]">
             Order food from restaurants near you
           </h1>
           <p className="text-body mb-space-6">Real menus, real kitchens -- ordered straight to the restaurant.</p>
-          <div className="mx-auto flex max-w-[560px] flex-col gap-space-2 sm:flex-row">
+          <div className="mx-auto flex max-w-[560px] flex-col gap-space-2 md:flex-row">
             <div className="relative flex-1">
               <Search size={16} className="pointer-events-none absolute top-1/2 left-space-3 -translate-y-1/2 text-ink-400" />
               <Input
@@ -71,7 +71,7 @@ export default function StorefrontMarketplacePage() {
               <select
                 value={city}
                 onChange={(e) => setCity(e.target.value)}
-                className="h-11 rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)] focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 sm:w-[160px]"
+                className="h-11 rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)] focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100 md:w-[160px]"
               >
                 <option value="">All cities</option>
                 {cities.map((c) => (
@@ -89,7 +89,7 @@ export default function StorefrontMarketplacePage() {
         {error && <p className="text-[13.5px] text-error">{error}</p>}
 
         {restaurants === null && !error && (
-          <div className="grid grid-cols-1 gap-space-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-space-4 md:grid-cols-2 lg:grid-cols-3">
             {[0, 1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="h-[220px] animate-pulse rounded-lg bg-line/40" />
             ))}
@@ -105,7 +105,7 @@ export default function StorefrontMarketplacePage() {
         )}
 
         {restaurants !== null && restaurants.length > 0 && (
-          <div className="grid grid-cols-1 gap-space-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-1 gap-space-4 md:grid-cols-2 lg:grid-cols-3">
             {restaurants.map((r) => (
               <RestaurantCardTile key={r.hospital_id} restaurant={r} />
             ))}

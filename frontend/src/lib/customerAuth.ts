@@ -4,7 +4,7 @@
 // small auth domain: a phone-number + mock-OTP login, a 30-day JWT
 // (auth/customer_session.py), stored under its own localStorage keys so it
 // can never collide with or be confused for either of the other two.
-import { useEffect, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 
 const TOKEN_KEY = "customer_token";
 const SESSION_KEY = "customer_session";
@@ -13,9 +13,26 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://loca
 
 export type CustomerSession = { phone: string; name: string | null };
 
+// Lets already-mounted components (the shared header) react to a login/logout that happens on
+// another page -- the /order layout persists across navigations, so reading localStorage once on
+// mount left the header stale until a full reload.
+const listeners = new Set<() => void>();
+function emitSessionChange() {
+  listeners.forEach((l) => l());
+}
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
+
 export function saveCustomerSession(token: string, customer: CustomerSession) {
   localStorage.setItem(TOKEN_KEY, token);
   localStorage.setItem(SESSION_KEY, JSON.stringify(customer));
+  emitSessionChange();
 }
 
 export function getCustomerToken(): string | null {
@@ -37,17 +54,28 @@ export function getCustomerSession(): CustomerSession | null {
 export function clearCustomerSession() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(SESSION_KEY);
+  emitSessionChange();
 }
 
-/** Reads the session once on mount (same null-on-server/first-render, then
- * real value precedent PortalSidebar's useStaffSession() sets) so pages can
- * conditionally render a login prompt without a hydration mismatch. */
+const SERVER_SNAPSHOT = "__server__";
+
+/** undefined while rendering on the server / first client pass, then null (logged out) or the
+ * session -- and it updates live when saveCustomerSession/clearCustomerSession run. */
 export function useCustomerSession(): CustomerSession | null | undefined {
-  const [session, setSession] = useState<CustomerSession | null | undefined>(undefined);
-  useEffect(() => {
-    setSession(getCustomerSession());
-  }, []);
-  return session;
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => localStorage.getItem(SESSION_KEY) ?? "",
+    () => SERVER_SNAPSHOT,
+  );
+  return useMemo(() => {
+    if (raw === SERVER_SNAPSHOT) return undefined;
+    if (!raw) return null;
+    try {
+      return JSON.parse(raw) as CustomerSession;
+    } catch {
+      return null;
+    }
+  }, [raw]);
 }
 
 type FetchResult<T = unknown> = { ok: true; data: T } | { ok: false; status: number; error: string };
