@@ -11,7 +11,7 @@ from datetime import datetime
 from sqlalchemy import select
 
 from db.connection import get_session
-from db.orm_models import Branch
+from db.orm_models import Branch, HospitalRow
 
 _COLUMNS = (
     Branch.id, Branch.hospital_id, Branch.name, Branch.address_line, Branch.city, Branch.phone,
@@ -53,6 +53,23 @@ def get_default_branch(hospital_id: int) -> dict:
     if branch is None:
         raise ValueError(f"hospital {hospital_id} has no default branch")
     return branch
+
+
+def get_multi_branch_enabled(hospital_id: int) -> bool:
+    session = get_session()
+    value = session.execute(
+        select(HospitalRow.multi_branch_enabled).where(HospitalRow.id == hospital_id)
+    ).scalar_one()
+    return bool(value)
+
+
+def set_multi_branch_enabled(hospital_id: int, enabled: bool) -> bool:
+    session = get_session()
+    session.execute(
+        HospitalRow.__table__.update().where(HospitalRow.id == hospital_id).values(multi_branch_enabled=bool(enabled))
+    )
+    session.commit()
+    return bool(enabled)
 
 
 def create_branch(

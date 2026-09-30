@@ -16,11 +16,11 @@ class ChefNotePayload(BaseModel):
 
 
 @router.get("/api/portal/chef-notes")
-async def portal_chef_notes(authorization: str | None = Header(default=None)):
+async def portal_chef_notes(branch_id: str | None = None, authorization: str | None = Header(default=None)):
     principal, error = authorize(authorization, "food_orders", "view")
     if error:
         return error
-    return JSONResponse({"notes": db.list_chef_notes(principal.hospital.id)})
+    return JSONResponse({"notes": db.list_chef_notes(principal.hospital.id, branch_id=branch_id)})
 
 
 @router.post("/api/portal/chef-notes")

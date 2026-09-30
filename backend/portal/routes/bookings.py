@@ -104,13 +104,15 @@ def _appointment_json(a, followup_validity_days: int | None = None) -> dict:
 
 
 @router.get("/api/portal/bookings")
-async def portal_bookings(authorization: str | None = Header(default=None)):
-    """Every reservation at the caller's own restaurant."""
+async def portal_bookings(branch_id: str | None = None, authorization: str | None = Header(default=None)):
+    """Every reservation at the caller's own restaurant. branch_id=None (default, the topbar
+    switcher's "All Branches") returns every branch -- same convention Reports' own channel
+    filter already uses."""
     principal, error = authorize(authorization, "appointments", "view")
     if error:
         return error
     hospital = principal.hospital
-    appointments = db.get_all_appointments_for_hospital(hospital.id)
+    appointments = db.get_all_appointments_for_hospital(hospital.id, branch_id=branch_id)
     validity_days = db.get_followup_validity_days(hospital.id)
     # The guest's name, as the dashboard shows it: from their profile at THIS restaurant (one batched lookup).
     names = db.get_patient_names_by_phone(hospital.id, [a.phone for a in appointments])

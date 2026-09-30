@@ -41,7 +41,12 @@ def _channel_where(channel: str | None):
     return None
 
 
-def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None = None, channel: str | None = None) -> dict:
+def get_reports_summary(
+    hospital_id: int, days: int = 30, now: datetime | None = None, channel: str | None = None,
+    branch_id: str | None = None,
+) -> dict:
+    """branch_id=None (the topbar switcher's "All Branches") returns every branch, same
+    "unfiltered means all" convention `channel` above already uses."""
     now = now or datetime.now()
     period_start = now - timedelta(days=days)
     prev_start = now - timedelta(days=days * 2)
@@ -55,20 +60,25 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
         )
         if channel_cond is not None:
             stmt = stmt.where(channel_cond)
+        if branch_id is not None:
+            stmt = stmt.where(FoodOrder.branch_id == branch_id)
         return session.execute(stmt).all()
 
     current_orders = _orders_between(period_start, now)
     previous_orders = _orders_between(prev_start, period_start)
 
     def _appts_between(start: datetime, end: datetime):
-        return session.execute(
+        stmt = (
             select(AppointmentRow.status, AppointmentRow.scheduled_at)
             .where(
                 AppointmentRow.hospital_id == hospital_id,
                 AppointmentRow.scheduled_at >= start.isoformat(), AppointmentRow.scheduled_at < end.isoformat(),
                 AppointmentRow.status != STATUS_RESCHEDULED,
             )
-        ).all()
+        )
+        if branch_id is not None:
+            stmt = stmt.where(AppointmentRow.branch_id == branch_id)
+        return session.execute(stmt).all()
 
     current_appts = _appts_between(period_start, now)
     previous_appts = _appts_between(prev_start, period_start)
@@ -154,6 +164,8 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
     )
     if channel_cond is not None:
         top_items_stmt = top_items_stmt.where(channel_cond)
+    if branch_id is not None:
+        top_items_stmt = top_items_stmt.where(FoodOrder.branch_id == branch_id)
     top_items_rows = session.execute(top_items_stmt).all()
     top_items = [{"name": r.item_name_snapshot, "orders": r.qty, "revenue_paise": r.revenue_paise} for r in top_items_rows]
 
@@ -219,6 +231,7 @@ def get_reports_summary(hospital_id: int, days: int = 30, now: datetime | None =
         "retention_trend": retention_trend,
         "period_days": days,
         "channel": channel if channel in _VALID_CHANNELS else None,
+        "branch_id": branch_id,
     }
 
 
@@ -230,11 +243,16 @@ def _csv_from_rows(header: list[str], rows: list[list]) -> str:
     return buf.getvalue()
 
 
-def export_report_csv(hospital_id: int, kind: str, days: int = 30, channel: str | None = None, now: datetime | None = None) -> str:
+def export_report_csv(
+    hospital_id: int, kind: str, days: int = 30, channel: str | None = None, now: datetime | None = None,
+    branch_id: str | None = None,
+) -> str:
     """Real CSV rows for the Reports page's "Download Reports" card -- built from the exact same
     tables/period the on-screen summary above uses, not a re-serialization of the aggregate KPIs.
     "sales" and "orders" respect the channel filter (they're order-shaped); "customers" and
-    "bookings" don't (a guest or a table reservation isn't scoped to one order channel)."""
+    "bookings" don't (a guest or a table reservation isn't scoped to one order channel). branch_id
+    applies to "sales"/"orders" (FoodOrder) and "bookings" (AppointmentRow) -- "customers" doesn't,
+    same "a guest isn't scoped to one branch" reasoning channel already follows for that kind."""
     now = now or datetime.now()
     period_start = now - timedelta(days=days)
     session = get_session()
@@ -247,6 +265,8 @@ def export_report_csv(hospital_id: int, kind: str, days: int = 30, channel: str 
         )
         if channel_cond is not None:
             stmt = stmt.where(channel_cond)
+        if branch_id is not None:
+            stmt = stmt.where(FoodOrder.branch_id == branch_id)
         by_day: dict[str, dict[str, int]] = {}
         for created_at, total_paise in session.execute(stmt).all():
             day = created_at[:10]
@@ -265,6 +285,8 @@ def export_report_csv(hospital_id: int, kind: str, days: int = 30, channel: str 
         ).order_by(FoodOrder.created_at.desc())
         if channel_cond is not None:
             stmt = stmt.where(channel_cond)
+        if branch_id is not None:
+            stmt = stmt.where(FoodOrder.branch_id == branch_id)
         rows = [
             [oid, ref or "", created_at, phone, source, fulfillment_type, payment_method, status, round(total_paise / 100, 2)]
             for oid, ref, created_at, phone, source, fulfillment_type, payment_method, status, total_paise in session.execute(stmt).all()
@@ -302,6 +324,8 @@ def export_report_csv(hospital_id: int, kind: str, days: int = 30, channel: str 
             )
             .order_by(AppointmentRow.scheduled_at.desc())
         )
+        if branch_id is not None:
+            stmt = stmt.where(AppointmentRow.branch_id == branch_id)
         rows = [
             [bid, ref or "", phone, dept or "", table or "", scheduled_at, status]
             for bid, ref, phone, dept, table, scheduled_at, status in session.execute(stmt).all()

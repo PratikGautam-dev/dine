@@ -9,6 +9,7 @@ from portal.routes.attendance import router as attendance_router
 from portal.routes.automations import router as automations_router
 from portal.routes.auth import router as auth_router
 from portal.routes.bookings import router as bookings_router
+from portal.routes.branches import router as branches_router
 from portal.routes.dashboard import router as dashboard_router
 from portal.routes.doctors import router as doctors_router
 from portal.routes.feedback import router as feedback_router
@@ -41,6 +42,7 @@ router.include_router(tables_router)
 router.include_router(waitlist_router)
 router.include_router(chef_notes_router)
 router.include_router(settings_router)
+router.include_router(branches_router)
 router.include_router(handoffs_router)
 router.include_router(live_operations_router)
 router.include_router(feedback_router)

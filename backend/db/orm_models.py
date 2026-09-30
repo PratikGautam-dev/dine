@@ -676,6 +676,10 @@ class HospitalRow(Base):
     cover_image_url: Mapped[str | None]
     min_order_paise: Mapped[int]
     avg_prep_minutes: Mapped[int]
+    # Multi-branch (migration 0053) -- off for every hospital by default; see
+    # db/repositories/branches.py's own docstring for the "branch_id always exists, this
+    # only controls visibility" design principle.
+    multi_branch_enabled: Mapped[bool]
 
 
 class CustomerOtp(Base):

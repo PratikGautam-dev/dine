@@ -23,12 +23,14 @@ class AssignPayload(BaseModel):
 
 
 @router.get("/api/portal/waitlist")
-async def portal_waitlist(status: str | None = "waiting", authorization: str | None = Header(default=None)):
+async def portal_waitlist(
+    status: str | None = "waiting", branch_id: str | None = None, authorization: str | None = Header(default=None),
+):
     principal, error = authorize(authorization, "appointments", "view")
     if error:
         return error
     resolved_status = None if status == "all" else status
-    return JSONResponse({"waitlist": db.list_waitlist(principal.hospital.id, status=resolved_status)})
+    return JSONResponse({"waitlist": db.list_waitlist(principal.hospital.id, status=resolved_status, branch_id=branch_id)})
 
 
 @router.post("/api/portal/waitlist")

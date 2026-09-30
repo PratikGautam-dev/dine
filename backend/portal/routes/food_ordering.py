@@ -253,17 +253,19 @@ MAX_ORDER_DAYS = 3650
 
 @router.get("/api/portal/food-orders")
 async def portal_food_orders(
-    status: str | None = None, days: int = DEFAULT_ORDER_DAYS, authorization: str | None = Header(default=None),
+    status: str | None = None, days: int = DEFAULT_ORDER_DAYS, branch_id: str | None = None,
+    authorization: str | None = Header(default=None),
 ):
     """The restaurant's orders, newest first. `days` limits how far back the list goes (default 90) so a page
-    load never returns every order ever placed; `days=0` means all time."""
+    load never returns every order ever placed; `days=0` means all time. branch_id=None (the topbar
+    switcher's "All Branches") returns every branch."""
     hospital, error = _require_food_ordering(authorization, "food_orders", "view")
     if error:
         return error
     if not 0 <= days <= MAX_ORDER_DAYS:
         return JSONResponse({"error": f"days must be between 0 (all time) and {MAX_ORDER_DAYS}."}, status_code=400)
     since = datetime.now(timezone.utc) - timedelta(days=days) if days else None
-    orders = db.list_food_orders(hospital.id, status=status, since=since)
+    orders = db.list_food_orders(hospital.id, status=status, since=since, branch_id=branch_id)
     # The guest's name, as the dashboard and reservations list show it: from their profile at THIS restaurant.
     names = db.get_patient_names_by_phone(hospital.id, [o["phone"] for o in orders])
     return JSONResponse({

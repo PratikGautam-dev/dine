@@ -54,7 +54,7 @@ def _require_tables(authorization: str | None, action: str):
 
 
 @router.get("/api/portal/tables")
-async def portal_tables(authorization: str | None = Header(default=None)):
+async def portal_tables(branch_id: str | None = None, authorization: str | None = Header(default=None)):
     hospital, error = _require_tables(authorization, "view")
     if error:
         return error
@@ -62,8 +62,11 @@ async def portal_tables(authorization: str | None = Header(default=None)):
     # still shows inactive tables (unlike get_tables(), the WhatsApp
     # booking-flow read). departments are shared with the existing
     # doctors/departments page -- one section list, not duplicated.
-    departments = db.get_departments(hospital.id)
-    tables = db.get_all_tables_for_hospital(hospital.id)
+    # branch_id=None (the topbar switcher's "All Branches") returns every branch's sections --
+    # tables themselves are scoped transitively through department_id, not a direct column.
+    departments = db.get_departments(hospital.id, branch_id=branch_id)
+    department_ids = {d["id"] for d in departments}
+    tables = [t for t in db.get_all_tables_for_hospital(hospital.id) if branch_id is None or t["department_id"] in department_ids]
     # Tables page follow-up: "Reserved" (derived, not a stored status) and current_occupant (a real
     # join over today's attended appointments / assigned waitlist entries, not a fabricated field).
     reserved_soon_ids = db.get_reserved_soon_table_ids(hospital.id)
