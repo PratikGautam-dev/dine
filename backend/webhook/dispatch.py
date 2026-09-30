@@ -155,6 +155,10 @@ async def _process_message(
     # row here instead of its own hospital.feature_labels/
     # dpdp_consent_required.
     platform_settings = db.get_platform_settings()
+    # Multi-branch (migration 0053): not on the Hospital dataclass itself (same "fetched
+    # separately, not a dataclass field" treatment db.get_storefront() already gets for Web
+    # Storefront) -- a plain bool read, cheap enough to do on every message.
+    multi_branch_enabled = db.get_multi_branch_enabled(hospital.id)
     await flows.handle_incoming(
         wa, SESSIONS, phone, hospital.id, reply, hospital.name, connector, hospital.enabled_features,
         feature_labels=platform_settings["feature_labels"],
@@ -168,5 +172,6 @@ async def _process_message(
         provider_user_id=provider_user_id,
         username=username,
         dpdp_consent_required=platform_settings["dpdp_consent_required"],
+        multi_branch_enabled=multi_branch_enabled,
     )
     logger.info("Flow router returned for %s (hospital %s)", phone, hospital.id)

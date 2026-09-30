@@ -61,6 +61,17 @@ async def public_restaurant_detail(slug: str):
         for entry in group:
             entry["is_bestseller"] = entry["id"] in bestsellers
     categories = [{"name": name, "items": group} for name, group in by_category.items()]
+    # Multi-branch (migration 0053): only a real array (more than one active branch) when the
+    # toggle is on -- a single-location restaurant's page looks exactly as it does today (no
+    # branch picker rendered by the frontend when this is empty).
+    branches = []
+    if db.get_multi_branch_enabled(restaurant["hospital_id"]):
+        active = db.list_branches(restaurant["hospital_id"])
+        if len(active) > 1:
+            branches = [
+                {"id": b["id"], "name": b["name"], "address_line": b["address_line"], "city": b["city"]}
+                for b in active
+            ]
     return JSONResponse({
         "restaurant": {**restaurant, "rating": db.get_public_rating(restaurant["hospital_id"])},
         "categories": categories, "bestseller_ids": bestsellers,
@@ -68,6 +79,7 @@ async def public_restaurant_detail(slug: str):
             "pickup": 0,
             "delivery": db.get_delivery_fee_paise(restaurant["hospital_id"], "delivery"),
         },
+        "branches": branches,
     })
 
 
@@ -158,6 +170,10 @@ class CreateOrderPayload(BaseModel):
     payment_method: str = PAYMENT_ONLINE
     coupon_code: str | None = None
     name: str = ""
+    # Multi-branch (migration 0053): the branch picked on the restaurant page, when this
+    # restaurant has more than one active branch -- unset resolves to the hospital's default
+    # branch inside create_food_order() itself, same as every other caller.
+    branch_id: str | None = None
 
 
 @router.post("/api/public/orders")
@@ -200,6 +216,12 @@ async def public_create_order(payload: CreateOrderPayload, authorization: str | 
             {"error": f"Minimum order is {format_price(restaurant['min_order_paise'])}."}, status_code=400,
         )
 
+    branch_id = payload.branch_id
+    if branch_id is not None:
+        valid_branch_ids = {b["id"] for b in db.list_branches(restaurant["hospital_id"])}
+        if branch_id not in valid_branch_ids:
+            return JSONResponse({"error": "Choose a valid location."}, status_code=400)
+
     try:
         order = db.create_food_order(
             restaurant["hospital_id"], customer["phone"],
@@ -207,6 +229,7 @@ async def public_create_order(payload: CreateOrderPayload, authorization: str | 
             payload.fulfillment_type, delivery_address=payload.delivery_address,
             patient_name=(payload.name or customer.get("name") or None),
             payment_method=payload.payment_method, coupon_code=payload.coupon_code, source=SOURCE_WEB,
+            branch_id=branch_id,
         )
     except IntegrityError as e:
         return JSONResponse({"error": str(e)}, status_code=409)

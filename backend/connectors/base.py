@@ -81,7 +81,7 @@ class Connector(abc.ABC):
     def get_appointment_types(self, hospital_id: int) -> list[dict]: ...
 
     @abc.abstractmethod
-    def get_departments(self, hospital_id: int) -> list[dict]: ...
+    def get_departments(self, hospital_id: int, branch_id: str | None = None) -> list[dict]: ...
 
     @abc.abstractmethod
     def get_doctors(self, hospital_id: int, department_id: str) -> list[dict]: ...
@@ -246,7 +246,7 @@ class Connector(abc.ABC):
         self, hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
         department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
         patient_id: int | None = None, appointment_type_id: str | None = None, source: str = "whatsapp",
-        special_request: str | None = None,
+        special_request: str | None = None, branch_id: str | None = None,
     ) -> Appointment: ...
 
     @abc.abstractmethod
@@ -272,7 +272,7 @@ class Connector(abc.ABC):
     def create_food_order(
         self, hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
         delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
-        payment_method: str = "online", coupon_code: str | None = None,
+        payment_method: str = "online", coupon_code: str | None = None, branch_id: str | None = None,
     ) -> dict: ...
 
     @abc.abstractmethod
@@ -373,7 +373,7 @@ class _UnimplementedTierConnector(Connector):
     def get_appointment_types(self, hospital_id):
         self._not_implemented("get_appointment_types")
 
-    def get_departments(self, hospital_id):
+    def get_departments(self, hospital_id, branch_id=None):
         self._not_implemented("get_departments")
 
     def get_doctors(self, hospital_id, department_id):
@@ -430,7 +430,7 @@ class _UnimplementedTierConnector(Connector):
     def get_available_table_slots(self, hospital_id, party_size, department_id=None, exclude_appointment_id=None):
         self._not_implemented("get_available_table_slots")
 
-    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp", special_request=None):
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp", special_request=None, branch_id=None):
         self._not_implemented("create_table_reservation")
 
     def reassign_table(self, hospital_id, appointment_id, new_table_id):
@@ -442,7 +442,7 @@ class _UnimplementedTierConnector(Connector):
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         self._not_implemented("get_menu_items")
 
-    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online", coupon_code=None):
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online", coupon_code=None, branch_id=None):
         self._not_implemented("create_food_order")
 
     def preview_offer(self, hospital_id, coupon_code, subtotal_paise, fulfillment_type):

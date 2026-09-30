@@ -109,16 +109,24 @@ async def _handle_awaiting_party_size(
                 _HISTORY_KEY: _push_history(context, STATE_AWAITING_PARTY_SIZE),
             }
             sessions.set(hospital_id, phone, STATE_AWAITING_TABLE_SECTION, new_context)
-            await _send_table_section_menu(wa, phone, hospital_id, connector, language=language)
+            await _send_table_section_menu(
+                wa, phone, hospital_id, connector, language=language,
+                branch_id=sessions.get(hospital_id, phone).get("branch_id"),
+            )
             return
     sessions.set(hospital_id, phone, STATE_AWAITING_PARTY_SIZE, context)
     await _send_party_size_menu(wa, phone, language=language)
 
 
-async def _send_table_section_menu(wa: WhatsAppClient, phone: str, hospital_id: int, connector, language: str = "en") -> None:
+async def _send_table_section_menu(
+    wa: WhatsAppClient, phone: str, hospital_id: int, connector, language: str = "en", branch_id: str | None = None,
+) -> None:
+    """branch_id (Multi-branch, migration 0053) narrows section choices to whichever branch this
+    session picked (router.py's _enter_idle()) -- None (single-branch, or never enabled) shows
+    every section, unchanged from today."""
     from flows.booking.messages import _send_back_button
 
-    sections = connector.get_departments(hospital_id)
+    sections = connector.get_departments(hospital_id, branch_id=branch_id)
     rows = [{"id": _NO_SECTION_PREFERENCE_ROW_ID, "title": t(NO_SECTION_PREFERENCE_OPTION, language)}]
     rows.extend({"id": s["id"], "title": s["name"]} for s in sections)
     await wa.send_list(
@@ -147,7 +155,8 @@ async def _handle_awaiting_table_section(
             await _handle_back_navigation(wa, sessions, phone, hospital_id, context, connector, language=language)
             return
         section_id = None if reply["id"] == _NO_SECTION_PREFERENCE_ROW_ID else reply["id"]
-        sections = connector.get_departments(hospital_id)
+        branch_id = sessions.get(hospital_id, phone).get("branch_id")
+        sections = connector.get_departments(hospital_id, branch_id=branch_id)
         if section_id is None or any(s["id"] == section_id for s in sections):
             section_name = None
             if section_id is not None:
@@ -168,7 +177,10 @@ async def _handle_awaiting_table_section(
             )
             return
     sessions.set(hospital_id, phone, STATE_AWAITING_TABLE_SECTION, context)
-    await _send_table_section_menu(wa, phone, hospital_id, connector, language=language)
+    await _send_table_section_menu(
+        wa, phone, hospital_id, connector, language=language,
+        branch_id=sessions.get(hospital_id, phone).get("branch_id"),
+    )
 
 
 def _build_table_reservation_confirmation_summary(context: dict, hospital_id: int) -> str:

@@ -636,6 +636,10 @@ async def _create_booking_and_notify(
                 patient_age=context.get("patient_age"),
                 patient_id=context.get("active_patient_id"),
                 appointment_type_id=context.get("appointment_type_id"),
+                # Multi-branch (migration 0053): whichever branch this session picked
+                # (router.py's _enter_idle()) -- None (single-branch, or never enabled)
+                # resolves to the hospital's default branch inside the repository call itself.
+                branch_id=sessions.get(hospital_id, phone).get("branch_id"),
             )
         else:
             appointment = connector.create_booking(

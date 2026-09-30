@@ -97,6 +97,10 @@ from flows.patient_identity import (
 from flows.common import is_reset_keyword
 from core.translations import SUPPORTED_LANGUAGES, t
 from core.translations.menu import (
+    BRANCH_PICKER_BODY,
+    BRANCH_PICKER_BUTTON,
+    BRANCH_PICKER_SECTION_TITLE,
+    FEATURE_CHANGE_BRANCH,
     FEEDBACK_RATING_BUTTON,
     FEEDBACK_RATING_PROMPT,
     FEEDBACK_THANK_YOU,
@@ -156,6 +160,24 @@ async def _send_language_picker(wa: WhatsAppClient, phone: str, default_language
     await wa.send_buttons(to=phone, body_text=t(LANGUAGE_PICKER_BODY, None), buttons=buttons)
 
 
+STATE_AWAITING_BRANCH = "AWAITING_BRANCH"
+_BRANCH_ROW_PREFIX = "branch_"
+CHANGE_BRANCH_ID = "menu_change_branch"
+
+
+async def _send_branch_picker(wa: WhatsAppClient, phone: str, branches: list[dict], language: str) -> None:
+    """Multi-branch (migration 0053): shown once per session, only when the restaurant has
+    multi_branch_enabled on and more than one active branch -- see _enter_idle()'s own call
+    site. Row ids are "branch_<branch id>", parsed by _handle_awaiting_branch below."""
+    rows = [{"id": f"{_BRANCH_ROW_PREFIX}{b['id']}", "title": b["name"]} for b in branches]
+    await wa.send_list(
+        to=phone,
+        body_text=t(BRANCH_PICKER_BODY, language),
+        button_text=t(BRANCH_PICKER_BUTTON, language),
+        sections=[{"title": t(BRANCH_PICKER_SECTION_TITLE, language), "rows": rows}],
+    )
+
+
 STATE_AWAITING_DPDP_CONSENT = "AWAITING_DPDP_CONSENT"
 DPDP_AGREE_ID = "dpdp_agree"
 DPDP_DECLINE_ID = "dpdp_decline"
@@ -188,6 +210,8 @@ async def _enter_idle(
     default_language: str = "en", language_prompt_enabled: bool = True,
     require_patient_confirmation: bool = False,
     dpdp_consent_required: bool = False,
+    multi_branch_enabled: bool = False,
+    branch_id: str | None = None,
 ) -> None:
     """The one place that decides "does this session need the language
     picker, or does it already know what to show." Called everywhere the
@@ -220,7 +244,14 @@ async def _enter_idle(
     because their session expired. identify_contact() is idempotent/cheap
     (already called once per message by handle_incoming above) -- this is
     the same "re-resolve rather than thread five more params through"
-    precedent flows/patient_identity.py's own _start_registration() uses."""
+    precedent flows/patient_identity.py's own _start_registration() uses.
+
+    multi_branch_enabled/branch_id (Multi-branch, migration 0053): once patient identity is
+    resolved, a restaurant with more than one active branch gets asked which one -- once per
+    session (branch_id is a top-level session field, auto-preserved by sessions.set()/reset()
+    the same way active_patient_id already is), skipped entirely for a single-branch restaurant
+    or one with the toggle off. A "Change Location" button is folded into the main menu's own
+    follow-up buttons message whenever the choice was real (more than one active branch)."""
     if not language_prompt_enabled:
         resolved_language = default_language
     elif language is None:
@@ -257,11 +288,23 @@ async def _enter_idle(
     )
     if active_patient is None:
         return
+
+    # Multi-branch (migration 0053): gated on real data (multi_branch_enabled AND more than one
+    # active branch), not a static per-hospital feature toggle -- a restaurant that turns the
+    # switch on but only ever adds one branch sees no picker, same as the switch being off.
+    active_branches = db.list_branches(hospital_id) if multi_branch_enabled else []
+    branch_choice_applies = len(active_branches) > 1
+    if branch_choice_applies and (branch_id is None or branch_id not in {b["id"] for b in active_branches}):
+        sessions.set(hospital_id, phone, STATE_AWAITING_BRANCH, {})
+        await _send_branch_picker(wa, phone, active_branches, resolved_language)
+        return
+
     body_text_prefix = t(PATIENT_SELECTED_BANNER, resolved_language) if show_patient_selected_banner else ""
+    extra_buttons = [{"id": CHANGE_BRANCH_ID, "title": t(FEATURE_CHANGE_BRANCH, resolved_language)}] if branch_choice_applies else None
     await _send_dynamic_menu(
         wa, phone, hospital_name, enabled_features, language=resolved_language, feature_labels=feature_labels,
         language_prompt_enabled=language_prompt_enabled, active_patient=active_patient,
-        body_text_prefix=body_text_prefix,
+        body_text_prefix=body_text_prefix, extra_buttons=extra_buttons,
     )
 
 
@@ -269,7 +312,7 @@ async def _handle_awaiting_language(
     wa: WhatsAppClient, sessions, phone: str, hospital_id: int, reply: dict, hospital_name: str,
     enabled_features: list[str], connector: Connector, feature_labels: dict[str, str] | None = None,
     default_language: str = "en", require_patient_confirmation: bool = False,
-    dpdp_consent_required: bool = False,
+    dpdp_consent_required: bool = False, multi_branch_enabled: bool = False,
 ) -> None:
     chosen = _LANGUAGE_ROW_TO_CODE.get(reply["id"]) if reply["type"] == "interactive_reply" else None
     if chosen is None:
@@ -294,7 +337,40 @@ async def _handle_awaiting_language(
         wa, sessions, phone, hospital_id, hospital_name, enabled_features, chosen, connector,
         feature_labels=feature_labels, default_language=default_language, language_prompt_enabled=True,
         require_patient_confirmation=require_patient_confirmation,
-        dpdp_consent_required=dpdp_consent_required,
+        dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
+    )
+
+
+async def _handle_awaiting_branch(
+    wa: WhatsAppClient, sessions, phone: str, hospital_id: int, reply: dict, hospital_name: str,
+    enabled_features: list[str], connector: Connector, language: str, feature_labels: dict[str, str] | None = None,
+    default_language: str = "en", language_prompt_enabled: bool = True,
+    require_patient_confirmation: bool = False, dpdp_consent_required: bool = False,
+    multi_branch_enabled: bool = False,
+) -> None:
+    """Multi-branch (migration 0053): the counterpart to _handle_awaiting_language above, same
+    "re-validate the tap, don't trust it blindly" shape. Re-fetches the active branch list fresh
+    (not trusted from whatever set of rows the picker was built from, in case a branch was
+    deactivated in the portal between the picker being sent and this reply) -- an invalid/stale
+    tap just re-shows the picker, same as an unrecognized language tap does."""
+    active_branches = db.list_branches(hospital_id)
+    chosen_id = None
+    if reply["type"] == "interactive_reply" and reply["id"].startswith(_BRANCH_ROW_PREFIX):
+        candidate = reply["id"][len(_BRANCH_ROW_PREFIX):]
+        if any(b["id"] == candidate for b in active_branches):
+            chosen_id = candidate
+    if chosen_id is None:
+        sessions.set(hospital_id, phone, STATE_AWAITING_BRANCH, {})
+        await _send_branch_picker(wa, phone, active_branches, language)
+        return
+    sessions.set(hospital_id, phone, STATE_IDLE, {}, branch_id=chosen_id)
+    await _enter_idle(
+        wa, sessions, phone, hospital_id, hospital_name, enabled_features, language, connector,
+        feature_labels=feature_labels, default_language=default_language,
+        language_prompt_enabled=language_prompt_enabled,
+        require_patient_confirmation=require_patient_confirmation,
+        dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
+        branch_id=chosen_id,
     )
 
 
@@ -303,6 +379,7 @@ async def _handle_awaiting_dpdp_consent(
     enabled_features: list[str], connector: Connector, language: str, feature_labels: dict[str, str] | None = None,
     default_language: str = "en", language_prompt_enabled: bool = True,
     require_patient_confirmation: bool = False, dpdp_consent_required: bool = False,
+    multi_branch_enabled: bool = False,
 ) -> None:
     if reply["type"] == "interactive_reply" and reply["id"] == DPDP_DECLINE_ID:
         await wa.send_text(phone, t(DPDP_DECLINED_MESSAGE, language, hospital_name=hospital_name))
@@ -317,7 +394,7 @@ async def _handle_awaiting_dpdp_consent(
             feature_labels=feature_labels, default_language=default_language,
             language_prompt_enabled=language_prompt_enabled,
             require_patient_confirmation=require_patient_confirmation,
-            dpdp_consent_required=dpdp_consent_required,
+            dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
         )
         return
     if reply["type"] == "interactive_reply" and reply["id"] == DPDP_AGREE_ID:
@@ -333,7 +410,7 @@ async def _handle_awaiting_dpdp_consent(
         feature_labels=feature_labels, default_language=default_language,
         language_prompt_enabled=language_prompt_enabled,
         require_patient_confirmation=require_patient_confirmation,
-        dpdp_consent_required=dpdp_consent_required,
+        dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
     )
 
 
@@ -466,6 +543,7 @@ async def handle_incoming(
     provider_user_id: str | None = None,
     username: str | None = None,
     dpdp_consent_required: bool = False,
+    multi_branch_enabled: bool = False,
 ) -> None:
     """The real conversation entry point (SPEC Section 14.5) -- core/main.py
     calls this directly now, passing the resolved hospital's enabled_features
@@ -534,6 +612,7 @@ async def handle_incoming(
     if language not in SUPPORTED_LANGUAGES:
         language = None
     active_patient_id = session.get("active_patient_id")
+    branch_id = session.get("branch_id")
 
     async def _enter_idle_here(lang: str | None) -> None:
         await _enter_idle(
@@ -542,6 +621,7 @@ async def handle_incoming(
             language_prompt_enabled=language_prompt_enabled,
             require_patient_confirmation=require_patient_confirmation,
             dpdp_consent_required=dpdp_consent_required,
+            multi_branch_enabled=multi_branch_enabled, branch_id=branch_id,
         )
 
     # Items 3/5/6 (Spec.md Section 0): quick-action ids embedding a specific
@@ -608,7 +688,17 @@ async def handle_incoming(
             wa, sessions, phone, hospital_id, reply, hospital_name, enabled_features, connector,
             feature_labels=feature_labels, default_language=default_language,
             require_patient_confirmation=require_patient_confirmation,
-            dpdp_consent_required=dpdp_consent_required,
+            dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
+        )
+        return
+
+    if state == STATE_AWAITING_BRANCH:
+        await _handle_awaiting_branch(
+            wa, sessions, phone, hospital_id, reply, hospital_name, enabled_features, connector,
+            language=language or "en", feature_labels=feature_labels, default_language=default_language,
+            language_prompt_enabled=language_prompt_enabled,
+            require_patient_confirmation=require_patient_confirmation,
+            dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
         )
         return
 
@@ -618,7 +708,7 @@ async def handle_incoming(
             language=language or "en", feature_labels=feature_labels, default_language=default_language,
             language_prompt_enabled=language_prompt_enabled,
             require_patient_confirmation=require_patient_confirmation,
-            dpdp_consent_required=dpdp_consent_required,
+            dpdp_consent_required=dpdp_consent_required, multi_branch_enabled=multi_branch_enabled,
         )
         return
 
@@ -678,6 +768,14 @@ async def handle_incoming(
         # handler).
         if reply["id"] == MAIN_MENU_BACK_ROW and language is not None:
             await _start_manage_patients(wa, sessions, phone, hospital_id, connector, language)
+            return
+        # Multi-branch (migration 0053): the main menu's own "Change Location" button (only
+        # ever sent when there's a real choice -- see _enter_idle()'s extra_buttons). Re-shows
+        # the picker directly rather than going through _enter_idle -- the next reply
+        # (_handle_awaiting_branch) is what actually overwrites the session's branch_id.
+        if reply["id"] == CHANGE_BRANCH_ID and language is not None:
+            sessions.set(hospital_id, phone, STATE_AWAITING_BRANCH, {})
+            await _send_branch_picker(wa, phone, db.list_branches(hospital_id), language)
             return
         # The single-linked-patient confirmation's own follow-up buttons
         # message (patient_identity._send_single_patient_confirm) -- sent

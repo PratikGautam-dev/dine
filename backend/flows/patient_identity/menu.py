@@ -7,6 +7,7 @@ from core.translations.food_ordering import FEATURE_ORDER_FOOD
 from core.translations.menu import (
     BOOK_APPOINTMENT_SHORT,
     FEATURE_CANCEL,
+    FEATURE_CHANGE_BRANCH,
     FEATURE_CONSENT_PRIVACY,
     FEATURE_FAQ,
     FEATURE_GIVE_FEEDBACK,
@@ -106,9 +107,12 @@ async def _send_dynamic_menu(
     wa: WhatsAppClient, phone: str, hospital_name: str, enabled_features: list[str], language: str = "en",
     feature_labels: dict[str, str] | None = None, language_prompt_enabled: bool = True,
     active_patient: dict | None = None, body_text_prefix: str = "",
+    extra_buttons: list[dict] | None = None,
 ) -> None:
     """Sends the hospital's main menu list, then a separate "Back" buttons
-    message underneath (a list can't carry its own back row)."""
+    message underneath (a list can't carry its own back row). extra_buttons
+    (Multi-branch, migration 0053: a "Change Location" button) are appended
+    into that same follow-up buttons message -- WhatsApp allows up to 3."""
     sent = await _send_menu_list(
         wa, phone, hospital_name, enabled_features, language=language,
         feature_labels=feature_labels, active_patient=active_patient, body_text_prefix=body_text_prefix,
@@ -119,5 +123,6 @@ async def _send_dynamic_menu(
     # hidden inside it (WhatsApp collapses a list to just its button_text
     # until tapped).
     await wa.send_buttons(
-        to=phone, body_text="​", buttons=[{"id": MAIN_MENU_BACK_ROW, "title": t(BACK_OPTION, language)}],
+        to=phone, body_text="​",
+        buttons=[{"id": MAIN_MENU_BACK_ROW, "title": t(BACK_OPTION, language)}, *(extra_buttons or [])],
     )

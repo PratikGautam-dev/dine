@@ -21,8 +21,8 @@ class Tier1Connector(Connector):
     def get_appointment_types(self, hospital_id):
         return repo.get_appointment_types(hospital_id)
 
-    def get_departments(self, hospital_id):
-        return repo.get_departments(hospital_id)
+    def get_departments(self, hospital_id, branch_id=None):
+        return repo.get_departments(hospital_id, branch_id=branch_id)
 
     def get_doctors(self, hospital_id, department_id):
         return repo.get_doctors(hospital_id, department_id)
@@ -139,11 +139,12 @@ class Tier1Connector(Connector):
             hospital_id, party_size, department_id, exclude_appointment_id=exclude_appointment_id,
         )
 
-    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp", special_request=None):
+    def create_table_reservation(self, hospital_id, phone, party_size, scheduled_at, department_id=None, patient_name=None, patient_age=None, patient_id=None, appointment_type_id=None, source="whatsapp", special_request=None, branch_id=None):
         return repo.create_table_reservation(
             hospital_id, phone, party_size, scheduled_at, department_id=department_id,
             patient_name=patient_name, patient_age=patient_age, patient_id=patient_id,
             appointment_type_id=appointment_type_id, source=source, special_request=special_request,
+            branch_id=branch_id,
         )
 
     def reassign_table(self, hospital_id, appointment_id, new_table_id):
@@ -155,11 +156,11 @@ class Tier1Connector(Connector):
     def get_menu_items(self, hospital_id, category=None, available_only=True):
         return repo.get_menu_items(hospital_id, category=category, available_only=available_only)
 
-    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online", coupon_code=None):
+    def create_food_order(self, hospital_id, phone, items, fulfillment_type, delivery_address=None, patient_name=None, patient_id=None, payment_method="online", coupon_code=None, branch_id=None):
         return repo.create_food_order(
             hospital_id, phone, items, fulfillment_type, delivery_address=delivery_address,
             patient_name=patient_name, patient_id=patient_id, payment_method=payment_method,
-            coupon_code=coupon_code,
+            coupon_code=coupon_code, branch_id=branch_id,
         )
 
     def preview_offer(self, hospital_id, coupon_code, subtotal_paise, fulfillment_type):

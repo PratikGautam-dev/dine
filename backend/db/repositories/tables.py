@@ -422,7 +422,7 @@ def create_table_reservation(
     hospital_id: int, phone: str, party_size: int, scheduled_at: datetime,
     department_id: str | None = None, patient_name: str | None = None, patient_age: int | None = None,
     patient_id: int | None = None, appointment_type_id: str | None = None, source: str = SOURCE_WHATSAPP,
-    exclude_appointment_id: int | None = None, special_request: str | None = None,
+    exclude_appointment_id: int | None = None, special_request: str | None = None, branch_id: str | None = None,
 ) -> Appointment:
     """The table-reservation counterpart to create_procedure_appointment():
     same advisory-lock-protected BEGIN/COMMIT shape, re-checks candidate
@@ -432,10 +432,21 @@ def create_table_reservation(
     unless nothing smaller is free), raises IntegrityError on a lost race
     (the slot menu went stale). turnover_minutes is stamped from the
     hospital's CURRENT default at booking time, not read dynamically later --
-    see migration 0030's own docstring for why."""
+    see migration 0030's own docstring for why.
+
+    branch_id left unset resolves to the hospital's default branch (migration 0053). When
+    department_id is ALSO given (the caller already narrowed to one section), it's trusted
+    as-is -- Phase 4's flows/booking/types/table_reservation.py already only offers that
+    branch's own sections. When department_id is None (any section), candidate tables are
+    additionally filtered to this branch's own departments, so a multi-branch restaurant never
+    seats a guest at a table in the wrong physical location."""
     from db.repositories.appointments import _upsert_patient
+    from db.repositories.branches import get_default_branch
+    from db.repositories.doctors import get_departments
     from db.repositories.hospital_settings import get_hospital_settings
 
+    if branch_id is None:
+        branch_id = get_default_branch(hospital_id)["id"]
     conn = get_connection()
     settings = get_hospital_settings(hospital_id)
     turnover_minutes = settings["default_turnover_minutes"]
@@ -465,6 +476,9 @@ def create_table_reservation(
             (f"table_reservation|{hospital_id}|{scheduled_at_iso}",),
         )
         candidates = [t for t in get_tables(hospital_id, department_id) if t["capacity"] >= party_size]
+        if department_id is None:
+            branch_department_ids = {d["id"] for d in get_departments(hospital_id, branch_id=branch_id)}
+            candidates = [t for t in candidates if t["department_id"] in branch_department_ids]
         candidates.sort(key=lambda t: t["capacity"])
         chosen = next(
             (
@@ -477,11 +491,11 @@ def create_table_reservation(
             raise IntegrityError(f"No free table for party of {party_size} at {scheduled_at_iso}")
         resolved_department_id = department_id or chosen["department_id"]
         cur = conn.execute(
-            "INSERT INTO appointments (hospital_id, phone, department_id, doctor_id, scheduled_at, "
+            "INSERT INTO appointments (hospital_id, branch_id, phone, department_id, doctor_id, scheduled_at, "
             "booking_ordinal, source, reference_id, patient_id, patient_name, patient_phone, patient_age, "
             "appointment_type_id, table_id, party_size, turnover_minutes, status, special_request) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
-            (hospital_id, phone, resolved_department_id, None, scheduled_at_iso, 0, source,
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            (hospital_id, branch_id, phone, resolved_department_id, None, scheduled_at_iso, 0, source,
              _generate_reference_id(conn, hospital_id), patient["id"], patient["name"], phone, patient["age"],
              appointment_type_id, chosen["id"], party_size, turnover_minutes, status, special_request),
         )

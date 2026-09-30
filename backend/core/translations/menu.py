@@ -73,6 +73,14 @@ FEEDBACK_RATING_PROMPT = "feedback_rating_prompt"
 FEEDBACK_RATING_BUTTON = "feedback_rating_button"
 FEEDBACK_THANK_YOU = "feedback_thank_you"
 
+# --- Multi-branch (migration 0053): a branch picker shown once per session, only for a
+# restaurant with multi_branch_enabled on and more than one active branch -- a single-location
+# restaurant never sees any of this. ---
+BRANCH_PICKER_BODY = "branch_picker_body"
+BRANCH_PICKER_BUTTON = "branch_picker_button"
+BRANCH_PICKER_SECTION_TITLE = "branch_picker_section_title"
+FEATURE_CHANGE_BRANCH = "feature_change_branch"
+
 STRINGS: dict[str, dict[Language, str]] = {
     LANGUAGE_PICKER_BODY: {
         "en": "Please choose your language.\nकृपया अपनी भाषा चुनें।",
@@ -163,4 +171,12 @@ STRINGS: dict[str, dict[Language, str]] = {
         "en": "Thank you for your feedback — it really helps us! Send any message to return to the main menu.",
         "hi": "आपकी प्रतिक्रिया के लिए धन्यवाद — इससे हमें बहुत मदद मिलती है! मुख्य मेनू पर वापस जाने के लिए कोई भी संदेश भेजें।",
     },
+
+    BRANCH_PICKER_BODY: {
+        "en": "Which location would you like?",
+        "hi": "आप कौन सी शाखा चुनना चाहेंगे?",
+    },
+    BRANCH_PICKER_BUTTON: {"en": "Choose Location", "hi": "शाखा चुनें"},
+    BRANCH_PICKER_SECTION_TITLE: {"en": "Locations", "hi": "शाखाएं"},
+    FEATURE_CHANGE_BRANCH: {"en": "Change Location", "hi": "शाखा बदलें"},
 }

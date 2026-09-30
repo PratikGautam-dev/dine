@@ -474,12 +474,17 @@ async def _place_order(
     cart = context.get("cart", [])
     items = [{"menu_item_id": line["menu_item_id"], "quantity": line["quantity"]} for line in cart]
     coupon = context.get("coupon")
+    # Multi-branch (migration 0053): whichever branch this session picked (router.py's
+    # _enter_idle()), read straight off the session rather than threaded through this whole
+    # call chain -- None (single-branch restaurant, or multi-branch never enabled) resolves to
+    # the hospital's default branch inside create_food_order() itself.
+    branch_id = sessions.get(hospital_id, phone).get("branch_id")
     try:
         order = connector.create_food_order(
             hospital_id, phone, items, context["fulfillment_type"],
             delivery_address=context.get("delivery_address"), patient_name=context.get("customer_name"),
             patient_id=context.get("active_patient_id"), payment_method=payment_method,
-            coupon_code=coupon["code"] if coupon else None,
+            coupon_code=coupon["code"] if coupon else None, branch_id=branch_id,
         )
     except OfferError as exc:
         # The coupon went stale between the review-screen preview and this confirm tap (its cap

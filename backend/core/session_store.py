@@ -69,11 +69,14 @@ class InMemorySessionStore:
         active_patient_id = session.get("active_patient_id")
         if active_patient_id is not None:
             result["active_patient_id"] = active_patient_id
+        branch_id = session.get("branch_id")
+        if branch_id is not None:
+            result["branch_id"] = branch_id
         return result
 
     def set(
         self, hospital_id: int, phone: str, state: str, context: dict | None = None, language: str | None = None,
-        active_patient_id: int | None = None,
+        active_patient_id: int | None = None, branch_id: str | None = None,
     ) -> None:
         existing = self._store.get((hospital_id, phone))
         resolved_language = language if language is not None else (existing.get("language") if existing else None)
@@ -92,11 +95,17 @@ class InMemorySessionStore:
             active_patient_id if active_patient_id is not None
             else (existing.get("active_patient_id") if existing else None)
         )
+        # Multi-branch (migration 0053): same top-level, auto-preserved treatment as
+        # active_patient_id above, for the same reason -- resolved once per conversation
+        # (flows/router.py's _enter_idle(), before the main menu) via the branch picker, and a
+        # "Change Branch" menu tap is the only thing that overwrites it mid-session.
+        resolved_branch_id = branch_id if branch_id is not None else (existing.get("branch_id") if existing else None)
         self._store[(hospital_id, phone)] = {
             "state": state,
             "context": context or {},
             "language": resolved_language,
             "active_patient_id": resolved_active_patient_id,
+            "branch_id": resolved_branch_id,
             "updated_at": time.time(),
         }
 
@@ -109,7 +118,10 @@ class InMemorySessionStore:
         if existing is not None:
             existing["active_patient_id"] = None
 
-    def reset(self, hospital_id: int, phone: str, keep_language: bool = True, keep_active_patient: bool = True) -> None:
+    def reset(
+        self, hospital_id: int, phone: str, keep_language: bool = True, keep_active_patient: bool = True,
+        keep_branch_id: bool = True,
+    ) -> None:
         """Section 12.11 established preserving language across every
         reset(), so a patient is only asked once per genuinely fresh
         conversation, not after every booking/cancel/reset -- still the
@@ -134,7 +146,8 @@ class InMemorySessionStore:
         existing = self._store.get((hospital_id, phone))
         language = existing.get("language") if (existing and keep_language) else None
         active_patient_id = existing.get("active_patient_id") if (existing and keep_active_patient) else None
-        if language is None and active_patient_id is None:
+        branch_id = existing.get("branch_id") if (existing and keep_branch_id) else None
+        if language is None and active_patient_id is None and branch_id is None:
             self._store.pop((hospital_id, phone), None)
             return
         # Deliberately NOT self.set() -- that method treats language=None/
@@ -146,7 +159,7 @@ class InMemorySessionStore:
         # Writing the record directly bypasses that inheritance entirely.
         self._store[(hospital_id, phone)] = {
             "state": DEFAULT_STATE, "context": {}, "language": language,
-            "active_patient_id": active_patient_id, "updated_at": time.time(),
+            "active_patient_id": active_patient_id, "branch_id": branch_id, "updated_at": time.time(),
         }
 
 
@@ -174,11 +187,14 @@ class RedisSessionStore:
         active_patient_id = session.get("active_patient_id")
         if active_patient_id is not None:
             result["active_patient_id"] = active_patient_id
+        branch_id = session.get("branch_id")
+        if branch_id is not None:
+            result["branch_id"] = branch_id
         return result
 
     def set(
         self, hospital_id: int, phone: str, state: str, context: dict | None = None, language: str | None = None,
-        active_patient_id: int | None = None,
+        active_patient_id: int | None = None, branch_id: str | None = None,
     ) -> None:
         raw = self._redis.get(self._key(hospital_id, phone))
         existing = json.loads(raw) if raw else None
@@ -189,9 +205,10 @@ class RedisSessionStore:
             active_patient_id if active_patient_id is not None
             else (existing.get("active_patient_id") if existing else None)
         )
+        resolved_branch_id = branch_id if branch_id is not None else (existing.get("branch_id") if existing else None)
         session = {
             "state": state, "context": context or {}, "language": resolved_language,
-            "active_patient_id": resolved_active_patient_id, "updated_at": time.time(),
+            "active_patient_id": resolved_active_patient_id, "branch_id": resolved_branch_id, "updated_at": time.time(),
         }
         # Redis TTL is just a cleanup backstop (generous buffer over the soft timeout above,
         # which is what actually governs "reset to IDLE after 30 min").
@@ -207,15 +224,19 @@ class RedisSessionStore:
         remaining_ttl = self._redis.ttl(self._key(hospital_id, phone))
         self._redis.setex(self._key(hospital_id, phone), remaining_ttl if remaining_ttl > 0 else self._timeout, json.dumps(session))
 
-    def reset(self, hospital_id: int, phone: str, keep_language: bool = True, keep_active_patient: bool = True) -> None:
+    def reset(
+        self, hospital_id: int, phone: str, keep_language: bool = True, keep_active_patient: bool = True,
+        keep_branch_id: bool = True,
+    ) -> None:
         """See InMemorySessionStore.reset()'s docstring -- identical
-        keep_language/keep_active_patient semantics, mirrored here for the
+        keep_language/keep_active_patient/keep_branch_id semantics, mirrored here for the
         Redis backend."""
         raw = self._redis.get(self._key(hospital_id, phone))
         existing = json.loads(raw) if raw else None
         language = existing.get("language") if (existing and keep_language) else None
         active_patient_id = existing.get("active_patient_id") if (existing and keep_active_patient) else None
-        if language is None and active_patient_id is None:
+        branch_id = existing.get("branch_id") if (existing and keep_branch_id) else None
+        if language is None and active_patient_id is None and branch_id is None:
             self._redis.delete(self._key(hospital_id, phone))
             return
         # See InMemorySessionStore.reset()'s own comment -- self.set() would
@@ -223,7 +244,7 @@ class RedisSessionStore:
         # fallback; writing the record directly avoids that.
         session = {
             "state": DEFAULT_STATE, "context": {}, "language": language,
-            "active_patient_id": active_patient_id, "updated_at": time.time(),
+            "active_patient_id": active_patient_id, "branch_id": branch_id, "updated_at": time.time(),
         }
         self._redis.setex(self._key(hospital_id, phone), self._timeout + 300, json.dumps(session))
 
