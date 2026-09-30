@@ -1701,6 +1701,47 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE message_log ADD CONSTRAINT message_log_status_chk CHECK (status IS NULL OR status IN ('sent', 'failed'))")
     conn.execute("CREATE INDEX IF NOT EXISTS idx_message_log_hospital_created ON message_log(hospital_id, created_at)")
 
+    # Migration 0053 -- multiple physical locations under one restaurant account. Every hospital
+    # gets exactly one default branch from day one, even with multi_branch_enabled off -- see
+    # that migration's own docstring for why (branch_id always exists, the toggle only controls
+    # whether the bot/portal/website ever surface a choice).
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS multi_branch_enabled BOOLEAN NOT NULL DEFAULT false")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS branches ("
+        "id TEXT PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), name TEXT NOT NULL, "
+        "address_line TEXT, city TEXT, phone TEXT, operating_days TEXT, operating_hours TEXT, "
+        "turnover_minutes INTEGER, booking_interval_minutes INTEGER, "
+        "is_default BOOLEAN NOT NULL DEFAULT false, is_active BOOLEAN NOT NULL DEFAULT true, created_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_branches_hospital ON branches(hospital_id)")
+    conn.execute(
+        "INSERT INTO branches (id, hospital_id, name, is_default, is_active, created_at) "
+        "SELECT 'h' || id || '_default', id, name, true, true, now()::text FROM hospitals "
+        "WHERE NOT EXISTS (SELECT 1 FROM branches WHERE branches.id = 'h' || hospitals.id || '_default')"
+    )
+    for _branch_scoped_table in ("departments", "doctors", "appointments", "food_orders", "waitlist_entries", "chef_notes", "feedback"):
+        conn.execute(f"ALTER TABLE {_branch_scoped_table} ADD COLUMN IF NOT EXISTS branch_id TEXT")
+        conn.execute(f"UPDATE {_branch_scoped_table} SET branch_id = 'h' || hospital_id || '_default' WHERE branch_id IS NULL")
+        conn.execute(f"ALTER TABLE {_branch_scoped_table} ALTER COLUMN branch_id SET NOT NULL")
+        conn.execute(f"ALTER TABLE {_branch_scoped_table} DROP CONSTRAINT IF EXISTS fk_{_branch_scoped_table}_branch_id")
+        conn.execute(f"ALTER TABLE {_branch_scoped_table} ADD CONSTRAINT fk_{_branch_scoped_table}_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id)")
+        conn.execute(f"CREATE INDEX IF NOT EXISTS idx_{_branch_scoped_table}_branch_id ON {_branch_scoped_table}(branch_id)")
+
+    # Safety net until Phase 2 (repository layer) teaches every create_*() function about
+    # branch_id -- see migration 0053's own comment for why this stays even after that lands.
+    conn.execute(
+        "CREATE OR REPLACE FUNCTION set_default_branch_id() RETURNS trigger AS $$ "
+        "BEGIN IF NEW.branch_id IS NULL THEN "
+        "NEW.branch_id := 'h' || NEW.hospital_id || '_default'; END IF; RETURN NEW; END; "
+        "$$ LANGUAGE plpgsql"
+    )
+    for _branch_scoped_table in ("departments", "doctors", "appointments", "food_orders", "waitlist_entries", "chef_notes", "feedback"):
+        conn.execute(f"DROP TRIGGER IF EXISTS trg_{_branch_scoped_table}_default_branch ON {_branch_scoped_table}")
+        conn.execute(
+            f"CREATE TRIGGER trg_{_branch_scoped_table}_default_branch BEFORE INSERT ON {_branch_scoped_table} "
+            f"FOR EACH ROW EXECUTE FUNCTION set_default_branch_id()"
+        )
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

@@ -241,6 +241,32 @@ class DoctorSlot(Base):
     block_reason: Mapped[str | None]
 
 
+class Branch(Base):
+    """db/schema.sql's branches table (migration 0053) -- a physical location under one
+    restaurant account. Every hospital has exactly one (is_default=True) from the moment it's
+    created, even when hospitals.multi_branch_enabled is false -- see that migration's own
+    docstring for why every branch-scoped write always has a real branch_id, never NULL.
+    operating_days/operating_hours/turnover_minutes/booking_interval_minutes are nullable
+    per-branch OVERRIDES of the hospital's own hospital_settings row -- NULL means "use the
+    hospital's", same override convention this app already uses elsewhere (e.g. table-level
+    settings falling back to hospital defaults)."""
+    __tablename__ = "branches"
+
+    id: Mapped[str] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    name: Mapped[str]
+    address_line: Mapped[str | None]
+    city: Mapped[str | None]
+    phone: Mapped[str | None]
+    operating_days: Mapped[str | None]
+    operating_hours: Mapped[str | None]
+    turnover_minutes: Mapped[int | None]
+    booking_interval_minutes: Mapped[int | None]
+    is_default: Mapped[bool]
+    is_active: Mapped[bool]
+    created_at: Mapped[str]
+
+
 class Department(Base):
     """db/schema.sql's departments table. id is a caller-generated opaque
     string (h{hospital_id}_{uuid}), not a DB-assigned SERIAL -- see
@@ -249,6 +275,7 @@ class Department(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     name: Mapped[str]
     # migration 0038 -- display order among the restaurant's sections (1.., 0 = unset)
     sort_order: Mapped[int]
@@ -266,6 +293,7 @@ class DoctorRow(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     department_id: Mapped[str] = mapped_column(ForeignKey("departments.id"))
     name: Mapped[str]
     working_days: Mapped[str]
@@ -388,6 +416,7 @@ class FoodOrder(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     patient_id: Mapped[int | None] = mapped_column(ForeignKey("patients.id"))
     phone: Mapped[str]
     status: Mapped[str]
@@ -481,6 +510,7 @@ class AppointmentRow(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     phone: Mapped[str]
     department_id: Mapped[str] = mapped_column(ForeignKey("departments.id"))
     doctor_id: Mapped[str | None] = mapped_column(ForeignKey("doctors.id"))
@@ -729,6 +759,7 @@ class Feedback(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     patient_id: Mapped[int | None] = mapped_column(ForeignKey("patients.id"))
     phone: Mapped[str]
     rating: Mapped[int]
@@ -1042,6 +1073,7 @@ class WaitlistEntry(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     guest_name: Mapped[str]
     phone: Mapped[str | None]
     party_size: Mapped[int]
@@ -1059,6 +1091,7 @@ class ChefNote(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     text: Mapped[str]
     created_by_name: Mapped[str]
     created_at: Mapped[str]
