@@ -129,6 +129,7 @@ def create_appointment(
     appointment_type_id: str | None = None,
     consent_given_at: str | None = None,
     special_request: str | None = None,
+    branch_id: str | None = None,
 ) -> Appointment:
     """Raises IntegrityError if the doctor's (or resource's) slot capacity
     (max_bookings_per_slot) is full at scheduled_at, or the more specific
@@ -176,8 +177,11 @@ def create_appointment(
     patients.py's create_patient_profile()/link_existing_patient() and
     _upsert_patient() above. Every read function below IS migrated to ORM;
     only this function and _upsert_patient() are the exception."""
+    from db.repositories.branches import get_default_branch
     from db.repositories.hospital_settings import get_hospital_settings
 
+    if branch_id is None:
+        branch_id = get_default_branch(hospital_id)["id"]
     conn = get_connection()
     # Table Bookings follow-up: a WhatsApp booking lands 'pending' instead of 'booked' only when this
     # hospital has opted into require_booking_confirmation (default false -- every hospital that hasn't
@@ -309,11 +313,11 @@ def create_appointment(
         # and a second statement after a failed one would fail with "current
         # transaction is aborted" instead of the real IntegrityError.
         cur = conn.execute(
-            "INSERT INTO appointments (hospital_id, phone, department_id, doctor_id, scheduled_at, "
+            "INSERT INTO appointments (hospital_id, branch_id, phone, department_id, doctor_id, scheduled_at, "
             "booking_ordinal, source, reference_id, patient_id, patient_name, patient_phone, patient_age, "
             "appointment_type_id, consent_given_at, status, special_request) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
-            (hospital_id, phone, department_id, doctor_id, scheduled_at_iso, free_ordinal_row["ordinal"], source,
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            (hospital_id, branch_id, phone, department_id, doctor_id, scheduled_at_iso, free_ordinal_row["ordinal"], source,
              _generate_reference_id(conn, hospital_id), patient["id"], patient["name"], phone, effective_age,
              appointment_type_id, consent_given_at, status, special_request),
         )
@@ -804,16 +808,14 @@ def get_upcoming_appointments(hospital_id: int, offset_hours: float, now: dateti
     return [_row_to_appointment(r._mapping) for r in rows]
 
 
-def get_all_appointments_for_hospital(hospital_id: int, limit: int = 500) -> list[Appointment]:
+def get_all_appointments_for_hospital(hospital_id: int, limit: int = 500, branch_id: str | None = None) -> list[Appointment]:
     """Every appointment (any status) for the hospital's own dashboard --
     unlike the other lookups here, not filtered to booked/future-only."""
     session = get_session()
-    rows = session.execute(
-        _appointment_select_stmt()
-        .where(AppointmentRow.hospital_id == hospital_id)
-        .order_by(AppointmentRow.scheduled_at.desc())
-        .limit(limit)
-    ).all()
+    stmt = _appointment_select_stmt().where(AppointmentRow.hospital_id == hospital_id)
+    if branch_id is not None:
+        stmt = stmt.where(AppointmentRow.branch_id == branch_id)
+    rows = session.execute(stmt.order_by(AppointmentRow.scheduled_at.desc()).limit(limit)).all()
     return [_row_to_appointment(r._mapping) for r in rows]
 
 

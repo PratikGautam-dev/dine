@@ -11,15 +11,22 @@ from db.connection import get_session
 from db.orm_models import Feedback, PatientRow
 
 
-def create_feedback(hospital_id: int, phone: str, rating: int, comment: str | None = None, patient_id: int | None = None) -> dict:
+def create_feedback(
+    hospital_id: int, phone: str, rating: int, comment: str | None = None, patient_id: int | None = None,
+    branch_id: str | None = None,
+) -> dict:
+    from db.repositories.branches import get_default_branch
+
     if rating not in (1, 2, 3, 4, 5):
         raise ValueError(f"rating must be 1-5, got {rating!r}")
+    if branch_id is None:
+        branch_id = get_default_branch(hospital_id)["id"]
     session = get_session()
     row = session.execute(
         insert(Feedback)
         .values(
-            hospital_id=hospital_id, patient_id=patient_id, phone=phone, rating=rating, comment=comment,
-            source="whatsapp", created_at=datetime.now(timezone.utc).isoformat(),
+            hospital_id=hospital_id, branch_id=branch_id, patient_id=patient_id, phone=phone, rating=rating,
+            comment=comment, source="whatsapp", created_at=datetime.now(timezone.utc).isoformat(),
         )
         .returning(Feedback.id, Feedback.created_at)
     ).first()
@@ -31,11 +38,11 @@ def create_feedback(hospital_id: int, phone: str, rating: int, comment: str | No
     }
 
 
-def list_feedback(hospital_id: int, limit: int = 200) -> list[dict]:
+def list_feedback(hospital_id: int, limit: int = 200, branch_id: str | None = None) -> list[dict]:
     """Newest first, with the guest's name from their profile at this restaurant (same
     "resolve name off patients, not stored on the row" pattern as handoffs/appointments)."""
     session = get_session()
-    rows = session.execute(
+    stmt = (
         select(
             Feedback.id, Feedback.phone, Feedback.rating, Feedback.comment, Feedback.source,
             Feedback.created_at, Feedback.patient_id, PatientRow.name.label("patient_name"),
@@ -43,9 +50,10 @@ def list_feedback(hospital_id: int, limit: int = 200) -> list[dict]:
         .select_from(Feedback)
         .outerjoin(PatientRow, PatientRow.id == Feedback.patient_id)
         .where(Feedback.hospital_id == hospital_id)
-        .order_by(Feedback.created_at.desc())
-        .limit(limit)
-    ).all()
+    )
+    if branch_id is not None:
+        stmt = stmt.where(Feedback.branch_id == branch_id)
+    rows = session.execute(stmt.order_by(Feedback.created_at.desc()).limit(limit)).all()
     return [dict(r._mapping) for r in rows]
 
 

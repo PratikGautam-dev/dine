@@ -16,28 +16,38 @@ STATUS_ASSIGNED = "assigned"
 STATUS_CANCELLED = "cancelled"
 
 _COLUMNS = (
-    WaitlistEntry.id, WaitlistEntry.hospital_id, WaitlistEntry.guest_name, WaitlistEntry.phone,
+    WaitlistEntry.id, WaitlistEntry.hospital_id, WaitlistEntry.branch_id, WaitlistEntry.guest_name, WaitlistEntry.phone,
     WaitlistEntry.party_size, WaitlistEntry.status, WaitlistEntry.created_at,
     WaitlistEntry.assigned_table_id, WaitlistEntry.assigned_at, WaitlistEntry.assigned_by,
 )
 
 
-def list_waitlist(hospital_id: int, status: str | None = STATUS_WAITING) -> list[dict]:
+def list_waitlist(hospital_id: int, status: str | None = STATUS_WAITING, branch_id: str | None = None) -> list[dict]:
     """status=STATUS_WAITING (default) is the actual work queue; status=None returns every entry
-    (today's already-assigned/cancelled ones included) for a staff member reviewing history."""
+    (today's already-assigned/cancelled ones included) for a staff member reviewing history.
+    branch_id=None (default) returns every branch -- same "unfiltered means all" convention
+    reports.py's channel filter already uses."""
     session = get_session()
     stmt = select(*_COLUMNS).where(WaitlistEntry.hospital_id == hospital_id)
     if status is not None:
         stmt = stmt.where(WaitlistEntry.status == status)
+    if branch_id is not None:
+        stmt = stmt.where(WaitlistEntry.branch_id == branch_id)
     rows = session.execute(stmt.order_by(WaitlistEntry.created_at)).all()
     return [dict(r._mapping) for r in rows]
 
 
-def add_to_waitlist(hospital_id: int, guest_name: str, party_size: int, phone: str | None = None) -> dict:
+def add_to_waitlist(
+    hospital_id: int, guest_name: str, party_size: int, phone: str | None = None, branch_id: str | None = None,
+) -> dict:
+    from db.repositories.branches import get_default_branch
+
+    if branch_id is None:
+        branch_id = get_default_branch(hospital_id)["id"]
     session = get_session()
     result = session.execute(
         WaitlistEntry.__table__.insert().values(
-            hospital_id=hospital_id, guest_name=guest_name, phone=phone, party_size=party_size,
+            hospital_id=hospital_id, branch_id=branch_id, guest_name=guest_name, phone=phone, party_size=party_size,
             status=STATUS_WAITING, created_at=datetime.now().isoformat(),
         ).returning(WaitlistEntry.id)
     )

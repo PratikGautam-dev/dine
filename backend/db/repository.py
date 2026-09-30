@@ -22,6 +22,7 @@ from db.models import (  # noqa: F401 -- db/init_db.py imports these directly
     _get_or_create_hospital_short_code,
 )
 
+from db.repositories.branches import *  # noqa: F401,F403
 from db.repositories.hospitals import *  # noqa: F401,F403
 from db.repositories.users import *  # noqa: F401,F403
 from db.repositories.doctors import *  # noqa: F401,F403

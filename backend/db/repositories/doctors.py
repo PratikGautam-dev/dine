@@ -19,11 +19,12 @@ _WEEKDAY_ABBREVS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 # --- Departments / doctors ---
 
-def get_departments(hospital_id: int) -> list[dict]:
+def get_departments(hospital_id: int, branch_id: str | None = None) -> list[dict]:
     session = get_session()
-    rows = session.execute(
-        select(Department.id, Department.name).where(Department.hospital_id == hospital_id).order_by(Department.sort_order, Department.name)
-    ).all()
+    stmt = select(Department.id, Department.name).where(Department.hospital_id == hospital_id)
+    if branch_id is not None:
+        stmt = stmt.where(Department.branch_id == branch_id)
+    rows = session.execute(stmt.order_by(Department.sort_order, Department.name)).all()
     return [dict(r._mapping) for r in rows]
 
 
@@ -63,18 +64,28 @@ def find_doctor(hospital_id: int, department_id: str, doctor_id: str) -> dict | 
     return dict(row._mapping) if row else None
 
 
-def create_department(hospital_id: int, name: str) -> dict:
+def create_department(hospital_id: int, name: str, branch_id: str | None = None) -> dict:
     """id is a UUID-derived opaque string (not a slug of `name`), scoped by an
     h{hospital_id}_ prefix -- avoids both the collision risk of slugifying
     arbitrary user-entered text and the known Tier 1 limitation that
     departments.id is globally unique, not (hospital_id, id) composite-unique
-    (db/schema.sql's comment on that table)."""
+    (db/schema.sql's comment on that table). branch_id left unset resolves to
+    the hospital's default branch (migration 0053) -- every existing call
+    site keeps creating hospital-wide-looking departments unchanged."""
+    from db.repositories.branches import get_default_branch
+
+    if branch_id is None:
+        branch_id = get_default_branch(hospital_id)["id"]
     department_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
     last = session.execute(
         select(func.coalesce(func.max(Department.sort_order), 0)).where(Department.hospital_id == hospital_id)
     ).scalar_one()
-    session.execute(insert(Department).values(id=department_id, hospital_id=hospital_id, name=name, sort_order=last + 1))
+    session.execute(
+        insert(Department).values(
+            id=department_id, hospital_id=hospital_id, branch_id=branch_id, name=name, sort_order=last + 1,
+        )
+    )
     session.commit()
     return {"id": department_id, "name": name}
 
@@ -93,6 +104,7 @@ def create_doctor(
     walkin_quota: int | None = None,
     followup_duration_minutes: int | None = None,
     effective_from: str | None = None,
+    branch_id: str | None = None,
 ) -> dict:
     """working_days (e.g. ["Mon", "Wed", "Fri"]) and working_hours (e.g.
     ["10:00-13:00", "17:00-20:00"]) are this doctor's working pattern (Section
@@ -108,9 +120,15 @@ def create_doctor(
     doctor (nothing to preserve yet) -- it only matters on update_doctor()."""
     doctor_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
+    if branch_id is None:
+        # Defaults to the department's own branch, not just the hospital's default branch --
+        # a doctor always belongs wherever their department already sits.
+        branch_id = session.execute(
+            select(Department.branch_id).where(Department.hospital_id == hospital_id, Department.id == department_id)
+        ).scalar_one()
     session.execute(
         insert(DoctorRow).values(
-            id=doctor_id, hospital_id=hospital_id, department_id=department_id, name=name,
+            id=doctor_id, hospital_id=hospital_id, branch_id=branch_id, department_id=department_id, name=name,
             working_days=",".join(working_days or []), working_hours=",".join(working_hours or []),
             slot_duration_minutes=slot_duration_minutes, breaks=",".join(breaks or []),
             max_bookings_per_slot=max_bookings_per_slot, daily_booking_limit=daily_booking_limit,

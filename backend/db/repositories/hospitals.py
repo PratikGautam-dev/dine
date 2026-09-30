@@ -321,6 +321,12 @@ def create_hospital(
             )
         )
     session.commit()
+    # Multi-branch (migration 0053): every hospital gets exactly one default branch from the
+    # moment it's created, even with multi_branch_enabled off -- see db/repositories/branches.py's
+    # own docstring for why every branch-scoped write always has a real branch_id to fall back to.
+    from db.repositories.branches import create_branch
+
+    create_branch(new_id, name, is_default=True)
     created = get_hospital(new_id)
     assert created is not None  # the row was just committed above
     return created

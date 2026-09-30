@@ -71,6 +71,7 @@ def create_food_order(
     hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
     delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
     payment_method: str = PAYMENT_ONLINE, coupon_code: str | None = None, source: str = SOURCE_WHATSAPP,
+    branch_id: str | None = None,
 ) -> dict:
     """Checkout. `items` is [{"menu_item_id": str, "quantity": int}, ...] --
     every item's current name/price is read and snapshotted here (not passed
@@ -78,8 +79,14 @@ def create_food_order(
     ONE transaction: if any single item is out of stock, the whole order is
     rolled back (IntegrityError), not partially created -- same
     all-or-nothing discipline create_table_reservation() gives a lost
-    availability race, just without needing a lock to get there."""
+    availability race, just without needing a lock to get there.
+    branch_id left unset resolves to the hospital's default branch (migration 0053) -- the
+    WhatsApp bot passes the guest's chosen branch once Phase 4 wires that through."""
     from db.repositories.appointments import _upsert_patient
+    from db.repositories.branches import get_default_branch
+
+    if branch_id is None:
+        branch_id = get_default_branch(hospital_id)["id"]
 
     if not items:
         raise ValueError("create_food_order() requires at least one item")
@@ -144,11 +151,11 @@ def create_food_order(
 
         reference_id = _generate_reference_id(conn, hospital_id, prefix=ORDER_REFERENCE_ID_PREFIX)
         cur = conn.execute(
-            "INSERT INTO food_orders (hospital_id, patient_id, phone, status, fulfillment_type, "
+            "INSERT INTO food_orders (hospital_id, branch_id, patient_id, phone, status, fulfillment_type, "
             "delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id, payment_method, "
             "created_at, updated_at, offer_id, discount_paise, source) "
-            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
-            (hospital_id, resolved_patient_id, phone,
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?) RETURNING id",
+            (hospital_id, branch_id, resolved_patient_id, phone,
              STATUS_PLACED if payment_method == PAYMENT_AT_RESTAURANT else STATUS_PENDING_PAYMENT,
              fulfillment_type, delivery_address, subtotal_paise, delivery_fee_paise, total_paise, reference_id,
              payment_method,
@@ -252,7 +259,7 @@ def advance_order_status(hospital_id: int, order_id: int, new_status: str, expec
 
 
 _ORDER_COLUMNS = (
-    FoodOrder.id, FoodOrder.hospital_id, FoodOrder.patient_id, FoodOrder.phone, FoodOrder.status,
+    FoodOrder.id, FoodOrder.hospital_id, FoodOrder.branch_id, FoodOrder.patient_id, FoodOrder.phone, FoodOrder.status,
     FoodOrder.fulfillment_type, FoodOrder.delivery_address, FoodOrder.subtotal_paise,
     FoodOrder.delivery_fee_paise, FoodOrder.total_paise, FoodOrder.razorpay_order_id,
     FoodOrder.razorpay_payment_id, FoodOrder.razorpay_payment_link_url, FoodOrder.payment_method,
@@ -282,7 +289,7 @@ def get_food_order(hospital_id: int, order_id: int) -> dict | None:
 
 def list_food_orders(
     hospital_id: int, status: str | None = None, since: datetime | None = None,
-    phone: str | None = None, limit: int | None = None,
+    phone: str | None = None, limit: int | None = None, branch_id: str | None = None,
 ) -> list[dict]:
     """Portal's order-list read point -- newest first. `since` (a timezone-aware datetime) leaves out orders placed
     before it, so a page load doesn't return every order the restaurant has ever taken. Includes each order's
@@ -300,6 +307,8 @@ def list_food_orders(
         stmt = stmt.where(cast(FoodOrder.created_at, DateTime(timezone=True)) >= since)
     if phone is not None:
         stmt = stmt.where(FoodOrder.phone == phone)
+    if branch_id is not None:
+        stmt = stmt.where(FoodOrder.branch_id == branch_id)
     stmt = stmt.order_by(FoodOrder.created_at.desc())
     if limit is not None:
         stmt = stmt.limit(limit)
