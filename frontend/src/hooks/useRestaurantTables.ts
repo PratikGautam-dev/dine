@@ -54,7 +54,7 @@ export function emptyTableForm(departments: Department[]): TableFormState {
  * confused with the `doctors` table/API (no portal page of its own any
  * more -- merged into Team & Access, /portal/settings/staff; see
  * PortalSidebar.tsx's own comment on that merge). */
-export function useRestaurantTables(ready: boolean) {
+export function useRestaurantTables(ready: boolean, branchId: string | null = null) {
   const [departments, setDepartments] = useState<Department[] | null>(null);
   const [sections, setSections] = useState<Section[]>([]);
   const [sectionBusy, setSectionBusy] = useState(false);
@@ -70,7 +70,8 @@ export function useRestaurantTables(ready: boolean) {
   const [statusActingId, setStatusActingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/tables");
+    const params = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const result = await portalFetch(`/api/portal/tables${params}`);
     if (!result.ok) {
       if (!result.unauthorized) setError(result.error);
       return;
@@ -80,7 +81,7 @@ export function useRestaurantTables(ready: boolean) {
     setSections(data.sections ?? []);
     const byId = new Map(data.departments.map((d) => [d.id, d.name]));
     setTables(data.tables.map((t) => ({ ...t, department_name: byId.get(t.department_id) })));
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     if (ready) load();

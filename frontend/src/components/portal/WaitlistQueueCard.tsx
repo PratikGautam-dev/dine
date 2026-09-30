@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { cn } from "@/lib/cn";
 import { useWaitlist } from "@/hooks/useWaitlist";
+import { useBranchFilter } from "@/lib/branchContext";
 import { portalFetch } from "@/lib/portalAuth";
 
 type FreeTable = { id: string; name: string; capacity: number; status: string };
@@ -19,7 +20,8 @@ function waitLabel(createdAtIso: string): string {
  * tables.status -> occupied), never creates a booking. Party-size party (guest name, phone, size)
  * only -- no invented wait-time promises, no fake position-in-line beyond the real created_at order. */
 export function WaitlistQueueCard({ ready, canWrite }: { ready: boolean; canWrite: boolean }) {
-  const { entries, actingId, adding, addEntry, assignEntry, cancelEntry } = useWaitlist(ready);
+  const { selectedBranchId } = useBranchFilter();
+  const { entries, actingId, adding, addEntry, assignEntry, cancelEntry } = useWaitlist(ready, selectedBranchId);
   const [showForm, setShowForm] = useState(false);
   const [guestName, setGuestName] = useState("");
   const [phone, setPhone] = useState("");

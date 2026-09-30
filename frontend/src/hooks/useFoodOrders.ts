@@ -66,21 +66,21 @@ export const STATUS_LABELS: Record<string, string> = {
  * db/repositories/food_orders.py's advance_order_status() itself enforces
  * server-side -- a stale/double-tapped action gets a 409 back, handled here
  * as "refresh, don't crash," not a generic error. */
-export function useFoodOrders(ready: boolean, statusFilter: string, days = 90, pollMs?: number) {
+export function useFoodOrders(ready: boolean, statusFilter: string, days = 90, pollMs?: number, branchId: string | null = null) {
   const [orders, setOrders] = useState<FoodOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
     // days limits how far back the list goes (0 = all time), so a page load never fetches every order ever placed
-    const query = `?days=${days}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ""}`;
+    const query = `?days=${days}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ""}${branchId ? `&branch_id=${encodeURIComponent(branchId)}` : ""}`;
     const result = await portalFetch(`/api/portal/food-orders${query}`);
     if (!result.ok) {
       if (!result.unauthorized) setError(result.error);
       return;
     }
     setOrders((result.data as { food_orders: FoodOrder[] }).food_orders);
-  }, [statusFilter, days]);
+  }, [statusFilter, days, branchId]);
 
   useEffect(() => {
     if (!ready) return;

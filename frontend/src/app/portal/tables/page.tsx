@@ -18,6 +18,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { TableDetailsPanel } from "@/components/portal/TableDetailsPanel";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { type RestaurantTable, useRestaurantTables } from "@/hooks/useRestaurantTables";
+import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
 
@@ -49,7 +50,7 @@ export default function PortalTablesPage() {
     openAddForm, openEditForm, cancelForm, handleSave, handleToggleActive,
     statusActingId, setTableStatus, updatePosition,
     addSection, renameSection, moveSection, deleteSection,
-  } = useRestaurantTables(ready);
+  } = useRestaurantTables(ready, useBranchFilter().selectedBranchId);
 
   const [search, setSearch] = useState("");
   const [sectionFilter, setSectionFilter] = useState("all");

@@ -13,14 +13,15 @@ const POLL_MS = 20_000;
 
 /** The Kitchen Orders page's real, attributed notes board -- polls lightly since another staff
  * member's shift may post something this tab should pick up without a manual refresh. */
-export function useChefNotes(ready: boolean) {
+export function useChefNotes(ready: boolean, branchId: string | null = null) {
   const [notes, setNotes] = useState<ChefNote[] | null>(null);
   const [posting, setPosting] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/chef-notes");
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const result = await portalFetch(`/api/portal/chef-notes${query}`);
     if (result.ok) setNotes((result.data as { notes: ChefNote[] }).notes);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     if (!ready) return;

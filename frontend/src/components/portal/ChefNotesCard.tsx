@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, StickyNote, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { useChefNotes } from "@/hooks/useChefNotes";
+import { useBranchFilter } from "@/lib/branchContext";
 
 function minutesAgoLabel(iso: string): string {
   const minutes = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 60000));
@@ -16,7 +17,8 @@ function minutesAgoLabel(iso: string): string {
 /** A real, shared notes board for kitchen staff -- each note attributed to whoever actually
  * posted it (the logged-in staff member's own name), not an invented persona. */
 export function ChefNotesCard({ ready, canWrite }: { ready: boolean; canWrite: boolean }) {
-  const { notes, posting, addNote, deleteNote } = useChefNotes(ready);
+  const { selectedBranchId } = useBranchFilter();
+  const { notes, posting, addNote, deleteNote } = useChefNotes(ready, selectedBranchId);
   const [draft, setDraft] = useState("");
 
   async function handleAdd(e: React.FormEvent) {

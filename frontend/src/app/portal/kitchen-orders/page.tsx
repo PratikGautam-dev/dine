@@ -13,6 +13,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { NEXT_ACTION_BY_STATUS, type FoodOrder, useFoodOrders } from "@/hooks/useFoodOrders";
+import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { isSameLocalDay, parseOrderTime, rupees } from "@/lib/foodOrders";
 import { usePermission } from "@/lib/staffAuth";
@@ -107,7 +108,7 @@ function OrderCard({ order, canWrite, busy, delayedAfter, onAction }: {
  * no charts/history/search, just what's actively cooking, grouped by stage. */
 export default function PortalKitchenOrdersPage() {
   const { hospital, ready } = usePortalGuard();
-  const { orders, error, actingId, runAction } = useFoodOrders(ready, "", 1, POLL_MS);
+  const { orders, error, actingId, runAction } = useFoodOrders(ready, "", 1, POLL_MS, useBranchFilter().selectedBranchId);
   const canWrite = usePermission("food_orders", "write");
 
   const [sortDesc, setSortDesc] = useState(false);

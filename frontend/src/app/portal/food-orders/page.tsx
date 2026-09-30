@@ -18,6 +18,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { WeeklyTrendChart } from "@/components/portal/WeeklyTrendChart";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { useBranchFilter } from "@/lib/branchContext";
 import {
   CANCELLABLE_STATUSES, FoodOrder, NEXT_ACTION_BY_STATUS, STATUS_LABELS, useFoodOrders,
 } from "@/hooks/useFoodOrders";
@@ -88,7 +89,7 @@ export default function PortalFoodOrdersPage() {
   const { hospital, ready } = usePortalGuard();
   // Everything is loaded once and filtered here, so every view can show its own count.
   const [days, setDays] = useState(90);
-  const { orders, error, actingId, runAction } = useFoodOrders(ready, "", days);
+  const { orders, error, actingId, runAction } = useFoodOrders(ready, "", days, undefined, useBranchFilter().selectedBranchId);
   const canWrite = usePermission("food_orders", "write");
 
   const [view, setView] = useState<OrderView>("all");

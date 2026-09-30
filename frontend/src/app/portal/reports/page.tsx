@@ -15,6 +15,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { rupees } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
@@ -76,7 +77,8 @@ export default function PortalReportsPage() {
   const [days, setDays] = useState(30);
   const [channel, setChannel] = useState<ReportChannel>("");
   const [downloading, setDownloading] = useState<string | null>(null);
-  const { data, error } = useReports(ready, days, channel);
+  const { selectedBranchId } = useBranchFilter();
+  const { data, error } = useReports(ready, days, channel, selectedBranchId);
 
   const paymentSplit = useMemo(() => {
     if (!data) return [];
@@ -89,6 +91,7 @@ export default function PortalReportsPage() {
     setDownloading(kind);
     const params = new URLSearchParams({ kind, days: String(days) });
     if (channel) params.set("channel", channel);
+    if (selectedBranchId) params.set("branch_id", selectedBranchId);
     try {
       const res = await fetch(`${API_BASE_URL}/api/portal/reports/export?${params.toString()}`, {
         headers: { Authorization: `Bearer ${token}` },

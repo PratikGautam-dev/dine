@@ -20,6 +20,7 @@ import {
   Settings,
   ShieldCheck,
   Soup,
+  Store,
   UserCheck,
   UtensilsCrossed,
   Users,
@@ -88,6 +89,8 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   // row under Settings, same "linked here too, not just buried in Settings' own list" precedent
   // messages-automations above already set.
   { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "settings", group: "Admin" },
+  // Multi-branch (migration 0053): same "own nav row under Settings" precedent storefront above sets.
+  { key: "branches", label: "Branches", icon: Store, href: "/portal/settings/branches", pageKey: "settings", group: "Admin" },
   { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
   // Split back out into its own page (was folded into Staff & Access for a while) -- a dedicated
   // Role Management + Module Access Overview dashboard, not just an inline matrix.

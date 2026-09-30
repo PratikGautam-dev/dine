@@ -18,6 +18,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { TodayScheduleCard } from "@/components/portal/TodayScheduleCard";
 import { WaitlistQueueCard } from "@/components/portal/WaitlistQueueCard";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { TYPE_LABELS, type Appointment, type ViewFilter, useAppointments } from "@/hooks/useAppointments";
 import { createAppointmentColumns } from "./_components/appointments-columns";
@@ -57,7 +58,7 @@ export default function PortalAppointmentsPage() {
     deletingId, handleDelete,
     selected, toggleSelected, toggleSelectAll, deletableAppointments, selectedAppointments, allSelected,
     pendingDelete, setPendingDelete, bulkDeleting, runBulkDelete,
-  } = useAppointments(ready);
+  } = useAppointments(ready, useBranchFilter().selectedBranchId);
 
   const columns = useMemo(
     () =>

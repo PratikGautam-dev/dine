@@ -91,7 +91,7 @@ function typeBucket(a: Appointment) {
 /** Loads + owns every mutation on the /portal/appointments list -- cancel,
  * reschedule, attendance marking, delete -- plus the search/status/type
  * filters and the cancel/reschedule inline panels' own form state. */
-export function useAppointments(ready: boolean) {
+export function useAppointments(ready: boolean, branchId: string | null = null) {
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -141,8 +141,9 @@ export function useAppointments(ready: boolean) {
   const [occupiedTableIds, setOccupiedTableIds] = useState<Set<string>>(new Set());
 
   const load = useCallback(async () => {
+    const branchQuery = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const [bookingsResult, tablesResult] = await Promise.all([
-      portalFetch("/api/portal/bookings"), portalFetch("/api/portal/tables"),
+      portalFetch(`/api/portal/bookings${branchQuery}`), portalFetch(`/api/portal/tables${branchQuery}`),
     ]);
     if (!bookingsResult.ok) {
       if (bookingsResult.unauthorized) router.push("/portal/login");
@@ -154,7 +155,7 @@ export function useAppointments(ready: boolean) {
       const tables = (tablesResult.data as { tables: { id: string; status: string }[] }).tables;
       setOccupiedTableIds(new Set(tables.filter((t) => t.status === "occupied").map((t) => t.id)));
     }
-  }, [router]);
+  }, [router, branchId]);
 
   useEffect(() => {
     if (ready) load();

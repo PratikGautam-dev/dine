@@ -15,15 +15,16 @@ export type WaitlistEntry = {
 // staff member on another device may add/assign/cancel entries this tab needs to see.
 const POLL_INTERVAL_MS = 15_000;
 
-export function useWaitlist(ready: boolean) {
+export function useWaitlist(ready: boolean, branchId: string | null = null) {
   const [entries, setEntries] = useState<WaitlistEntry[] | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/waitlist");
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const result = await portalFetch(`/api/portal/waitlist${query}`);
     if (result.ok) setEntries((result.data as { waitlist: WaitlistEntry[] }).waitlist);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     if (!ready) return;
