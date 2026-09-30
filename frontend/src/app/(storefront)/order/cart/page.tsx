@@ -105,6 +105,7 @@ export default function CartPage() {
         delivery_address: fulfillment === "delivery" ? address.trim() : null,
         payment_method: payment,
         coupon_code: coupon?.coupon_code || null,
+        branch_id: cart.branchId,
       }),
     });
     setPlacing(false);

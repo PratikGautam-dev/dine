@@ -13,6 +13,8 @@ import { publicFetch } from "@/lib/customerAuth";
 import { useCart } from "@/lib/cart";
 import { rupees } from "@/lib/foodOrders";
 
+type Branch = { id: string; name: string; address_line: string | null; city: string | null };
+
 type Restaurant = {
   hospital_id: number;
   name: string;
@@ -27,6 +29,9 @@ type Restaurant = {
   avg_prep_minutes: number;
   is_open: boolean;
   rating: { average: number; count: number } | null;
+  // Multi-branch (migration 0053): empty for every single-branch restaurant (today's behavior,
+  // unchanged) -- only a real array once that restaurant has multi-branch on with 2+ locations.
+  branches: Branch[];
 };
 
 type MenuItem = {
@@ -85,7 +90,12 @@ export default function RestaurantMenuPage() {
   const [query, setQuery] = useState("");
   const [slide, setSlide] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
-  const { cart, canAddFrom, startNewCart, addItem, setQuantity, itemCount } = useCart();
+  const { cart, canAddFrom, startNewCart, addItem, setQuantity, setBranch, itemCount } = useCart();
+  // Multi-branch (migration 0053): the branch picker's own local "haven't picked yet" state --
+  // separate from cart.branchId, which only applies once the cart actually belongs to this
+  // restaurant (canAddFrom(slug)).
+  const [pickedBranch, setPickedBranch] = useState<Branch | null>(null);
+  const [forceBranchPicker, setForceBranchPicker] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -167,6 +177,56 @@ export default function RestaurantMenuPage() {
   }
 
   const { restaurant, categories } = data;
+
+  // Multi-branch (migration 0053): a real choice only when this restaurant has more than one
+  // active branch -- restaurant.branches is empty otherwise, so this whole block is inert and
+  // the page behaves exactly as it did before this feature existed.
+  const cartBranchId = cart.slug === slug ? cart.branchId : null;
+  const effectiveBranch = pickedBranch ?? (cartBranchId ? restaurant.branches.find((b) => b.id === cartBranchId) ?? null : null);
+  const needsBranchPick = restaurant.branches.length > 1 && (effectiveBranch === null || forceBranchPicker);
+
+  function handleBranchPicked(b: Branch) {
+    if (cart.slug !== slug) startNewCart(slug, restaurant.name);
+    setBranch(b.id, b.name);
+    setPickedBranch(b);
+    setForceBranchPicker(false);
+  }
+
+  if (needsBranchPick) {
+    return (
+      <div className="mx-auto max-w-[520px] px-space-4 py-space-8">
+        <div className="mb-space-6 flex items-center gap-space-3">
+          <Avatar restaurant={restaurant} size={48} />
+          <div className="min-w-0">
+            <p className="truncate text-[16px] font-bold text-ink-900">{restaurant.name}</p>
+            <p className="text-[12.5px] text-ink-600">Choose a location</p>
+          </div>
+        </div>
+        <div className="space-y-space-2">
+          {restaurant.branches.map((b) => (
+            <button
+              key={b.id}
+              type="button"
+              onClick={() => handleBranchPicked(b)}
+              className="flex w-full items-center gap-space-3 rounded-2xl border border-line bg-card p-space-4 text-left shadow-[var(--shadow-sm)] transition-colors hover:border-brand-400"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                <MapPin size={18} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[14.5px] font-bold text-ink-900">{b.name}</span>
+                {(b.address_line || b.city) && (
+                  <span className="block truncate text-[12.5px] text-ink-600">{[b.address_line, b.city].filter(Boolean).join(", ")}</span>
+                )}
+              </span>
+              <ArrowRight size={16} className="ml-auto shrink-0 text-ink-300" />
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   const closed = !restaurant.is_open;
   const search = query.trim().toLowerCase();
   const searchResults = search
@@ -332,6 +392,22 @@ export default function RestaurantMenuPage() {
           </div>
         )}
       </div>
+
+      {restaurant.branches.length > 1 && effectiveBranch && (
+        <div className="mx-space-4 mb-space-4 flex items-center justify-between rounded-2xl border border-line bg-card px-space-4 py-space-3">
+          <span className="flex items-center gap-2 text-[13px] text-ink-700">
+            <MapPin size={16} className="text-brand-600" />
+            Ordering from <strong className="font-bold text-ink-900">{effectiveBranch.name}</strong>
+          </span>
+          <button
+            type="button"
+            onClick={() => setForceBranchPicker(true)}
+            className="text-[12.5px] font-semibold text-brand-600 hover:underline"
+          >
+            Change
+          </button>
+        </div>
+      )}
 
       {closed && (
         <div className="mx-space-4 mb-space-4 rounded-2xl border border-warning/40 bg-warning-tint p-space-3 text-[13px] font-medium text-warning">
