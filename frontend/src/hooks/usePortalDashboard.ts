@@ -49,7 +49,7 @@ export type DashboardData = {
 const POLL_INTERVAL_MS = 20_000;
 
 /** Loads + polls the /portal/dashboard stats. */
-export function usePortalDashboard() {
+export function usePortalDashboard(ready: boolean, branchId: string | null = null) {
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -58,21 +58,23 @@ export function usePortalDashboard() {
   routerRef.current = router;
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/dashboard");
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const result = await portalFetch(`/api/portal/dashboard${query}`);
     if (!result.ok) {
       if (result.unauthorized) routerRef.current.push("/portal/login");
       else setError(result.error);
       return;
     }
     setData(result.data as DashboardData);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
+    if (!ready) return;
     setHospital(getPortalHospital());
-    load();
+    void load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
-  }, [load]);
+  }, [ready, load]);
 
   return { data, error, hospital };
 }

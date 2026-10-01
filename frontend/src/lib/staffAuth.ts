@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import axios, { isAxiosError } from "axios";
 import { requestInitToAxiosConfig } from "@/lib/apiClient";
 import type { PortalHospital } from "@/lib/portalAuth";
@@ -6,6 +6,24 @@ import type { PortalHospital } from "@/lib/portalAuth";
 const ACCESS_KEY = "staff_access_token";
 const REFRESH_KEY = "staff_refresh_token";
 const SESSION_KEY = "staff_session";
+
+// Lets already-mounted components (PortalSidebar, BranchProvider, anything reading
+// useStaffSession) react to a login/refresh that happens elsewhere -- the /portal layout
+// persists across a client-side navigation (e.g. the login form's redirect to /portal/dashboard),
+// so reading localStorage once on mount left every one of them stuck on a stale/null session
+// until a full page reload. Same fix customerAuth.ts's useCustomerSession() already has.
+const listeners = new Set<() => void>();
+function emitSessionChange() {
+  listeners.forEach((l) => l());
+}
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  window.addEventListener("storage", listener);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", listener);
+  };
+}
 
 // Owner/Manager, Front of House, Kitchen Staff. "doctor" is the legacy linked-table-manager login,
 // no longer offered for new staff but still a valid stored value.
@@ -24,6 +42,7 @@ export function saveStaffSession(accessToken: string, refreshToken: string, sess
   localStorage.setItem(ACCESS_KEY, accessToken);
   localStorage.setItem(REFRESH_KEY, refreshToken);
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  emitSessionChange();
 }
 
 export function getStaffAccessToken(): string | null {
@@ -51,6 +70,7 @@ export function clearStaffSession() {
   localStorage.removeItem(ACCESS_KEY);
   localStorage.removeItem(REFRESH_KEY);
   localStorage.removeItem(SESSION_KEY);
+  emitSessionChange();
 }
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
@@ -134,23 +154,33 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
   return { ok: true, data: res.data };
 }
 
-/** SSR-hydration-safe read of the cached staff session: `null` on the
- * server AND on the client's own first (pre-hydration) render pass --
- * getStaffSession() itself returns the REAL session immediately on the
- * client (localStorage is synchronous, no need to wait for an effect),
- * which used to make the very first client render disagree with what the
- * server rendered (server always sees no session -> e.g. a generic
- * "Hospital" sidebar label) and throw a hydration-mismatch error the
- * instant real session data (a hospital name, a permission-gated nav item)
- * reached the DOM. Deferring the real read into an effect, exactly like
- * usePortalGuard's own hospital/ready state, guarantees both passes agree;
- * the real value then arrives a moment later as a normal client-only update. */
+const SERVER_SNAPSHOT = "__server__";
+
+/** SSR-hydration-safe AND reactive read of the cached staff session: `null` on the server AND on
+ * the client's own first (pre-hydration) render pass (avoiding the hydration-mismatch a
+ * synchronous localStorage read on the server snapshot would cause -- same reasoning this
+ * function's docstring already explained before this fix), but now also `null` -> the real
+ * session the moment saveStaffSession()/clearStaffSession() runs ANYWHERE, including in an
+ * already-mounted component that isn't the one that called them (e.g. the /portal layout
+ * persisting across the login form's client-side redirect to /portal/dashboard -- the real bug
+ * this fixes: every already-mounted useStaffSession() consumer, including the branch switcher
+ * and every usePermission() check, used to stay stuck on whatever it read at first mount until
+ * a full page reload). Same useSyncExternalStore pattern customerAuth.ts's useCustomerSession()
+ * already uses. */
 export function useStaffSession(): StaffSession | null {
-  const [session, setSession] = useState<StaffSession | null>(null);
-  useEffect(() => {
-    setSession(getStaffSession());
-  }, []);
-  return session;
+  const raw = useSyncExternalStore(
+    subscribe,
+    () => localStorage.getItem(SESSION_KEY) ?? "",
+    () => SERVER_SNAPSHOT,
+  );
+  return useMemo(() => {
+    if (raw === SERVER_SNAPSHOT || !raw) return null;
+    try {
+      return JSON.parse(raw) as StaffSession;
+    } catch {
+      return null;
+    }
+  }, [raw]);
 }
 
 /** Reads permissions off the cached session (refreshed on every staff

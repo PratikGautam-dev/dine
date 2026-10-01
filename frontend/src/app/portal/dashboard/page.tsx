@@ -8,7 +8,9 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { RecentAppointmentsTable } from "@/components/portal/RecentAppointmentsTable";
 import { StatTile } from "@/components/portal/StatTile";
 import { WeeklyTrendChart } from "@/components/portal/WeeklyTrendChart";
+import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalDashboard } from "@/hooks/usePortalDashboard";
+import { useBranchFilter } from "@/lib/branchContext";
 import { useStaffSession } from "@/lib/staffAuth";
 
 function greetingFor(hour: number): string {
@@ -24,7 +26,8 @@ export default function PortalDashboardPage() {
 }
 
 function RestaurantDashboard() {
-  const { data, error, hospital } = usePortalDashboard();
+  const { ready } = usePortalGuard();
+  const { data, error, hospital } = usePortalDashboard(ready, useBranchFilter().selectedBranchId);
   const session = useStaffSession();
   const firstName = session?.name.trim().split(/\s+/)[0];
 

@@ -74,7 +74,7 @@ const POLL_INTERVAL_MS = 10_000;
  * triggers -- every action reuses an existing, already-permissioned endpoint (tables/food-orders/
  * bookings/handoffs each enforce their own write permission); this hook never duplicates that logic,
  * just calls it and refetches the summary. */
-export function useLiveOperations(ready: boolean) {
+export function useLiveOperations(ready: boolean, branchId: string | null = null) {
   const router = useRouter();
   const [data, setData] = useState<LiveOperationsData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -83,14 +83,15 @@ export function useLiveOperations(ready: boolean) {
   routerRef.current = router;
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/live-operations");
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const result = await portalFetch(`/api/portal/live-operations${query}`);
     if (!result.ok) {
       if (result.unauthorized) routerRef.current.push("/portal/login");
       else setError(result.error);
       return;
     }
     setData(result.data as LiveOperationsData);
-  }, []);
+  }, [branchId]);
 
   useEffect(() => {
     if (!ready) return;

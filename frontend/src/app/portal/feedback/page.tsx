@@ -16,6 +16,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { formatDate, formatShortDateTime } from "@/lib/formatDate";
+import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
@@ -68,7 +69,7 @@ const COMPLAINT_CATEGORY_RATIOS = [
 
 export default function PortalFeedbackPage() {
   const { hospital, ready } = usePortalGuard();
-  const { summary, entries, error } = useFeedback(ready);
+  const { summary, entries, error } = useFeedback(ready, useBranchFilter().selectedBranchId);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FeedbackEntry | null>(null);
   const [guest, setGuest] = useState<PatientDetail | null>(null);

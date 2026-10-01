@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { adminFetch } from "@/lib/adminAuth";
 
 export type StaffDetail = {
@@ -19,18 +19,31 @@ export function useStaffDetail(staffId: number) {
   const [staff, setStaff] = useState<StaffDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    const result = await adminFetch(`/api/admin/staff-users/${staffId}`);
-    if (!result.ok) {
-      setError(result.unauthorized ? "Session expired — refresh to sign in again." : result.error);
-      return;
-    }
-    setStaff((result.data as { staff: StaffDetail }).staff);
-  }, [staffId]);
-
   useEffect(() => {
-    load();
-  }, [load]);
+    let ignore = false;
+
+    const load = async () => {
+      const result = await adminFetch(`/api/admin/staff-users/${staffId}`);
+      if (ignore) return;
+
+      if (!result.ok) {
+        setError(
+          result.unauthorized
+            ? "Session expired — refresh to sign in again."
+            : result.error,
+        );
+        return;
+      }
+
+      setStaff((result.data as { staff: StaffDetail }).staff);
+    };
+
+    void load();
+
+    return () => {
+      ignore = true;
+    };
+  }, [staffId]);
 
   return { staff, error };
 }

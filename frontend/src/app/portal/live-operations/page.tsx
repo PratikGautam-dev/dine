@@ -12,6 +12,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { NEXT_ACTION_BY_STATUS, STATUS_LABELS as ORDER_STATUS_LABELS } from "@/hooks/useFoodOrders";
 import { type LiveTable, useLiveOperations } from "@/hooks/useLiveOperations";
+import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { formatTimeOnly } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
@@ -49,7 +50,7 @@ const ACTIVITY_TONE = { booking: "clay", order: "warning", message: "brand" } as
 
 export default function LiveOperationsPage() {
   const { hospital, ready } = usePortalGuard();
-  const { data, error, actingId, setTableStatus, advanceOrder, markArrived } = useLiveOperations(ready);
+  const { data, error, actingId, setTableStatus, advanceOrder, markArrived } = useLiveOperations(ready, useBranchFilter().selectedBranchId);
   const canWriteTables = usePermission("tables", "write");
   const canWriteOrders = usePermission("food_orders", "write");
   const canWriteBookings = usePermission("appointments", "write");

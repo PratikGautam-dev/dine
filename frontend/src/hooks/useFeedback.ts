@@ -22,14 +22,15 @@ export type FeedbackSummary = {
 /** Loads /api/portal/feedback -- the WhatsApp "Rate & Give Feedback" main-menu row's real rating
  * (+ optional comment) data (migration 0045). No sentiment/NPS/complaint-category system exists,
  * so this is exactly what the page has to work with. */
-export function useFeedback(ready: boolean) {
+export function useFeedback(ready: boolean, branchId: string | null = null) {
   const router = useRouter();
   const [summary, setSummary] = useState<FeedbackSummary | null>(null);
   const [entries, setEntries] = useState<FeedbackEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/feedback");
+    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
+    const result = await portalFetch(`/api/portal/feedback${query}`);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);
@@ -38,7 +39,7 @@ export function useFeedback(ready: boolean) {
     const data = result.data as { summary: FeedbackSummary; entries: FeedbackEntry[] };
     setSummary(data.summary);
     setEntries(data.entries);
-  }, [router]);
+  }, [router, branchId]);
 
   useEffect(() => {
     if (ready) load();
