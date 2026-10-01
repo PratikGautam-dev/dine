@@ -282,7 +282,42 @@ async def portal_food_order_detail(order_id: int, authorization: str | None = He
     order = db.get_food_order(hospital.id, order_id)
     if order is None:
         return JSONResponse({"error": "Order not found."}, status_code=404)
-    return JSONResponse({"food_order": order})
+    payment = db.get_latest_payment_for_order(hospital.id, order_id)
+    return JSONResponse({
+        "food_order": order,
+        "status_history": db.get_order_status_history(hospital.id, order_id),
+        "payment": payment,
+        "refunds": db.list_refunds_for_payment(hospital.id, payment["id"]) if payment else [],
+    })
+
+
+class RefundPayload(BaseModel):
+    amount_paise: int = 0
+    reason: str | None = None
+
+
+@router.post("/api/portal/food-orders/{order_id}/refund")
+async def portal_refund_food_order(order_id: int, payload: RefundPayload, authorization: str | None = Header(default=None)):
+    """Records a refund against the order's latest payment -- no live gateway refund API call yet
+    (confirmed scope: table + this record-keeping route only, same as db.create_refund()'s own
+    docstring). status stays 'pending' until a real refund-provider integration exists to confirm it."""
+    hospital, error = _require_food_ordering(authorization, "food_orders", "write")
+    if error:
+        return error
+    order = db.get_food_order(hospital.id, order_id)
+    if order is None:
+        return JSONResponse({"error": "Order not found."}, status_code=404)
+    payment = db.get_latest_payment_for_order(hospital.id, order_id)
+    if payment is None or payment["status"] != "paid":
+        return JSONResponse({"error": "This order has no paid payment to refund."}, status_code=400)
+    if payload.amount_paise <= 0 or payload.amount_paise > payment["amount_paise"]:
+        return JSONResponse({"error": f"Refund amount must be between ₹0.01 and {payment['amount_paise'] / 100:.2f}."}, status_code=400)
+    refund = db.create_refund(hospital.id, payment["id"], payload.amount_paise, reason=payload.reason, created_by="tenant portal")
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "food_order.refund",
+        entity_type="food_order", entity_id=str(order_id), after={"refund_id": refund["id"], "amount_paise": payload.amount_paise},
+    )
+    return JSONResponse({"refund": refund})
 
 
 def _ready_status_for(order: dict) -> str:

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  BellRing, ChefHat, ClipboardList, Download, MoreHorizontal, PackageCheck, Search, ShieldCheck, X, XCircle,
+  BellRing, ChefHat, ClipboardList, Download, Eye, MoreHorizontal, PackageCheck, Search, ShieldCheck, X, XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -12,6 +12,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { OrderDetailDrawer } from "@/components/portal/OrderDetailDrawer";
 import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -97,6 +98,7 @@ export default function PortalFoodOrdersPage() {
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
+  const [detailOrderId, setDetailOrderId] = useState<number | null>(null);
 
   const viewCounts = useMemo(() => {
     const counts: Record<OrderView, number> = { all: 0, new: 0, kitchen: 0, ready: 0, completed: 0, cancelled: 0, awaiting_payment: 0 };
@@ -266,30 +268,32 @@ export default function PortalFoodOrdersPage() {
           const order = row.original;
           const next = NEXT_ACTION_BY_STATUS[order.status];
           const busy = actingId === order.id;
-          if (!canWrite || (!next && !CANCELLABLE_STATUSES.has(order.status))) return null;
           return (
             <div className="flex items-center justify-end gap-space-2 whitespace-nowrap">
-              {next && (
+              {canWrite && next && (
                 <Button size="md" disabled={busy} onClick={() => runAction(order, next.action)}>
                   {busy ? "…" : next.label}
                 </Button>
               )}
-              {CANCELLABLE_STATUSES.has(order.status) && (
-                <DropdownMenu>
-                  <DropdownMenuTrigger
-                    aria-label={`More actions for order ${order.reference_id ?? order.id}`}
-                    disabled={busy}
-                    className="inline-flex h-10 w-9 items-center justify-center rounded-md text-ink-600 hover:bg-paper focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none disabled:opacity-50"
-                  >
-                    <MoreHorizontal size={18} />
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent>
+              <DropdownMenu>
+                <DropdownMenuTrigger
+                  aria-label={`More actions for order ${order.reference_id ?? order.id}`}
+                  disabled={busy}
+                  className="inline-flex h-10 w-9 items-center justify-center rounded-md text-ink-600 hover:bg-paper focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none disabled:opacity-50"
+                >
+                  <MoreHorizontal size={18} />
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setDetailOrderId(order.id)}>
+                    <Eye size={15} /> View details
+                  </DropdownMenuItem>
+                  {canWrite && CANCELLABLE_STATUSES.has(order.status) && (
                     <DropdownMenuItem variant="destructive" onClick={() => setPendingCancel(order)}>
                       <X size={15} /> Cancel order
                     </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              )}
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           );
         },
@@ -423,6 +427,10 @@ export default function PortalFoodOrdersPage() {
           setPendingCancel(null);
         }}
       />
+
+      {detailOrderId !== null && (
+        <OrderDetailDrawer orderId={detailOrderId} onClose={() => setDetailOrderId(null)} />
+      )}
     </PortalShell>
   );
 }

@@ -26,6 +26,7 @@ import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { useOffers, type NewOfferFields, type Offer } from "@/hooks/useOffers";
+import { useBranchFilter } from "@/lib/branchContext";
 
 const STATUS_TONE: Record<string, "success" | "brand" | "neutral" | "clay"> = {
   active: "success", scheduled: "brand", expired: "neutral", disabled: "clay",
@@ -34,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = { active: "Active", scheduled: "Sch
 
 const emptyForm = (): NewOfferFields => ({
   name: "", discount_type: "percentage", discount_value: 20, coupon_code: "", valid_from: "", valid_to: "",
-  min_order_value_paise: 0, max_redemptions: null, fulfillment_type: "",
+  min_order_value_paise: 0, max_redemptions: null, fulfillment_type: "", branch_id: null, per_customer_limit: null,
 });
 
 function ChannelBadges({ offer }: { offer: Offer }) {
@@ -63,6 +64,7 @@ function RevenueTooltip({ active, payload, label }: { active?: boolean; payload?
 export default function PortalOffersPage() {
   const { hospital, ready } = usePortalGuard();
   const { data, error, creating, createOffer, toggleOffer } = useOffers(ready);
+  const { multiBranchEnabled, branches } = useBranchFilter();
   const [form, setForm] = useState<NewOfferFields>(emptyForm());
   const [formError, setFormError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
@@ -207,12 +209,34 @@ export default function PortalOffersPage() {
                       onChange={(e) => setForm({ ...form, min_order_value_paise: Math.round(Number(e.target.value) * 100) })}
                     />
                   </Field>
-                  <Field label="Max Redemptions" htmlFor="offer-max" hint="Optional">
+                  <Field label="Max Redemptions" htmlFor="offer-max" hint="Optional, total across all guests">
                     <Input
                       id="offer-max" type="number" min={1} value={form.max_redemptions ?? ""}
                       onChange={(e) => setForm({ ...form, max_redemptions: e.target.value ? Number(e.target.value) : null })}
                     />
                   </Field>
+                </div>
+                <div className="grid grid-cols-2 gap-space-3">
+                  <Field label="Uses Per Guest" htmlFor="offer-per-customer" hint="Optional, caps each phone number">
+                    <Input
+                      id="offer-per-customer" type="number" min={1} value={form.per_customer_limit ?? ""}
+                      onChange={(e) => setForm({ ...form, per_customer_limit: e.target.value ? Number(e.target.value) : null })}
+                    />
+                  </Field>
+                  {multiBranchEnabled && branches.length > 1 && (
+                    <Field label="Branch" htmlFor="offer-branch" hint="Leave as All Branches to share it">
+                      <select
+                        id="offer-branch" value={form.branch_id ?? ""}
+                        onChange={(e) => setForm({ ...form, branch_id: e.target.value || null })}
+                        className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+                      >
+                        <option value="">All Branches</option>
+                        {branches.map((b) => (
+                          <option key={b.id} value={b.id}>{b.name}</option>
+                        ))}
+                      </select>
+                    </Field>
+                  )}
                 </div>
                 {formError && <p className="mb-space-3 text-[12.5px] font-medium text-error">{formError}</p>}
                 <Button type="submit" disabled={creating} className="w-full">
@@ -253,6 +277,14 @@ export default function PortalOffersPage() {
                     <td className="px-space-3 py-space-2">
                       <p className="font-semibold text-ink-900">{o.name}</p>
                       <p className="font-mono text-[11px] text-ink-400">{o.coupon_code}</p>
+                      {o.branch_id && (
+                        <p className="text-[11px] text-ink-500">
+                          {branches.find((b) => b.id === o.branch_id)?.name ?? "One branch only"}
+                        </p>
+                      )}
+                      {o.per_customer_limit != null && (
+                        <p className="text-[11px] text-ink-500">Max {o.per_customer_limit} per guest</p>
+                      )}
                     </td>
                     <td className="px-space-3 py-space-2 text-ink-700">
                       <span className="inline-flex items-center gap-1"><Percent size={12} /> {o.discount_type === "percentage" ? `${o.discount_value}% OFF` : `${rupees(o.discount_value)} OFF`}</span>

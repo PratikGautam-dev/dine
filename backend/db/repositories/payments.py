@@ -103,6 +103,18 @@ def mark_payment_failed(hospital_id: int, payment_id: int) -> dict | None:
     return get_payment(hospital_id, payment_id)
 
 
+def list_refunds_for_payment(hospital_id: int, payment_id: int) -> list[dict]:
+    """Oldest first -- a payment can have more than one partial refund."""
+    session = get_session()
+    rows = session.execute(
+        select(
+            Refund.id, Refund.hospital_id, Refund.payment_id, Refund.amount_paise, Refund.reason,
+            Refund.provider_refund_id, Refund.status, Refund.created_by, Refund.created_at,
+        ).where(Refund.hospital_id == hospital_id, Refund.payment_id == payment_id).order_by(Refund.id.asc())
+    ).all()
+    return [dict(r._mapping) for r in rows]
+
+
 def create_refund(
     hospital_id: int, payment_id: int, amount_paise: int, reason: str | None = None,
     created_by: str | None = None,

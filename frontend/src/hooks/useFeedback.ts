@@ -11,6 +11,7 @@ export type FeedbackEntry = {
   created_at: string;
   patient_id: number | null;
   patient_name: string | null;
+  order_id: number | null;
 };
 
 export type FeedbackSummary = {

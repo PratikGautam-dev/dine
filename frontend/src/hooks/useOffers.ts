@@ -19,6 +19,8 @@ export type Offer = {
   usage_count: number;
   revenue_paise: number;
   status: "active" | "scheduled" | "expired" | "disabled";
+  branch_id: string | null;
+  per_customer_limit: number | null;
 };
 
 export type OffersSummary = {
@@ -45,6 +47,8 @@ export type NewOfferFields = {
   min_order_value_paise: number;
   max_redemptions: number | null;
   fulfillment_type: "pickup" | "delivery" | "" ;
+  branch_id: string | null;
+  per_customer_limit: number | null;
 };
 
 /** Loads /api/portal/offers -- real coupon codes redeemable at WhatsApp food-order checkout

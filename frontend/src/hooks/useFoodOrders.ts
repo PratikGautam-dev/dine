@@ -122,3 +122,89 @@ export function useFoodOrders(ready: boolean, statusFilter: string, days = 90, p
 
   return { orders, error, actingId, load, runAction };
 }
+
+export type OrderStatusHistoryEntry = {
+  from_status: string;
+  to_status: string;
+  changed_by: string | null;
+  created_at: string;
+};
+
+export type OrderPayment = {
+  id: number;
+  method: string;
+  provider: string | null;
+  status: "pending" | "paid" | "failed";
+  amount_paise: number;
+  provider_payment_id: string | null;
+  paid_at: string | null;
+};
+
+export type OrderRefund = {
+  id: number;
+  amount_paise: number;
+  reason: string | null;
+  status: string;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type FoodOrderDetail = {
+  food_order: FoodOrder;
+  status_history: OrderStatusHistoryEntry[];
+  payment: OrderPayment | null;
+  refunds: OrderRefund[];
+};
+
+/** Loads a single order's full detail -- status timeline (migration 0057) and payment/refund
+ * record (migration 0056) -- for the Food Orders page's detail drawer. Separate from the list
+ * hook above since the list itself doesn't need this per-order detail, only the drawer does. */
+export function useFoodOrderDetail(orderId: number | null) {
+  const [detail, setDetail] = useState<FoodOrderDetail | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [refunding, setRefunding] = useState(false);
+  const idRef = useRef(orderId);
+  idRef.current = orderId;
+
+  const load = useCallback(async () => {
+    if (orderId == null) {
+      setDetail(null);
+      return;
+    }
+    const requestedId = orderId;
+    setLoading(true);
+    const result = await portalFetch(`/api/portal/food-orders/${orderId}`);
+    setLoading(false);
+    if (idRef.current !== requestedId) return;
+    if (!result.ok) {
+      if (!result.unauthorized) toast.error("Couldn't load order", result.error);
+      return;
+    }
+    setDetail(result.data as FoodOrderDetail);
+  }, [orderId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  async function issueRefund(amountPaise: number, reason: string): Promise<boolean> {
+    if (orderId == null) return false;
+    setRefunding(true);
+    const result = await portalFetch(`/api/portal/food-orders/${orderId}/refund`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ amount_paise: amountPaise, reason: reason || null }),
+    });
+    setRefunding(false);
+    if (!result.ok) {
+      if (result.unauthorized) toast.error("Session expired", "Please log in again.");
+      else toast.error("Couldn't issue refund", result.error);
+      return false;
+    }
+    toast.success("Refund recorded");
+    load();
+    return true;
+  }
+
+  return { detail, loading, refunding, issueRefund, reload: load };
+}
