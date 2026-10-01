@@ -73,13 +73,14 @@ async def public_restaurant_detail(slug: str):
                 for b in active
             ]
     return JSONResponse({
-        "restaurant": {**restaurant, "rating": db.get_public_rating(restaurant["hospital_id"])},
+        "restaurant": {
+            **restaurant, "rating": db.get_public_rating(restaurant["hospital_id"]), "branches": branches,
+        },
         "categories": categories, "bestseller_ids": bestsellers,
         "delivery_fee_paise": {
             "pickup": 0,
             "delivery": db.get_delivery_fee_paise(restaurant["hospital_id"], "delivery"),
         },
-        "branches": branches,
     })
 
 
