@@ -9,6 +9,7 @@ from datetime import datetime
 from db.models import STATUS_BOOKED, STATUS_CANCELLED, STATUS_RESCHEDULED
 from db.repositories.appointments import get_all_appointments_for_hospital
 from db.repositories.dashboard import get_live_operations_activity_feed
+from db.repositories.doctors import get_departments
 from db.repositories.food_orders import (
     STATUS_ACCEPTED, STATUS_OUT_FOR_DELIVERY, STATUS_PAID, STATUS_PLACED, STATUS_PREPARING,
     STATUS_READY_FOR_PICKUP, list_food_orders,
@@ -24,13 +25,13 @@ _READY_STATUSES = (STATUS_READY_FOR_PICKUP, STATUS_OUT_FOR_DELIVERY)
 _NON_TERMINAL_ORDER_STATUSES = (STATUS_PLACED, STATUS_PAID, STATUS_ACCEPTED, STATUS_PREPARING) + _READY_STATUSES
 
 
-def get_live_operations_summary(hospital_id: int, now: datetime | None = None) -> dict:
+def get_live_operations_summary(hospital_id: int, now: datetime | None = None, branch_id: str | None = None) -> dict:
     now = now or datetime.now()
     today = now.date()
 
     # --- Bookings: today's queue, same "still relevant today" filter TodayScheduleCard's own
     # frontend computation (useAppointments.ts's todaySchedule) already applies. ---
-    all_appointments = get_all_appointments_for_hospital(hospital_id, limit=500)
+    all_appointments = get_all_appointments_for_hospital(hospital_id, limit=500, branch_id=branch_id)
     today_bookings = sorted(
         (
             a for a in all_appointments
@@ -44,7 +45,7 @@ def get_live_operations_summary(hospital_id: int, now: datetime | None = None) -
     booking_names = get_patient_names_by_phone(hospital_id, [a.phone for a in today_bookings])
 
     # --- Food orders: the live (non-terminal) queue. ---
-    orders = [o for o in list_food_orders(hospital_id) if o["status"] in _NON_TERMINAL_ORDER_STATUSES]
+    orders = [o for o in list_food_orders(hospital_id, branch_id=branch_id) if o["status"] in _NON_TERMINAL_ORDER_STATUSES]
     order_names = get_patient_names_by_phone(hospital_id, [o["phone"] for o in orders])
     orders_in_kitchen = sum(1 for o in orders if o["status"] in _KITCHEN_STATUSES)
     orders_ready = sum(1 for o in orders if o["status"] in _READY_STATUSES)
@@ -54,8 +55,12 @@ def get_live_operations_summary(hospital_id: int, now: datetime | None = None) -
     handoffs = open_handoffs[:_HANDOFF_QUEUE_LIMIT]
     handoff_names = get_patient_names_by_phone(hospital_id, [h["phone"] for h in handoffs])
 
-    # --- Tables: real, staff-set occupancy (not inferred from turnover_minutes). ---
+    # --- Tables: real, staff-set occupancy (not inferred from turnover_minutes). Scoped to the
+    # branch transitively through department_id -- tables have no direct branch_id column. ---
     tables = [t for t in get_all_tables_for_hospital(hospital_id) if t["is_active"]]
+    if branch_id is not None:
+        branch_department_ids = {d["id"] for d in get_departments(hospital_id, branch_id=branch_id)}
+        tables = [t for t in tables if t["department_id"] in branch_department_ids]
     active_tables_occupied = sum(1 for t in tables if t["status"] == STATUS_OCCUPIED)
 
     return {
@@ -96,6 +101,6 @@ def get_live_operations_summary(hospital_id: int, now: datetime | None = None) -
             for t in tables
         ],
         "activity_feed": [
-            {**e, "at": e["at"].isoformat()} for e in get_live_operations_activity_feed(hospital_id, limit=15)
+            {**e, "at": e["at"].isoformat()} for e in get_live_operations_activity_feed(hospital_id, limit=15, branch_id=branch_id)
         ],
     }

@@ -8,17 +8,20 @@ router = APIRouter()
 
 
 @router.get("/api/portal/dashboard")
-async def portal_dashboard(authorization: str | None = Header(default=None)):
+async def portal_dashboard(branch_id: str | None = None, authorization: str | None = Header(default=None)):
     principal, error = authorize(authorization, "dashboard", "view")
     if error:
         return error
     hospital = principal.hospital
 
-    stats = db.get_dashboard_stats(hospital.id)
-    weekly_counts = db.get_weekly_appointment_counts(hospital.id)
-    dept_breakdown = db.get_appointments_by_department(hospital.id)
-    recent_appointments = db.get_all_appointments_for_hospital(hospital.id, limit=10)
-    activity_feed = db.get_recent_activity_feed(hospital.id, limit=10)
+    stats = db.get_dashboard_stats(hospital.id, branch_id=branch_id)
+    weekly_counts = db.get_weekly_appointment_counts(hospital.id, branch_id=branch_id)
+    dept_breakdown = db.get_appointments_by_department(hospital.id, branch_id=branch_id)
+    recent_appointments = db.get_all_appointments_for_hospital(hospital.id, limit=10, branch_id=branch_id)
+    activity_feed = db.get_recent_activity_feed(hospital.id, limit=10, branch_id=branch_id)
+    # recent_patients is intentionally NOT branch-filtered -- guests are shared across branches
+    # (the confirmed multi-branch scoping decision), so "recently seen" means at this restaurant
+    # overall, not just at whichever branch happens to be selected.
     recent_patients = db.get_recent_patients(hospital.id, limit=5)
 
     return JSONResponse({

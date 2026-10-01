@@ -14,8 +14,8 @@ router = APIRouter()
 
 
 @router.get("/api/portal/live-operations")
-async def portal_live_operations(authorization: str | None = Header(default=None)):
+async def portal_live_operations(branch_id: str | None = None, authorization: str | None = Header(default=None)):
     principal, error = authorize(authorization, "live_operations", "view")
     if error:
         return error
-    return JSONResponse(db.get_live_operations_summary(principal.hospital.id))
+    return JSONResponse(db.get_live_operations_summary(principal.hospital.id, branch_id=branch_id))

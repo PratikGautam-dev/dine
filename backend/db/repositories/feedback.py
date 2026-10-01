@@ -57,15 +57,18 @@ def list_feedback(hospital_id: int, limit: int = 200, branch_id: str | None = No
     return [dict(r._mapping) for r in rows]
 
 
-def get_feedback_summary(hospital_id: int) -> dict:
+def get_feedback_summary(hospital_id: int, branch_id: str | None = None) -> dict:
     """Average rating, total count, and the 1-5 breakdown -- everything the Feedback page's
     KPI tiles and rating-breakdown card need, computed directly (not cached/denormalized)."""
     session = get_session()
-    total = session.execute(select(func.count(Feedback.id)).where(Feedback.hospital_id == hospital_id)).scalar_one()
-    avg = session.execute(select(func.avg(Feedback.rating)).where(Feedback.hospital_id == hospital_id)).scalar_one()
+    base = [Feedback.hospital_id == hospital_id]
+    if branch_id is not None:
+        base.append(Feedback.branch_id == branch_id)
+    total = session.execute(select(func.count(Feedback.id)).where(*base)).scalar_one()
+    avg = session.execute(select(func.avg(Feedback.rating)).where(*base)).scalar_one()
     breakdown_rows = session.execute(
         select(Feedback.rating, func.count(Feedback.id))
-        .where(Feedback.hospital_id == hospital_id)
+        .where(*base)
         .group_by(Feedback.rating)
     ).all()
     breakdown = {r: 0 for r in (1, 2, 3, 4, 5)}

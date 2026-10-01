@@ -16,7 +16,7 @@ from db.orm_models import AppointmentRow, Department, DoctorRow, PatientRow, Tab
 # in this file; the isolation test that matters is at the HTTP layer
 # (tests/test_portal_dashboard.py), not repeated per-function here. ---
 
-def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
+def get_dashboard_stats(hospital_id: int, now: datetime | None = None, branch_id: str | None = None) -> dict:
     """The four "today"-scoped stat tiles (today's appointments, confirmed
     today, new patients today, no-shows today) plus a week-over-week % change
     for each, comparing today against the SAME WEEKDAY exactly 7 days ago --
@@ -53,19 +53,24 @@ def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
     last_week_day = today - timedelta(days=7)
     session = get_session()
 
+    def _branch_filter(stmt, col):
+        return stmt.where(col == branch_id) if branch_id is not None else stmt
+
     def _stats_for_day(day) -> dict:
         day_start = datetime.combine(day, datetime.min.time()).isoformat()
         day_end = datetime.combine(day, datetime.max.time()).isoformat()
         A = AppointmentRow
-        total = session.execute(
+        total = session.execute(_branch_filter(
             select(func.count()).select_from(A)
-            .where(A.hospital_id == hospital_id, A.scheduled_at >= day_start, A.scheduled_at <= day_end)
-        ).scalar_one()
-        confirmed = session.execute(
+            .where(A.hospital_id == hospital_id, A.scheduled_at >= day_start, A.scheduled_at <= day_end),
+            A.branch_id,
+        )).scalar_one()
+        confirmed = session.execute(_branch_filter(
             select(func.count()).select_from(A)
             .where(A.hospital_id == hospital_id, A.scheduled_at >= day_start, A.scheduled_at <= day_end,
-                   A.status == STATUS_BOOKED)
-        ).scalar_one()
+                   A.status == STATUS_BOOKED),
+            A.branch_id,
+        )).scalar_one()
         A2 = aliased(AppointmentRow)
         exists_earlier = (
             select(1).select_from(A2)
@@ -73,16 +78,18 @@ def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
             .correlate(A)
             .exists()
         )
-        new_patients = session.execute(
+        new_patients = session.execute(_branch_filter(
             select(func.count(func.distinct(A.phone))).select_from(A)
             .where(A.hospital_id == hospital_id, A.created_at >= day_start, A.created_at <= day_end,
-                   ~exists_earlier)
-        ).scalar_one()
-        no_shows = session.execute(
+                   ~exists_earlier),
+            A.branch_id,
+        )).scalar_one()
+        no_shows = session.execute(_branch_filter(
             select(func.count()).select_from(A)
             .where(A.hospital_id == hospital_id, A.scheduled_at >= day_start, A.scheduled_at <= day_end,
-                   A.status == STATUS_NO_SHOW)
-        ).scalar_one()
+                   A.status == STATUS_NO_SHOW),
+            A.branch_id,
+        )).scalar_one()
         return {"total": total, "confirmed": confirmed, "new_patients": new_patients, "no_shows": no_shows}
 
     today_stats = _stats_for_day(today)
@@ -93,11 +100,12 @@ def get_dashboard_stats(hospital_id: int, now: datetime | None = None) -> dict:
             return None
         return round((today_v - last_week_v) / last_week_v * 100, 1)
 
-    upcoming_count = session.execute(
+    upcoming_count = session.execute(_branch_filter(
         select(func.count()).select_from(AppointmentRow)
         .where(AppointmentRow.hospital_id == hospital_id, AppointmentRow.scheduled_at > now.isoformat(),
-               AppointmentRow.status == STATUS_BOOKED)
-    ).scalar_one()
+               AppointmentRow.status == STATUS_BOOKED),
+        AppointmentRow.branch_id,
+    )).scalar_one()
 
     return {
         "today_appointments": today_stats["total"],
@@ -153,7 +161,7 @@ def get_doctor_dashboard_stats(hospital_id: int, doctor_id: str, now: datetime |
     }
 
 
-def get_weekly_appointment_counts(hospital_id: int, now: datetime | None = None) -> list[dict]:
+def get_weekly_appointment_counts(hospital_id: int, now: datetime | None = None, branch_id: str | None = None) -> list[dict]:
     """One point per day for the last 7 calendar days (today inclusive,
     oldest first) -- counts by scheduled_at (any status), consistent with
     get_dashboard_stats()'s own "today's appointments" definition (appointment
@@ -168,16 +176,20 @@ def get_weekly_appointment_counts(hospital_id: int, now: datetime | None = None)
         day = today - timedelta(days=i)
         day_start = datetime.combine(day, datetime.min.time()).isoformat()
         day_end = datetime.combine(day, datetime.max.time()).isoformat()
-        count = session.execute(
-            select(func.count()).select_from(AppointmentRow)
-            .where(AppointmentRow.hospital_id == hospital_id, AppointmentRow.scheduled_at >= day_start,
-                   AppointmentRow.scheduled_at <= day_end)
-        ).scalar_one()
+        stmt = select(func.count()).select_from(AppointmentRow).where(
+            AppointmentRow.hospital_id == hospital_id, AppointmentRow.scheduled_at >= day_start,
+            AppointmentRow.scheduled_at <= day_end,
+        )
+        if branch_id is not None:
+            stmt = stmt.where(AppointmentRow.branch_id == branch_id)
+        count = session.execute(stmt).scalar_one()
         results.append({"date": day.isoformat(), "label": day.strftime("%a"), "count": count})
     return results
 
 
-def get_appointments_by_department(hospital_id: int, days: int = 30, now: datetime | None = None) -> list[dict]:
+def get_appointments_by_department(
+    hospital_id: int, days: int = 30, now: datetime | None = None, branch_id: str | None = None,
+) -> list[dict]:
     """Department share of appointment volume over a rolling **±`days`-day**
     window centered on now (default 30 days back AND 30 days forward) --
     ordered by count descending so the donut/legend both read
@@ -190,15 +202,16 @@ def get_appointments_by_department(hospital_id: int, days: int = 30, now: dateti
     window_start = datetime.combine(now.date() - timedelta(days=days - 1), datetime.min.time())
     window_end = datetime.combine(now.date() + timedelta(days=days), datetime.max.time())
     session = get_session()
-    rows = session.execute(
+    stmt = (
         select(Department.name.label("department_name"), func.count().label("c"))
         .select_from(AppointmentRow)
         .join(Department, Department.id == AppointmentRow.department_id)
         .where(AppointmentRow.hospital_id == hospital_id, AppointmentRow.scheduled_at >= window_start.isoformat(),
                AppointmentRow.scheduled_at <= window_end.isoformat())
-        .group_by(Department.name)
-        .order_by(func.count().desc())
-    ).all()
+    )
+    if branch_id is not None:
+        stmt = stmt.where(AppointmentRow.branch_id == branch_id)
+    rows = session.execute(stmt.group_by(Department.name).order_by(func.count().desc())).all()
     return [{"department_name": r.department_name, "count": r.c} for r in rows]
 
 
@@ -218,7 +231,7 @@ def activity_label(status: str) -> str:
     return _ACTIVITY_LABELS.get(status) or f"{status.replace('_', ' ').strip().capitalize()} reservation"
 
 
-def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
+def get_recent_activity_feed(hospital_id: int, limit: int = 10, branch_id: str | None = None) -> list[dict]:
     """A lightweight "what just happened" feed built entirely from
     appointments' own status/timestamps -- SPEC Section 12.8 looked for an
     existing WhatsApp message log to reuse and found none exists (nothing in
@@ -247,7 +260,7 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
         .limit(1)
         .scalar_subquery()
     )
-    rows = session.execute(
+    stmt = (
         select(
             AppointmentRow.status, AppointmentRow.phone, guest_name.label("guest_name"), DoctorRow.name.label("doctor_name"),
             TableRow.name.label("table_name"), AppointmentRow.party_size,
@@ -261,9 +274,10 @@ def get_recent_activity_feed(hospital_id: int, limit: int = 10) -> list[dict]:
         .outerjoin(DoctorRow, DoctorRow.id == AppointmentRow.doctor_id)
         .outerjoin(TableRow, TableRow.id == AppointmentRow.table_id)
         .where(AppointmentRow.hospital_id == hospital_id)
-        .order_by(order_col.desc())
-        .limit(limit)
-    ).all()
+    )
+    if branch_id is not None:
+        stmt = stmt.where(AppointmentRow.branch_id == branch_id)
+    rows = session.execute(stmt.order_by(order_col.desc()).limit(limit)).all()
     feed = []
     for r in rows:
         event_at = r.updated_at or r.created_at
@@ -287,7 +301,7 @@ _ORDER_ACTIVITY_LABELS = {
 }
 
 
-def get_live_operations_activity_feed(hospital_id: int, limit: int = 15) -> list[dict]:
+def get_live_operations_activity_feed(hospital_id: int, limit: int = 15, branch_id: str | None = None) -> list[dict]:
     """Live Operations follow-up: unions three already-real event sources --
     booking status changes (get_recent_activity_feed, above), food-order
     status changes, and newly opened WhatsApp handoffs -- into one
@@ -307,10 +321,10 @@ def get_live_operations_activity_feed(hospital_id: int, limit: int = 15) -> list
         return dt.replace(tzinfo=None) if dt.tzinfo is not None else dt
 
     events: list[dict] = []
-    for item in get_recent_activity_feed(hospital_id, limit=limit):
+    for item in get_recent_activity_feed(hospital_id, limit=limit, branch_id=branch_id):
         events.append({"kind": "booking", "label": item["label"], "guest_name": item["guest_name"], "at": _at(item["at"])})
 
-    orders = list_food_orders(hospital_id)[:limit]
+    orders = list_food_orders(hospital_id, branch_id=branch_id)[:limit]
     order_names = get_patient_names_by_phone(hospital_id, [o["phone"] for o in orders])
     for order in orders:
         events.append({

@@ -8,7 +8,7 @@ router = APIRouter()
 
 
 @router.get("/api/portal/feedback")
-async def portal_feedback(authorization: str | None = Header(default=None)):
+async def portal_feedback(branch_id: str | None = None, authorization: str | None = Header(default=None)):
     """The Feedback page's one real data source: WhatsApp guest ratings (migration 0045).
     No sentiment/NPS/complaint-category data exists, so none is returned."""
     principal, error = authorize(authorization, "feedback", "view")
@@ -16,6 +16,6 @@ async def portal_feedback(authorization: str | None = Header(default=None)):
         return error
     hospital = principal.hospital
     return JSONResponse({
-        "summary": db.get_feedback_summary(hospital.id),
-        "entries": db.list_feedback(hospital.id),
+        "summary": db.get_feedback_summary(hospital.id, branch_id=branch_id),
+        "entries": db.list_feedback(hospital.id, branch_id=branch_id),
     })
