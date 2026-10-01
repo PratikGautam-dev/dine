@@ -325,6 +325,10 @@ class TableRow(Base):
 
     id: Mapped[str] = mapped_column(primary_key=True)
     hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    # Multi-branch (migration 0054) -- tables predate branches (0030 vs 0053), so this was only
+    # ever scoped transitively through department_id until now; every table's own department
+    # already has a branch, which is where this gets backfilled from.
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
     department_id: Mapped[str] = mapped_column(ForeignKey("departments.id"))
     name: Mapped[str]
     capacity: Mapped[int]

@@ -1742,6 +1742,30 @@ def init_db_on_connection(conn) -> int:
             f"FOR EACH ROW EXECUTE FUNCTION set_default_branch_id()"
         )
 
+    # Migration 0054 -- tables.branch_id, the one branch-scoped table 0053 missed (tables predate
+    # branches, migration 0030, and were only ever scoped transitively through department_id).
+    conn.execute("ALTER TABLE tables ADD COLUMN IF NOT EXISTS branch_id TEXT")
+    conn.execute(
+        "UPDATE tables t SET branch_id = d.branch_id "
+        "FROM departments d WHERE d.id = t.department_id AND t.branch_id IS NULL"
+    )
+    conn.execute("ALTER TABLE tables ALTER COLUMN branch_id SET NOT NULL")
+    conn.execute("ALTER TABLE tables DROP CONSTRAINT IF EXISTS fk_tables_branch_id")
+    conn.execute("ALTER TABLE tables ADD CONSTRAINT fk_tables_branch_id FOREIGN KEY (branch_id) REFERENCES branches(id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_tables_branch_id ON tables(branch_id)")
+    conn.execute(
+        "CREATE OR REPLACE FUNCTION set_default_table_branch_id() RETURNS trigger AS $$ "
+        "BEGIN IF NEW.branch_id IS NULL THEN "
+        "NEW.branch_id := (SELECT branch_id FROM departments WHERE id = NEW.department_id); "
+        "END IF; RETURN NEW; END; "
+        "$$ LANGUAGE plpgsql"
+    )
+    conn.execute("DROP TRIGGER IF EXISTS trg_tables_default_branch ON tables")
+    conn.execute(
+        "CREATE TRIGGER trg_tables_default_branch BEFORE INSERT ON tables "
+        "FOR EACH ROW EXECUTE FUNCTION set_default_table_branch_id()"
+    )
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

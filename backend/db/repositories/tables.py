@@ -36,15 +36,25 @@ _WEEKDAY_ABBREVS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 
 # --- Tables (CRUD) ---
 
-def create_table(hospital_id: int, department_id: str, name: str, capacity: int) -> dict:
+def create_table(hospital_id: int, department_id: str, name: str, capacity: int, branch_id: str | None = None) -> dict:
     """id is a UUID-derived opaque string scoped by an h{hospital_id}_
     prefix, same convention create_department()/create_doctor() already
-    use (avoids slugifying arbitrary user-entered text)."""
+    use (avoids slugifying arbitrary user-entered text).
+
+    branch_id left unset resolves to the given department's own branch (migration 0054) --
+    same "defaults to the department's own branch" precedent create_doctor() already follows,
+    not the hospital's default branch, since a table always belongs wherever its section sits."""
     table_id = f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
+    if branch_id is None:
+        from db.orm_models import Department
+        branch_id = session.execute(
+            select(Department.branch_id).where(Department.hospital_id == hospital_id, Department.id == department_id)
+        ).scalar_one()
     session.execute(
         TableRow.__table__.insert().values(
-            id=table_id, hospital_id=hospital_id, department_id=department_id, name=name, capacity=capacity,
+            id=table_id, hospital_id=hospital_id, branch_id=branch_id, department_id=department_id,
+            name=name, capacity=capacity,
         )
     )
     session.commit()
@@ -58,7 +68,7 @@ def create_table(hospital_id: int, department_id: str, name: str, capacity: int)
     return created
 
 
-def get_tables(hospital_id: int, department_id: str | None = None) -> list[dict]:
+def get_tables(hospital_id: int, department_id: str | None = None, branch_id: str | None = None) -> list[dict]:
     """Active tables only -- the connector interface's own read point (both
     the WhatsApp flow's availability search and anywhere else that needs
     "what tables can actually be booked" go through this), same enforcement-
@@ -66,26 +76,29 @@ def get_tables(hospital_id: int, department_id: str | None = None) -> list[dict]
     The portal's own table MANAGEMENT list uses get_all_tables_for_hospital()
     instead, which intentionally still shows inactive tables."""
     session = get_session()
-    stmt = select(TableRow.id, TableRow.name, TableRow.department_id, TableRow.capacity).where(
+    stmt = select(TableRow.id, TableRow.name, TableRow.department_id, TableRow.capacity, TableRow.branch_id).where(
         TableRow.hospital_id == hospital_id, TableRow.is_active.is_(True),
     )
     if department_id is not None:
         stmt = stmt.where(TableRow.department_id == department_id)
+    if branch_id is not None:
+        stmt = stmt.where(TableRow.branch_id == branch_id)
     rows = session.execute(stmt.order_by(TableRow.capacity, TableRow.name)).all()
     return [dict(r._mapping) for r in rows]
 
 
 _TABLE_COLUMNS = (
     TableRow.id, TableRow.name, TableRow.department_id, TableRow.capacity, TableRow.is_active,
-    TableRow.status, TableRow.pos_x, TableRow.pos_y, TableRow.shape, TableRow.notes,
+    TableRow.status, TableRow.pos_x, TableRow.pos_y, TableRow.shape, TableRow.notes, TableRow.branch_id,
 )
 
 
-def get_all_tables_for_hospital(hospital_id: int) -> list[dict]:
+def get_all_tables_for_hospital(hospital_id: int, branch_id: str | None = None) -> list[dict]:
     session = get_session()
-    rows = session.execute(
-        select(*_TABLE_COLUMNS).where(TableRow.hospital_id == hospital_id).order_by(TableRow.name)
-    ).all()
+    stmt = select(*_TABLE_COLUMNS).where(TableRow.hospital_id == hospital_id)
+    if branch_id is not None:
+        stmt = stmt.where(TableRow.branch_id == branch_id)
+    rows = session.execute(stmt.order_by(TableRow.name)).all()
     return [dict(r._mapping) for r in rows]
 
 

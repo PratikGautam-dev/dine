@@ -9,7 +9,6 @@ from datetime import datetime
 from db.models import STATUS_BOOKED, STATUS_CANCELLED, STATUS_RESCHEDULED
 from db.repositories.appointments import get_all_appointments_for_hospital
 from db.repositories.dashboard import get_live_operations_activity_feed
-from db.repositories.doctors import get_departments
 from db.repositories.food_orders import (
     STATUS_ACCEPTED, STATUS_OUT_FOR_DELIVERY, STATUS_PAID, STATUS_PLACED, STATUS_PREPARING,
     STATUS_READY_FOR_PICKUP, list_food_orders,
@@ -55,12 +54,8 @@ def get_live_operations_summary(hospital_id: int, now: datetime | None = None, b
     handoffs = open_handoffs[:_HANDOFF_QUEUE_LIMIT]
     handoff_names = get_patient_names_by_phone(hospital_id, [h["phone"] for h in handoffs])
 
-    # --- Tables: real, staff-set occupancy (not inferred from turnover_minutes). Scoped to the
-    # branch transitively through department_id -- tables have no direct branch_id column. ---
-    tables = [t for t in get_all_tables_for_hospital(hospital_id) if t["is_active"]]
-    if branch_id is not None:
-        branch_department_ids = {d["id"] for d in get_departments(hospital_id, branch_id=branch_id)}
-        tables = [t for t in tables if t["department_id"] in branch_department_ids]
+    # --- Tables: real, staff-set occupancy (not inferred from turnover_minutes). ---
+    tables = [t for t in get_all_tables_for_hospital(hospital_id, branch_id=branch_id) if t["is_active"]]
     active_tables_occupied = sum(1 for t in tables if t["status"] == STATUS_OCCUPIED)
 
     return {

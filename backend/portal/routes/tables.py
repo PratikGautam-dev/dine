@@ -62,11 +62,10 @@ async def portal_tables(branch_id: str | None = None, authorization: str | None 
     # still shows inactive tables (unlike get_tables(), the WhatsApp
     # booking-flow read). departments are shared with the existing
     # doctors/departments page -- one section list, not duplicated.
-    # branch_id=None (the topbar switcher's "All Branches") returns every branch's sections --
-    # tables themselves are scoped transitively through department_id, not a direct column.
+    # branch_id=None (the topbar switcher's "All Branches") returns everything --
+    # tables carry their own branch_id directly since migration 0054.
     departments = db.get_departments(hospital.id, branch_id=branch_id)
-    department_ids = {d["id"] for d in departments}
-    tables = [t for t in db.get_all_tables_for_hospital(hospital.id) if branch_id is None or t["department_id"] in department_ids]
+    tables = db.get_all_tables_for_hospital(hospital.id, branch_id=branch_id)
     # Tables page follow-up: "Reserved" (derived, not a stored status) and current_occupant (a real
     # join over today's attended appointments / assigned waitlist entries, not a fabricated field).
     reserved_soon_ids = db.get_reserved_soon_table_ids(hospital.id)
