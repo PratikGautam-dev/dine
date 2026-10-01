@@ -165,6 +165,13 @@ _BRANCH_ROW_PREFIX = "branch_"
 CHANGE_BRANCH_ID = "menu_change_branch"
 
 
+def _whatsapp_eligible_branches(hospital_id: int) -> list[dict]:
+    """Active branches a guest can actually pick on WhatsApp -- accepts_whatsapp=False
+    (migration 0055) opts a branch out of the bot entirely; NULL/True (the default) keeps it
+    offered, same "unset = included" convention accepts_online follows on the storefront side."""
+    return [b for b in db.list_branches(hospital_id) if b["accepts_whatsapp"] is not False]
+
+
 async def _send_branch_picker(wa: WhatsAppClient, phone: str, branches: list[dict], language: str) -> None:
     """Multi-branch (migration 0053): shown once per session, only when the restaurant has
     multi_branch_enabled on and more than one active branch -- see _enter_idle()'s own call
@@ -292,7 +299,7 @@ async def _enter_idle(
     # Multi-branch (migration 0053): gated on real data (multi_branch_enabled AND more than one
     # active branch), not a static per-hospital feature toggle -- a restaurant that turns the
     # switch on but only ever adds one branch sees no picker, same as the switch being off.
-    active_branches = db.list_branches(hospital_id) if multi_branch_enabled else []
+    active_branches = _whatsapp_eligible_branches(hospital_id) if multi_branch_enabled else []
     branch_choice_applies = len(active_branches) > 1
     if branch_choice_applies and (branch_id is None or branch_id not in {b["id"] for b in active_branches}):
         sessions.set(hospital_id, phone, STATE_AWAITING_BRANCH, {})
@@ -353,7 +360,7 @@ async def _handle_awaiting_branch(
     (not trusted from whatever set of rows the picker was built from, in case a branch was
     deactivated in the portal between the picker being sent and this reply) -- an invalid/stale
     tap just re-shows the picker, same as an unrecognized language tap does."""
-    active_branches = db.list_branches(hospital_id)
+    active_branches = _whatsapp_eligible_branches(hospital_id)
     chosen_id = None
     if reply["type"] == "interactive_reply" and reply["id"].startswith(_BRANCH_ROW_PREFIX):
         candidate = reply["id"][len(_BRANCH_ROW_PREFIX):]
@@ -775,7 +782,7 @@ async def handle_incoming(
         # (_handle_awaiting_branch) is what actually overwrites the session's branch_id.
         if reply["id"] == CHANGE_BRANCH_ID and language is not None:
             sessions.set(hospital_id, phone, STATE_AWAITING_BRANCH, {})
-            await _send_branch_picker(wa, phone, db.list_branches(hospital_id), language)
+            await _send_branch_picker(wa, phone, _whatsapp_eligible_branches(hospital_id), language)
             return
         # The single-linked-patient confirmation's own follow-up buttons
         # message (patient_identity._send_single_patient_confirm) -- sent

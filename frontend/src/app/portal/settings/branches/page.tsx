@@ -82,6 +82,35 @@ function BranchFormCard({
             ))}
           </div>
         </div>
+        <Field label="Minimum order (₹)" htmlFor="br-min-order" hint="Leave blank to use the restaurant's own minimum">
+          <Input id="br-min-order" type="number" min="0" value={form.min_order_rupees} onChange={(e) => onChange({ min_order_rupees: e.target.value })} disabled={!canWrite} />
+        </Field>
+        <Field label="Service charge (%)" htmlFor="br-service-charge" hint="Stored for reference -- not yet added to order totals">
+          <Input id="br-service-charge" type="number" min="0" max="100" step="0.1" value={form.service_charge_pct} onChange={(e) => onChange({ service_charge_pct: e.target.value })} disabled={!canWrite} />
+        </Field>
+        <Field label="Delivery radius (km)" htmlFor="br-delivery-radius" hint="Stored for reference -- not yet enforced on checkout" className="sm:col-span-2">
+          <Input id="br-delivery-radius" type="number" min="0" step="0.1" value={form.delivery_radius_km} onChange={(e) => onChange({ delivery_radius_km: e.target.value })} disabled={!canWrite} />
+        </Field>
+        <div className="sm:col-span-2 flex flex-wrap gap-space-6 border-t border-line pt-space-4">
+          <label className="flex items-center gap-space-2">
+            <Switch
+              checked={form.accepts_online !== false}
+              onChange={() => onChange({ accepts_online: form.accepts_online === false ? null : false })}
+              disabled={!canWrite}
+              aria-label="Accept website orders at this branch"
+            />
+            <span className="text-[13px] font-medium text-ink-700">Accept website orders</span>
+          </label>
+          <label className="flex items-center gap-space-2">
+            <Switch
+              checked={form.accepts_whatsapp !== false}
+              onChange={() => onChange({ accepts_whatsapp: form.accepts_whatsapp === false ? null : false })}
+              disabled={!canWrite}
+              aria-label="Offer this branch on WhatsApp"
+            />
+            <span className="text-[13px] font-medium text-ink-700">Offer on WhatsApp</span>
+          </label>
+        </div>
       </div>
       {error && <p className="mt-space-2 text-[13px] font-medium text-error">{error}</p>}
       <div className="mt-space-4 flex gap-space-2">

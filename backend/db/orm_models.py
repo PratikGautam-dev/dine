@@ -265,6 +265,13 @@ class Branch(Base):
     is_default: Mapped[bool]
     is_active: Mapped[bool]
     created_at: Mapped[str]
+    # Multi-branch (migration 0055) -- more operational overrides, same "NULL = inherit the
+    # hospital's own default" convention as operating_days/turnover_minutes above.
+    service_charge_pct: Mapped[float | None] = mapped_column(Numeric(5, 2))
+    delivery_radius_km: Mapped[float | None] = mapped_column(Numeric(6, 2))
+    min_order_paise: Mapped[int | None]
+    accepts_online: Mapped[bool | None]
+    accepts_whatsapp: Mapped[bool | None]
 
 
 class Department(Base):

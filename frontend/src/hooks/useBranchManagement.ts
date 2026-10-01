@@ -12,12 +12,19 @@ export type BranchForm = {
   operating_hours: string;
   turnover_minutes: string;
   booking_interval_minutes: string;
+  service_charge_pct: string;
+  delivery_radius_km: string;
+  min_order_rupees: string;
+  accepts_online: boolean | null;
+  accepts_whatsapp: boolean | null;
 };
 
 export function emptyBranchForm(): BranchForm {
   return {
     name: "", address_line: "", city: "", phone: "", operating_days: [],
     operating_hours: "", turnover_minutes: "", booking_interval_minutes: "",
+    service_charge_pct: "", delivery_radius_km: "", min_order_rupees: "",
+    accepts_online: null, accepts_whatsapp: null,
   };
 }
 
@@ -27,6 +34,10 @@ export function toBranchForm(b: Branch): BranchForm {
     operating_days: b.operating_days ? b.operating_days.split(",").filter(Boolean) : [],
     operating_hours: b.operating_hours ?? "", turnover_minutes: b.turnover_minutes?.toString() ?? "",
     booking_interval_minutes: b.booking_interval_minutes?.toString() ?? "",
+    service_charge_pct: b.service_charge_pct?.toString() ?? "",
+    delivery_radius_km: b.delivery_radius_km?.toString() ?? "",
+    min_order_rupees: b.min_order_paise != null ? (b.min_order_paise / 100).toString() : "",
+    accepts_online: b.accepts_online, accepts_whatsapp: b.accepts_whatsapp,
   };
 }
 
@@ -40,6 +51,11 @@ function payloadFromForm(form: BranchForm) {
     operating_hours: form.operating_hours ? [form.operating_hours] : null,
     turnover_minutes: form.turnover_minutes ? Number(form.turnover_minutes) : null,
     booking_interval_minutes: form.booking_interval_minutes ? Number(form.booking_interval_minutes) : null,
+    service_charge_pct: form.service_charge_pct ? Number(form.service_charge_pct) : null,
+    delivery_radius_km: form.delivery_radius_km ? Number(form.delivery_radius_km) : null,
+    min_order_paise: form.min_order_rupees ? Math.round(Number(form.min_order_rupees) * 100) : null,
+    accepts_online: form.accepts_online,
+    accepts_whatsapp: form.accepts_whatsapp,
   };
 }
 

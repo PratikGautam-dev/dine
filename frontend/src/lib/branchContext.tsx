@@ -17,6 +17,14 @@ export type Branch = {
   is_default: boolean;
   is_active: boolean;
   created_at: string;
+  // Multi-branch (migration 0055) -- operational overrides, null = inherit the hospital default.
+  // service_charge_pct/delivery_radius_km are stored and shown in settings but not yet enforced
+  // anywhere (no service-charge line item in order totals, no geocoding for a radius check).
+  service_charge_pct: number | null;
+  delivery_radius_km: number | null;
+  min_order_paise: number | null;
+  accepts_online: boolean | null;
+  accepts_whatsapp: boolean | null;
 };
 
 type BranchContextValue = {

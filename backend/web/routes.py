@@ -66,7 +66,9 @@ async def public_restaurant_detail(slug: str):
     # branch picker rendered by the frontend when this is empty).
     branches = []
     if db.get_multi_branch_enabled(restaurant["hospital_id"]):
-        active = db.list_branches(restaurant["hospital_id"])
+        # accepts_online=False (migration 0055) opts a branch OUT of the website entirely -- NULL/True
+        # (the default) keeps it listed, same "unset = included" convention every other override uses.
+        active = [b for b in db.list_branches(restaurant["hospital_id"]) if b["accepts_online"] is not False]
         if len(active) > 1:
             branches = [
                 {"id": b["id"], "name": b["name"], "address_line": b["address_line"], "city": b["city"]}
@@ -202,6 +204,16 @@ async def public_create_order(payload: CreateOrderPayload, authorization: str | 
         if not (1 <= line.quantity <= _MAX_ITEM_QUANTITY):
             return JSONResponse({"error": f"Quantity must be between 1 and {_MAX_ITEM_QUANTITY}."}, status_code=400)
 
+    branch_id = payload.branch_id
+    branch = None
+    if branch_id is not None:
+        branch = next(
+            (b for b in db.list_branches(restaurant["hospital_id"]) if b["id"] == branch_id and b["accepts_online"] is not False),
+            None,
+        )
+        if branch is None:
+            return JSONResponse({"error": "Choose a valid location."}, status_code=400)
+
     # Prices are computed by create_food_order() itself, from the DB, never from the client -- this
     # subtotal is only for the minimum-order check below.
     menu_by_id = {i["id"]: i for i in db.get_menu_items(restaurant["hospital_id"], available_only=True)}
@@ -211,17 +223,17 @@ async def public_create_order(payload: CreateOrderPayload, authorization: str | 
         if item is None:
             return JSONResponse({"error": "One of the items in your cart is no longer available."}, status_code=409)
         subtotal_paise += item["price_paise"] * line.quantity
-    if subtotal_paise < restaurant["min_order_paise"]:
+    # Multi-branch (migration 0055): the chosen branch's own min_order_paise override, when set,
+    # takes precedence over the restaurant-wide one -- same "branch override, NULL = inherit"
+    # convention every other branch setting already follows.
+    effective_min_order_paise = (
+        branch["min_order_paise"] if branch and branch["min_order_paise"] is not None else restaurant["min_order_paise"]
+    )
+    if subtotal_paise < effective_min_order_paise:
         from core.money import format_price
         return JSONResponse(
-            {"error": f"Minimum order is {format_price(restaurant['min_order_paise'])}."}, status_code=400,
+            {"error": f"Minimum order is {format_price(effective_min_order_paise)}."}, status_code=400,
         )
-
-    branch_id = payload.branch_id
-    if branch_id is not None:
-        valid_branch_ids = {b["id"] for b in db.list_branches(restaurant["hospital_id"])}
-        if branch_id not in valid_branch_ids:
-            return JSONResponse({"error": "Choose a valid location."}, status_code=400)
 
     try:
         order = db.create_food_order(

@@ -1766,6 +1766,15 @@ def init_db_on_connection(conn) -> int:
         "FOR EACH ROW EXECUTE FUNCTION set_default_table_branch_id()"
     )
 
+    # Migration 0055 -- branch-level operational setting overrides, all nullable (NULL =
+    # inherit the hospital-wide default), same convention operating_days/operating_hours/
+    # turnover_minutes already use on this table.
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS service_charge_pct NUMERIC(5,2)")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS delivery_radius_km NUMERIC(6,2)")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS min_order_paise INTEGER")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS accepts_online BOOLEAN")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS accepts_whatsapp BOOLEAN")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

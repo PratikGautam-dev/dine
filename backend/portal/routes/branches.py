@@ -22,6 +22,16 @@ class BranchPayload(BaseModel):
     operating_hours: list[str] | None = None
     turnover_minutes: int | None = None
     booking_interval_minutes: int | None = None
+    # Multi-branch (migration 0055) -- operational overrides, all optional (None = inherit the
+    # hospital-wide default). service_charge_pct/delivery_radius_km are stored and shown in the
+    # portal but NOT YET enforced anywhere (no service-charge line item in order totals, no
+    # geocoding to check a delivery address against a radius) -- flagged here rather than
+    # silently half-wiring a feature beyond this phase's actual scope.
+    service_charge_pct: float | None = None
+    delivery_radius_km: float | None = None
+    min_order_paise: int | None = None
+    accepts_online: bool | None = None
+    accepts_whatsapp: bool | None = None
 
 
 class MultiBranchTogglePayload(BaseModel):
@@ -85,6 +95,9 @@ async def portal_create_branch(payload: BranchPayload, authorization: str | None
         city=(payload.city or "").strip() or None, phone=(payload.phone or "").strip() or None,
         operating_days=_days_csv(payload.operating_days), operating_hours=_hours_csv(payload.operating_hours),
         turnover_minutes=payload.turnover_minutes, booking_interval_minutes=payload.booking_interval_minutes,
+        service_charge_pct=payload.service_charge_pct, delivery_radius_km=payload.delivery_radius_km,
+        min_order_paise=payload.min_order_paise, accepts_online=payload.accepts_online,
+        accepts_whatsapp=payload.accepts_whatsapp,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "branch.create",
@@ -109,6 +122,9 @@ async def portal_update_branch(branch_id: str, payload: BranchPayload, authoriza
         city=(payload.city or "").strip() or None, phone=(payload.phone or "").strip() or None,
         operating_days=_days_csv(payload.operating_days), operating_hours=_hours_csv(payload.operating_hours),
         turnover_minutes=payload.turnover_minutes, booking_interval_minutes=payload.booking_interval_minutes,
+        service_charge_pct=payload.service_charge_pct, delivery_radius_km=payload.delivery_radius_km,
+        min_order_paise=payload.min_order_paise, accepts_online=payload.accepts_online,
+        accepts_whatsapp=payload.accepts_whatsapp,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "branch.update",
