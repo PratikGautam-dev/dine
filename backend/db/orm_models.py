@@ -542,6 +542,21 @@ class Refund(Base):
     created_at: Mapped[str]
 
 
+class OrderStatusHistory(Base):
+    """order_status_history table (migration 0057) -- one row per transition
+    advance_order_status() makes (db/repositories/food_orders.py), inserted in the same
+    autocommit connection as its own guarded UPDATE."""
+    __tablename__ = "order_status_history"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    order_id: Mapped[int] = mapped_column(ForeignKey("food_orders.id"))
+    from_status: Mapped[str]
+    to_status: Mapped[str]
+    changed_by: Mapped[str | None]
+    created_at: Mapped[str]
+
+
 class AppointmentRow(Base):
     """db/schema.sql's appointments table -- the FULL, authoritative mapping,
     per appointments.py's own migration (closing the "partial, extend later"

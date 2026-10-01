@@ -1798,6 +1798,16 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_refunds_payment ON refunds(payment_id)")
 
+    # Migration 0057 -- order_status_history, an audit trail alongside advance_order_status()'s
+    # own guarded UPDATE.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS order_status_history ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "order_id INTEGER NOT NULL REFERENCES food_orders(id), from_status TEXT NOT NULL, "
+        "to_status TEXT NOT NULL, changed_by TEXT, created_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_order_status_history_order ON order_status_history(order_id)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

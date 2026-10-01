@@ -24,7 +24,7 @@ from sqlalchemy import DateTime, cast, select
 
 from db.connection import IntegrityError, get_connection, get_session
 from db.display_ids import ORDER_REFERENCE_ID_PREFIX, _generate_reference_id
-from db.orm_models import FoodOrder, FoodOrderItem
+from db.orm_models import FoodOrder, FoodOrderItem, OrderStatusHistory
 from db.repositories.menu_items import decrement_stock, restore_stock
 
 _CURRENCY = "INR"
@@ -259,6 +259,11 @@ def advance_order_status(hospital_id: int, order_id: int, new_status: str, expec
     ).fetchone()
     if row is None:
         return None
+    conn.execute(
+        "INSERT INTO order_status_history (hospital_id, order_id, from_status, to_status, created_at) "
+        "VALUES (?, ?, ?, ?, ?)",
+        (hospital_id, order_id, expected_status, new_status, datetime.now(timezone.utc).isoformat()),
+    )
     if new_status == STATUS_CANCELLED:
         # The transition above is guarded, so this runs exactly once per order:
         # a cancelled order gives its stock back.
@@ -267,6 +272,18 @@ def advance_order_status(hospital_id: int, order_id: int, new_status: str, expec
         ).fetchall():
             restore_stock(conn, item["menu_item_id"], item["quantity"])
     return get_food_order(hospital_id, order_id)
+
+
+def get_order_status_history(hospital_id: int, order_id: int) -> list[dict]:
+    """Oldest first -- a timeline, not a feed. One row per advance_order_status() transition;
+    orders that only ever went through create_food_order()'s initial status have none."""
+    session = get_session()
+    rows = session.execute(
+        select(OrderStatusHistory.from_status, OrderStatusHistory.to_status, OrderStatusHistory.changed_by, OrderStatusHistory.created_at)
+        .where(OrderStatusHistory.hospital_id == hospital_id, OrderStatusHistory.order_id == order_id)
+        .order_by(OrderStatusHistory.id.asc())
+    ).all()
+    return [dict(r._mapping) for r in rows]
 
 
 _ORDER_COLUMNS = (
