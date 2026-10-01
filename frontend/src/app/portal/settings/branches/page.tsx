@@ -1,170 +1,34 @@
 "use client";
 
-import { useState } from "react";
-import { MapPin, Pencil, Plus, Store } from "lucide-react";
+import { useMemo, useState } from "react";
+import type { ColumnDef } from "@tanstack/react-table";
+import {
+  Bike, Globe, MapPin, Pencil, Phone, Plus, Power, Search, Store,
+} from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Field } from "@/components/ui/Field";
+import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
+import { BranchFormDialog } from "@/components/portal/BranchFormDialog";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import {
   emptyBranchForm, toBranchForm, useBranchManagement, type BranchForm,
 } from "@/hooks/useBranchManagement";
 import type { Branch } from "@/lib/branchContext";
+import { rupees } from "@/lib/foodOrders";
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-
-function BranchFormCard({
-  title, form, onChange, onSubmit, onCancel, saving, error, canWrite,
-}: {
-  title: string;
-  form: BranchForm;
-  onChange: (patch: Partial<BranchForm>) => void;
-  onSubmit: () => void;
-  onCancel: () => void;
-  saving: boolean;
-  error: string | null;
-  canWrite: boolean;
-}) {
-  function toggleDay(day: string) {
-    onChange({
-      operating_days: form.operating_days.includes(day)
-        ? form.operating_days.filter((d) => d !== day)
-        : [...form.operating_days, day],
-    });
-  }
-
+function Detail({ label, value }: { label: string; value: string | null }) {
   return (
-    <Card className="mb-space-4 p-space-5">
-      <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">{title}</h2>
-      <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-        <Field label="Branch name" htmlFor="br-name" required>
-          <Input id="br-name" value={form.name} onChange={(e) => onChange({ name: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="City" htmlFor="br-city">
-          <Input id="br-city" value={form.city} onChange={(e) => onChange({ city: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="Address" htmlFor="br-address" className="sm:col-span-2">
-          <Input id="br-address" value={form.address_line} onChange={(e) => onChange({ address_line: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="Phone" htmlFor="br-phone">
-          <Input id="br-phone" value={form.phone} onChange={(e) => onChange({ phone: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="Operating hours" htmlFor="br-hours" hint="e.g. 11:00-23:00 -- leave blank to use the restaurant's own hours">
-          <Input id="br-hours" value={form.operating_hours} onChange={(e) => onChange({ operating_hours: e.target.value })} placeholder="11:00-23:00" disabled={!canWrite} />
-        </Field>
-        <Field label="Turnover (min)" htmlFor="br-turnover" hint="Leave blank to use the restaurant's own setting">
-          <Input id="br-turnover" type="number" min="0" value={form.turnover_minutes} onChange={(e) => onChange({ turnover_minutes: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="Booking interval (min)" htmlFor="br-interval" hint="Leave blank to use the restaurant's own setting">
-          <Input id="br-interval" type="number" min="0" value={form.booking_interval_minutes} onChange={(e) => onChange({ booking_interval_minutes: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <div className="sm:col-span-2">
-          <p className="mb-space-2 text-[12.5px] font-semibold text-ink-700">Operating days</p>
-          <div className="flex flex-wrap gap-space-2">
-            {WEEKDAYS.map((day) => (
-              <button
-                key={day}
-                type="button"
-                disabled={!canWrite}
-                onClick={() => toggleDay(day)}
-                className={`rounded-md border px-space-3 py-1 text-[12.5px] font-semibold transition-colors ${
-                  form.operating_days.includes(day) ? "border-brand-400 bg-brand-50 text-brand-700" : "border-line text-ink-600"
-                }`}
-              >
-                {day}
-              </button>
-            ))}
-          </div>
-        </div>
-        <Field label="Minimum order (₹)" htmlFor="br-min-order" hint="Leave blank to use the restaurant's own minimum">
-          <Input id="br-min-order" type="number" min="0" value={form.min_order_rupees} onChange={(e) => onChange({ min_order_rupees: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="Service charge (%)" htmlFor="br-service-charge" hint="Stored for reference -- not yet added to order totals">
-          <Input id="br-service-charge" type="number" min="0" max="100" step="0.1" value={form.service_charge_pct} onChange={(e) => onChange({ service_charge_pct: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <Field label="Delivery radius (km)" htmlFor="br-delivery-radius" hint="Stored for reference -- not yet enforced on checkout" className="sm:col-span-2">
-          <Input id="br-delivery-radius" type="number" min="0" step="0.1" value={form.delivery_radius_km} onChange={(e) => onChange({ delivery_radius_km: e.target.value })} disabled={!canWrite} />
-        </Field>
-        <div className="sm:col-span-2 flex flex-wrap gap-space-6 border-t border-line pt-space-4">
-          <label className="flex items-center gap-space-2">
-            <Switch
-              checked={form.accepts_online !== false}
-              onChange={() => onChange({ accepts_online: form.accepts_online === false ? null : false })}
-              disabled={!canWrite}
-              aria-label="Accept website orders at this branch"
-            />
-            <span className="text-[13px] font-medium text-ink-700">Accept website orders</span>
-          </label>
-          <label className="flex items-center gap-space-2">
-            <Switch
-              checked={form.accepts_whatsapp !== false}
-              onChange={() => onChange({ accepts_whatsapp: form.accepts_whatsapp === false ? null : false })}
-              disabled={!canWrite}
-              aria-label="Offer this branch on WhatsApp"
-            />
-            <span className="text-[13px] font-medium text-ink-700">Offer on WhatsApp</span>
-          </label>
-        </div>
-      </div>
-      {error && <p className="mt-space-2 text-[13px] font-medium text-error">{error}</p>}
-      <div className="mt-space-4 flex gap-space-2">
-        <Button type="button" onClick={onSubmit} disabled={saving || !form.name.trim()}>{saving ? "Saving…" : "Save"}</Button>
-        <Button type="button" variant="secondary" onClick={onCancel} disabled={saving}>Cancel</Button>
-      </div>
-    </Card>
-  );
-}
-
-function BranchRow({ branch, canWrite, onEdit, onToggleActive, togglingId }: {
-  branch: Branch;
-  canWrite: boolean;
-  onEdit: () => void;
-  onToggleActive: () => void;
-  togglingId: string | null;
-}) {
-  return (
-    <Card className="mb-space-3 flex items-center justify-between gap-space-3 p-space-4">
-      <div className="flex min-w-0 items-center gap-space-3">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
-          <Store size={18} />
-        </div>
-        <div className="min-w-0">
-          <div className="flex items-center gap-space-2">
-            <p className="truncate text-[13.5px] font-bold text-ink-900">{branch.name}</p>
-            {branch.is_default && <Badge tone="brand">Default</Badge>}
-            {!branch.is_active && <Badge tone="neutral">Inactive</Badge>}
-          </div>
-          {(branch.address_line || branch.city) && (
-            <p className="flex items-center gap-1 text-[12px] text-ink-600">
-              <MapPin size={12} /> {[branch.address_line, branch.city].filter(Boolean).join(", ")}
-            </p>
-          )}
-        </div>
-      </div>
-      <div className="flex shrink-0 items-center gap-space-2">
-        {canWrite && (
-          <>
-            <Button variant="secondary" onClick={onEdit}>
-              <Pencil size={13} /> Edit
-            </Button>
-            {!branch.is_default && (
-              <Switch
-                checked={branch.is_active}
-                onChange={onToggleActive}
-                disabled={togglingId === branch.id}
-                aria-label={branch.is_active ? "Deactivate branch" : "Activate branch"}
-              />
-            )}
-          </>
-        )}
-      </div>
-    </Card>
+    <div>
+      <p className="text-label mb-0.5 font-medium text-ink-600">{label}</p>
+      <p className="text-[13.5px] text-ink-900">{value || "—"}</p>
+    </div>
   );
 }
 
@@ -177,13 +41,30 @@ export default function BranchesSettingsPage() {
     toggleMultiBranch, createBranch, updateBranch, setBranchActive,
   } = useBranchManagement(canView);
 
-  const [adding, setAdding] = useState(false);
-  const [addForm, setAddForm] = useState<BranchForm>(emptyBranchForm());
-  const [addError, setAddError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
+  const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState<BranchForm>(emptyBranchForm());
-  const [editError, setEditError] = useState<string | null>(null);
+  const [dialog, setDialog] = useState<{ kind: "add" } | { kind: "edit"; branch: Branch } | null>(null);
+  const [form, setForm] = useState<BranchForm>(emptyBranchForm());
+  const [formError, setFormError] = useState<string | null>(null);
+
+  const visible = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return branches ?? [];
+    return (branches ?? []).filter((b) => [b.name, b.city ?? "", b.address_line ?? ""].some((v) => v.toLowerCase().includes(q)));
+  }, [branches, search]);
+
+  const selected = useMemo(() => (branches ?? []).find((b) => b.id === selectedId) ?? visible[0] ?? null, [branches, visible, selectedId]);
+
+  const counts = useMemo(() => {
+    const all = branches ?? [];
+    return {
+      total: all.length,
+      active: all.filter((b) => b.is_active).length,
+      online: all.filter((b) => b.is_active && b.accepts_online !== false).length,
+      whatsapp: all.filter((b) => b.is_active && b.accepts_whatsapp !== false).length,
+    };
+  }, [branches]);
 
   if (!canView) {
     return (
@@ -194,38 +75,86 @@ export default function BranchesSettingsPage() {
   }
 
   function openAdd() {
-    setAddForm(emptyBranchForm());
-    setAddError(null);
-    setAdding(true);
+    setForm(emptyBranchForm());
+    setFormError(null);
+    setDialog({ kind: "add" });
   }
 
   function openEdit(branch: Branch) {
-    setEditForm(toBranchForm(branch));
-    setEditError(null);
-    setEditingId(branch.id);
+    setForm(toBranchForm(branch));
+    setFormError(null);
+    setDialog({ kind: "edit", branch });
   }
 
-  async function handleAdd() {
-    setAddError(null);
-    const problem = await createBranch(addForm);
-    if (problem) setAddError(problem);
-    else setAdding(false);
+  async function handleSubmit() {
+    setFormError(null);
+    const problem = dialog?.kind === "edit" ? await updateBranch(dialog.branch.id, form) : await createBranch(form);
+    if (problem) setFormError(problem);
+    else setDialog(null);
   }
 
-  async function handleEdit() {
-    if (!editingId) return;
-    setEditError(null);
-    const problem = await updateBranch(editingId, editForm);
-    if (problem) setEditError(problem);
-    else setEditingId(null);
-  }
+  const columns = useMemo<ColumnDef<Branch>[]>(
+    () => [
+      {
+        id: "name",
+        header: "Branch Name",
+        cell: ({ row }) => (
+          <div className="flex items-center gap-space-3">
+            <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
+              <Store size={16} />
+            </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-space-2">
+                <p className="truncate text-[13.5px] font-bold text-ink-900">{row.original.name}</p>
+                {row.original.is_default && <Badge tone="brand">Default</Badge>}
+              </div>
+              {row.original.address_line && <p className="truncate text-[12px] text-ink-500">{row.original.address_line}</p>}
+            </div>
+          </div>
+        ),
+      },
+      { id: "city", header: "City", cell: ({ row }) => <span className="text-[13px] text-ink-700">{row.original.city || "—"}</span> },
+      {
+        id: "status",
+        header: "Status",
+        cell: ({ row }) => <Badge tone={row.original.is_active ? "success" : "neutral"}>{row.original.is_active ? "Active" : "Inactive"}</Badge>,
+      },
+      {
+        id: "online",
+        header: "Website",
+        cell: ({ row }) => (
+          <Badge tone={row.original.accepts_online !== false ? "success" : "clay"}>{row.original.accepts_online !== false ? "Enabled" : "Disabled"}</Badge>
+        ),
+      },
+      {
+        id: "whatsapp",
+        header: "WhatsApp",
+        cell: ({ row }) => (
+          <Badge tone={row.original.accepts_whatsapp !== false ? "success" : "clay"}>{row.original.accepts_whatsapp !== false ? "Enabled" : "Disabled"}</Badge>
+        ),
+      },
+      {
+        id: "min_order",
+        header: "Min. Order",
+        cell: ({ row }) => <span className="text-[13px] tabular-nums text-ink-700">{row.original.min_order_paise != null ? rupees(row.original.min_order_paise) : "—"}</span>,
+      },
+    ],
+    [],
+  );
 
   return (
     <PortalShell hospital={session?.hospital || null} active="branches">
       <PageHeader
         title="Branches"
         icon={<Store size={22} />}
-        description="Add locations for this restaurant -- the WhatsApp bot and portal stay one unified account, filterable by branch."
+        description="Manage this restaurant's physical locations, onboarding across WhatsApp and the website."
+        actions={
+          <PermissionGate page="settings" action="write">
+            <Button onClick={openAdd}>
+              <Plus size={14} /> Add New Branch
+            </Button>
+          </PermissionGate>
+        }
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
@@ -244,54 +173,121 @@ export default function BranchesSettingsPage() {
         />
       </Card>
 
-      {!branches ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
-      ) : (
-        <>
-          {branches.map((b) =>
-            editingId === b.id ? (
-              <BranchFormCard
-                key={b.id}
-                title={`Edit ${b.name}`}
-                form={editForm}
-                onChange={(patch) => setEditForm({ ...editForm, ...patch })}
-                onSubmit={handleEdit}
-                onCancel={() => setEditingId(null)}
-                saving={saving}
-                error={editError}
-                canWrite={canWrite}
-              />
-            ) : (
-              <BranchRow
-                key={b.id}
-                branch={b}
-                canWrite={canWrite}
-                onEdit={() => openEdit(b)}
-                onToggleActive={() => setBranchActive(b.id, !b.is_active)}
-                togglingId={togglingId}
-              />
-            ),
-          )}
+      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
+        <StatTile icon={<Store size={22} />} label="Total Branches" value={counts.total} deltaPct={null} hint="Across this account" tone="brand" filled />
+        <StatTile icon={<Power size={22} />} label="Active Branches" value={counts.active} deltaPct={null} hint={`${counts.total - counts.active} inactive`} tone="info" filled />
+        <StatTile icon={<Globe size={22} />} label="Accepting Website Orders" value={counts.online} deltaPct={null} hint="Of active branches" tone="warning" filled />
+        <StatTile icon={<Bike size={22} />} label="Offered on WhatsApp" value={counts.whatsapp} deltaPct={null} hint="Of active branches" tone="violet" filled />
+      </div>
 
-          {adding ? (
-            <BranchFormCard
-              title="Add a branch"
-              form={addForm}
-              onChange={(patch) => setAddForm({ ...addForm, ...patch })}
-              onSubmit={handleAdd}
-              onCancel={() => setAdding(false)}
-              saving={saving}
-              error={addError}
-              canWrite={canWrite}
-            />
-          ) : (
-            <PermissionGate page="settings" action="write">
-              <Button variant="secondary" onClick={openAdd}>
-                <Plus size={14} /> Add a branch
-              </Button>
-            </PermissionGate>
-          )}
-        </>
+      <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="min-w-0">
+          <div className="mb-space-3 flex flex-wrap items-center gap-space-2">
+            <div className="relative min-w-[220px] flex-1">
+              <Search size={14} className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400" />
+              <Input
+                aria-label="Search branches" placeholder="Search branches, city, address…" className="pl-9"
+                value={search} onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
+          <Card className="p-space-2">
+            <h2 className="px-space-2 pt-space-1 pb-space-2 text-[15px] font-bold text-ink-900">Branch Directory ({counts.total})</h2>
+            {!branches ? (
+              <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+            ) : (
+              <DataTable
+                columns={columns}
+                data={visible}
+                getRowId={(b) => b.id}
+                pageSize={10}
+                onRowClick={(b) => setSelectedId(b.id)}
+                rowClassName={(b) => (selected?.id === b.id ? "cursor-pointer bg-brand-50/60" : "cursor-pointer")}
+                emptyMessage={branches.length === 0 ? "No branches yet." : "No branches match that search."}
+              />
+            )}
+          </Card>
+        </div>
+
+        <div>
+          <Card className="h-fit p-space-5">
+            {!selected ? (
+              <p className="text-[13px] text-ink-400">Select a branch to see its details.</p>
+            ) : (
+              <>
+                <div className="mb-space-3 flex items-center justify-between">
+                  <h2 className="text-[15px] font-bold text-ink-900">Branch Profile</h2>
+                  <Badge tone={selected.is_active ? "success" : "neutral"}>{selected.is_active ? "Active" : "Inactive"}</Badge>
+                </div>
+                <div className="mb-space-4 flex items-center gap-space-3">
+                  <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                    <Store size={22} />
+                  </span>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-space-1">
+                      <h3 className="truncate text-[15px] font-bold text-ink-900">{selected.name}</h3>
+                      {selected.is_default && <Badge tone="brand">Default</Badge>}
+                    </div>
+                    {(selected.address_line || selected.city) && (
+                      <p className="flex items-center gap-1 text-[12.5px] text-ink-600">
+                        <MapPin size={12} /> {[selected.address_line, selected.city].filter(Boolean).join(", ")}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <div className="mb-space-4 space-y-space-2 text-[13px]">
+                  {selected.phone && <p className="flex items-center gap-space-2 text-ink-700"><Phone size={14} className="text-ink-400" /> {selected.phone}</p>}
+                </div>
+                <div className="grid grid-cols-1 gap-space-3">
+                  <Detail label="Operating Hours" value={selected.operating_hours} />
+                  <Detail label="Operating Days" value={selected.operating_days} />
+                  <Detail label="Minimum Order" value={selected.min_order_paise != null ? rupees(selected.min_order_paise) : null} />
+                  <Detail label="Service Charge" value={selected.service_charge_pct != null ? `${selected.service_charge_pct}%` : null} />
+                  <Detail label="Delivery Radius" value={selected.delivery_radius_km != null ? `${selected.delivery_radius_km} km` : null} />
+                </div>
+                <div className="mt-space-4 flex flex-wrap gap-space-4 border-t border-line pt-space-4 text-[12.5px]">
+                  <span className="flex items-center gap-1 font-semibold text-ink-700">
+                    <Globe size={13} className={selected.accepts_online !== false ? "text-success" : "text-ink-300"} />
+                    Website {selected.accepts_online !== false ? "enabled" : "disabled"}
+                  </span>
+                  <span className="flex items-center gap-1 font-semibold text-ink-700">
+                    <Bike size={13} className={selected.accepts_whatsapp !== false ? "text-success" : "text-ink-300"} />
+                    WhatsApp {selected.accepts_whatsapp !== false ? "enabled" : "disabled"}
+                  </span>
+                </div>
+                <PermissionGate page="settings" action="write">
+                  <div className="mt-space-5 flex flex-wrap gap-space-2">
+                    <Button onClick={() => openEdit(selected)}>
+                      <Pencil size={14} /> Edit Branch
+                    </Button>
+                    {!selected.is_default && (
+                      <Button
+                        variant={selected.is_active ? "destructive" : "secondary"}
+                        disabled={togglingId === selected.id}
+                        onClick={() => setBranchActive(selected.id, !selected.is_active)}
+                      >
+                        <Power size={14} /> {selected.is_active ? "Deactivate" : "Activate"}
+                      </Button>
+                    )}
+                  </div>
+                </PermissionGate>
+              </>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {dialog && (
+        <BranchFormDialog
+          title={dialog.kind === "edit" ? `Edit ${dialog.branch.name}` : "Add a branch"}
+          form={form}
+          onChange={(patch) => setForm({ ...form, ...patch })}
+          onSubmit={handleSubmit}
+          onClose={() => setDialog(null)}
+          saving={saving}
+          error={formError}
+        />
       )}
     </PortalShell>
   );

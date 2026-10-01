@@ -28,13 +28,25 @@ def _default_branch_id(hospital_id: int) -> str:
     return f"h{hospital_id}_default"
 
 
+def _row_to_dict(row) -> dict:
+    """service_charge_pct/delivery_radius_km are NUMERIC columns -- SQLAlchemy hands those back
+    as Decimal, which Starlette's JSONResponse can't serialize (TypeError, a 500 with no CORS
+    headers on it, which the browser reports as a bare "network error" with no useful detail).
+    Cast to float here, the one place every read of this table funnels through."""
+    d = dict(row._mapping)
+    for key in ("service_charge_pct", "delivery_radius_km"):
+        if d.get(key) is not None:
+            d[key] = float(d[key])
+    return d
+
+
 def list_branches(hospital_id: int, active_only: bool = True) -> list[dict]:
     session = get_session()
     stmt = select(*_COLUMNS).where(Branch.hospital_id == hospital_id)
     if active_only:
         stmt = stmt.where(Branch.is_active.is_(True))
     rows = session.execute(stmt.order_by(Branch.is_default.desc(), Branch.name)).all()
-    return [dict(r._mapping) for r in rows]
+    return [_row_to_dict(r) for r in rows]
 
 
 def get_branch(hospital_id: int, branch_id: str) -> dict | None:
@@ -42,7 +54,7 @@ def get_branch(hospital_id: int, branch_id: str) -> dict | None:
     row = session.execute(
         select(*_COLUMNS).where(Branch.hospital_id == hospital_id, Branch.id == branch_id)
     ).first()
-    return dict(row._mapping) if row else None
+    return _row_to_dict(row) if row else None
 
 
 def get_default_branch(hospital_id: int) -> dict:
