@@ -12,6 +12,7 @@ core/main.py also calls init_db() once at startup, so a fresh clone works
 without a manual step.
 """
 import importlib
+import logging
 import re
 from pathlib import Path
 
@@ -1736,9 +1737,12 @@ def init_db_on_connection(conn) -> int:
         "$$ LANGUAGE plpgsql"
     )
     for _branch_scoped_table in ("departments", "doctors", "appointments", "food_orders", "waitlist_entries", "chef_notes", "feedback"):
-        conn.execute(f"DROP TRIGGER IF EXISTS trg_{_branch_scoped_table}_default_branch ON {_branch_scoped_table}")
+        # CREATE OR REPLACE (not DROP IF EXISTS + CREATE) -- the two-statement form has a race
+        # window if two app instances run init_db() at once (e.g. a Render rolling deploy
+        # overlap): both see the trigger dropped, both try to create it, the second CREATE fails
+        # with "already exists". CREATE OR REPLACE is a single atomic statement, no such window.
         conn.execute(
-            f"CREATE TRIGGER trg_{_branch_scoped_table}_default_branch BEFORE INSERT ON {_branch_scoped_table} "
+            f"CREATE OR REPLACE TRIGGER trg_{_branch_scoped_table}_default_branch BEFORE INSERT ON {_branch_scoped_table} "
             f"FOR EACH ROW EXECUTE FUNCTION set_default_branch_id()"
         )
 
@@ -1760,9 +1764,9 @@ def init_db_on_connection(conn) -> int:
         "END IF; RETURN NEW; END; "
         "$$ LANGUAGE plpgsql"
     )
-    conn.execute("DROP TRIGGER IF EXISTS trg_tables_default_branch ON tables")
+    # CREATE OR REPLACE, not DROP IF EXISTS + CREATE -- same concurrent-boot race avoided above.
     conn.execute(
-        "CREATE TRIGGER trg_tables_default_branch BEFORE INSERT ON tables "
+        "CREATE OR REPLACE TRIGGER trg_tables_default_branch BEFORE INSERT ON tables "
         "FOR EACH ROW EXECUTE FUNCTION set_default_table_branch_id()"
     )
 
@@ -1885,10 +1889,48 @@ def init_db() -> int:
     every db/repository.py call afterward operate against the exact same
     connection object.
     Returns the seeded hospital's id.
-    """
-    run_alembic_migrations()
+
+    Retries on any exception, up to a few attempts: a Render rolling deploy can briefly run the
+    OLD and NEW instance at once (or, on a scaled-out service, several fresh instances cold-start
+    together), each independently calling this at startup against the same database. This
+    function is ~1900 lines of "IF NOT EXISTS"-guarded DDL plus a few legacy-table data
+    migrations (users/hospital_users/super_admins -> identities/hospital_owners/
+    super_admin_details, then DROPs the old ones) -- concurrent runs can be at different points in
+    it at once, and every kind of crossing produces a DIFFERENT, genuinely-hard-to-enumerate
+    Postgres error: DuplicateTable/DuplicateObject/UniqueViolation when both see something as "not
+    yet created" and both create it; UndefinedTable when one run has already dropped a legacy
+    table another is still reading from; DependentObjectsStillExist when one run's DROP races
+    another's not-yet-done DROP of a table that still FK-references it. Confirmed live (repeated
+    2-, 3- and 5-way concurrent-boot tests against the real database) that all of these are
+    transient -- re-entering this function from the top always eventually lands cleanly once the
+    sibling runs finish, since every guard re-evaluates against the now-current state. A
+    session-level pg_advisory_lock would be the textbook alternative, but DATABASE_URL here is
+    Neon's POOLED (PgBouncer transaction-pooling) endpoint, which can silently reassign the
+    physical backend between autocommitted statements -- confirmed live that a lock isn't reliably
+    held across this whole function on that kind of connection, so retrying instead of locking is
+    the fix that's actually been verified to work here. Catching bare Exception (not a specific
+    class list) is deliberate, not sloppy: every statement in this function is fixed, hand-written
+    schema-replay SQL, never a dynamic/user-influenced query, so within this function specifically
+    a failure is overwhelmingly a concurrency artifact, not a real bug -- and the final attempt
+    still re-raises, so a genuinely persistent problem isn't silently swallowed forever."""
+    import random
+    import time
+
     conn = get_connection()
-    return init_db_on_connection(conn)
+    attempts = 5
+    for attempt in range(1, attempts + 1):
+        try:
+            run_alembic_migrations()
+            return init_db_on_connection(conn)
+        except Exception as e:
+            if attempt == attempts:
+                raise
+            logging.getLogger(__name__).warning(
+                "init_db() hit attempt %d/%d failing with %r -- likely a concurrent-boot race, retrying.",
+                attempt, attempts, e,
+            )
+            time.sleep(random.uniform(0.2, 0.8) * attempt)
+    raise AssertionError("unreachable")
 
 
 def _redact_credentials(database_url: str) -> str:
