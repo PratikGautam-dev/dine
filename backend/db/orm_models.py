@@ -482,6 +482,8 @@ class Offer(Base):
     fulfillment_type: Mapped[str | None]
     is_active: Mapped[bool]
     created_at: Mapped[str]
+    branch_id: Mapped[str | None] = mapped_column(ForeignKey("branches.id"))
+    per_customer_limit: Mapped[int | None]
 
 
 class FoodOrderItem(Base):

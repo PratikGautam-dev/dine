@@ -141,7 +141,9 @@ def create_food_order(
             # back the transaction (stock already decremented above), it's just a different
             # exception type than the stock-only IntegrityError case so callers can tell the two
             # apart and show the guest the right message.
-            offer_id, discount_paise = redeem_offer_in_conn(conn, hospital_id, coupon_code, subtotal_paise, fulfillment_type)
+            offer_id, discount_paise = redeem_offer_in_conn(
+                conn, hospital_id, coupon_code, subtotal_paise, fulfillment_type, branch_id=branch_id, phone=phone,
+            )
 
         # Flat delivery fee (hospital_settings.home_collection_charge, shown in the
         # portal as "Delivery fee"); no distance-based pricing. Discount applies to the

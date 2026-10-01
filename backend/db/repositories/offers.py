@@ -27,7 +27,7 @@ def _now_iso() -> str:
 def create_offer(
     hospital_id: int, name: str, discount_type: str, discount_value: int, coupon_code: str,
     valid_from: str, valid_to: str, min_order_value_paise: int = 0, max_redemptions: int | None = None,
-    fulfillment_type: str | None = None,
+    fulfillment_type: str | None = None, branch_id: str | None = None, per_customer_limit: int | None = None,
 ) -> dict:
     if discount_type not in DISCOUNT_TYPES:
         raise ValueError(f"discount_type must be one of {DISCOUNT_TYPES}, got {discount_type!r}")
@@ -37,6 +37,8 @@ def create_offer(
         raise ValueError("Discount value must be greater than 0.")
     if fulfillment_type is not None and fulfillment_type not in FULFILLMENT_SCOPES:
         raise ValueError(f"fulfillment_type must be one of {FULFILLMENT_SCOPES} or None, got {fulfillment_type!r}")
+    if per_customer_limit is not None and per_customer_limit <= 0:
+        raise ValueError("per_customer_limit must be greater than 0.")
     code = coupon_code.strip().upper()
     if not code:
         raise ValueError("Coupon code is required.")
@@ -47,6 +49,7 @@ def create_offer(
             coupon_code=code, valid_from=valid_from, valid_to=valid_to,
             min_order_value_paise=min_order_value_paise, max_redemptions=max_redemptions,
             fulfillment_type=fulfillment_type, is_active=True, created_at=_now_iso(),
+            branch_id=branch_id, per_customer_limit=per_customer_limit,
         ).returning(Offer.id)
     ).scalar_one()
     session.commit()
@@ -65,6 +68,7 @@ def _offer_to_dict(row: Offer) -> dict:
         "coupon_code": row.coupon_code, "valid_from": row.valid_from, "valid_to": row.valid_to,
         "min_order_value_paise": row.min_order_value_paise, "max_redemptions": row.max_redemptions,
         "fulfillment_type": row.fulfillment_type, "is_active": row.is_active, "created_at": row.created_at,
+        "branch_id": row.branch_id, "per_customer_limit": row.per_customer_limit,
     }
 
 
@@ -196,7 +200,10 @@ def get_offers_summary(hospital_id: int) -> dict:
     }
 
 
-def _validate_offer_row(row: dict, subtotal_paise: int, fulfillment_type: str, usage_count: int, now: str) -> None:
+def _validate_offer_row(
+    row: dict, subtotal_paise: int, fulfillment_type: str, usage_count: int, now: str,
+    branch_id: str | None = None, customer_usage_count: int | None = None,
+) -> None:
     if not row["is_active"]:
         raise OfferError("This coupon is no longer active.")
     if now < row["valid_from"]:
@@ -205,18 +212,28 @@ def _validate_offer_row(row: dict, subtotal_paise: int, fulfillment_type: str, u
         raise OfferError("This coupon has expired.")
     if row["fulfillment_type"] is not None and row["fulfillment_type"] != fulfillment_type:
         raise OfferError(f"This coupon only applies to {row['fulfillment_type']} orders.")
+    if row["branch_id"] is not None and branch_id is not None and row["branch_id"] != branch_id:
+        raise OfferError("This coupon isn't valid at this location.")
     if subtotal_paise < row["min_order_value_paise"]:
         from core.money import format_price
         raise OfferError(f"This coupon needs a minimum order of {format_price(row['min_order_value_paise'])}.")
     if row["max_redemptions"] is not None and usage_count >= row["max_redemptions"]:
         raise OfferError("This coupon has reached its redemption limit.")
+    if row["per_customer_limit"] is not None and customer_usage_count is not None and customer_usage_count >= row["per_customer_limit"]:
+        raise OfferError("You've already used this coupon the maximum number of times.")
 
 
-def preview_offer(hospital_id: int, coupon_code: str, subtotal_paise: int, fulfillment_type: str) -> dict:
+def preview_offer(
+    hospital_id: int, coupon_code: str, subtotal_paise: int, fulfillment_type: str,
+    branch_id: str | None = None, phone: str | None = None,
+) -> dict:
     """Read-only check (no redemption reserved) -- used to show the guest the discount before
     they confirm the order. The real, race-safe check happens again inside create_food_order()'s
     own transaction at actual checkout; this can go stale between preview and confirm (e.g. the
-    last slot of a capped coupon taken by someone else), which create_food_order() then rejects."""
+    last slot of a capped coupon taken by someone else), which create_food_order() then rejects.
+    branch_id/phone are optional here -- callers that don't have them yet (older call sites) just
+    skip the branch-restriction/per-customer-limit checks at preview time; redeem_offer_in_conn()
+    always enforces both for real."""
     code = coupon_code.strip().upper()
     session = get_session()
     row = session.execute(
@@ -228,7 +245,14 @@ def preview_offer(hospital_id: int, coupon_code: str, subtotal_paise: int, fulfi
     usage_count = session.execute(
         select(func.count(FoodOrder.id)).where(FoodOrder.offer_id == row.id, FoodOrder.status != "cancelled")
     ).scalar_one()
-    _validate_offer_row(offer, subtotal_paise, fulfillment_type, usage_count, _now_iso())
+    customer_usage_count = None
+    if phone is not None:
+        customer_usage_count = session.execute(
+            select(func.count(FoodOrder.id)).where(
+                FoodOrder.offer_id == row.id, FoodOrder.status != "cancelled", FoodOrder.phone == phone,
+            )
+        ).scalar_one()
+    _validate_offer_row(offer, subtotal_paise, fulfillment_type, usage_count, _now_iso(), branch_id, customer_usage_count)
     discount_paise = (
         min(subtotal_paise, round(subtotal_paise * offer["discount_value"] / 100))
         if offer["discount_type"] == "percentage" else min(subtotal_paise, offer["discount_value"])
@@ -236,15 +260,20 @@ def preview_offer(hospital_id: int, coupon_code: str, subtotal_paise: int, fulfi
     return {"offer_id": offer["id"], "name": offer["name"], "coupon_code": offer["coupon_code"], "discount_paise": discount_paise}
 
 
-def redeem_offer_in_conn(conn, hospital_id: int, coupon_code: str, subtotal_paise: int, fulfillment_type: str) -> tuple[int, int]:
+def redeem_offer_in_conn(
+    conn, hospital_id: int, coupon_code: str, subtotal_paise: int, fulfillment_type: str,
+    branch_id: str | None = None, phone: str | None = None,
+) -> tuple[int, int]:
     """The real, race-checked redemption -- called from create_food_order() inside its own
     BEGIN/COMMIT transaction on the shared raw connection, so the usage-count check and the
     order INSERT that follows are atomic against a genuinely concurrent redemption of the same
-    capped coupon. Returns (offer_id, discount_paise); raises OfferError."""
+    capped coupon (and, now, against the same guest's own concurrent per_customer_limit redemptions).
+    Returns (offer_id, discount_paise); raises OfferError."""
     code = coupon_code.strip().upper()
     row = conn.execute(
         "SELECT id, discount_type, discount_value, valid_from, valid_to, min_order_value_paise, "
-        "max_redemptions, fulfillment_type, is_active FROM offers WHERE hospital_id = ? AND coupon_code = ?",
+        "max_redemptions, fulfillment_type, is_active, branch_id, per_customer_limit "
+        "FROM offers WHERE hospital_id = ? AND coupon_code = ?",
         (hospital_id, code),
     ).fetchone()
     if row is None:
@@ -253,7 +282,13 @@ def redeem_offer_in_conn(conn, hospital_id: int, coupon_code: str, subtotal_pais
     usage_count = conn.execute(
         "SELECT COUNT(*) AS c FROM food_orders WHERE offer_id = ? AND status != 'cancelled'", (offer["id"],),
     ).fetchone()["c"]
-    _validate_offer_row(offer, subtotal_paise, fulfillment_type, usage_count, _now_iso())
+    customer_usage_count = None
+    if phone is not None:
+        customer_usage_count = conn.execute(
+            "SELECT COUNT(*) AS c FROM food_orders WHERE offer_id = ? AND status != 'cancelled' AND phone = ?",
+            (offer["id"], phone),
+        ).fetchone()["c"]
+    _validate_offer_row(offer, subtotal_paise, fulfillment_type, usage_count, _now_iso(), branch_id, customer_usage_count)
     discount_paise = (
         min(subtotal_paise, round(subtotal_paise * offer["discount_value"] / 100))
         if offer["discount_type"] == "percentage" else min(subtotal_paise, offer["discount_value"])

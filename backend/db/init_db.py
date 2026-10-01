@@ -1811,6 +1811,10 @@ def init_db_on_connection(conn) -> int:
     # Migration 0058 -- feedback.order_id, nullable.
     conn.execute("ALTER TABLE feedback ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES food_orders(id)")
 
+    # Migration 0059 -- offers.branch_id (NULL = all branches) + offers.per_customer_limit.
+    conn.execute("ALTER TABLE offers ADD COLUMN IF NOT EXISTS branch_id TEXT REFERENCES branches(id)")
+    conn.execute("ALTER TABLE offers ADD COLUMN IF NOT EXISTS per_customer_limit INTEGER")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

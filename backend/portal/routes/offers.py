@@ -16,6 +16,7 @@ def _offer_json(o: dict) -> dict:
         "min_order_value_paise": o["min_order_value_paise"], "max_redemptions": o["max_redemptions"],
         "fulfillment_type": o["fulfillment_type"], "is_active": o["is_active"], "created_at": o["created_at"],
         "usage_count": o.get("usage_count", 0), "revenue_paise": o.get("revenue_paise", 0), "status": o.get("status"),
+        "branch_id": o.get("branch_id"), "per_customer_limit": o.get("per_customer_limit"),
     }
 
 
@@ -51,6 +52,8 @@ async def portal_create_offer(payload: dict, authorization: str | None = Header(
             min_order_value_paise=int(p.get("min_order_value_paise") or 0),
             max_redemptions=int(p["max_redemptions"]) if p.get("max_redemptions") else None,
             fulfillment_type=p.get("fulfillment_type") or None,
+            branch_id=p.get("branch_id") or None,
+            per_customer_limit=int(p["per_customer_limit"]) if p.get("per_customer_limit") else None,
         )
     except ValueError as exc:
         return JSONResponse({"error": str(exc)}, status_code=400)
