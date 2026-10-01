@@ -501,6 +501,47 @@ class FoodOrderItem(Base):
     quantity: Mapped[int]
 
 
+class Payment(Base):
+    """db/schema.sql's payments table (migration 0056) -- a structured payment record per order,
+    additive alongside food_orders' own razorpay_*/mock_payment_ref columns (see that migration's
+    own docstring for why those stay untouched). One row per payment ATTEMPT -- a food order that
+    fails payment and retries gets a fresh row, not an overwrite, which food_orders' own flat
+    columns couldn't represent."""
+    __tablename__ = "payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"))
+    order_id: Mapped[int] = mapped_column(ForeignKey("food_orders.id"))
+    method: Mapped[str]  # 'razorpay' | 'mock'
+    provider: Mapped[str | None]
+    status: Mapped[str]  # pending | paid | failed
+    amount_paise: Mapped[int]
+    provider_payment_id: Mapped[str | None]
+    provider_order_id: Mapped[str | None]
+    payment_link_url: Mapped[str | None]
+    idempotency_key: Mapped[str | None]
+    paid_at: Mapped[str | None]
+    created_at: Mapped[str]
+    updated_at: Mapped[str]
+
+
+class Refund(Base):
+    """db/schema.sql's refunds table (migration 0056) -- table + create_refund() only this
+    phase, no portal refund UI/workflow yet (confirmed scope: a follow-up, not auto-built)."""
+    __tablename__ = "refunds"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hospital_id: Mapped[int] = mapped_column(ForeignKey("hospitals.id"))
+    payment_id: Mapped[int] = mapped_column(ForeignKey("payments.id"))
+    amount_paise: Mapped[int]
+    reason: Mapped[str | None]
+    provider_refund_id: Mapped[str | None]
+    status: Mapped[str]
+    created_by: Mapped[str | None]
+    created_at: Mapped[str]
+
+
 class AppointmentRow(Base):
     """db/schema.sql's appointments table -- the FULL, authoritative mapping,
     per appointments.py's own migration (closing the "partial, extend later"

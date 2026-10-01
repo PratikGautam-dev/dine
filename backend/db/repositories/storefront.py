@@ -333,16 +333,27 @@ def mark_order_paid_mock(hospital_id: int, order_id: int) -> dict | None:
     (advance_order_status(..., STATUS_PAID, expected_status=STATUS_PENDING_PAYMENT)) -- None means
     this order wasn't awaiting payment (already paid, cancelled, or pay-at-restaurant)."""
     session = get_session()
+    mock_ref = "mockpay_" + secrets.token_hex(8)
     row = session.execute(
         update(FoodOrder)
         .where(FoodOrder.hospital_id == hospital_id, FoodOrder.id == order_id, FoodOrder.status == STATUS_PENDING_PAYMENT)
-        .values(mock_payment_ref="mockpay_" + secrets.token_hex(8))
-        .returning(FoodOrder.id)
+        .values(mock_payment_ref=mock_ref)
+        .returning(FoodOrder.id, FoodOrder.branch_id, FoodOrder.total_paise)
     ).first()
     session.commit()
     if row is None:
         return None
-    return advance_order_status(hospital_id, order_id, STATUS_PAID, expected_status=STATUS_PENDING_PAYMENT)
+    result = advance_order_status(hospital_id, order_id, STATUS_PAID, expected_status=STATUS_PENDING_PAYMENT)
+    if result is not None:
+        # Payments (migration 0056): the mock flow has no earlier "create payment" step the way
+        # Razorpay's does (create_razorpay_payment), so create + mark-paid happen together here.
+        from db.repositories.payments import create_payment, mark_payment_paid
+        payment = create_payment(
+            hospital_id, row.branch_id, order_id, method="mock", amount_paise=row.total_paise,
+            provider="mock", idempotency_key=mock_ref,
+        )
+        mark_payment_paid(hospital_id, payment["id"], provider_payment_id=mock_ref)
+    return result
 
 
 # ---------------------------------------------------------------- storefront menu extras

@@ -1775,6 +1775,29 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS accepts_online BOOLEAN")
     conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS accepts_whatsapp BOOLEAN")
 
+    # Migration 0056 -- payments + refunds. Additive only: food_orders' own razorpay_*/
+    # mock_payment_ref columns are untouched -- see that migration's own docstring for why.
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS payments ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "branch_id TEXT NOT NULL REFERENCES branches(id), order_id INTEGER NOT NULL REFERENCES food_orders(id), "
+        "method TEXT NOT NULL, provider TEXT, status TEXT NOT NULL DEFAULT 'pending', "
+        "amount_paise INTEGER NOT NULL, provider_payment_id TEXT, provider_order_id TEXT, "
+        "payment_link_url TEXT, idempotency_key TEXT, paid_at TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_payments_hospital ON payments(hospital_id)")
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_payments_order ON payments(order_id)")
+    conn.execute("ALTER TABLE payments DROP CONSTRAINT IF EXISTS uq_payments_idempotency_key")
+    conn.execute("ALTER TABLE payments ADD CONSTRAINT uq_payments_idempotency_key UNIQUE (hospital_id, idempotency_key)")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS refunds ("
+        "id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL REFERENCES hospitals(id), "
+        "payment_id INTEGER NOT NULL REFERENCES payments(id), amount_paise INTEGER NOT NULL, "
+        "reason TEXT, provider_refund_id TEXT, status TEXT NOT NULL DEFAULT 'pending', "
+        "created_by TEXT, created_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS idx_refunds_payment ON refunds(payment_id)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

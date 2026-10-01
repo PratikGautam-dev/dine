@@ -225,6 +225,17 @@ async def create_razorpay_payment(hospital_id: int, order_id: int) -> dict:
         )
     )
     session.commit()
+    # Payments (migration 0056): additive alongside the food_orders columns above -- see that
+    # migration's own docstring. idempotency_key=the Razorpay payment link id itself, so a retry
+    # of this same call (this function's own early-return above only covers the FIRST retry path;
+    # a race between two concurrent retries lands here too) can't create two payment rows for one
+    # link.
+    from db.repositories.payments import create_payment
+    create_payment(
+        hospital_id, order["branch_id"], order_id, method="razorpay", amount_paise=order["total_paise"],
+        provider="razorpay", provider_order_id=payment_link["id"], payment_link_url=payment_link["short_url"],
+        idempotency_key=payment_link["id"],
+    )
     return {
         "razorpay_order_id": payment_link["id"], "payment_link_url": payment_link["short_url"],
         "amount_paise": order["total_paise"], "currency": _CURRENCY,
@@ -384,5 +395,16 @@ def handle_razorpay_webhook(body: bytes, signature: str, payload: dict) -> dict 
 
     event = payload.get("event", "")
     if event in ("payment_link.paid", "payment.captured", "order.paid"):
-        return advance_order_status(hospital_id, food_order_id, STATUS_PAID, expected_status=STATUS_PENDING_PAYMENT)
+        result = advance_order_status(hospital_id, food_order_id, STATUS_PAID, expected_status=STATUS_PENDING_PAYMENT)
+        if result is not None:
+            # Payments (migration 0056): mark the matching payment row paid too, capturing the
+            # REAL Razorpay payment id off the webhook payload -- food_orders.razorpay_payment_id
+            # itself has never actually been written anywhere until now; this is the first real
+            # capture of it, just onto the new table instead of that dormant column.
+            from db.repositories.payments import get_latest_payment_for_order, mark_payment_paid
+            provider_payment_id = entity.get("payment", {}).get("entity", {}).get("id")
+            payment = get_latest_payment_for_order(hospital_id, food_order_id)
+            if payment is not None:
+                mark_payment_paid(hospital_id, payment["id"], provider_payment_id=provider_payment_id)
+        return result
     return None

@@ -62,3 +62,4 @@ from db.repositories.role_permissions import *  # noqa: F401,F403
 from db.repositories.super_admins import *  # noqa: F401,F403
 from db.repositories.storefront import *  # noqa: F401,F403
 from db.repositories.message_log import *  # noqa: F401,F403
+from db.repositories.payments import *  # noqa: F401,F403
