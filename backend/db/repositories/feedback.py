@@ -13,7 +13,7 @@ from db.orm_models import Feedback, PatientRow
 
 def create_feedback(
     hospital_id: int, phone: str, rating: int, comment: str | None = None, patient_id: int | None = None,
-    branch_id: str | None = None,
+    branch_id: str | None = None, order_id: int | None = None,
 ) -> dict:
     from db.repositories.branches import get_default_branch
 
@@ -27,6 +27,7 @@ def create_feedback(
         .values(
             hospital_id=hospital_id, branch_id=branch_id, patient_id=patient_id, phone=phone, rating=rating,
             comment=comment, source="whatsapp", created_at=datetime.now(timezone.utc).isoformat(),
+            order_id=order_id,
         )
         .returning(Feedback.id, Feedback.created_at)
     ).first()
@@ -35,6 +36,7 @@ def create_feedback(
     return {
         "id": row.id, "hospital_id": hospital_id, "patient_id": patient_id, "phone": phone,
         "rating": rating, "comment": comment, "source": "whatsapp", "created_at": row.created_at,
+        "order_id": order_id,
     }
 
 
@@ -45,7 +47,7 @@ def list_feedback(hospital_id: int, limit: int = 200, branch_id: str | None = No
     stmt = (
         select(
             Feedback.id, Feedback.phone, Feedback.rating, Feedback.comment, Feedback.source,
-            Feedback.created_at, Feedback.patient_id, PatientRow.name.label("patient_name"),
+            Feedback.created_at, Feedback.patient_id, Feedback.order_id, PatientRow.name.label("patient_name"),
         )
         .select_from(Feedback)
         .outerjoin(PatientRow, PatientRow.id == Feedback.patient_id)

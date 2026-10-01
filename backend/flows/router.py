@@ -672,7 +672,9 @@ async def handle_incoming(
             except ValueError:
                 rating = None
             if rating in (1, 2, 3, 4, 5):
-                db.create_feedback(hospital_id, phone, rating, patient_id=active_patient_id)
+                recent_orders = db.list_food_orders(hospital_id, phone=phone, limit=1)
+                recent_order_id = recent_orders[0]["id"] if recent_orders else None
+                db.create_feedback(hospital_id, phone, rating, patient_id=active_patient_id, order_id=recent_order_id)
                 sessions.reset(hospital_id, phone)
                 # Automations (migration 0047): the one real, wired trigger today. A hospital
                 # that's configured an active "feedback_received" automation gets ITS message

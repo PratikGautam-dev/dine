@@ -1808,6 +1808,9 @@ def init_db_on_connection(conn) -> int:
     )
     conn.execute("CREATE INDEX IF NOT EXISTS idx_order_status_history_order ON order_status_history(order_id)")
 
+    # Migration 0058 -- feedback.order_id, nullable.
+    conn.execute("ALTER TABLE feedback ADD COLUMN IF NOT EXISTS order_id INTEGER REFERENCES food_orders(id)")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

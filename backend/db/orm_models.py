@@ -837,6 +837,7 @@ class Feedback(Base):
     comment: Mapped[str | None]
     source: Mapped[str]
     created_at: Mapped[str]
+    order_id: Mapped[int | None] = mapped_column(ForeignKey("food_orders.id"))
 
 
 class Automation(Base):
