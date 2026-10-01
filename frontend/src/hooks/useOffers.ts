@@ -19,7 +19,7 @@ export type Offer = {
   usage_count: number;
   revenue_paise: number;
   status: "active" | "scheduled" | "expired" | "disabled";
-  branch_id: string | null;
+  branch_ids: string[];
   per_customer_limit: number | null;
 };
 
@@ -47,7 +47,7 @@ export type NewOfferFields = {
   min_order_value_paise: number;
   max_redemptions: number | null;
   fulfillment_type: "pickup" | "delivery" | "" ;
-  branch_id: string | null;
+  branch_ids: string[];
   per_customer_limit: number | null;
 };
 
@@ -106,5 +106,21 @@ export function useOffers(ready: boolean) {
     load();
   }
 
-  return { data, error, creating, createOffer, toggleOffer };
+  async function setOfferBranches(offer: Offer, branchIds: string[]): Promise<boolean> {
+    const result = await portalFetch(`/api/portal/offers/${offer.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ branch_ids: branchIds }),
+    });
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't update offer's branches", result.error);
+      return false;
+    }
+    toast.success("Offer updated");
+    load();
+    return true;
+  }
+
+  return { data, error, creating, createOffer, toggleOffer, setOfferBranches };
 }

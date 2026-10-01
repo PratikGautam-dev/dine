@@ -197,7 +197,7 @@ async def create_razorpay_payment(hospital_id: int, order_id: int) -> dict:
     would happily also accept payment against -- one food order must map to
     exactly one Razorpay payment link."""
     from modules.payments.razorpay_client import RazorpayError, create_payment_link
-    from db.repositories.hospitals import get_razorpay_credentials
+    from db.repositories.branches import get_effective_razorpay_credentials
 
     order = get_food_order(hospital_id, order_id)
     if order is None:
@@ -210,7 +210,9 @@ async def create_razorpay_payment(hospital_id: int, order_id: int) -> dict:
     if order["status"] != STATUS_PENDING_PAYMENT:
         raise ValueError(f"food_order {order_id} is not awaiting payment (status={order['status']!r})")
 
-    credentials = get_razorpay_credentials(hospital_id)
+    # Branch-scoped credentials (migration 0060): the order's own branch gets priority over the
+    # hospital-wide default -- see get_effective_razorpay_credentials()'s own docstring.
+    credentials = get_effective_razorpay_credentials(hospital_id, order["branch_id"])
     if credentials is None:
         raise RazorpayError(f"Hospital {hospital_id} has not configured Razorpay credentials")
 
@@ -387,7 +389,7 @@ def handle_razorpay_webhook(body: bytes, signature: str, payload: dict) -> dict 
     their session, mirroring table_reservation.py's own post-booking
     success-summary send."""
     from modules.payments.razorpay_client import verify_webhook_signature
-    from db.repositories.hospitals import get_razorpay_credentials
+    from db.repositories.branches import get_effective_razorpay_credentials
 
     entity = payload.get("payload", {})
     notes = (
@@ -406,7 +408,14 @@ def handle_razorpay_webhook(body: bytes, signature: str, payload: dict) -> dict 
     except (TypeError, ValueError):
         return None
 
-    credentials = get_razorpay_credentials(hospital_id)
+    # Branch-scoped credentials (migration 0060): the order's own branch is resolved FIRST so the
+    # signature is verified against the SAME credential set create_razorpay_payment() used to mint
+    # this payment link -- a branch with its own Razorpay account must verify with its own webhook
+    # secret, not the hospital-wide one.
+    order_for_credentials = get_food_order(hospital_id, food_order_id)
+    if order_for_credentials is None:
+        return None
+    credentials = get_effective_razorpay_credentials(hospital_id, order_for_credentials["branch_id"])
     if credentials is None:
         return None
     if not verify_webhook_signature(body, signature, credentials["webhook_secret"]):

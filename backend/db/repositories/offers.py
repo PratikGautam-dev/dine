@@ -2,13 +2,15 @@
 """Offers & Coupons (migration 0046): a real coupon code a guest can type at the WhatsApp
 food-order checkout's review step (flows/food_ordering/dispatch.py) to get a discount. No
 Swiggy/Zomato integration and no dine-in checkout exists, so an offer only ever applies to a
-real food_orders row -- optionally restricted to pickup or delivery via `fulfillment_type`."""
+real food_orders row -- optionally restricted to pickup or delivery via `fulfillment_type`,
+and optionally restricted to a SET of branches via offer_branches (migration 0060, replacing
+Phase F's single nullable offers.branch_id)."""
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
 
 from db.connection import get_connection, get_session
-from db.orm_models import FoodOrder, Offer, PatientRow
+from db.orm_models import FoodOrder, Offer, OfferBranch, PatientRow
 
 DISCOUNT_TYPES = ("percentage", "flat")
 FULFILLMENT_SCOPES = ("pickup", "delivery")
@@ -27,8 +29,11 @@ def _now_iso() -> str:
 def create_offer(
     hospital_id: int, name: str, discount_type: str, discount_value: int, coupon_code: str,
     valid_from: str, valid_to: str, min_order_value_paise: int = 0, max_redemptions: int | None = None,
-    fulfillment_type: str | None = None, branch_id: str | None = None, per_customer_limit: int | None = None,
+    fulfillment_type: str | None = None, branch_ids: list[str] | None = None, per_customer_limit: int | None = None,
 ) -> dict:
+    """branch_ids: empty/None = applies to every branch (today's shared-by-default behavior,
+    unchanged); one or more ids restricts this offer to exactly those branches -- a coupon can
+    now be stacked across SEVERAL specific branches, not just one (migration 0060)."""
     if discount_type not in DISCOUNT_TYPES:
         raise ValueError(f"discount_type must be one of {DISCOUNT_TYPES}, got {discount_type!r}")
     if discount_type == "percentage" and not (1 <= discount_value <= 100):
@@ -49,26 +54,62 @@ def create_offer(
             coupon_code=code, valid_from=valid_from, valid_to=valid_to,
             min_order_value_paise=min_order_value_paise, max_redemptions=max_redemptions,
             fulfillment_type=fulfillment_type, is_active=True, created_at=_now_iso(),
-            branch_id=branch_id, per_customer_limit=per_customer_limit,
+            per_customer_limit=per_customer_limit,
         ).returning(Offer.id)
     ).scalar_one()
+    if branch_ids:
+        session.execute(
+            OfferBranch.__table__.insert(),
+            [{"offer_id": offer_id, "branch_id": b} for b in dict.fromkeys(branch_ids)],
+        )
     session.commit()
     return get_offer(hospital_id, offer_id)  # type: ignore[return-value]
+
+
+def set_offer_branches(hospital_id: int, offer_id: int, branch_ids: list[str]) -> dict | None:
+    """Replaces an offer's branch restriction wholesale -- empty list clears it back to "all
+    branches". Used by the portal's offer edit action; create_offer() covers the create path."""
+    session = get_session()
+    if get_offer(hospital_id, offer_id) is None:
+        return None
+    session.execute(OfferBranch.__table__.delete().where(OfferBranch.offer_id == offer_id))
+    if branch_ids:
+        session.execute(
+            OfferBranch.__table__.insert(),
+            [{"offer_id": offer_id, "branch_id": b} for b in dict.fromkeys(branch_ids)],
+        )
+    session.commit()
+    return get_offer(hospital_id, offer_id)
+
+
+def _branch_ids_for(session, offer_ids: list[int]) -> dict[int, list[str]]:
+    if not offer_ids:
+        return {}
+    rows = session.execute(
+        select(OfferBranch.offer_id, OfferBranch.branch_id).where(OfferBranch.offer_id.in_(offer_ids))
+    ).all()
+    result: dict[int, list[str]] = {oid: [] for oid in offer_ids}
+    for offer_id, branch_id in rows:
+        result[offer_id].append(branch_id)
+    return result
 
 
 def get_offer(hospital_id: int, offer_id: int) -> dict | None:
     session = get_session()
     row = session.execute(select(Offer).where(Offer.hospital_id == hospital_id, Offer.id == offer_id)).scalar_one_or_none()
-    return _offer_to_dict(row) if row else None
+    if row is None:
+        return None
+    branch_ids = _branch_ids_for(session, [offer_id]).get(offer_id, [])
+    return _offer_to_dict(row, branch_ids)
 
 
-def _offer_to_dict(row: Offer) -> dict:
+def _offer_to_dict(row: Offer, branch_ids: list[str]) -> dict:
     return {
         "id": row.id, "name": row.name, "discount_type": row.discount_type, "discount_value": row.discount_value,
         "coupon_code": row.coupon_code, "valid_from": row.valid_from, "valid_to": row.valid_to,
         "min_order_value_paise": row.min_order_value_paise, "max_redemptions": row.max_redemptions,
         "fulfillment_type": row.fulfillment_type, "is_active": row.is_active, "created_at": row.created_at,
-        "branch_id": row.branch_id, "per_customer_limit": row.per_customer_limit,
+        "branch_ids": branch_ids, "per_customer_limit": row.per_customer_limit,
     }
 
 
@@ -91,6 +132,7 @@ def list_offers(hospital_id: int) -> list[dict]:
     offers = session.execute(select(Offer).where(Offer.hospital_id == hospital_id).order_by(Offer.created_at.desc())).scalars().all()
     if not offers:
         return []
+    branch_ids_by_offer = _branch_ids_for(session, [o.id for o in offers])
     usage_rows = session.execute(
         select(FoodOrder.offer_id, func.count(FoodOrder.id), func.sum(FoodOrder.total_paise))
         .where(FoodOrder.hospital_id == hospital_id, FoodOrder.offer_id.isnot(None), FoodOrder.status != "cancelled")
@@ -100,7 +142,7 @@ def list_offers(hospital_id: int) -> list[dict]:
     now = _now_iso()
     result = []
     for row in offers:
-        offer = _offer_to_dict(row)
+        offer = _offer_to_dict(row, branch_ids_by_offer.get(row.id, []))
         usage_count, revenue_paise = usage_by_offer.get(row.id, (0, 0))
         result.append({
             **offer, "usage_count": usage_count, "revenue_paise": revenue_paise,
@@ -212,7 +254,7 @@ def _validate_offer_row(
         raise OfferError("This coupon has expired.")
     if row["fulfillment_type"] is not None and row["fulfillment_type"] != fulfillment_type:
         raise OfferError(f"This coupon only applies to {row['fulfillment_type']} orders.")
-    if row["branch_id"] is not None and branch_id is not None and row["branch_id"] != branch_id:
+    if row["branch_ids"] and branch_id is not None and branch_id not in row["branch_ids"]:
         raise OfferError("This coupon isn't valid at this location.")
     if subtotal_paise < row["min_order_value_paise"]:
         from core.money import format_price
@@ -241,7 +283,8 @@ def preview_offer(
     ).scalar_one_or_none()
     if row is None:
         raise OfferError("We couldn't find that coupon code.")
-    offer = _offer_to_dict(row)
+    branch_ids = _branch_ids_for(session, [row.id]).get(row.id, [])
+    offer = _offer_to_dict(row, branch_ids)
     usage_count = session.execute(
         select(func.count(FoodOrder.id)).where(FoodOrder.offer_id == row.id, FoodOrder.status != "cancelled")
     ).scalar_one()
@@ -272,13 +315,18 @@ def redeem_offer_in_conn(
     code = coupon_code.strip().upper()
     row = conn.execute(
         "SELECT id, discount_type, discount_value, valid_from, valid_to, min_order_value_paise, "
-        "max_redemptions, fulfillment_type, is_active, branch_id, per_customer_limit "
+        "max_redemptions, fulfillment_type, is_active, per_customer_limit "
         "FROM offers WHERE hospital_id = ? AND coupon_code = ?",
         (hospital_id, code),
     ).fetchone()
     if row is None:
         raise OfferError("We couldn't find that coupon code.")
     offer = dict(row)
+    offer["branch_ids"] = [
+        r["branch_id"] for r in conn.execute(
+            "SELECT branch_id FROM offer_branches WHERE offer_id = ?", (offer["id"],),
+        ).fetchall()
+    ]
     usage_count = conn.execute(
         "SELECT COUNT(*) AS c FROM food_orders WHERE offer_id = ? AND status != 'cancelled'", (offer["id"],),
     ).fetchone()["c"]

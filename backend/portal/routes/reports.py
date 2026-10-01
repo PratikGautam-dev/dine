@@ -4,7 +4,7 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse, Response
 
 import db.repository as db
-from portal.deps import authorize
+from portal.deps import authorize, check_branch_access
 
 router = APIRouter()
 
@@ -23,6 +23,9 @@ async def portal_reports(
     principal, error = authorize(authorization, "reports", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     hospital = principal.hospital
     if days not in _VALID_DAYS:
         days = 30
@@ -39,6 +42,9 @@ async def portal_reports_export(
     principal, error = authorize(authorization, "reports", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     if kind not in _VALID_EXPORT_KINDS:
         return JSONResponse({"error": f"Unknown report kind {kind!r}."}, status_code=400)
     if days not in _VALID_DAYS:

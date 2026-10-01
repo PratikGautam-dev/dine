@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  ChefHat, CircleCheck, KeyRound, Mail, MoreHorizontal, Pencil, Phone, Plus, Power, Search, ShieldCheck,
+  Building2, ChefHat, CircleCheck, KeyRound, Mail, MoreHorizontal, Pencil, Phone, Plus, Power, Search, ShieldCheck,
   UserPlus, Users, UtensilsCrossed,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { EditStaffBranchesDialog } from "@/components/portal/EditStaffBranchesDialog";
 import { ResetStaffPasswordDialog } from "@/components/portal/ResetStaffPasswordDialog";
 import { RolePermissionSummary, summariseRole } from "@/components/portal/RolePermissionSummary";
 import { StaffActivityCard } from "@/components/portal/StaffActivityCard";
@@ -32,6 +33,7 @@ import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { BUILT_IN_ROLES, orderedRoles, roleLabel, roleTone } from "@/lib/staffRoles";
 import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { useStaffManagement, type MergedRow, type StaffMember } from "@/hooks/useStaffManagement";
+import { useBranchFilter } from "@/lib/branchContext";
 
 const SELECT_CLASS = "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 
@@ -136,10 +138,10 @@ function columnsFor(matrix: ReturnType<typeof usePortalRoles>["matrix"]): Column
 }
 
 function RowActions({
-  row, selfId, onEdit, onResetPassword, onToggle, onGrantAccess,
+  row, selfId, showBranches, onEdit, onResetPassword, onEditBranches, onToggle, onGrantAccess,
 }: {
-  row: MergedRow; selfId: number | null;
-  onEdit: () => void; onResetPassword: () => void; onToggle: () => void; onGrantAccess: () => void;
+  row: MergedRow; selfId: number | null; showBranches: boolean;
+  onEdit: () => void; onResetPassword: () => void; onEditBranches: () => void; onToggle: () => void; onGrantAccess: () => void;
 }) {
   const name = row.has_login ? row.staff.name : row.roster.name;
   const isActive = row.has_login ? row.staff.is_active : row.roster.is_active;
@@ -162,6 +164,9 @@ function RowActions({
             <DropdownMenuItem onClick={onEdit}><Pencil size={14} /> Edit</DropdownMenuItem>
             {row.has_login && (
               <DropdownMenuItem onClick={onResetPassword}><KeyRound size={14} /> Reset password</DropdownMenuItem>
+            )}
+            {row.has_login && showBranches && (
+              <DropdownMenuItem onClick={onEditBranches}><Building2 size={14} /> Branch access</DropdownMenuItem>
             )}
             {!isSelf && (
               <DropdownMenuItem variant={isActive ? "destructive" : undefined} onClick={onToggle}>
@@ -190,8 +195,9 @@ export default function StaffManagementPage() {
   const {
     staff, roster, merged, visible, counts, sections, error, selected, setSelectedKey, dialog, setDialog,
     search, setSearch, roleFilter, setRoleFilter, statusFilter, setStatusFilter,
-    addStaff, editStaff, setActive, resetPassword, addRosterMember, setRosterActive, addSection,
+    addStaff, editStaff, setActive, resetPassword, setStaffBranches, addRosterMember, setRosterActive, addSection,
   } = useStaffManagement(canView);
+  const { multiBranchEnabled, branches } = useBranchFilter();
   // The real permission matrix, for the "what this role can do" summary and the role filter/Add-staff
   // dropdowns -- editing it lives on its own Roles & Permissions page now (only people who may see
   // Roles get it here at all).
@@ -245,8 +251,10 @@ export default function StaffManagementPage() {
             <RowActions
               row={row.original}
               selfId={selfId}
+              showBranches={multiBranchEnabled && branches.length > 1}
               onEdit={() => (row.original.has_login ? setDialog({ kind: "edit", member: row.original.staff }) : setDialog({ kind: "grant", member: row.original.roster }))}
               onResetPassword={() => row.original.has_login && setDialog({ kind: "password", member: row.original.staff })}
+              onEditBranches={() => row.original.has_login && setDialog({ kind: "branches", member: row.original.staff })}
               onToggle={() => toggleRow(row.original)}
               onGrantAccess={() => !row.original.has_login && setDialog({ kind: "grant", member: row.original.roster })}
             />
@@ -557,6 +565,15 @@ export default function StaffManagementPage() {
       )}
       {dialog?.kind === "password" && (
         <ResetStaffPasswordDialog name={dialog.member.name} onSubmit={(pw) => resetPassword(dialog.member, pw)} onClose={() => setDialog(null)} />
+      )}
+      {dialog?.kind === "branches" && (
+        <EditStaffBranchesDialog
+          name={dialog.member.name}
+          branches={branches}
+          initialBranchIds={dialog.member.branch_ids}
+          onSubmit={(branchIds) => setStaffBranches(dialog.member, branchIds)}
+          onClose={() => setDialog(null)}
+        />
       )}
       {dialog?.kind === "addRoster" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={() => setDialog(null)}>

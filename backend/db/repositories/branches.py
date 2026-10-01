@@ -163,6 +163,62 @@ def update_branch(
     return get_branch(hospital_id, branch_id)
 
 
+def set_branch_razorpay_credentials(hospital_id: int, branch_id: str, key_id: str, key_secret: str, webhook_secret: str) -> None:
+    """Same encrypted-at-rest pattern as hospitals.set_razorpay_credentials() (migration 0060) --
+    a branch with its own credentials settles to its own Razorpay account instead of the
+    tenant-wide one. Raises ValueError if the branch doesn't exist, matching get_branch()'s own
+    "exists" contract rather than silently no-op'ing."""
+    from core.config import get_settings
+    from core.crypto import encrypt_secret
+
+    if get_branch(hospital_id, branch_id) is None:
+        raise ValueError(f"branch {branch_id} not found for hospital {hospital_id}")
+    encryption_key = get_settings().RAZORPAY_TOKEN_ENCRYPTION_KEY
+    session = get_session()
+    session.execute(
+        Branch.__table__.update().where(Branch.hospital_id == hospital_id, Branch.id == branch_id).values(
+            razorpay_key_id=key_id,
+            razorpay_key_secret_ref=encrypt_secret(key_secret, encryption_key),
+            razorpay_webhook_secret_ref=encrypt_secret(webhook_secret, encryption_key),
+        )
+    )
+    session.commit()
+
+
+def clear_branch_razorpay_credentials(hospital_id: int, branch_id: str) -> None:
+    """Reverts the branch to inheriting the hospital's own Razorpay credentials."""
+    session = get_session()
+    session.execute(
+        Branch.__table__.update().where(Branch.hospital_id == hospital_id, Branch.id == branch_id).values(
+            razorpay_key_id=None, razorpay_key_secret_ref=None, razorpay_webhook_secret_ref=None,
+        )
+    )
+    session.commit()
+
+
+def get_effective_razorpay_credentials(hospital_id: int, branch_id: str) -> dict | None:
+    """Branch-level credentials (all 3 columns set) take priority; otherwise falls back to the
+    hospital's own (hospitals.get_razorpay_credentials()). Returns None if neither is configured --
+    same "unconfigured, not a crash" contract the hospital-level function already has."""
+    from core.config import get_settings
+    from core.crypto import decrypt_secret
+    from db.repositories.hospitals import get_razorpay_credentials
+
+    session = get_session()
+    row = session.execute(
+        select(Branch.razorpay_key_id, Branch.razorpay_key_secret_ref, Branch.razorpay_webhook_secret_ref)
+        .where(Branch.hospital_id == hospital_id, Branch.id == branch_id)
+    ).first()
+    if row is not None and row.razorpay_key_id is not None and row.razorpay_key_secret_ref is not None and row.razorpay_webhook_secret_ref is not None:
+        encryption_key = get_settings().RAZORPAY_TOKEN_ENCRYPTION_KEY
+        return {
+            "key_id": row.razorpay_key_id,
+            "key_secret": decrypt_secret(row.razorpay_key_secret_ref, encryption_key),
+            "webhook_secret": decrypt_secret(row.razorpay_webhook_secret_ref, encryption_key),
+        }
+    return get_razorpay_credentials(hospital_id)
+
+
 def set_branch_active(hospital_id: int, branch_id: str, is_active: bool) -> dict | None:
     """The default branch can never be deactivated -- it's the fallback every branch-unaware
     write resolves to, so deactivating it would silently start rejecting those writes."""

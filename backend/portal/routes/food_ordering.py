@@ -21,7 +21,7 @@ from db.repositories.food_orders import (
     STATUS_PLACED, STATUS_PREPARING, STATUS_READY_FOR_PICKUP,
 )
 from portal.capabilities import MANAGE_FOOD_ORDERING
-from portal.deps import _authenticate, require_capability, authorize
+from portal.deps import _authenticate, require_capability, authorize, check_branch_access
 
 router = APIRouter()
 
@@ -94,22 +94,24 @@ def _validate_combo_lines(
 
 
 def _require_food_ordering(authorization: str | None, page: str, action: str):
-    """Shared guard every route below opens with -- returns (hospital, None) on success or
-    (None, JSONResponse) to return as-is, same "if error: return error" early-return shape
-    every portal route uses. `page` is food_menu (the menu catalogue) or food_orders (the
-    kitchen's order queue); `action` is view | write. Also requires the tenant capability."""
+    """Shared guard every route below opens with -- returns (hospital, principal, None) on
+    success or (None, None, JSONResponse) to return as-is, same "if error: return error"
+    early-return shape every portal route uses. `page` is food_menu (the menu catalogue) or
+    food_orders (the kitchen's order queue); `action` is view | write. Also requires the tenant
+    capability. `principal` is returned alongside `hospital` so branch-filtered routes can run
+    check_branch_access() without a second auth lookup."""
     principal, error = authorize(authorization, page, action)
     if error:
-        return None, error
+        return None, None, error
     forbidden = require_capability(principal.hospital, MANAGE_FOOD_ORDERING)
     if forbidden:
-        return None, forbidden
-    return principal.hospital, None
+        return None, None, forbidden
+    return principal.hospital, principal, None
 
 
 @router.get("/api/portal/menu-items")
 async def portal_menu_items(authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization, "food_menu", "view")
+    hospital, principal, error = _require_food_ordering(authorization, "food_menu", "view")
     if error:
         return error
     # available_only=False -- the management list shows sold-out/disabled
@@ -123,7 +125,7 @@ async def portal_menu_items(authorization: str | None = Header(default=None)):
 @router.get("/api/portal/menu-items/combo-candidates")
 async def portal_combo_candidates(authorization: str | None = Header(default=None)):
     """Every non-combo item, for the Add/Edit panel's combo builder dropdown."""
-    hospital, error = _require_food_ordering(authorization, "food_menu", "view")
+    hospital, principal, error = _require_food_ordering(authorization, "food_menu", "view")
     if error:
         return error
     return JSONResponse({"items": db.list_combo_candidates(hospital.id)})
@@ -131,7 +133,7 @@ async def portal_combo_candidates(authorization: str | None = Header(default=Non
 
 @router.post("/api/portal/menu-items")
 async def portal_create_menu_item(payload: MenuItemPayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
+    hospital, principal, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
     name = payload.name.strip()
@@ -165,7 +167,7 @@ async def portal_create_menu_item(payload: MenuItemPayload, authorization: str |
 async def portal_update_menu_item(
     menu_item_id: str, payload: MenuItemPayload, authorization: str | None = Header(default=None),
 ):
-    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
+    hospital, principal, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
     existing = db.get_menu_item(hospital.id, menu_item_id)
@@ -204,7 +206,7 @@ async def portal_update_menu_item(
 async def portal_restock_menu_item(
     menu_item_id: str, payload: RestockPayload, authorization: str | None = Header(default=None),
 ):
-    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
+    hospital, principal, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
     existing = db.get_menu_item(hospital.id, menu_item_id)
@@ -230,7 +232,7 @@ async def portal_restock_menu_item(
 async def portal_set_menu_item_availability(
     menu_item_id: str, payload: AvailabilityPayload, authorization: str | None = Header(default=None),
 ):
-    hospital, error = _require_food_ordering(authorization, "food_menu", "write")
+    hospital, principal, error = _require_food_ordering(authorization, "food_menu", "write")
     if error:
         return error
     if payload.is_available is None:
@@ -259,9 +261,12 @@ async def portal_food_orders(
     """The restaurant's orders, newest first. `days` limits how far back the list goes (default 90) so a page
     load never returns every order ever placed; `days=0` means all time. branch_id=None (the topbar
     switcher's "All Branches") returns every branch."""
-    hospital, error = _require_food_ordering(authorization, "food_orders", "view")
+    hospital, principal, error = _require_food_ordering(authorization, "food_orders", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     if not 0 <= days <= MAX_ORDER_DAYS:
         return JSONResponse({"error": f"days must be between 0 (all time) and {MAX_ORDER_DAYS}."}, status_code=400)
     since = datetime.now(timezone.utc) - timedelta(days=days) if days else None
@@ -276,7 +281,7 @@ async def portal_food_orders(
 
 @router.get("/api/portal/food-orders/{order_id}")
 async def portal_food_order_detail(order_id: int, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization, "food_orders", "view")
+    hospital, principal, error = _require_food_ordering(authorization, "food_orders", "view")
     if error:
         return error
     order = db.get_food_order(hospital.id, order_id)
@@ -301,7 +306,7 @@ async def portal_refund_food_order(order_id: int, payload: RefundPayload, author
     """Records a refund against the order's latest payment -- no live gateway refund API call yet
     (confirmed scope: table + this record-keeping route only, same as db.create_refund()'s own
     docstring). status stays 'pending' until a real refund-provider integration exists to confirm it."""
-    hospital, error = _require_food_ordering(authorization, "food_orders", "write")
+    hospital, principal, error = _require_food_ordering(authorization, "food_orders", "write")
     if error:
         return error
     order = db.get_food_order(hospital.id, order_id)
@@ -345,7 +350,7 @@ _ACCEPTABLE_FROM = (STATUS_PLACED, STATUS_PAID)
 
 @router.post("/api/portal/food-orders/{order_id}/{action}")
 async def portal_advance_food_order(order_id: int, action: str, authorization: str | None = Header(default=None)):
-    hospital, error = _require_food_ordering(authorization, "food_orders", "write")
+    hospital, principal, error = _require_food_ordering(authorization, "food_orders", "write")
     if error:
         return error
     order = db.get_food_order(hospital.id, order_id)

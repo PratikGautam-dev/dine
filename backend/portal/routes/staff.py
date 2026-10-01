@@ -39,6 +39,8 @@ def _staff_row(staff: dict) -> dict:
         "reports_to_name": staff.get("reports_to_name"),
         "working_days": parse_days(staff.get("working_days")),
         "shift_start": staff.get("shift_start"), "shift_end": staff.get("shift_end"),
+        # Per-branch access (migration 0060) -- empty means unrestricted (every branch visible).
+        "branch_ids": db.get_staff_branch_ids(staff["id"]),
     }
 
 
@@ -314,3 +316,31 @@ async def reset_staff_password(staff_id: int, payload: SetPasswordPayload, autho
         "portal", hospital_id, _actor(principal), "staff.reset_password", entity_type="staff_users", entity_id=str(staff_id),
     )
     return JSONResponse({"ok": True})
+
+
+class SetBranchesPayload(BaseModel):
+    branch_ids: list[str] = []
+
+
+@router.post("/api/portal/staff/{staff_id}/branches")
+async def set_staff_branches_route(staff_id: int, payload: SetBranchesPayload, authorization: str | None = Header(default=None)):
+    """Per-branch staff access (migration 0060) -- an empty list clears the restriction back to
+    "every branch visible" (today's unchanged default). A non-empty list must name only branches
+    that actually belong to this hospital, same validation discipline department_id gets in
+    _clean_profile() above."""
+    principal, error = authorize(authorization, "staff", "write")
+    if error:
+        return error
+    hospital_id = principal.hospital.id
+    if _find(hospital_id, staff_id) is None:
+        return JSONResponse({"error": "Staff member not found."}, status_code=404)
+    own_branch_ids = {b["id"] for b in db.list_branches(hospital_id)}
+    requested = [b for b in dict.fromkeys(payload.branch_ids) if b]
+    if any(b not in own_branch_ids for b in requested):
+        return JSONResponse({"error": "Choose one of your own branches."}, status_code=400)
+    branch_ids = db.set_staff_branches(staff_id, requested)
+    db.record_audit_log(
+        "portal", hospital_id, _actor(principal), "staff.set_branches", entity_type="staff_users", entity_id=str(staff_id),
+        after={"branch_ids": branch_ids},
+    )
+    return JSONResponse({"branch_ids": branch_ids})

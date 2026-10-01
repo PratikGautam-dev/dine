@@ -6,7 +6,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import db.repository as db
-from portal.deps import _authenticate, authorize
+from portal.deps import _authenticate, authorize, check_branch_access
 
 router = APIRouter()
 
@@ -20,6 +20,9 @@ async def portal_chef_notes(branch_id: str | None = None, authorization: str | N
     principal, error = authorize(authorization, "food_orders", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     return JSONResponse({"notes": db.list_chef_notes(principal.hospital.id, branch_id=branch_id)})
 
 

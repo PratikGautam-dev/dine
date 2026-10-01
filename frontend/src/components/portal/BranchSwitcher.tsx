@@ -8,11 +8,16 @@ import { useBranchFilter } from "@/lib/branchContext";
  * Customers, Staff, Offers and Messages are all explicitly shared across branches, so no
  * switcher is shown there -- one that visibly changed nothing would read as broken, not as
  * "nothing to filter." Renders nothing when multi-branch is off or the restaurant only has one
- * branch either -- a single-location restaurant sees no change from today. */
+ * branch either -- a single-location restaurant sees no change from today.
+ *
+ * Per-branch staff access (migration 0060): a staff member Settings > Staff has restricted only
+ * ever sees/picks from `accessibleBranches`, and "All Branches" is hidden entirely for them --
+ * picking it would mean "give me everything," which the backend refuses for a restricted caller. */
 export function BranchSwitcher() {
-  const { multiBranchEnabled, branches, selectedBranchId, setSelectedBranchId } = useBranchFilter();
+  const { multiBranchEnabled, accessibleBranches, isRestricted, selectedBranchId, setSelectedBranchId } = useBranchFilter();
 
-  if (!multiBranchEnabled || branches.length <= 1) return null;
+  if (!multiBranchEnabled || accessibleBranches.length === 0) return null;
+  if (!isRestricted && accessibleBranches.length <= 1) return null;
 
   return (
     <label className="hidden cursor-pointer items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-1.5 text-[13px] font-medium text-ink-700 md:flex">
@@ -23,8 +28,8 @@ export function BranchSwitcher() {
         aria-label="Branch"
         className="cursor-pointer bg-transparent outline-none"
       >
-        <option value="">All Branches</option>
-        {branches.map((b) => (
+        {!isRestricted && <option value="">All Branches</option>}
+        {accessibleBranches.map((b) => (
           <option key={b.id} value={b.id}>
             {b.name}
           </option>

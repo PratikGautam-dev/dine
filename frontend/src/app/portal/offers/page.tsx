@@ -35,7 +35,7 @@ const STATUS_LABEL: Record<string, string> = { active: "Active", scheduled: "Sch
 
 const emptyForm = (): NewOfferFields => ({
   name: "", discount_type: "percentage", discount_value: 20, coupon_code: "", valid_from: "", valid_to: "",
-  min_order_value_paise: 0, max_redemptions: null, fulfillment_type: "", branch_id: null, per_customer_limit: null,
+  min_order_value_paise: 0, max_redemptions: null, fulfillment_type: "", branch_ids: [], per_customer_limit: null,
 });
 
 function ChannelBadges({ offer }: { offer: Offer }) {
@@ -223,21 +223,28 @@ export default function PortalOffersPage() {
                       onChange={(e) => setForm({ ...form, per_customer_limit: e.target.value ? Number(e.target.value) : null })}
                     />
                   </Field>
-                  {multiBranchEnabled && branches.length > 1 && (
-                    <Field label="Branch" htmlFor="offer-branch" hint="Leave as All Branches to share it">
-                      <select
-                        id="offer-branch" value={form.branch_id ?? ""}
-                        onChange={(e) => setForm({ ...form, branch_id: e.target.value || null })}
-                        className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
-                      >
-                        <option value="">All Branches</option>
-                        {branches.map((b) => (
-                          <option key={b.id} value={b.id}>{b.name}</option>
-                        ))}
-                      </select>
-                    </Field>
-                  )}
                 </div>
+                {multiBranchEnabled && branches.length > 1 && (
+                  <Field label="Branches" htmlFor="offer-branches" hint="Leave all unchecked to share it across every branch">
+                    <div id="offer-branches" className="space-y-1 rounded-md border border-line p-space-2">
+                      {branches.map((b) => (
+                        <label key={b.id} className="flex items-center gap-space-2 text-[13px] text-ink-900">
+                          <input
+                            type="checkbox"
+                            checked={form.branch_ids.includes(b.id)}
+                            onChange={(e) => setForm({
+                              ...form,
+                              branch_ids: e.target.checked
+                                ? [...form.branch_ids, b.id]
+                                : form.branch_ids.filter((id) => id !== b.id),
+                            })}
+                          />
+                          {b.name}
+                        </label>
+                      ))}
+                    </div>
+                  </Field>
+                )}
                 {formError && <p className="mb-space-3 text-[12.5px] font-medium text-error">{formError}</p>}
                 <Button type="submit" disabled={creating} className="w-full">
                   <Plus size={15} /> {creating ? "Creating…" : "Create Offer"}
@@ -277,9 +284,9 @@ export default function PortalOffersPage() {
                     <td className="px-space-3 py-space-2">
                       <p className="font-semibold text-ink-900">{o.name}</p>
                       <p className="font-mono text-[11px] text-ink-400">{o.coupon_code}</p>
-                      {o.branch_id && (
+                      {o.branch_ids.length > 0 && (
                         <p className="text-[11px] text-ink-500">
-                          {branches.find((b) => b.id === o.branch_id)?.name ?? "One branch only"}
+                          {o.branch_ids.map((id) => branches.find((b) => b.id === id)?.name ?? "Unknown branch").join(", ")}
                         </p>
                       )}
                       {o.per_customer_limit != null && (

@@ -29,7 +29,18 @@ export type Branch = {
 
 type BranchContextValue = {
   multiBranchEnabled: boolean;
+  // Every branch the hospital has -- used by admin screens (Settings > Branches, the Offers
+  // form's branch picker) that need to see/manage everything regardless of the caller's own
+  // restriction.
   branches: Branch[];
+  // The subset THIS caller may actually switch to (migration 0060) -- equals `branches` for an
+  // unrestricted staff member, a narrower list for one Settings > Staff has restricted. The
+  // topbar switcher reads this, not `branches`.
+  accessibleBranches: Branch[];
+  // True when this caller has been restricted to specific branches (staffBranchIds non-empty) --
+  // the topbar switcher hides "All Branches" in that case, since picking it would mean "give me
+  // everything," which the backend refuses for a restricted caller.
+  isRestricted: boolean;
   // null = "All Branches" (the topbar switcher's default) -- every branch-filtered hook treats
   // null the same way the backend's own branch_id=None does: no filter, everything shown.
   selectedBranchId: string | null;
@@ -40,6 +51,8 @@ type BranchContextValue = {
 const BranchContext = createContext<BranchContextValue>({
   multiBranchEnabled: false,
   branches: [],
+  accessibleBranches: [],
+  isRestricted: false,
   selectedBranchId: null,
   setSelectedBranchId: () => {},
   reload: async () => {},
@@ -58,6 +71,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   const session = useStaffSession();
   const [multiBranchEnabled, setMultiBranchEnabled] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [staffBranchIds, setStaffBranchIds] = useState<string[]>([]);
   const [selectedBranchId, setSelectedBranchIdState] = useState<string | null>(null);
 
   useEffect(() => {
@@ -82,11 +96,13 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   const load = useCallback(async () => {
     const result = await portalFetch("/api/portal/branches");
     if (!result.ok) return;
-    const data = result.data as { multi_branch_enabled: boolean; branches: Branch[] };
+    const data = result.data as { multi_branch_enabled: boolean; branches: Branch[]; staff_branch_ids?: string[] };
     setMultiBranchEnabled(data.multi_branch_enabled);
     setBranches(data.branches.filter((b) => b.is_active));
-    // If the previously selected branch no longer exists/is inactive, fall back to "All Branches"
-    // rather than silently filtering by a branch_id the backend would 404/ignore.
+    setStaffBranchIds(data.staff_branch_ids ?? []);
+    // If the previously selected branch no longer exists/is inactive/is no longer accessible,
+    // fall back to "All Branches" (or, if restricted, nothing selected yet) rather than silently
+    // filtering by a branch_id the backend would 404/403 on.
     setSelectedBranchIdState((current) => (current && !data.branches.some((b) => b.id === current && b.is_active) ? null : current));
   }, []);
 
@@ -94,9 +110,25 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     if (session) load();
   }, [session, load]);
 
+  const isRestricted = staffBranchIds.length > 0;
+  const accessibleBranches = useMemo(
+    () => (isRestricted ? branches.filter((b) => staffBranchIds.includes(b.id)) : branches),
+    [branches, isRestricted, staffBranchIds],
+  );
+
+  // A restricted caller can't use "All Branches" (null) -- default them straight to their one
+  // accessible branch instead of leaving the switcher in a state the backend will 403 on.
+  useEffect(() => {
+    if (isRestricted && selectedBranchId === null && accessibleBranches.length > 0) {
+      setSelectedBranchId(accessibleBranches[0].id);
+    }
+  }, [isRestricted, selectedBranchId, accessibleBranches, setSelectedBranchId]);
+
   const value = useMemo(
-    () => ({ multiBranchEnabled, branches, selectedBranchId, setSelectedBranchId, reload: load }),
-    [multiBranchEnabled, branches, selectedBranchId, setSelectedBranchId, load],
+    () => ({
+      multiBranchEnabled, branches, accessibleBranches, isRestricted, selectedBranchId, setSelectedBranchId, reload: load,
+    }),
+    [multiBranchEnabled, branches, accessibleBranches, isRestricted, selectedBranchId, setSelectedBranchId, load],
   );
 
   return <BranchContext.Provider value={value}>{children}</BranchContext.Provider>;

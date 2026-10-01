@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
-from portal.deps import _authenticate, _hospital_summary, authorize
+from portal.deps import _authenticate, _hospital_summary, authorize, check_branch_access
 
 router = APIRouter()
 
@@ -12,6 +12,9 @@ async def portal_dashboard(branch_id: str | None = None, authorization: str | No
     principal, error = authorize(authorization, "dashboard", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     hospital = principal.hospital
 
     stats = db.get_dashboard_stats(hospital.id, branch_id=branch_id)

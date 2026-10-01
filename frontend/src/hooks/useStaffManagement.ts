@@ -21,6 +21,8 @@ export type StaffMember = {
   working_days: string[];
   shift_start: string | null;
   shift_end: string | null;
+  // Per-branch access (migration 0060) -- empty means unrestricted (every branch visible).
+  branch_ids: string[];
 };
 
 export type Section = { id: string; name: string };
@@ -62,6 +64,7 @@ export type StaffDialog =
   | { kind: "add" }
   | { kind: "edit"; member: StaffMember }
   | { kind: "password"; member: StaffMember }
+  | { kind: "branches"; member: StaffMember }
   | { kind: "toggle"; member: StaffMember }
   // Team & Access merge: "Give portal access" on a roster-only person -- the same Add-Staff form,
   // pre-filled with their name/section, that on submit links the new login back to `member.id`.
@@ -243,6 +246,13 @@ export function useStaffManagement(canView: boolean) {
     return mutate(`/api/portal/staff/${member.id}/password`, "POST", { new_password: newPassword }, "Password reset -- they've been signed out everywhere");
   }
 
+  async function setStaffBranches(member: StaffMember, branchIds: string[]): Promise<string | null> {
+    return mutate(
+      `/api/portal/staff/${member.id}/branches`, "POST", { branch_ids: branchIds },
+      branchIds.length === 0 ? "Branch access cleared -- every branch visible again" : "Branch access updated",
+    );
+  }
+
   async function addSection(name: string): Promise<string | null> {
     const result = await staffFetch("/api/portal/departments", {
       method: "POST",
@@ -258,6 +268,6 @@ export function useStaffManagement(canView: boolean) {
   return {
     staff, roster, merged, visible, counts, sections, error, selected, selectedKey, setSelectedKey,
     dialog, setDialog, search, setSearch, roleFilter, setRoleFilter, statusFilter, setStatusFilter,
-    addStaff, editStaff, setActive, resetPassword, addRosterMember, setRosterActive, addSection,
+    addStaff, editStaff, setActive, resetPassword, setStaffBranches, addRosterMember, setRosterActive, addSection,
   };
 }

@@ -16,7 +16,7 @@ def _offer_json(o: dict) -> dict:
         "min_order_value_paise": o["min_order_value_paise"], "max_redemptions": o["max_redemptions"],
         "fulfillment_type": o["fulfillment_type"], "is_active": o["is_active"], "created_at": o["created_at"],
         "usage_count": o.get("usage_count", 0), "revenue_paise": o.get("revenue_paise", 0), "status": o.get("status"),
-        "branch_id": o.get("branch_id"), "per_customer_limit": o.get("per_customer_limit"),
+        "branch_ids": o.get("branch_ids", []), "per_customer_limit": o.get("per_customer_limit"),
     }
 
 
@@ -52,7 +52,7 @@ async def portal_create_offer(payload: dict, authorization: str | None = Header(
             min_order_value_paise=int(p.get("min_order_value_paise") or 0),
             max_redemptions=int(p["max_redemptions"]) if p.get("max_redemptions") else None,
             fulfillment_type=p.get("fulfillment_type") or None,
-            branch_id=p.get("branch_id") or None,
+            branch_ids=[b for b in (p.get("branch_ids") or []) if b],
             per_customer_limit=int(p["per_customer_limit"]) if p.get("per_customer_limit") else None,
         )
     except ValueError as exc:
@@ -68,20 +68,35 @@ async def portal_create_offer(payload: dict, authorization: str | None = Header(
 
 @router.post("/api/portal/offers/{offer_id}")
 async def portal_update_offer(offer_id: int, payload: dict, authorization: str | None = Header(default=None)):
-    """Today, only the "..." row action's active/inactive toggle -- editing an already-live
-    coupon's terms isn't exposed yet."""
+    """Today, the "..." row action's active/inactive toggle, plus (migration 0060) updating which
+    branches an offer is restricted to -- editing the rest of an already-live coupon's terms
+    isn't exposed yet."""
     principal, error = authorize(authorization, "offers", "write")
     if error:
         return error
     hospital = principal.hospital
-    is_active = (payload or {}).get("is_active")
-    if is_active is None or not isinstance(is_active, bool):
-        return JSONResponse({"error": "is_active (true/false) is required."}, status_code=400)
-    updated = db.update_offer(hospital.id, offer_id, is_active=is_active)
-    if updated is None:
-        return JSONResponse({"error": "No such offer."}, status_code=404)
-    db.record_audit_log(
-        "portal", hospital.id, "tenant portal", "offer.toggle_active", entity_type="offer", entity_id=str(offer_id),
-        after={"is_active": is_active},
-    )
+    p = payload or {}
+    is_active = p.get("is_active")
+    branch_ids = p.get("branch_ids")
+    if is_active is None and branch_ids is None:
+        return JSONResponse({"error": "is_active (true/false) or branch_ids is required."}, status_code=400)
+    updated = None
+    if is_active is not None:
+        if not isinstance(is_active, bool):
+            return JSONResponse({"error": "is_active must be true/false."}, status_code=400)
+        updated = db.update_offer(hospital.id, offer_id, is_active=is_active)
+        if updated is None:
+            return JSONResponse({"error": "No such offer."}, status_code=404)
+        db.record_audit_log(
+            "portal", hospital.id, "tenant portal", "offer.toggle_active", entity_type="offer", entity_id=str(offer_id),
+            after={"is_active": is_active},
+        )
+    if branch_ids is not None:
+        updated = db.set_offer_branches(hospital.id, offer_id, [b for b in branch_ids if b])
+        if updated is None:
+            return JSONResponse({"error": "No such offer."}, status_code=404)
+        db.record_audit_log(
+            "portal", hospital.id, "tenant portal", "offer.set_branches", entity_type="offer", entity_id=str(offer_id),
+            after={"branch_ids": updated["branch_ids"]},
+        )
     return JSONResponse({"offer": updated})

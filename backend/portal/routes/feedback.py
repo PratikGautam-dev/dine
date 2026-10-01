@@ -2,7 +2,7 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
-from portal.deps import authorize
+from portal.deps import authorize, check_branch_access
 
 router = APIRouter()
 
@@ -14,6 +14,9 @@ async def portal_feedback(branch_id: str | None = None, authorization: str | Non
     principal, error = authorize(authorization, "feedback", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     hospital = principal.hospital
     return JSONResponse({
         "summary": db.get_feedback_summary(hospital.id, branch_id=branch_id),

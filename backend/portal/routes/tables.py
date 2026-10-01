@@ -13,7 +13,7 @@ from pydantic import BaseModel
 
 import db.repository as db
 from portal.capabilities import MANAGE_TABLES
-from portal.deps import _authenticate, require_capability, authorize
+from portal.deps import _authenticate, require_capability, authorize, check_branch_access
 
 router = APIRouter()
 
@@ -46,18 +46,21 @@ def _require_tables(authorization: str | None, action: str):
     """Signed in, holds `action` on the Tables page, and the tenant has table management."""
     principal, error = authorize(authorization, "tables", action)
     if error:
-        return None, error
+        return None, None, error
     forbidden = require_capability(principal.hospital, MANAGE_TABLES)
     if forbidden:
-        return None, forbidden
-    return principal.hospital, None
+        return None, None, forbidden
+    return principal.hospital, principal, None
 
 
 @router.get("/api/portal/tables")
 async def portal_tables(branch_id: str | None = None, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "view")
+    hospital, principal, error = _require_tables(authorization, "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     # get_all_tables_for_hospital() -- the management list, intentionally
     # still shows inactive tables (unlike get_tables(), the WhatsApp
     # booking-flow read). departments are shared with the existing
@@ -100,7 +103,7 @@ def _clean_section_name(raw: str) -> tuple[str, JSONResponse | None]:
 
 @router.post("/api/portal/sections")
 async def portal_create_section(payload: SectionPayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     name, bad = _clean_section_name(payload.name)
@@ -118,7 +121,7 @@ async def portal_create_section(payload: SectionPayload, authorization: str | No
 
 @router.put("/api/portal/sections/{section_id}")
 async def portal_rename_section(section_id: str, payload: SectionPayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     name, bad = _clean_section_name(payload.name)
@@ -139,7 +142,7 @@ async def portal_rename_section(section_id: str, payload: SectionPayload, author
 
 @router.post("/api/portal/sections/{section_id}/move")
 async def portal_move_section(section_id: str, payload: SectionMovePayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     if payload.direction not in ("up", "down"):
@@ -152,7 +155,7 @@ async def portal_move_section(section_id: str, payload: SectionMovePayload, auth
 
 @router.delete("/api/portal/sections/{section_id}")
 async def portal_delete_section(section_id: str, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "delete")
+    hospital, principal, error = _require_tables(authorization, "delete")
     if error:
         return error
     before = db.find_department(hospital.id, section_id)
@@ -173,7 +176,7 @@ async def portal_delete_section(section_id: str, authorization: str | None = Hea
 
 @router.post("/api/portal/tables")
 async def portal_create_table(payload: TablePayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     name = payload.name.strip()
@@ -195,7 +198,7 @@ async def portal_create_table(payload: TablePayload, authorization: str | None =
 
 @router.put("/api/portal/tables/{table_id}")
 async def portal_update_table(table_id: str, payload: TablePayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     existing = db.find_table(hospital.id, table_id)
@@ -245,7 +248,7 @@ async def portal_update_table_position(table_id: str, payload: PositionPayload, 
     routes in registration order, and "position" would otherwise be swallowed by {action} as an
     unknown-action 400, same ordering pitfall portal/routes/bookings.py's own "delete" route docstring
     already flags for this exact codebase."""
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     if not (0 <= payload.pos_x <= 100 and 0 <= payload.pos_y <= 100):
@@ -258,7 +261,7 @@ async def portal_update_table_position(table_id: str, payload: PositionPayload, 
 
 @router.post("/api/portal/tables/{table_id}/{action}")
 async def portal_set_table_status(table_id: str, action: str, authorization: str | None = Header(default=None)):
-    hospital, error = _require_tables(authorization, "write")
+    hospital, principal, error = _require_tables(authorization, "write")
     if error:
         return error
     table = db.find_table(hospital.id, table_id)

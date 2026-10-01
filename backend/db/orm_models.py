@@ -272,6 +272,35 @@ class Branch(Base):
     min_order_paise: Mapped[int | None]
     accepts_online: Mapped[bool | None]
     accepts_whatsapp: Mapped[bool | None]
+    # Branch-scoped Razorpay credentials (migration 0060) -- NULL (all three) means "use the
+    # hospital's own", same override convention as the fields above. key_id is not a secret
+    # (Razorpay's own public identifier); the other two are Fernet-encrypted at rest exactly like
+    # HospitalRow's own razorpay_key_secret_ref/razorpay_webhook_secret_ref.
+    razorpay_key_id: Mapped[str | None]
+    razorpay_key_secret_ref: Mapped[str | None]
+    razorpay_webhook_secret_ref: Mapped[str | None]
+
+
+class StaffBranch(Base):
+    """staff_branches table (migration 0060) -- a staff member with no rows here is
+    unrestricted (every branch visible, today's unchanged default behavior); one or more rows
+    restricts them to exactly those branches. Opt-in per staff member, not a default-on rewrite
+    of the existing "staff are NOT locked to a branch" design."""
+    __tablename__ = "staff_branches"
+
+    identity_id: Mapped[int] = mapped_column(ForeignKey("identities.id"), primary_key=True)
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"), primary_key=True)
+
+
+class OfferBranch(Base):
+    """offer_branches table (migration 0060) -- replaces Phase F's single nullable
+    offers.branch_id with a real many-to-many: an offer with no rows here applies to all
+    branches (unchanged shared-by-default behavior); one or more rows restricts it to exactly
+    those branches, letting a coupon be stacked across SEVERAL specific branches, not just one."""
+    __tablename__ = "offer_branches"
+
+    offer_id: Mapped[int] = mapped_column(ForeignKey("offers.id"), primary_key=True)
+    branch_id: Mapped[str] = mapped_column(ForeignKey("branches.id"), primary_key=True)
 
 
 class Department(Base):
@@ -482,7 +511,6 @@ class Offer(Base):
     fulfillment_type: Mapped[str | None]
     is_active: Mapped[bool]
     created_at: Mapped[str]
-    branch_id: Mapped[str | None] = mapped_column(ForeignKey("branches.id"))
     per_customer_limit: Mapped[int | None]
 
 

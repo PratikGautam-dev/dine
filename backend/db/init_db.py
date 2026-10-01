@@ -1815,6 +1815,34 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE offers ADD COLUMN IF NOT EXISTS branch_id TEXT REFERENCES branches(id)")
     conn.execute("ALTER TABLE offers ADD COLUMN IF NOT EXISTS per_customer_limit INTEGER")
 
+    # Migration 0060 -- branch-scoped follow-ups: per-branch Razorpay credentials, per-branch
+    # staff access, and multi-branch offers (replacing the single offers.branch_id column).
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS razorpay_key_id TEXT")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS razorpay_key_secret_ref TEXT")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS razorpay_webhook_secret_ref TEXT")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS staff_branches ("
+        "identity_id INTEGER NOT NULL REFERENCES identities(id), "
+        "branch_id TEXT NOT NULL REFERENCES branches(id), "
+        "PRIMARY KEY (identity_id, branch_id))"
+    )
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS offer_branches ("
+        "offer_id INTEGER NOT NULL REFERENCES offers(id), "
+        "branch_id TEXT NOT NULL REFERENCES branches(id), "
+        "PRIMARY KEY (offer_id, branch_id))"
+    )
+    _offers_branch_id_exists = conn.execute(
+        "SELECT 1 FROM information_schema.columns WHERE table_name = 'offers' AND column_name = 'branch_id'"
+    ).fetchone()
+    if _offers_branch_id_exists:
+        conn.execute(
+            "INSERT INTO offer_branches (offer_id, branch_id) "
+            "SELECT id, branch_id FROM offers WHERE branch_id IS NOT NULL "
+            "ON CONFLICT DO NOTHING"
+        )
+        conn.execute("ALTER TABLE offers DROP COLUMN branch_id")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

@@ -8,7 +8,7 @@ from fastapi import APIRouter, Header
 from fastapi.responses import JSONResponse
 
 import db.repository as db
-from portal.deps import _authenticate, authorize
+from portal.deps import _authenticate, authorize, check_branch_access
 
 router = APIRouter()
 
@@ -18,4 +18,7 @@ async def portal_live_operations(branch_id: str | None = None, authorization: st
     principal, error = authorize(authorization, "live_operations", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     return JSONResponse(db.get_live_operations_summary(principal.hospital.id, branch_id=branch_id))

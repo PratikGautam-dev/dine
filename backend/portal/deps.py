@@ -140,6 +140,33 @@ def require_permission(principal: StaffPrincipal, page_key: str, action: str) ->
     return None
 
 
+def check_branch_access(principal: "StaffPrincipal", branch_id: str | None) -> JSONResponse | None:
+    """Per-branch staff access (migration 0060): a staff member with no staff_branches rows is
+    unrestricted, so this is a no-op for every staff member today unless the portal's Staff
+    settings page has explicitly restricted them. For a RESTRICTED staff member: `branch_id=None`
+    ("all branches") is refused outright -- it would otherwise bypass the restriction entirely --
+    and an explicit branch_id outside their allowed set is refused too. Call AFTER authorize()
+    succeeds, same "if forbidden: return forbidden" shape as require_permission():
+
+        principal, error = authorize(authorization, "food_orders", "view")
+        if error:
+            return error
+        forbidden = check_branch_access(principal, branch_id)
+        if forbidden:
+            return forbidden
+    """
+    from db.repositories.staff_branches import get_staff_branch_ids
+
+    allowed = get_staff_branch_ids(principal.staff_id)
+    if not allowed:
+        return None
+    if branch_id is None:
+        return JSONResponse({"error": "Select a branch to view this data."}, status_code=403)
+    if branch_id not in allowed:
+        return JSONResponse({"error": "You don't have access to that branch."}, status_code=403)
+    return None
+
+
 def authorize(authorization: str | None, page_key: str, action: str):
     """The one guard every portal route calls:
 

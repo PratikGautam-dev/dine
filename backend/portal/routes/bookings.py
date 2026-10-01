@@ -9,7 +9,7 @@ import db.repository as db
 from auth.session import _build_new_booking_context
 from core.whatsapp import WhatsAppClient
 from db.connection import IntegrityError
-from portal.deps import _authenticate, get_current_staff, require_permission, authorize
+from portal.deps import _authenticate, get_current_staff, require_permission, authorize, check_branch_access
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -111,6 +111,9 @@ async def portal_bookings(branch_id: str | None = None, authorization: str | Non
     principal, error = authorize(authorization, "appointments", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     hospital = principal.hospital
     appointments = db.get_all_appointments_for_hospital(hospital.id, branch_id=branch_id)
     validity_days = db.get_followup_validity_days(hospital.id)

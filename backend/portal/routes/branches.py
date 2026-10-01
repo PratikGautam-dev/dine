@@ -8,7 +8,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import db.repository as db
-from portal.deps import require_capability, authorize
+from portal.deps import require_capability, authorize, get_current_staff
 
 router = APIRouter()
 
@@ -41,11 +41,11 @@ class MultiBranchTogglePayload(BaseModel):
 def _require_settings(authorization: str | None, action: str):
     principal, error = authorize(authorization, "settings", action)
     if error:
-        return None, error
+        return None, None, error
     forbidden = require_capability(principal.hospital, "manage_settings")
     if forbidden:
-        return None, forbidden
-    return principal.hospital, None
+        return None, None, forbidden
+    return principal.hospital, principal, None
 
 
 def _days_csv(days: list[str] | None) -> str | None:
@@ -58,18 +58,27 @@ def _hours_csv(hours: list[str] | None) -> str | None:
 
 @router.get("/api/portal/branches")
 async def portal_list_branches(authorization: str | None = Header(default=None)):
-    hospital, error = _require_settings(authorization, "view")
-    if error:
-        return error
+    """Deliberately open to ANY signed-in staff member, not gated on "settings" view like the
+    write routes below -- this is the shared data source the topbar branch switcher reads on
+    EVERY branch-aware page (migration 0060's own per-branch staff access needs every role, not
+    just Owner/Manager, to see which branches they're allowed to pick). Reading branch
+    names/addresses isn't sensitive management data; only create/edit/toggle stay settings-gated."""
+    principal = get_current_staff(authorization)
+    if principal is None:
+        return JSONResponse({"error": "Not authenticated."}, status_code=401)
+    hospital = principal.hospital
     return JSONResponse({
         "multi_branch_enabled": db.get_multi_branch_enabled(hospital.id),
         "branches": db.list_branches(hospital.id, active_only=False),
+        # Per-branch staff access (migration 0060) -- empty means this caller is unrestricted
+        # (every branch). Non-empty means the topbar switcher should only offer these.
+        "staff_branch_ids": db.get_staff_branch_ids(principal.staff_id),
     })
 
 
 @router.post("/api/portal/branches/toggle")
 async def portal_toggle_multi_branch(payload: MultiBranchTogglePayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_settings(authorization, "write")
+    hospital, principal, error = _require_settings(authorization, "write")
     if error:
         return error
     before = db.get_multi_branch_enabled(hospital.id)
@@ -84,7 +93,7 @@ async def portal_toggle_multi_branch(payload: MultiBranchTogglePayload, authoriz
 
 @router.post("/api/portal/branches")
 async def portal_create_branch(payload: BranchPayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_settings(authorization, "write")
+    hospital, principal, error = _require_settings(authorization, "write")
     if error:
         return error
     name = payload.name.strip()
@@ -108,7 +117,7 @@ async def portal_create_branch(payload: BranchPayload, authorization: str | None
 
 @router.put("/api/portal/branches/{branch_id}")
 async def portal_update_branch(branch_id: str, payload: BranchPayload, authorization: str | None = Header(default=None)):
-    hospital, error = _require_settings(authorization, "write")
+    hospital, principal, error = _require_settings(authorization, "write")
     if error:
         return error
     existing = db.get_branch(hospital.id, branch_id)
@@ -135,7 +144,7 @@ async def portal_update_branch(branch_id: str, payload: BranchPayload, authoriza
 
 @router.post("/api/portal/branches/{branch_id}/{action}")
 async def portal_set_branch_active(branch_id: str, action: str, authorization: str | None = Header(default=None)):
-    hospital, error = _require_settings(authorization, "write")
+    hospital, principal, error = _require_settings(authorization, "write")
     if error:
         return error
     if action not in ("activate", "deactivate"):

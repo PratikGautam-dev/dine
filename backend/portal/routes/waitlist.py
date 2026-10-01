@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import db.repository as db
-from portal.deps import _authenticate, authorize
+from portal.deps import _authenticate, authorize, check_branch_access
 
 router = APIRouter()
 
@@ -29,6 +29,9 @@ async def portal_waitlist(
     principal, error = authorize(authorization, "appointments", "view")
     if error:
         return error
+    forbidden = check_branch_access(principal, branch_id)
+    if forbidden:
+        return forbidden
     resolved_status = None if status == "all" else status
     return JSONResponse({"waitlist": db.list_waitlist(principal.hospital.id, status=resolved_status, branch_id=branch_id)})
 
