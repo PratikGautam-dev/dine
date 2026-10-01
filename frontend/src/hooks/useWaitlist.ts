@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
@@ -19,10 +19,14 @@ export function useWaitlist(ready: boolean, branchId: string | null = null) {
   const [entries, setEntries] = useState<WaitlistEntry[] | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const result = await portalFetch(`/api/portal/waitlist${query}`);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (result.ok) setEntries((result.data as { waitlist: WaitlistEntry[] }).waitlist);
   }, [branchId]);
 

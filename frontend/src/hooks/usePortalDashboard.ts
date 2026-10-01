@@ -56,10 +56,18 @@ export function usePortalDashboard(ready: boolean, branchId: string | null = nul
   const [hospital, setHospital] = useState<PortalHospital | null>(null);
   const routerRef = useRef(router);
   routerRef.current = router;
+  // Always the CURRENT branchId, read synchronously (not via the `load` closure's captured
+  // value) once a response comes back -- an unfiltered "All Branches" fetch can take longer than
+  // a filtered one (more rows to aggregate), so switching branches quickly can otherwise let the
+  // slower, now-stale request resolve AFTER the new one and silently overwrite its correct data.
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const result = await portalFetch(`/api/portal/dashboard${query}`);
+    if (branchIdRef.current !== requestedBranchId) return; // a newer branch was selected meanwhile
     if (!result.ok) {
       if (result.unauthorized) routerRef.current.push("/portal/login");
       else setError(result.error);

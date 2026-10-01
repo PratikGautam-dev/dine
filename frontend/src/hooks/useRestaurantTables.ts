@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
@@ -68,10 +68,14 @@ export function useRestaurantTables(ready: boolean, branchId: string | null = nu
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [statusActingId, setStatusActingId] = useState<string | null>(null);
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const params = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const result = await portalFetch(`/api/portal/tables${params}`);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (!result.ok) {
       if (!result.unauthorized) setError(result.error);
       return;

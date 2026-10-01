@@ -81,10 +81,16 @@ export function useLiveOperations(ready: boolean, branchId: string | null = null
   const [actingId, setActingId] = useState<string | null>(null);
   const routerRef = useRef(router);
   routerRef.current = router;
+  // Guards against an unfiltered "All Branches" fetch (slower -- more rows to aggregate)
+  // resolving AFTER a newer, faster filtered one and clobbering its correct data.
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const result = await portalFetch(`/api/portal/live-operations${query}`);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (!result.ok) {
       if (result.unauthorized) routerRef.current.push("/portal/login");
       else setError(result.error);

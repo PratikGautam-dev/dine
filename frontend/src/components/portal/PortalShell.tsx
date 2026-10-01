@@ -15,6 +15,14 @@ type Props = {
   children: React.ReactNode;
 };
 
+// Multi-branch (migration 0053): only the pages whose data actually carries a branch_id are
+// worth showing the switcher on -- menu, staff, offers, customers, messages/automations and
+// settings pages are all explicitly SHARED across branches (confirmed scoping decision), so a
+// switcher that visibly changes nothing there reads as broken, not as "nothing to filter."
+const _BRANCH_AWARE_PAGES = new Set([
+  "dashboard", "live-operations", "appointments", "tables", "food-orders", "kitchen-orders", "feedback", "reports",
+]);
+
 /** Shared shell for every /portal/* page: sidebar (a static column at `lg`
  * and up, an off-canvas drawer below it, behind a mobile top bar with a
  * hamburger toggle) plus the scrollable main content area. Every portal page
@@ -49,7 +57,7 @@ export function PortalShell({ hospital, active, children }: Props) {
           </button>
           <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">{hospital?.name || "Restaurant"}</span>
           <div className="ml-auto flex items-center gap-space-2">
-            <BranchSwitcher />
+            {_BRANCH_AWARE_PAGES.has(active) && <BranchSwitcher />}
             <span
               // the server and the browser can be on different days/timezones for a moment; the browser's wins
               suppressHydrationWarning

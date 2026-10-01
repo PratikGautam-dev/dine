@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
@@ -139,12 +139,18 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   // Live Operations' real per-table occupancy (tables.status) -- fetched here purely to derive
   // "Seated" (a still-'booked' row whose table is currently occupied) without inventing a new status.
   const [occupiedTableIds, setOccupiedTableIds] = useState<Set<string>>(new Set());
+  // Guards against an older, slower (e.g. unfiltered "All Branches") request resolving AFTER a
+  // newer one and clobbering its correct data.
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const branchQuery = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const [bookingsResult, tablesResult] = await Promise.all([
       portalFetch(`/api/portal/bookings${branchQuery}`), portalFetch(`/api/portal/tables${branchQuery}`),
     ]);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (!bookingsResult.ok) {
       if (bookingsResult.unauthorized) router.push("/portal/login");
       else setError(bookingsResult.error);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
@@ -16,10 +16,14 @@ const POLL_MS = 20_000;
 export function useChefNotes(ready: boolean, branchId: string | null = null) {
   const [notes, setNotes] = useState<ChefNote[] | null>(null);
   const [posting, setPosting] = useState(false);
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const result = await portalFetch(`/api/portal/chef-notes${query}`);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (result.ok) setNotes((result.data as { notes: ChefNote[] }).notes);
   }, [branchId]);
 

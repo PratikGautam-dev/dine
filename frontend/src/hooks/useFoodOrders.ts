@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
@@ -70,11 +70,17 @@ export function useFoodOrders(ready: boolean, statusFilter: string, days = 90, p
   const [orders, setOrders] = useState<FoodOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<number | null>(null);
+  // Guards against an older, slower (e.g. unfiltered "All Branches") request resolving AFTER a
+  // newer one and clobbering its correct data.
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     // days limits how far back the list goes (0 = all time), so a page load never fetches every order ever placed
     const query = `?days=${days}${statusFilter ? `&status=${encodeURIComponent(statusFilter)}` : ""}${branchId ? `&branch_id=${encodeURIComponent(branchId)}` : ""}`;
     const result = await portalFetch(`/api/portal/food-orders${query}`);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (!result.ok) {
       if (!result.unauthorized) setError(result.error);
       return;

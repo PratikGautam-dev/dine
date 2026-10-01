@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
 
@@ -27,10 +27,14 @@ export function useFeedback(ready: boolean, branchId: string | null = null) {
   const [summary, setSummary] = useState<FeedbackSummary | null>(null);
   const [entries, setEntries] = useState<FeedbackEntry[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const branchIdRef = useRef(branchId);
+  branchIdRef.current = branchId;
 
   const load = useCallback(async () => {
+    const requestedBranchId = branchId;
     const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
     const result = await portalFetch(`/api/portal/feedback${query}`);
+    if (branchIdRef.current !== requestedBranchId) return;
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);
