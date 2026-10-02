@@ -1847,6 +1847,18 @@ def init_db_on_connection(conn) -> int:
         )
         conn.execute("ALTER TABLE offers DROP COLUMN branch_id")
 
+    # Migration 0061 -- tenant-level general settings (currency/date_format/tax fields/branding)
+    # folded onto hospitals, plus the branch_settings fields migration 0055 didn't already cover.
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'INR'")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS date_format TEXT NOT NULL DEFAULT 'DD/MM/YYYY'")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS tax_inclusive_prices BOOLEAN NOT NULL DEFAULT true")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS default_tax_rate NUMERIC(5,2) NOT NULL DEFAULT 0")
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS branding TEXT NOT NULL DEFAULT '{}'")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS tables_enabled BOOLEAN")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS is_open_override BOOLEAN")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS avg_prep_time_min INTEGER")
+    conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS delivery_fee_paise INTEGER")
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

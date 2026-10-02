@@ -279,6 +279,13 @@ class Branch(Base):
     razorpay_key_id: Mapped[str | None]
     razorpay_key_secret_ref: Mapped[str | None]
     razorpay_webhook_secret_ref: Mapped[str | None]
+    # The remaining branch_settings fields from the pasted ERP schema not already covered above
+    # (migration 0061) -- same nullable-override convention. accepts_pos/kitchen_printer/
+    # shipping_origin_pincode skipped: no POS or shipping integration exists to hang them off.
+    tables_enabled: Mapped[bool | None]
+    is_open_override: Mapped[bool | None]
+    avg_prep_time_min: Mapped[int | None]
+    delivery_fee_paise: Mapped[int | None]
 
 
 class StaffBranch(Base):
@@ -777,6 +784,19 @@ class HospitalRow(Base):
     # db/repositories/branches.py's own docstring for the "branch_id always exists, this
     # only controls visibility" design principle.
     multi_branch_enabled: Mapped[bool]
+    # Tenant-level general settings (migration 0061) -- the pasted ERP schema's `tenant_settings`
+    # table, folded directly onto this row rather than a separate 1:1 table (hospital_settings
+    # already covers a different config slice the same way). tax_inclusive_prices/
+    # default_tax_rate/branding are stored for reference only -- no tax engine or branded-invoice
+    # rendering exists yet to consume them, same "stored but not yet enforced" status
+    # service_charge_pct/delivery_radius_km already have on Branch below.
+    currency: Mapped[str]
+    date_format: Mapped[str]
+    tax_inclusive_prices: Mapped[bool]
+    default_tax_rate: Mapped[float] = mapped_column(Numeric(5, 2))
+    # JSON-encoded TEXT, same convention enabled_features/admin_capabilities already use -- not a
+    # native jsonb column.
+    branding: Mapped[str]
 
 
 class CustomerOtp(Base):
