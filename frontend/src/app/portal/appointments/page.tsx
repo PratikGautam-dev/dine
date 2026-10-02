@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { NewReservationDialog } from "@/components/portal/NewReservationDialog";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { QuickActionsBar } from "@/components/portal/QuickActionsBar";
 import { usePermission } from "@/lib/staffAuth";
@@ -43,6 +44,7 @@ export default function PortalAppointmentsPage() {
   const { hospital, ready } = usePortalGuard();
   const canWrite = usePermission("appointments", "write");
   const [activeId, setActiveId] = useState<number | null>(null);
+  const [newReservationOpen, setNewReservationOpen] = useState(false);
   const {
     appointments, error, filteredAppointments, typeCounts, viewCounts, todaySchedule, occupiedTableIds,
     confirmBooking, sendReminder, viewFilter, setViewFilter,
@@ -58,6 +60,7 @@ export default function PortalAppointmentsPage() {
     deletingId, handleDelete,
     selected, toggleSelected, toggleSelectAll, deletableAppointments, selectedAppointments, allSelected,
     pendingDelete, setPendingDelete, bulkDeleting, runBulkDelete,
+    reload,
   } = useAppointments(ready, useBranchFilter().selectedBranchId);
 
   const columns = useMemo(
@@ -391,7 +394,7 @@ export default function PortalAppointmentsPage() {
                   </Button>
                 </PermissionGate>
               )}
-              <Button href="/portal/new-booking">
+              <Button onClick={() => setNewReservationOpen(true)}>
                 <Plus size={15} /> New reservation
               </Button>
             </>
@@ -538,6 +541,17 @@ export default function PortalAppointmentsPage() {
           onConfirm={() => pendingDelete && runBulkDelete(pendingDelete)}
           onCancel={() => setPendingDelete(null)}
         />
+
+        {newReservationOpen && (
+          <NewReservationDialog
+            hospitalName={hospital?.name}
+            onClose={() => setNewReservationOpen(false)}
+            onCreated={() => {
+              setNewReservationOpen(false);
+              reload();
+            }}
+          />
+        )}
     </PortalShell>
   );
 }

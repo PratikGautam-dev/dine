@@ -505,5 +505,6 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     deletingId, handleDelete,
     selected, toggleSelected, toggleSelectAll, deletableAppointments, selectedAppointments, allSelected,
     pendingDelete, setPendingDelete, bulkDeleting, runBulkDelete,
+    reload: load,
   };
 }
