@@ -32,6 +32,14 @@ class BranchPayload(BaseModel):
     min_order_paise: int | None = None
     accepts_online: bool | None = None
     accepts_whatsapp: bool | None = None
+    # The rest of the pasted branch_settings reference schema (migration 0061), same nullable
+    # override convention. delivery_fee_paise IS enforced (get_delivery_fee_paise()); is_open_override
+    # IS enforced (storefront.is_open_now()); tables_enabled/avg_prep_time_min are stored/shown
+    # only for now, same "not yet wired into real behavior" status as service_charge_pct above.
+    tables_enabled: bool | None = None
+    is_open_override: bool | None = None
+    avg_prep_time_min: int | None = None
+    delivery_fee_paise: int | None = None
 
 
 class MultiBranchTogglePayload(BaseModel):
@@ -106,7 +114,9 @@ async def portal_create_branch(payload: BranchPayload, authorization: str | None
         turnover_minutes=payload.turnover_minutes, booking_interval_minutes=payload.booking_interval_minutes,
         service_charge_pct=payload.service_charge_pct, delivery_radius_km=payload.delivery_radius_km,
         min_order_paise=payload.min_order_paise, accepts_online=payload.accepts_online,
-        accepts_whatsapp=payload.accepts_whatsapp,
+        accepts_whatsapp=payload.accepts_whatsapp, tables_enabled=payload.tables_enabled,
+        is_open_override=payload.is_open_override, avg_prep_time_min=payload.avg_prep_time_min,
+        delivery_fee_paise=payload.delivery_fee_paise,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "branch.create",
@@ -133,7 +143,9 @@ async def portal_update_branch(branch_id: str, payload: BranchPayload, authoriza
         turnover_minutes=payload.turnover_minutes, booking_interval_minutes=payload.booking_interval_minutes,
         service_charge_pct=payload.service_charge_pct, delivery_radius_km=payload.delivery_radius_km,
         min_order_paise=payload.min_order_paise, accepts_online=payload.accepts_online,
-        accepts_whatsapp=payload.accepts_whatsapp,
+        accepts_whatsapp=payload.accepts_whatsapp, tables_enabled=payload.tables_enabled,
+        is_open_override=payload.is_open_override, avg_prep_time_min=payload.avg_prep_time_min,
+        delivery_fee_paise=payload.delivery_fee_paise,
     )
     db.record_audit_log(
         "portal", hospital.id, "tenant portal", "branch.update",

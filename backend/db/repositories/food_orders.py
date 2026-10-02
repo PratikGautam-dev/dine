@@ -54,13 +54,24 @@ SOURCE_WEB = "web"
 ORDER_SOURCES = (SOURCE_WHATSAPP, SOURCE_WEB)
 
 
-def get_delivery_fee_paise(hospital_id: int, fulfillment_type: str) -> int | None:
+def get_delivery_fee_paise(hospital_id: int, fulfillment_type: str, branch_id: str | None = None) -> int | None:
     """The flat delivery fee for this restaurant, in paise -- None (not a fake
     0) for takeaway or when no fee is configured. The one place the fee is
     computed, so the guest's order review shows exactly what create_food_order()
-    will later charge."""
+    will later charge.
+
+    branch_id (migration 0061): when given and that branch has its own delivery_fee_paise set, it
+    takes priority over the hospital-wide home_collection_charge -- same "branch override, NULL =
+    inherit" convention min_order_paise already follows. Optional (defaults to the old
+    hospital-wide-only behavior) since several callers (the storefront's restaurant-detail page,
+    the WhatsApp order-review message) show this before a branch is actually chosen."""
     if fulfillment_type != "delivery":
         return None
+    if branch_id is not None:
+        from db.repositories.branches import get_branch
+        branch = get_branch(hospital_id, branch_id)
+        if branch is not None and branch["delivery_fee_paise"] is not None:
+            return branch["delivery_fee_paise"]
     from db.repositories.hospital_settings import get_hospital_settings
 
     fee = get_hospital_settings(hospital_id)["home_collection_charge"]
@@ -145,10 +156,11 @@ def create_food_order(
                 conn, hospital_id, coupon_code, subtotal_paise, fulfillment_type, branch_id=branch_id, phone=phone,
             )
 
-        # Flat delivery fee (hospital_settings.home_collection_charge, shown in the
-        # portal as "Delivery fee"); no distance-based pricing. Discount applies to the
-        # subtotal only, same "before the fee" convention a coupon almost always means.
-        delivery_fee_paise = get_delivery_fee_paise(hospital_id, fulfillment_type)
+        # Flat delivery fee (the branch's own delivery_fee_paise override, or
+        # hospital_settings.home_collection_charge, shown in the portal as "Delivery fee"); no
+        # distance-based pricing. Discount applies to the subtotal only, same "before the fee"
+        # convention a coupon almost always means.
+        delivery_fee_paise = get_delivery_fee_paise(hospital_id, fulfillment_type, branch_id=branch_id)
         total_paise = max(0, subtotal_paise - discount_paise) + (delivery_fee_paise or 0)
 
         reference_id = _generate_reference_id(conn, hospital_id, prefix=ORDER_REFERENCE_ID_PREFIX)

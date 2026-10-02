@@ -19,6 +19,7 @@ _COLUMNS = (
     Branch.is_default, Branch.is_active, Branch.created_at,
     Branch.service_charge_pct, Branch.delivery_radius_km, Branch.min_order_paise,
     Branch.accepts_online, Branch.accepts_whatsapp,
+    Branch.tables_enabled, Branch.is_open_override, Branch.avg_prep_time_min, Branch.delivery_fee_paise,
 )
 
 
@@ -102,13 +103,18 @@ def create_branch(
     min_order_paise: int | None = None,
     accepts_online: bool | None = None,
     accepts_whatsapp: bool | None = None,
+    tables_enabled: bool | None = None,
+    is_open_override: bool | None = None,
+    avg_prep_time_min: int | None = None,
+    delivery_fee_paise: int | None = None,
 ) -> dict:
     """is_default is only ever True from create_hospital()'s own call, to seed the one
     auto-created default branch -- every other caller (the portal's "Add branch" form) leaves it
     False, since a hospital's default branch is fixed at creation and never reassigned here.
 
     service_charge_pct/delivery_radius_km/min_order_paise/accepts_online/accepts_whatsapp
-    (migration 0055) all left unset (None) inherit the hospital-wide default -- same convention
+    (migration 0055) and tables_enabled/is_open_override/avg_prep_time_min/delivery_fee_paise
+    (migration 0061) all left unset (None) inherit the hospital-wide default -- same convention
     operating_days/operating_hours/turnover_minutes already follow on this table."""
     branch_id = _default_branch_id(hospital_id) if is_default else f"h{hospital_id}_{uuid.uuid4().hex[:8]}"
     session = get_session()
@@ -120,6 +126,8 @@ def create_branch(
             is_default=is_default, is_active=True, created_at=datetime.now().isoformat(),
             service_charge_pct=service_charge_pct, delivery_radius_km=delivery_radius_km,
             min_order_paise=min_order_paise, accepts_online=accepts_online, accepts_whatsapp=accepts_whatsapp,
+            tables_enabled=tables_enabled, is_open_override=is_open_override,
+            avg_prep_time_min=avg_prep_time_min, delivery_fee_paise=delivery_fee_paise,
         )
     )
     session.commit()
@@ -144,6 +152,10 @@ def update_branch(
     min_order_paise: int | None = None,
     accepts_online: bool | None = None,
     accepts_whatsapp: bool | None = None,
+    tables_enabled: bool | None = None,
+    is_open_override: bool | None = None,
+    avg_prep_time_min: int | None = None,
+    delivery_fee_paise: int | None = None,
 ) -> dict | None:
     """Every field left as None keeps its current value -- same partial-update convention
     portal/routes/tables.py's own update endpoint already uses, not "None clears the field"."""
@@ -167,6 +179,10 @@ def update_branch(
         "min_order_paise": min_order_paise if min_order_paise is not None else existing["min_order_paise"],
         "accepts_online": accepts_online if accepts_online is not None else existing["accepts_online"],
         "accepts_whatsapp": accepts_whatsapp if accepts_whatsapp is not None else existing["accepts_whatsapp"],
+        "tables_enabled": tables_enabled if tables_enabled is not None else existing["tables_enabled"],
+        "is_open_override": is_open_override if is_open_override is not None else existing["is_open_override"],
+        "avg_prep_time_min": avg_prep_time_min if avg_prep_time_min is not None else existing["avg_prep_time_min"],
+        "delivery_fee_paise": delivery_fee_paise if delivery_fee_paise is not None else existing["delivery_fee_paise"],
     }
     session.execute(
         Branch.__table__.update().where(Branch.hospital_id == hospital_id, Branch.id == branch_id).values(**values)

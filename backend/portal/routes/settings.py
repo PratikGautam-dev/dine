@@ -344,6 +344,32 @@ async def portal_update_storefront(payload: dict, authorization: str | None = He
     return JSONResponse({**storefront, "public_url_path": f"/order/{storefront['slug']}" if storefront["slug"] else None})
 
 
+@router.get("/api/portal/settings/tenant")
+async def portal_get_tenant_settings(authorization: str | None = Header(default=None)):
+    """General Settings' own sub-page -- currency, date format, tax fields, branding (migration
+    0061). Same "own GET/POST pair" shape portal_get_storefront()/portal_update_storefront() above
+    already use."""
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    return JSONResponse(db.get_tenant_settings(principal.hospital.id))
+
+
+@router.post("/api/portal/settings/tenant")
+async def portal_update_tenant_settings(payload: dict, authorization: str | None = Header(default=None)):
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    before = db.get_tenant_settings(hospital.id)
+    updated = db.update_tenant_settings(hospital.id, payload or {})
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "settings.tenant",
+        entity_type="hospital", entity_id=str(hospital.id), before=before, after=updated,
+    )
+    return JSONResponse(updated)
+
+
 @router.get("/api/portal/audit-log")
 async def portal_audit_log(authorization: str | None = Header(default=None)):
     """This tenant's own 'portal'-level audit rows only -- never

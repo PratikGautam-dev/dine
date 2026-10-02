@@ -491,3 +491,36 @@ def get_razorpay_credentials(hospital_id: int) -> dict | None:
     }
 
 
+_TENANT_SETTINGS_COLUMNS = (
+    HospitalRow.currency, HospitalRow.date_format, HospitalRow.tax_inclusive_prices,
+    HospitalRow.default_tax_rate, HospitalRow.branding,
+)
+
+
+def get_tenant_settings(hospital_id: int) -> dict:
+    """General business settings (migration 0061) -- currency/date format/tax fields/branding.
+    tax_inclusive_prices/default_tax_rate/branding are stored for reference only; no tax engine
+    or branded-invoice rendering exists yet to consume them, same status Branch's own
+    service_charge_pct/delivery_radius_km already carry."""
+    session = get_session()
+    row = session.execute(select(*_TENANT_SETTINGS_COLUMNS).where(HospitalRow.id == hospital_id)).one()
+    d = dict(row._mapping)
+    d["default_tax_rate"] = float(d["default_tax_rate"])
+    d["branding"] = json_lib.loads(d["branding"]) if d["branding"] else {}
+    return d
+
+
+def update_tenant_settings(hospital_id: int, fields: dict) -> dict:
+    """`fields` is a partial dict of _TENANT_SETTINGS_COLUMNS' own names (branding as a dict, not
+    a JSON string -- this function handles the encode) -- same "only what's sent changes" shape
+    update_storefront() already uses."""
+    values = {k: v for k, v in fields.items() if k in {"currency", "date_format", "tax_inclusive_prices", "default_tax_rate"}}
+    if "branding" in fields:
+        values["branding"] = json_lib.dumps(fields["branding"] or {})
+    if values:
+        session = get_session()
+        session.execute(update(HospitalRow).where(HospitalRow.id == hospital_id).values(**values))
+        session.commit()
+    return get_tenant_settings(hospital_id)
+
+

@@ -144,10 +144,20 @@ def update_storefront(hospital_id: int, fields: dict) -> dict:
 
 # ---------------------------------------------------------------- marketplace reads
 
-def is_open_now(hospital_id: int, tz_name: str, operating_days: list[str], operating_hours: list[str], now: datetime | None = None) -> bool:
+def is_open_now(
+    hospital_id: int, tz_name: str, operating_days: list[str], operating_hours: list[str],
+    now: datetime | None = None, is_open_override: bool | None = None,
+) -> bool:
     """No hours configured at all => treated as open (a restaurant that hasn't set hours yet
     shouldn't look permanently closed on its own storefront). Handles a single overnight range
-    (e.g. "18:00-02:00") the same way portal/attendance_rules' own HH:MM handling does."""
+    (e.g. "18:00-02:00") the same way portal/attendance_rules' own HH:MM handling does.
+
+    is_open_override (a branch's own, migration 0061): when not None, short-circuits the whole
+    hours calculation -- true/false forces that branch open/closed regardless of its configured
+    hours (a manual "closed today" switch), the same way a restaurant might need to override its
+    own posted hours for a one-off closure."""
+    if is_open_override is not None:
+        return is_open_override
     if not operating_days or not operating_hours:
         return True
     local = (now or datetime.now(timezone.utc)).astimezone(tz(tz_name))
