@@ -1,9 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
@@ -41,16 +39,8 @@ export function MenuItemPanel({
   const amount = Math.floor(Number(restockAmount));
 
   return (
-    <Card className="p-space-5">
-      <div className="mb-space-4 flex items-center justify-between gap-space-2">
-        <h2 className="text-[15px] font-bold text-ink-900">{item ? "Edit item" : "Add item"}</h2>
-        <button
-          type="button" onClick={onCancel} aria-label="Close panel"
-          className="flex h-8 w-8 items-center justify-center rounded-md text-ink-600 hover:bg-paper"
-        >
-          <X size={16} />
-        </button>
-      </div>
+    <>
+      <h2 id="menu-item-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">{item ? "Edit item" : "Add item"}</h2>
 
       {form.image_url.trim().startsWith("https://") && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -187,6 +177,6 @@ export function MenuItemPanel({
           </label>
         </div>
       )}
-    </Card>
+    </>
   );
 }

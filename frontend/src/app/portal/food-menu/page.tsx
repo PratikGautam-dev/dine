@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
 import { MenuItemPanel } from "@/components/portal/MenuItemPanel";
@@ -297,20 +298,19 @@ export default function PortalFoodMenuPage() {
         </Card>
       )}
 
-      <div className={cn("grid grid-cols-1 items-start gap-space-4", showForm && "xl:grid-cols-[minmax(0,1fr)_380px]")}>
-        {/* the add / edit panel: beside the list on wide screens, above it on narrower ones */}
-        {showForm && (
-          <div className="xl:col-start-2 xl:row-start-1">
-            <MenuItemPanel
-              key={editingId ?? "new"}
-              form={form} setForm={setForm} item={editingItem}
-              categories={categories} formError={formError} saving={saving} busy={busyId !== null}
-              onSubmit={handleSave} onCancel={cancelForm} onRestock={handleRestock} onAvailability={handleAvailability}
-            />
-          </div>
-        )}
+      {showForm && (
+        <Modal onClose={cancelForm} labelledBy="menu-item-title" maxWidthClass="max-w-[480px]">
+          <MenuItemPanel
+            key={editingId ?? "new"}
+            form={form} setForm={setForm} item={editingItem}
+            categories={categories} formError={formError} saving={saving} busy={busyId !== null}
+            onSubmit={handleSave} onCancel={cancelForm} onRestock={handleRestock} onAvailability={handleAvailability}
+          />
+        </Modal>
+      )}
 
-        <div ref={listRef} className="min-w-0 xl:col-start-1 xl:row-start-1">
+      <div className="grid grid-cols-1 items-start gap-space-4">
+        <div ref={listRef} className="min-w-0">
           <div className="mb-space-3 flex flex-wrap gap-space-2">
             {tabs.map((t) => (
               <button

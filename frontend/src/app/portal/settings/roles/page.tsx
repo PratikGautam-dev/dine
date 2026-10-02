@@ -9,6 +9,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -234,10 +235,9 @@ export default function RolesAndPermissionsPage() {
       </PermissionGate>
 
       {addRoleOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={() => setAddRoleOpen(false)}>
-          <div className="w-full max-w-[380px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]" onClick={(e) => e.stopPropagation()}>
+        <Modal onClose={() => setAddRoleOpen(false)} labelledBy="add-role-title" maxWidthClass="max-w-[380px]">
             <div className="mb-space-4 flex items-center justify-between">
-              <h2 className="text-[16px] font-semibold text-ink-900">Add Role</h2>
+              <h2 id="add-role-title" className="text-[16px] font-semibold text-ink-900">Add Role</h2>
               <button type="button" onClick={() => setAddRoleOpen(false)} className="text-ink-400 hover:text-ink-900" aria-label="Close">
                 <X size={18} />
               </button>
@@ -252,8 +252,7 @@ export default function RolesAndPermissionsPage() {
                 <Button type="submit" disabled={creatingRole || !newRoleName.trim()}>{creatingRole ? "Adding…" : "Add Role"}</Button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
       )}
 
       <ConfirmDialog

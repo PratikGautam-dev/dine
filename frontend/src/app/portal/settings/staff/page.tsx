@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -220,6 +221,7 @@ export default function StaffManagementPage() {
 
   const [newSectionName, setNewSectionName] = useState("");
   const [addingSection, setAddingSection] = useState(false);
+  const [sectionDialogOpen, setSectionDialogOpen] = useState(false);
   const [newRosterName, setNewRosterName] = useState("");
   const [newRosterDept, setNewRosterDept] = useState("");
   const [rosterError, setRosterError] = useState<string | null>(null);
@@ -277,6 +279,7 @@ export default function StaffManagementPage() {
       return;
     }
     setNewSectionName("");
+    setSectionDialogOpen(false);
   }
 
   async function handleAddRoster(e: React.FormEvent) {
@@ -400,24 +403,18 @@ export default function StaffManagementPage() {
                 <h3 className="text-[15px] font-bold text-ink-900">Sections</h3>
                 <p className="text-hint">{sections.length} section{sections.length === 1 ? "" : "s"} guests and staff are organized by.</p>
               </div>
+              <PermissionGate page="staff" action="write">
+                <Button type="button" variant="secondary" size="md" onClick={() => setSectionDialogOpen(true)}>
+                  <Plus size={14} /> Add section
+                </Button>
+              </PermissionGate>
             </div>
-            <ul className="mb-space-3 flex flex-wrap gap-space-2">
+            <ul className="flex flex-wrap gap-space-2">
               {sections.map((s) => (
                 <li key={s.id} className="rounded-full bg-paper px-space-3 py-1 text-[12.5px] font-semibold text-ink-700">{s.name}</li>
               ))}
               {sections.length === 0 && <li className="text-[13px] text-ink-400">No sections yet.</li>}
             </ul>
-            <PermissionGate page="staff" action="write">
-              <form onSubmit={handleAddSection} className="flex items-center gap-space-2">
-                <Input
-                  aria-label="New section name" placeholder="e.g. Kitchen, Front of House" value={newSectionName}
-                  onChange={(e) => setNewSectionName(e.target.value)} className="max-w-[240px]"
-                />
-                <Button type="submit" variant="secondary" size="md" disabled={addingSection || !newSectionName.trim()}>
-                  {addingSection ? "Adding…" : "Add section"}
-                </Button>
-              </form>
-            </PermissionGate>
           </Card>
 
           {canSeeRoles && (
@@ -576,9 +573,8 @@ export default function StaffManagementPage() {
         />
       )}
       {dialog?.kind === "addRoster" && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={() => setDialog(null)}>
-          <div className="w-full max-w-[400px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]" onClick={(e) => e.stopPropagation()}>
-            <h2 className="mb-space-4 text-[16px] font-semibold text-ink-900">Add to roster</h2>
+        <Modal onClose={() => setDialog(null)} labelledBy="add-roster-title" maxWidthClass="max-w-[400px]">
+            <h2 id="add-roster-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">Add to roster</h2>
             <form onSubmit={handleAddRoster}>
               <Field label="Full name" htmlFor="roster-name" required>
                 <Input id="roster-name" value={newRosterName} onChange={(e) => setNewRosterName(e.target.value)} autoFocus />
@@ -597,8 +593,24 @@ export default function StaffManagementPage() {
                 <Button type="submit" disabled={!newRosterName.trim() || !newRosterDept}>Add to roster</Button>
               </div>
             </form>
-          </div>
-        </div>
+        </Modal>
+      )}
+      {sectionDialogOpen && (
+        <Modal onClose={() => setSectionDialogOpen(false)} labelledBy="add-section-title" maxWidthClass="max-w-[380px]">
+            <h2 id="add-section-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">Add section</h2>
+            <form onSubmit={handleAddSection}>
+              <Field label="Section name" htmlFor="new-section-name" required>
+                <Input
+                  id="new-section-name" placeholder="e.g. Kitchen, Front of House" value={newSectionName}
+                  onChange={(e) => setNewSectionName(e.target.value)} autoFocus
+                />
+              </Field>
+              <div className="mt-space-2 flex justify-end gap-space-2">
+                <Button type="button" variant="secondary" onClick={() => setSectionDialogOpen(false)} disabled={addingSection}>Cancel</Button>
+                <Button type="submit" disabled={addingSection || !newSectionName.trim()}>{addingSection ? "Adding…" : "Add section"}</Button>
+              </div>
+            </form>
+        </Modal>
       )}
       <ConfirmDialog
         open={dialog?.kind === "toggle"}

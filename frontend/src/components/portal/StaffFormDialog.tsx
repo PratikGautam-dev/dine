@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { WEEKDAYS } from "@/lib/hr";
 import { roleLabel, ROLE_OPTIONS } from "@/lib/staffRoles";
 import type { Section, StaffFormValues, StaffMember } from "@/hooks/useStaffManagement";
@@ -65,14 +66,7 @@ export function StaffFormDialog({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-space-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="staff-form-title"
-        className="my-auto w-full max-w-[560px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} labelledBy="staff-form-title" maxWidthClass="max-w-[560px]">
         <h2 id="staff-form-title" className="text-[16px] font-semibold text-ink-900">
           {adding ? addTitle ?? "Add staff member" : `Edit ${member.name}`}
         </h2>
@@ -156,7 +150,6 @@ export function StaffFormDialog({
             </Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

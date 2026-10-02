@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
@@ -68,6 +69,7 @@ export default function PortalOffersPage() {
   const [form, setForm] = useState<NewOfferFields>(emptyForm());
   const [formError, setFormError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [offerDialogOpen, setOfferDialogOpen] = useState(false);
 
   const filteredOffers = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -86,7 +88,10 @@ export default function PortalOffersPage() {
       return;
     }
     const ok = await createOffer(form);
-    if (ok) setForm(emptyForm());
+    if (ok) {
+      setForm(emptyForm());
+      setOfferDialogOpen(false);
+    }
   }
 
   return (
@@ -95,6 +100,13 @@ export default function PortalOffersPage() {
           title="Offers & Coupons"
           icon={<Tag size={22} />}
           description="Create and manage coupon codes for WhatsApp food orders."
+          actions={
+            <PermissionGate page="offers" action="write">
+              <Button onClick={() => setOfferDialogOpen(true)}>
+                <Plus size={14} /> Create Offer
+              </Button>
+            </PermissionGate>
+          }
         />
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
@@ -111,7 +123,7 @@ export default function PortalOffersPage() {
           </div>
         )}
 
-        <div className="mb-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-[1fr_1fr_360px]">
+        <div className="mb-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-2">
           <Card className="p-space-4">
             <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Offer Usage Trend</h3>
             {!data || data.trend.every((t) => t.redemptions === 0) ? (
@@ -151,10 +163,11 @@ export default function PortalOffersPage() {
               </ResponsiveContainer>
             )}
           </Card>
+        </div>
 
-          <Card className="p-space-4">
-            <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Create New Offer</h3>
-            <PermissionGate page="offers" action="write">
+        {offerDialogOpen && (
+          <Modal onClose={() => setOfferDialogOpen(false)} labelledBy="offer-form-title" maxWidthClass="max-w-[480px]">
+            <h2 id="offer-form-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">Create New Offer</h2>
               <form onSubmit={handleCreate}>
                 <Field label="Offer Name" htmlFor="offer-name" required>
                   <Input id="offer-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Weekend Special" />
@@ -246,13 +259,15 @@ export default function PortalOffersPage() {
                   </Field>
                 )}
                 {formError && <p className="mb-space-3 text-[12.5px] font-medium text-error">{formError}</p>}
-                <Button type="submit" disabled={creating} className="w-full">
-                  <Plus size={15} /> {creating ? "Creating…" : "Create Offer"}
-                </Button>
+                <div className="flex justify-end gap-space-2">
+                  <Button type="button" variant="secondary" onClick={() => setOfferDialogOpen(false)} disabled={creating}>Cancel</Button>
+                  <Button type="submit" disabled={creating}>
+                    <Plus size={15} /> {creating ? "Creating…" : "Create Offer"}
+                  </Button>
+                </div>
               </form>
-            </PermissionGate>
-          </Card>
-        </div>
+          </Modal>
+        )}
 
         <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
           <h3 className="text-[15px] font-bold text-ink-900">Active Offers{data ? ` (${data.offers.length})` : ""}</h3>

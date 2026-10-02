@@ -1,11 +1,13 @@
 "use client";
 
 import { useState } from "react";
-import { ArrowDown, ArrowUp, Check, Pencil, Trash2, X } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, Pencil, Plus, Trash2, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import type { Section } from "@/hooks/useRestaurantTables";
 
 type Props = {
@@ -26,6 +28,7 @@ export function SectionsPanel({ sections, canManage, busy, onAdd, onRename, onMo
   const [editName, setEditName] = useState("");
   const [pendingDelete, setPendingDelete] = useState<Section | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [addOpen, setAddOpen] = useState(false);
 
   async function run(action: Promise<string | null>): Promise<boolean> {
     const message = await action;
@@ -35,16 +38,23 @@ export function SectionsPanel({ sections, canManage, busy, onAdd, onRename, onMo
 
   return (
     <Card className="mb-space-5 p-space-5">
-      <div className="mb-space-1 flex items-baseline gap-space-2">
-        <span className="text-eyebrow">Step 1</span>
-        <h2 className="text-[15px] font-bold text-ink-900">Sections</h2>
+      <div className="mb-space-1 flex items-center justify-between gap-space-2">
+        <div className="flex items-baseline gap-space-2">
+          <span className="text-eyebrow">Step 1</span>
+          <h2 className="text-[15px] font-bold text-ink-900">Sections</h2>
+        </div>
+        {canManage && (
+          <Button type="button" size="md" variant="secondary" onClick={() => setAddOpen(true)}>
+            <Plus size={14} /> Add section
+          </Button>
+        )}
       </div>
       <p className="mb-space-4 text-[13px] text-ink-600">
         Areas of your restaurant, like Main Hall or Patio. Guests pick a section on WhatsApp in this order.
       </p>
 
       {sections.length === 0 ? (
-        <p className="mb-space-4 text-[13px] text-ink-400">No sections yet. Add your first one below, then add tables to it.</p>
+        <p className="mb-space-4 text-[13px] text-ink-400">No sections yet. Add your first one, then add tables to it.</p>
       ) : (
         <ul className="mb-space-4 divide-y divide-line rounded-md border border-line">
           {sections.map((section, index) => (
@@ -114,26 +124,37 @@ export function SectionsPanel({ sections, canManage, busy, onAdd, onRename, onMo
         </ul>
       )}
 
-      {canManage && (
-        <form
-          className="flex flex-wrap items-center gap-space-2"
-          onSubmit={async (e) => {
-            e.preventDefault();
-            if (!newName.trim()) {
-              setError("Section name is required.");
-              return;
-            }
-            if (await run(onAdd(newName))) setNewName("");
-          }}
-        >
-          <Input
-            value={newName} maxLength={60} placeholder="New section name, e.g. Patio" aria-label="New section name"
-            className="max-w-[280px]" onChange={(e) => setNewName(e.target.value)}
-          />
-          <Button type="submit" size="md" disabled={busy}>Add section</Button>
-        </form>
-      )}
       {error && <p className="mt-space-2 text-[13px] text-error">{error}</p>}
+
+      {addOpen && (
+        <Modal onClose={() => setAddOpen(false)} labelledBy="add-section-panel-title" maxWidthClass="max-w-[380px]">
+          <h2 id="add-section-panel-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">Add section</h2>
+          <form
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!newName.trim()) {
+                setError("Section name is required.");
+                return;
+              }
+              if (await run(onAdd(newName))) {
+                setNewName("");
+                setAddOpen(false);
+              }
+            }}
+          >
+            <Field label="Section name" htmlFor="new-section-name" required>
+              <Input
+                id="new-section-name" value={newName} maxLength={60} placeholder="e.g. Patio" autoFocus
+                onChange={(e) => setNewName(e.target.value)}
+              />
+            </Field>
+            <div className="mt-space-2 flex justify-end gap-space-2">
+              <Button type="button" variant="secondary" onClick={() => setAddOpen(false)} disabled={busy}>Cancel</Button>
+              <Button type="submit" disabled={busy || !newName.trim()}>Add section</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

@@ -11,6 +11,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
 import { PermissionGate } from "@/components/portal/PermissionGate";
@@ -407,13 +408,9 @@ export default function PortalPatientsPage() {
         />
 
         {addOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={() => setAddOpen(false)}>
-            <div
-              className="w-full max-w-[420px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
-              onClick={(e) => e.stopPropagation()}
-            >
+          <Modal onClose={() => setAddOpen(false)} labelledBy="add-customer-title" maxWidthClass="max-w-[420px]">
               <div className="mb-space-4 flex items-center justify-between">
-                <h2 className="text-[16px] font-semibold text-ink-900">Add Customer</h2>
+                <h2 id="add-customer-title" className="text-[16px] font-semibold text-ink-900">Add Customer</h2>
                 <button type="button" onClick={() => setAddOpen(false)} className="text-ink-400 hover:text-ink-900">
                   <X size={18} />
                 </button>
@@ -432,8 +429,7 @@ export default function PortalPatientsPage() {
                   {creating ? "Adding…" : <><Plus size={15} /> Add Customer</>}
                 </Button>
               </div>
-            </div>
-          </div>
+          </Modal>
         )}
     </PortalShell>
   );

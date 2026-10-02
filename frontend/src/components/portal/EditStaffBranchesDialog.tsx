@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
+import { Modal } from "@/components/ui/Modal";
 import type { Branch } from "@/lib/branchContext";
 
 type Props = {
@@ -30,14 +31,7 @@ export function EditStaffBranchesDialog({ name, branches, initialBranchIds, onSu
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="edit-branches-title"
-        className="w-full max-w-[440px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} labelledBy="edit-branches-title" maxWidthClass="max-w-[440px]">
         <h2 id="edit-branches-title" className="text-[16px] font-semibold text-ink-900">Branch access for {name}</h2>
         <p className="mt-space-2 text-[13px] text-ink-600">
           Leave every box unchecked for unrestricted access (every branch visible, today&apos;s default). Check one
@@ -64,7 +58,6 @@ export function EditStaffBranchesDialog({ name, branches, initialBranchIds, onSu
             <Button type="submit" disabled={saving}>{saving ? "Saving…" : "Save"}</Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

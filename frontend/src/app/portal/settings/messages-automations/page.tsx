@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -317,34 +318,37 @@ export default function PortalMessagesAutomationsPage() {
           )}
 
           {showNewForm && (
-            <form onSubmit={handleCreateAutomation} className="mt-space-3 border-t border-line pt-space-3">
-              <Field label="Name" htmlFor="auto-name" required>
-                <Input id="auto-name" value={newAutomation.name} onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })} placeholder="e.g. Feedback Thank You" />
-              </Field>
-              <Field label="Trigger" htmlFor="auto-trigger" required>
-                <select
-                  id="auto-trigger" value={newAutomation.trigger_event}
-                  onChange={(e) => setNewAutomation({ ...newAutomation, trigger_event: e.target.value })}
-                  className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
-                >
-                  {(triggerEvents.length ? triggerEvents : ["feedback_received"]).map((ev) => (
-                    <option key={ev} value={ev}>{TRIGGER_EVENT_LABEL[ev] ?? ev}</option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Message" htmlFor="auto-message" required hint="Sent exactly as written -- no placeholders yet.">
-                <Textarea id="auto-message" rows={3} value={newAutomation.message_text} onChange={(e) => setNewAutomation({ ...newAutomation, message_text: e.target.value })} />
-              </Field>
-              <Field label="Delay (minutes)" htmlFor="auto-delay" hint="Stored, not enforced yet -- sends immediately regardless.">
-                <Input id="auto-delay" type="number" min={0} value={newAutomation.delay_minutes} onChange={(e) => setNewAutomation({ ...newAutomation, delay_minutes: Number(e.target.value) })} />
-              </Field>
-              <div className="flex gap-space-2">
-                <Button type="button" variant="secondary" onClick={() => setShowNewForm(false)}>Cancel</Button>
-                <Button type="submit" disabled={creating || !newAutomation.name.trim() || !newAutomation.message_text.trim()} className="flex-1">
-                  {creating ? "Creating…" : "Create Automation"}
-                </Button>
-              </div>
-            </form>
+            <Modal onClose={() => setShowNewForm(false)} labelledBy="create-automation-title" maxWidthClass="max-w-[480px]">
+              <h2 id="create-automation-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">Create Automation</h2>
+              <form onSubmit={handleCreateAutomation}>
+                <Field label="Name" htmlFor="auto-name" required>
+                  <Input id="auto-name" value={newAutomation.name} onChange={(e) => setNewAutomation({ ...newAutomation, name: e.target.value })} placeholder="e.g. Feedback Thank You" />
+                </Field>
+                <Field label="Trigger" htmlFor="auto-trigger" required>
+                  <select
+                    id="auto-trigger" value={newAutomation.trigger_event}
+                    onChange={(e) => setNewAutomation({ ...newAutomation, trigger_event: e.target.value })}
+                    className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                  >
+                    {(triggerEvents.length ? triggerEvents : ["feedback_received"]).map((ev) => (
+                      <option key={ev} value={ev}>{TRIGGER_EVENT_LABEL[ev] ?? ev}</option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Message" htmlFor="auto-message" required hint="Sent exactly as written -- no placeholders yet.">
+                  <Textarea id="auto-message" rows={3} value={newAutomation.message_text} onChange={(e) => setNewAutomation({ ...newAutomation, message_text: e.target.value })} />
+                </Field>
+                <Field label="Delay (minutes)" htmlFor="auto-delay" hint="Stored, not enforced yet -- sends immediately regardless.">
+                  <Input id="auto-delay" type="number" min={0} value={newAutomation.delay_minutes} onChange={(e) => setNewAutomation({ ...newAutomation, delay_minutes: Number(e.target.value) })} />
+                </Field>
+                <div className="flex gap-space-2">
+                  <Button type="button" variant="secondary" onClick={() => setShowNewForm(false)}>Cancel</Button>
+                  <Button type="submit" disabled={creating || !newAutomation.name.trim() || !newAutomation.message_text.trim()} className="flex-1">
+                    {creating ? "Creating…" : "Create Automation"}
+                  </Button>
+                </div>
+              </form>
+            </Modal>
           )}
         </Card>
 

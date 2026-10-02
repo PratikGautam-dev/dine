@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 
 type Props = {
   name: string;
@@ -34,14 +35,7 @@ export function ResetStaffPasswordDialog({ name, onSubmit, onClose }: Props) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="reset-pw-title"
-        className="w-full max-w-[440px] rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} labelledBy="reset-pw-title" maxWidthClass="max-w-[440px]">
         <h2 id="reset-pw-title" className="text-[16px] font-semibold text-ink-900">Reset password for {name}</h2>
         <p className="mt-space-2 text-[13px] text-ink-600">They will be signed out everywhere and need this new password to get back in.</p>
         <form onSubmit={handleSubmit} className="mt-space-4">
@@ -57,7 +51,6 @@ export function ResetStaffPasswordDialog({ name, onSubmit, onClose }: Props) {
             <Button type="submit" disabled={saving || password.length < 8 || password !== confirm}>{saving ? "Saving…" : "Reset password"}</Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

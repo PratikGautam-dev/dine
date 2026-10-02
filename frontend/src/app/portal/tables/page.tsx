@@ -10,6 +10,7 @@ import { Card } from "@/components/ui/Card";
 import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { FloorMap } from "@/components/portal/FloorMap";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -122,8 +123,8 @@ export default function PortalTablesPage() {
       </div>
 
       {showForm && (
-        <Card className="mb-space-4 p-space-5">
-          <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">{editingId ? "Edit table" : "Add table"}</h2>
+        <Modal onClose={cancelForm} labelledBy="table-form-title" maxWidthClass="max-w-[560px]">
+          <h2 id="table-form-title" className="mb-space-4 text-[15px] font-bold text-ink-900">{editingId ? "Edit table" : "Add table"}</h2>
           <form onSubmit={handleSave}>
             <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
               <Field label="Name" htmlFor="t-name" required>
@@ -169,7 +170,7 @@ export default function PortalTablesPage() {
               <Button type="button" variant="secondary" onClick={cancelForm}>Cancel</Button>
             </div>
           </form>
-        </Card>
+        </Modal>
       )}
 
       {departments && <SectionsPanel sections={sections} canManage={canManage} busy={sectionBusy} onAdd={addSection} onRename={renameSection} onMove={moveSection} onDelete={deleteSection} />}
