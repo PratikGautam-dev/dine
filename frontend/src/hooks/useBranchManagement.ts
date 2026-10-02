@@ -17,6 +17,10 @@ export type BranchForm = {
   min_order_rupees: string;
   accepts_online: boolean | null;
   accepts_whatsapp: boolean | null;
+  tables_enabled: boolean | null;
+  is_open_override: boolean | null;
+  avg_prep_time_min: string;
+  delivery_fee_rupees: string;
 };
 
 export function emptyBranchForm(): BranchForm {
@@ -25,6 +29,7 @@ export function emptyBranchForm(): BranchForm {
     operating_hours: "", turnover_minutes: "", booking_interval_minutes: "",
     service_charge_pct: "", delivery_radius_km: "", min_order_rupees: "",
     accepts_online: null, accepts_whatsapp: null,
+    tables_enabled: null, is_open_override: null, avg_prep_time_min: "", delivery_fee_rupees: "",
   };
 }
 
@@ -38,6 +43,9 @@ export function toBranchForm(b: Branch): BranchForm {
     delivery_radius_km: b.delivery_radius_km?.toString() ?? "",
     min_order_rupees: b.min_order_paise != null ? (b.min_order_paise / 100).toString() : "",
     accepts_online: b.accepts_online, accepts_whatsapp: b.accepts_whatsapp,
+    tables_enabled: b.tables_enabled, is_open_override: b.is_open_override,
+    avg_prep_time_min: b.avg_prep_time_min?.toString() ?? "",
+    delivery_fee_rupees: b.delivery_fee_paise != null ? (b.delivery_fee_paise / 100).toString() : "",
   };
 }
 
@@ -56,6 +64,10 @@ function payloadFromForm(form: BranchForm) {
     min_order_paise: form.min_order_rupees ? Math.round(Number(form.min_order_rupees) * 100) : null,
     accepts_online: form.accepts_online,
     accepts_whatsapp: form.accepts_whatsapp,
+    tables_enabled: form.tables_enabled,
+    is_open_override: form.is_open_override,
+    avg_prep_time_min: form.avg_prep_time_min ? Number(form.avg_prep_time_min) : null,
+    delivery_fee_paise: form.delivery_fee_rupees ? Math.round(Number(form.delivery_fee_rupees) * 100) : null,
   };
 }
 

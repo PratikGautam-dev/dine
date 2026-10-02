@@ -245,6 +245,8 @@ export default function BranchesSettingsPage() {
                   <Detail label="Minimum Order" value={selected.min_order_paise != null ? rupees(selected.min_order_paise) : null} />
                   <Detail label="Service Charge" value={selected.service_charge_pct != null ? `${selected.service_charge_pct}%` : null} />
                   <Detail label="Delivery Radius" value={selected.delivery_radius_km != null ? `${selected.delivery_radius_km} km` : null} />
+                  <Detail label="Delivery Fee" value={selected.delivery_fee_paise != null ? rupees(selected.delivery_fee_paise) : null} />
+                  <Detail label="Avg. Prep Time" value={selected.avg_prep_time_min != null ? `${selected.avg_prep_time_min} min` : null} />
                 </div>
                 <div className="mt-space-4 flex flex-wrap gap-space-4 border-t border-line pt-space-4 text-[12.5px]">
                   <span className="flex items-center gap-1 font-semibold text-ink-700">
@@ -255,6 +257,14 @@ export default function BranchesSettingsPage() {
                     <Bike size={13} className={selected.accepts_whatsapp !== false ? "text-success" : "text-ink-300"} />
                     WhatsApp {selected.accepts_whatsapp !== false ? "enabled" : "disabled"}
                   </span>
+                  {selected.tables_enabled && (
+                    <span className="flex items-center gap-1 font-semibold text-success">Dine-in tables enabled</span>
+                  )}
+                  {selected.is_open_override !== null && (
+                    <Badge tone={selected.is_open_override ? "success" : "clay"}>
+                      Forced {selected.is_open_override ? "open" : "closed"}
+                    </Badge>
+                  )}
                 </div>
                 <PermissionGate page="settings" action="write">
                   <div className="mt-space-5 flex flex-wrap gap-space-2">

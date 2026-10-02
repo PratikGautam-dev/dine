@@ -3,6 +3,7 @@
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { Switch } from "@/components/ui/Switch";
 import type { BranchForm } from "@/hooks/useBranchManagement";
 
@@ -36,14 +37,7 @@ export function BranchFormDialog({ title, form, onChange, onSubmit, onClose, sav
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-space-4" onClick={onClose}>
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="branch-form-title"
-        className="max-h-[90vh] w-full max-w-[640px] overflow-y-auto rounded-lg bg-card p-space-5 shadow-[var(--shadow-lg)]"
-        onClick={(e) => e.stopPropagation()}
-      >
+    <Modal onClose={onClose} labelledBy="branch-form-title" maxWidthClass="max-w-[640px]">
         <h2 id="branch-form-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">{title}</h2>
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
@@ -91,8 +85,26 @@ export function BranchFormDialog({ title, form, onChange, onSubmit, onClose, sav
             <Field label="Service charge (%)" htmlFor="br-service-charge" hint="Stored for reference -- not yet added to order totals">
               <Input id="br-service-charge" type="number" min="0" max="100" step="0.1" value={form.service_charge_pct} onChange={(e) => onChange({ service_charge_pct: e.target.value })} />
             </Field>
-            <Field label="Delivery radius (km)" htmlFor="br-delivery-radius" hint="Stored for reference -- not yet enforced on checkout" className="sm:col-span-2">
+            <Field label="Delivery radius (km)" htmlFor="br-delivery-radius" hint="Stored for reference -- not yet enforced on checkout">
               <Input id="br-delivery-radius" type="number" min="0" step="0.1" value={form.delivery_radius_km} onChange={(e) => onChange({ delivery_radius_km: e.target.value })} />
+            </Field>
+            <Field label="Delivery fee (₹)" htmlFor="br-delivery-fee" hint="Leave blank to use the restaurant's own fee">
+              <Input id="br-delivery-fee" type="number" min="0" value={form.delivery_fee_rupees} onChange={(e) => onChange({ delivery_fee_rupees: e.target.value })} />
+            </Field>
+            <Field label="Avg. prep time (min)" htmlFor="br-prep-time" hint="Stored for reference -- not yet shown to guests" className="sm:col-span-2">
+              <Input id="br-prep-time" type="number" min="0" value={form.avg_prep_time_min} onChange={(e) => onChange({ avg_prep_time_min: e.target.value })} />
+            </Field>
+            <Field label="Open/closed override" htmlFor="br-open-override" hint="Force this branch open or closed regardless of its hours" className="sm:col-span-2">
+              <select
+                id="br-open-override"
+                value={form.is_open_override === null ? "" : form.is_open_override ? "open" : "closed"}
+                onChange={(e) => onChange({ is_open_override: e.target.value === "" ? null : e.target.value === "open" })}
+                className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+              >
+                <option value="">Follow operating hours</option>
+                <option value="open">Force open</option>
+                <option value="closed">Force closed</option>
+              </select>
             </Field>
             <div className="sm:col-span-2 flex flex-wrap gap-space-6 border-t border-line pt-space-4">
               <label className="flex items-center gap-space-2">
@@ -111,6 +123,14 @@ export function BranchFormDialog({ title, form, onChange, onSubmit, onClose, sav
                 />
                 <span className="text-[13px] font-medium text-ink-700">Offer on WhatsApp</span>
               </label>
+              <label className="flex items-center gap-space-2">
+                <Switch
+                  checked={form.tables_enabled === true}
+                  onChange={() => onChange({ tables_enabled: form.tables_enabled === true ? false : true })}
+                  aria-label="Enable dine-in tables at this branch"
+                />
+                <span className="text-[13px] font-medium text-ink-700">Dine-in tables enabled</span>
+              </label>
             </div>
           </div>
           {error && <p className="mt-space-3 text-[12.5px] font-medium text-error">{error}</p>}
@@ -119,7 +139,6 @@ export function BranchFormDialog({ title, form, onChange, onSubmit, onClose, sav
             <Button type="submit" disabled={saving || !form.name.trim()}>{saving ? "Saving…" : "Save"}</Button>
           </div>
         </form>
-      </div>
-    </div>
+    </Modal>
   );
 }

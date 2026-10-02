@@ -25,6 +25,14 @@ export type Branch = {
   min_order_paise: number | null;
   accepts_online: boolean | null;
   accepts_whatsapp: boolean | null;
+  // The rest of the branch_settings reference schema (migration 0061), same nullable-override
+  // convention. delivery_fee_paise and is_open_override are enforced for real (checkout's own
+  // delivery fee, the storefront's open/closed state); tables_enabled/avg_prep_time_min are
+  // stored/shown only for now.
+  tables_enabled: boolean | null;
+  is_open_override: boolean | null;
+  avg_prep_time_min: number | null;
+  delivery_fee_paise: number | null;
 };
 
 type BranchContextValue = {

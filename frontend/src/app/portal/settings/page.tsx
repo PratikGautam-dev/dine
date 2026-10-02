@@ -14,12 +14,14 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { TenantSettingsDialog } from "@/components/portal/TenantSettingsDialog";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
 import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
 import { useBookingConfirmationSetting } from "@/hooks/useBookingConfirmationSetting";
 import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
+import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
 
@@ -58,6 +60,8 @@ function PortalSettingsPageContent() {
   const { settings, setSettings, error, saving, saved, handleSave } = usePortalSettings(ready);
   const hoursForm = useRestaurantHours(ready);
   const bookingConfirmation = useBookingConfirmationSetting(ready);
+  const { settings: tenantSettings, saving: tenantSaving, update: updateTenantSettings } = useTenantSettings(ready);
+  const [tenantDialogOpen, setTenantDialogOpen] = useState(false);
   const canSeeAttendanceSettings = usePermission("attendance_settings", "view");
   const { entries: auditEntries } = usePortalAuditLog(ready);
   const [tab, setTab] = useState<TabId>("general");
@@ -112,6 +116,43 @@ function PortalSettingsPageContent() {
               {tab === "general" && (
                 <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[1.3fr_1fr]">
                   <div className="min-w-0 space-y-space-4">
+                    <Card className="p-space-5">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-[15px] font-bold text-ink-900">General Business Settings</h2>
+                          <p className="text-hint">Currency, date format, tax and branding for this account.</p>
+                        </div>
+                        <Button type="button" variant="secondary" size="md" disabled={!tenantSettings} onClick={() => setTenantDialogOpen(true)}>
+                          Edit
+                        </Button>
+                      </div>
+                      {tenantSettings && (
+                        <div className="mt-space-4 grid grid-cols-2 gap-space-3 text-[13px] sm:grid-cols-4">
+                          <div>
+                            <p className="text-label mb-0.5 font-medium text-ink-600">Currency</p>
+                            <p className="text-ink-900">{tenantSettings.currency}</p>
+                          </div>
+                          <div>
+                            <p className="text-label mb-0.5 font-medium text-ink-600">Date format</p>
+                            <p className="text-ink-900">{tenantSettings.date_format}</p>
+                          </div>
+                          <div>
+                            <p className="text-label mb-0.5 font-medium text-ink-600">Tax rate</p>
+                            <p className="text-ink-900">{tenantSettings.default_tax_rate}% ({tenantSettings.tax_inclusive_prices ? "inclusive" : "exclusive"})</p>
+                          </div>
+                          <div>
+                            <p className="text-label mb-0.5 font-medium text-ink-600">Brand color</p>
+                            <p className="flex items-center gap-1 text-ink-900">
+                              {tenantSettings.branding.primary_color && (
+                                <span className="h-3 w-3 rounded-full border border-line" style={{ backgroundColor: tenantSettings.branding.primary_color }} />
+                              )}
+                              {tenantSettings.branding.primary_color || "—"}
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                    </Card>
+
                     <form onSubmit={handleSave}>
                       <Card className="p-space-5">
                         <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Restaurant Profile</h2>
@@ -501,6 +542,14 @@ function PortalSettingsPageContent() {
             </div>
           </div>
         )}
+      {tenantDialogOpen && tenantSettings && (
+        <TenantSettingsDialog
+          settings={tenantSettings}
+          saving={tenantSaving}
+          onSubmit={updateTenantSettings}
+          onClose={() => setTenantDialogOpen(false)}
+        />
+      )}
     </PortalShell>
   );
 }
