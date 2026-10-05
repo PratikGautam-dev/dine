@@ -144,6 +144,11 @@ def seed_default_hospital(
         "UPDATE hospitals SET display_id = ? WHERE id = ?",
         (generate_yearly_display_id_conn(conn, HOSPITAL_PREFIX, GLOBAL_SCOPE_KEY), hospital_id),
     )
+    conn.execute(
+        "INSERT INTO branches (id, hospital_id, name, is_default, is_active, created_at) "
+        "VALUES (?, ?, ?, true, true, now()::text)",
+        (f"h{hospital_id}_default", hospital_id, hospital_name),
+    )
 
     for dept in DEPARTMENTS:
         conn.execute(
@@ -205,6 +210,11 @@ def seed_test_hospital(
     conn.execute(
         "UPDATE hospitals SET display_id = ? WHERE id = ?",
         (generate_yearly_display_id_conn(conn, HOSPITAL_PREFIX, GLOBAL_SCOPE_KEY), hospital_id),
+    )
+    conn.execute(
+        "INSERT INTO branches (id, hospital_id, name, is_default, is_active, created_at) "
+        "VALUES (?, ?, ?, true, true, now()::text)",
+        (f"h{hospital_id}_default", hospital_id, hospital_name),
     )
 
     for dept in TEST_HOSPITAL_2_DEPARTMENTS:
