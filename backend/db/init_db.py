@@ -1859,6 +1859,19 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS avg_prep_time_min INTEGER")
     conn.execute("ALTER TABLE branches ADD COLUMN IF NOT EXISTS delivery_fee_paise INTEGER")
 
+    # Migration 0062 -- loyalty points ledger, VIP override, customer tags, restaurant VIP threshold.
+    conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS vip_spend_threshold_paise INTEGER NOT NULL DEFAULT 1000000")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS tags TEXT NOT NULL DEFAULT '[]'")
+    conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_vip_override BOOLEAN")
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS loyalty_transactions (id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL, "
+        "patient_id INTEGER NOT NULL, order_id INTEGER, kind TEXT NOT NULL, points INTEGER NOT NULL, created_at TEXT NOT NULL)"
+    )
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS uq_loyalty_order_kind ON loyalty_transactions (order_id, kind) "
+        "WHERE order_id IS NOT NULL"
+    )
+
     conn.commit()
     _settings = get_settings()
     hospital_name = _settings.HOSPITAL_NAME

@@ -538,6 +538,20 @@ class FoodOrderItem(Base):
     quantity: Mapped[int]
 
 
+class LoyaltyTransaction(Base):
+    """Audit trail behind patients.loyalty_points (migration 0062). (order_id, kind) is unique where
+    order_id is set, so a repeated paid event cannot award the same order twice."""
+    __tablename__ = "loyalty_transactions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int]
+    patient_id: Mapped[int]
+    order_id: Mapped[int | None]
+    kind: Mapped[str]
+    points: Mapped[int]
+    created_at: Mapped[str]
+
+
 class Payment(Base):
     """db/schema.sql's payments table (migration 0056) -- a structured payment record per order,
     additive alongside food_orders' own razorpay_*/mock_payment_ref columns (see that migration's
@@ -794,6 +808,7 @@ class HospitalRow(Base):
     date_format: Mapped[str]
     tax_inclusive_prices: Mapped[bool]
     default_tax_rate: Mapped[float] = mapped_column(Numeric(5, 2))
+    vip_spend_threshold_paise: Mapped[int]
     # JSON-encoded TEXT, same convention enabled_features/admin_capabilities already use -- not a
     # native jsonb column.
     branding: Mapped[str]
@@ -870,6 +885,8 @@ class PatientRow(Base):
     loyalty_points: Mapped[int]
     total_orders: Mapped[int]
     total_spend_paise: Mapped[int]
+    tags: Mapped[str]
+    is_vip_override: Mapped[bool | None]
 
 
 class Feedback(Base):
