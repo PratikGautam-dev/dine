@@ -47,33 +47,34 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // from. The `doctors` table/booking engine itself is untouched -- still real
 // infrastructure other tenant types in this fork use -- only this portal's
 // nav entry and dedicated page for it are gone.
-type NavGroup = "Operations" | "Workforce" | "Admin";
+type NavGroup = "Home" | "Orders" | "Catalog" | "Customers" | "Workforce" | "Settings";
+const GROUP_ORDER: NavGroup[] = ["Home", "Orders", "Catalog", "Customers", "Workforce", "Settings"];
 
 // Grouped so a long list scans quickly; a group whose items the person can't see is hidden entirely.
 const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; href: string; pageKey: string; group: NavGroup }[] = [
-  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Operations" },
+  { key: "dashboard", label: "Dashboard", icon: LayoutDashboard, href: "/portal/dashboard", pageKey: "dashboard", group: "Home" },
   // A read-only composite view over bookings/orders/handoffs/tables -- own page key (portal/permissions.py's
   // PAGE_LIVE_OPERATIONS) so it can be shown/hidden per role independently of the four pages it draws from.
-  { key: "live-operations", label: "Live Operations", icon: Radio, href: "/portal/live-operations", pageKey: "live_operations", group: "Operations" },
-  { key: "appointments", label: "Table Bookings", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments", group: "Operations" },
-  { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables", group: "Operations" },
+  { key: "live-operations", label: "Live Operations", icon: Radio, href: "/portal/live-operations", pageKey: "live_operations", group: "Orders" },
+  { key: "appointments", label: "Table Bookings", icon: CalendarCheck, href: "/portal/appointments", pageKey: "appointments", group: "Orders" },
+  { key: "tables", label: "Tables", icon: UtensilsCrossed, href: "/portal/tables", pageKey: "tables", group: "Catalog" },
   // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,
   // portal/permissions.py) since a role reasonably might need one without
   // the other -- same split PAGE_DOCTORS/PAGE_SCHEDULE already use.
-  { key: "food-orders", label: "Food Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders", group: "Operations" },
+  { key: "food-orders", label: "Food Orders", icon: ClipboardList, href: "/portal/food-orders", pageKey: "food_orders", group: "Orders" },
   // Same food_orders permission as Food Orders above -- a leaner, auto-refreshing kitchen-display
   // view over the same real orders, not a separate data domain, so it needs no new page key.
-  { key: "kitchen-orders", label: "Kitchen Orders", icon: ChefHat, href: "/portal/kitchen-orders", pageKey: "food_orders", group: "Operations" },
-  { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu", group: "Operations" },
-  { key: "patients", label: "Customers", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Operations" },
-  { key: "messages", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Operations" },
+  { key: "kitchen-orders", label: "Kitchen Orders", icon: ChefHat, href: "/portal/kitchen-orders", pageKey: "food_orders", group: "Orders" },
+  { key: "food-menu", label: "Menu", icon: Soup, href: "/portal/food-menu", pageKey: "food_menu", group: "Catalog" },
+  { key: "patients", label: "Customers", icon: Users, href: "/portal/patients", pageKey: "patients", group: "Customers" },
+  { key: "messages", label: "WhatsApp Inbox", icon: MessageCircle, href: "/portal/messages", pageKey: "messages", group: "Customers" },
   // Preview-only page (docs/Spec.md's "Messages & Automations (planned — not yet built)" note) --
   // lives under /portal/settings since nothing on it is real yet, but linked here too since a
   // button buried in Settings' own header turned out to not be discoverable enough on its own.
-  { key: "messages-automations", label: "Messages & Automations", icon: Zap, href: "/portal/settings/messages-automations", pageKey: "settings", group: "Operations" },
-  { key: "offers", label: "Offers", icon: Tag, href: "/portal/offers", pageKey: "offers", group: "Operations" },
-  { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Operations" },
-  { key: "reports", label: "Reports", icon: BarChart3, href: "/portal/reports", pageKey: "reports", group: "Operations" },
+  { key: "messages-automations", label: "Messages & Automations", icon: Zap, href: "/portal/settings/messages-automations", pageKey: "settings", group: "Customers" },
+  { key: "offers", label: "Offers", icon: Tag, href: "/portal/offers", pageKey: "offers", group: "Catalog" },
+  { key: "feedback", label: "Feedback", icon: MessageSquareText, href: "/portal/feedback", pageKey: "feedback", group: "Customers" },
+  { key: "reports", label: "Reports", icon: BarChart3, href: "/portal/reports", pageKey: "reports", group: "Home" },
   // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
   // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
   // Attendance (history/stats) and Check-in/Check-out (the clock itself) are two pages sharing the
@@ -84,17 +85,17 @@ const NAV_ITEMS: { key: string; label: string; icon: typeof LayoutDashboard; hre
   { key: "leave", label: "My Leave", icon: CalendarOff, href: "/portal/leave", pageKey: "my_leave", group: "Workforce" },
   { key: "team-attendance", label: "Team Attendance", icon: UserCheck, href: "/portal/attendance-overview", pageKey: "attendance", group: "Workforce" },
   { key: "leave-requests", label: "Leave Requests", icon: CalendarDays, href: "/portal/leave-requests", pageKey: "leave_requests", group: "Workforce" },
-  { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Admin" },
+  { key: "settings", label: "Settings", icon: Settings, href: "/portal/settings", pageKey: "settings", group: "Settings" },
   // Web Storefront: a public ordering website (/order/<slug>) alongside the WhatsApp bot -- own nav
   // row under Settings, same "linked here too, not just buried in Settings' own list" precedent
   // messages-automations above already set.
-  { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "settings", group: "Admin" },
+  { key: "storefront", label: "Online Storefront", icon: Globe, href: "/portal/settings/storefront", pageKey: "settings", group: "Settings" },
   // Multi-branch (migration 0053): same "own nav row under Settings" precedent storefront above sets.
-  { key: "branches", label: "Branches", icon: Store, href: "/portal/settings/branches", pageKey: "settings", group: "Admin" },
-  { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Admin" },
+  { key: "branches", label: "Branches", icon: Store, href: "/portal/settings/branches", pageKey: "settings", group: "Settings" },
+  { key: "staff", label: "Team & Access", icon: Users, href: "/portal/settings/staff", pageKey: "staff", group: "Settings" },
   // Split back out into its own page (was folded into Staff & Access for a while) -- a dedicated
   // Role Management + Module Access Overview dashboard, not just an inline matrix.
-  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Admin" },
+  { key: "roles", label: "Roles & Permissions", icon: ShieldCheck, href: "/portal/settings/roles", pageKey: "roles", group: "Settings" },
 ];
 
 type Props = {
@@ -166,7 +167,11 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
             // capability check did -- this is only a UI convenience, the backend's 403 is the real enforcement.
             // Nothing until the session has loaded: before it, hasPermission fails open and would flash admin-only
             // items at a Kitchen or Front of House login for a moment.
-            const visible = session ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")) : [];
+            const visible = session
+              ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")).sort(
+                  (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
+                )
+              : [];
             return visible.map(({ key, label, icon: Icon, href, group }, index) => {
               const isActive = key === active;
               const startsGroup = index === 0 || visible[index - 1].group !== group;
