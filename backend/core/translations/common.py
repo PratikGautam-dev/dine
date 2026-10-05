@@ -9,8 +9,17 @@ BACK_OPTION = "back_option"
 PLEASE_CHOOSE = "please_choose"
 AUDIO_NOT_SUPPORTED = "audio_not_supported"
 SYSTEM_ERROR_NOTIFY = "system_error_notify"
+IDLE_FOLLOWUP_TEXT = "idle_followup_text"
 
 STRINGS: dict[str, dict[Language, str]] = {
+    IDLE_FOLLOWUP_TEXT: {
+        "en": "No problem at all - we've stopped here, nothing is booked.\n\n"
+              "Thank you for considering {restaurant_name}. We'd love to care for your family whenever you need us. "
+              "Just type hi anytime to book again. Take care!",
+        "hi": "कोई बात नहीं - हम यहीं रुक गए हैं, कुछ भी बुक नहीं हुआ है।\n\n"
+              "{restaurant_name} को चुनने के लिए धन्यवाद। जब भी ज़रूरत हो, हमें आपकी सेवा करके खुशी होगी। "
+              "दोबारा बुक करने के लिए कभी भी hi लिखें। ध्यान रखें!",
+    },
     # "Go back" navigation (Spec.md Section 0 follow-up): one shared button
     # label -- the 3rd button on the confirmation card (Meta's 3-button max),
     # and (a later UX follow-up, Spec.md Section 0) the department/doctor/
