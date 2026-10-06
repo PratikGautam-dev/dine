@@ -59,6 +59,20 @@ export default function PortalPatientsPage() {
   } = usePatients(ready);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [vipOnly, setVipOnly] = useState(false);
+  const [tagFilter, setTagFilter] = useState("");
+  const [minPoints, setMinPoints] = useState("");
+  const [minSpendRupees, setMinSpendRupees] = useState("");
+  const [minOrders, setMinOrders] = useState("");
+  const allTags = useMemo(() => [...new Set((patients ?? []).flatMap((p) => p.tags ?? []))].sort(), [patients]);
+  const visiblePatients = useMemo(() => (patients ?? []).filter((p) => {
+    if (vipOnly && !p.is_vip) return false;
+    if (tagFilter && !(p.tags ?? []).includes(tagFilter)) return false;
+    if (minPoints && p.loyalty_points < Number(minPoints)) return false;
+    if (minSpendRupees && p.total_spend_paise < Number(minSpendRupees) * 100) return false;
+    if (minOrders && p.total_orders < Number(minOrders)) return false;
+    return true;
+  }), [patients, vipOnly, tagFilter, minPoints, minSpendRupees, minOrders]);
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [noteDraft, setNoteDraft] = useState("");
@@ -160,6 +174,26 @@ export default function PortalPatientsPage() {
                   className="pl-9"
                 />
               </div>
+            <div className="mb-space-3 flex flex-wrap items-center gap-space-2">
+              <Button variant={vipOnly ? "primary" : "secondary"} size="md" onClick={() => setVipOnly((v) => !v)} aria-pressed={vipOnly}>
+                VIP only
+              </Button>
+              <select
+                aria-label="Filter by tag" value={tagFilter} onChange={(e) => setTagFilter(e.target.value)}
+                className="h-11 rounded-md border border-line bg-card px-space-3 text-[13.5px] text-ink-900"
+              >
+                <option value="">All tags</option>
+                {allTags.map((tag) => <option key={tag} value={tag}>{tag}</option>)}
+              </select>
+              <Input type="number" min={0} placeholder="Min points" aria-label="Minimum loyalty points" value={minPoints} onChange={(e) => setMinPoints(e.target.value)} className="w-[130px]" />
+              <Input type="number" min={0} placeholder="Min spend ₹" aria-label="Minimum total spend in rupees" value={minSpendRupees} onChange={(e) => setMinSpendRupees(e.target.value)} className="w-[140px]" />
+              <Input type="number" min={0} placeholder="Min orders" aria-label="Minimum total orders" value={minOrders} onChange={(e) => setMinOrders(e.target.value)} className="w-[130px]" />
+              {(vipOnly || tagFilter || minPoints || minSpendRupees || minOrders) && (
+                <Button variant="secondary" size="md" onClick={() => { setVipOnly(false); setTagFilter(""); setMinPoints(""); setMinSpendRupees(""); setMinOrders(""); }}>
+                  Clear filters
+                </Button>
+              )}
+            </div>
               {selectedPatients.length > 0 && (
                 <PermissionGate page="patients" action="delete">
                   <Button variant="destructive" size="md" onClick={() => setPendingDelete(selectedPatients)}>
@@ -183,7 +217,7 @@ export default function PortalPatientsPage() {
               ) : (
                 <DataTable
                   columns={columns}
-                  data={patients}
+                  data={visiblePatients}
                   getRowId={(p) => String(p.id)}
                   onRowClick={(p) => openProfile(p.id)}
                 />

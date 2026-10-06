@@ -19,6 +19,8 @@ export type Patient = {
   loyalty_points: number;
   total_orders: number;
   total_spend_paise: number;
+  tags: string[];
+  is_vip: boolean;
   favorite_item: string | null;
   created_at: string;
 };
