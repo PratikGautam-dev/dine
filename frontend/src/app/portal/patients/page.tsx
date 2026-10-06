@@ -350,7 +350,7 @@ export default function PortalPatientsPage() {
                         <WhatsAppIcon size={14} className="brightness-0 invert" /> Message
                       </a>
                       <Link
-                        href={`/portal/patients/${profile.id}`}
+                        href={`/portal/patients/${profile.public_id}`}
                         className="inline-flex items-center justify-center gap-space-1 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-900 hover:bg-paper"
                       >
                         View History

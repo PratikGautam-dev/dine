@@ -4,6 +4,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type Patient = {
+  public_id: string;
   id: number;
   phone: string;
   name: string | null;

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/formatDate";
 
-type Patient = { id: number; phone: string; name: string | null; last_visit: string | null; visit_count: number };
+type Patient = { id: number; public_id: string; phone: string; name: string | null; last_visit: string | null; visit_count: number };
 
 export function PatientsWidget({ patients }: { patients: Patient[] }) {
   return (
@@ -20,7 +20,7 @@ export function PatientsWidget({ patients }: { patients: Patient[] }) {
           {patients.map((p) => (
             <li key={p.id}>
               <Link
-                href={`/portal/patients/${p.id}`}
+                href={`/portal/patients/${p.public_id}`}
                 className="flex items-center justify-between py-space-2 hover:opacity-80"
               >
                 <div>

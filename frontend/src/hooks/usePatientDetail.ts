@@ -96,7 +96,7 @@ export function usePatientDetail(patientId: string, ready: boolean) {
   const [bookingId, setBookingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const result = await portalFetch(`/api/portal/patients/${patientId}`);
+    const result = await portalFetch(`/api/portal/patients/by-public-id/${patientId}`);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);
@@ -115,7 +115,7 @@ export function usePatientDetail(patientId: string, ready: boolean) {
 
   async function handleSetStatus(status: Patient["status"]) {
     setSavingStatus(true);
-    const result = await portalFetch(`/api/portal/patients/${patientId}/status`, {
+    const result = await portalFetch(`/api/portal/patients/${data?.patient.id}/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -132,7 +132,7 @@ export function usePatientDetail(patientId: string, ready: boolean) {
 
   async function handleSaveDemographics() {
     setSavingDemographics(true);
-    const result = await portalFetch(`/api/portal/patients/${patientId}`, {
+    const result = await portalFetch(`/api/portal/patients/${data?.patient.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date_of_birth: dob, gender, address }),

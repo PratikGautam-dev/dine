@@ -132,7 +132,7 @@ export default function PortalFeedbackPage() {
     setNoteDraft("");
     if (!entry.patient_id) return;
     setGuestLoading(true);
-    const result = await portalFetch(`/api/portal/patients/${entry.patient_id}`);
+    const result = await portalFetch(`/api/portal/patients/id/${entry.patient_id}`);
     setGuestLoading(false);
     if (result.ok) setGuest((result.data as { patient: PatientDetail }).patient);
   }

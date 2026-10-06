@@ -37,7 +37,7 @@ export function PatientCellAction({ patient, onDelete }: PatientCellActionProps)
         <DropdownMenuContent>
           <DropdownMenuGroup>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => router.push(`/portal/patients/${patient.id}`)}>
+            <DropdownMenuItem onClick={() => router.push(`/portal/patients/${patient.public_id}`)}>
               <Eye size={14} /> View Details
             </DropdownMenuItem>
             <PermissionGate page="patients" action="delete">
