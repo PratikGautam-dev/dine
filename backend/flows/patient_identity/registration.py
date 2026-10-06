@@ -29,6 +29,8 @@ from core.translations.booking import (
     INVALID_PATIENT_NAME,
 )
 from core.translations.patient_identity import (
+    ASK_PATIENT_DOB,
+    INVALID_PATIENT_DOB,
     DUPLICATE_LINK_BUTTON,
     DUPLICATE_PATIENT_FOUND,
     DUPLICATE_SELF_LINK,
@@ -51,12 +53,14 @@ from flows.patient_identity.state import (
     STATE_AWAITING_BOOKING_FOR,
     STATE_AWAITING_DUPLICATE_DECISION,
     STATE_AWAITING_PATIENT_AGE,
+    STATE_AWAITING_PATIENT_DOB,
     STATE_AWAITING_PATIENT_CONTACT_PHONE,
     STATE_AWAITING_PATIENT_GENDER,
     STATE_AWAITING_PATIENT_NAME,
     _GENDER_ROW_IDS,
     _parse_contact_phone_number,
     _parse_patient_age,
+    _parse_patient_dob,
     _parse_patient_name,
 )
 
@@ -174,7 +178,8 @@ async def _handle_awaiting_patient_name(
                 await _send_back_button(wa, phone, language=language)
             return
         new_context.setdefault("pending_contact_phone", phone)
-        await _send_gender_prompt(wa, sessions, phone, hospital_id, new_context, language)
+        sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_AGE, new_context, language=language)
+        await wa.send_text(phone, t(ASK_PATIENT_AGE, language, patient_name=name))
         return
     sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_NAME, context, language=language)
     await wa.send_text(phone, t(INVALID_PATIENT_NAME, language))
@@ -245,7 +250,33 @@ async def _handle_awaiting_patient_age(
             await _send_back_button(wa, phone, language=language)
         return
     new_context = {**context, "pending_age": age}
-    await _send_gender_prompt(wa, sessions, phone, hospital_id, new_context, language)
+    await _send_dob_prompt(wa, sessions, phone, hospital_id, new_context, language)
+
+
+async def _send_dob_prompt(
+    wa: WhatsAppClient, sessions, phone: str, hospital_id: int, context: dict, language: str,
+) -> None:
+    sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_DOB, context, language=language)
+    await wa.send_text(phone, t(ASK_PATIENT_DOB, language, patient_name=context.get("pending_name", "")))
+
+
+async def _handle_awaiting_patient_dob(
+    wa: WhatsAppClient, sessions, phone: str, hospital_id: int, reply: dict, context: dict, connector: Connector,
+    language: str = "en", closing_message_text: str | None = None,
+) -> None:
+    """Date of birth is required on first registration. BACK returns to the age question."""
+    if reply["type"] == "interactive_reply" and reply["id"] == BACK_ID:
+        new_context = {k: v for k, v in context.items() if k != "pending_dob"}
+        sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_AGE, new_context, language=language)
+        await wa.send_text(phone, t(ASK_PATIENT_AGE, language, patient_name=context.get("pending_name", "")))
+        return
+    dob = _parse_patient_dob(reply["text"]) if reply["type"] == "text" else None
+    if dob is None:
+        sessions.set(hospital_id, phone, STATE_AWAITING_PATIENT_DOB, context, language=language)
+        await wa.send_text(phone, t(INVALID_PATIENT_DOB, language))
+        await wa.send_text(phone, t(ASK_PATIENT_DOB, language, patient_name=context.get("pending_name", "")))
+        return
+    await _send_gender_prompt(wa, sessions, phone, hospital_id, {**context, "pending_dob": dob}, language)
 
 
 async def _send_gender_prompt(
@@ -405,7 +436,7 @@ async def _create_or_link_patient(
             patient = connector.create_patient_profile(
                 hospital_id, phone, context["pending_name"], context.get("pending_age"),
                 relationship_label=context.get("pending_relationship"), gender=context.get("pending_gender"),
-                contact_phone=context.get("pending_contact_phone"),
+                contact_phone=context.get("pending_contact_phone"), date_of_birth=context.get("pending_dob"),
             )
     except TooManyLinkedPatientsError:
         await wa.send_text(phone, t(TOO_MANY_LINKED_PATIENTS, language))

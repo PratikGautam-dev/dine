@@ -18,6 +18,14 @@ import flows
 import flows.patient_identity as patient_identity
 from core.session_store import InMemorySessionStore
 
+
+async def _answer_age_and_dob_if_pending(wa, sessions, phone, hospital_id, connector, features):
+    """Registration asks age, then date of birth, before gender -- answer whichever is still pending."""
+    if sessions.get(hospital_id, phone)["state"] == patient_identity.STATE_AWAITING_PATIENT_AGE:
+        await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("34"), connector=connector, enabled_features=features)
+    if sessions.get(hospital_id, phone)["state"] == patient_identity.STATE_AWAITING_PATIENT_DOB:
+        await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("15/08/1990"), connector=connector, enabled_features=features)
+
 PHONE = "5491112345678"
 
 
@@ -64,6 +72,7 @@ async def _register_via_chat(wa, sessions, hospital_id, connector, phone, bookin
     features = ["book_doctor_appointment"]
     await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("hi"), connector=connector, enabled_features=features)
     await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply(name), connector=connector, enabled_features=features)
+    await _answer_age_and_dob_if_pending(wa, sessions, phone, hospital_id, connector, features)
     await flows.handle_incoming(
         wa, sessions, phone, hospital_id, tap(patient_identity.GENDER_OTHER_ID), connector=connector, enabled_features=features,
     )
@@ -85,8 +94,8 @@ async def test_registering_myself_skips_contact_question_and_uses_messaging_phon
 
 
 @pytest.mark.asyncio
-async def test_registration_asks_only_name_then_gender(hospital_id):
-    """No Myself/Someone Else, no contact number, no age: name -> gender -> done."""
+async def test_registration_asks_name_age_dob_then_gender(hospital_id):
+    """No Myself/Someone Else, no contact number: name -> age -> date of birth -> gender -> done."""
     connector = flows._DEFAULT_CONNECTOR
     wa = FakeWhatsAppClient()
     sessions = _sessions_en(hospital_id)
@@ -95,20 +104,26 @@ async def test_registration_asks_only_name_then_gender(hospital_id):
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("hi"), connector=connector, enabled_features=features)
     assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_NAME
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Priya Kumar"), connector=connector, enabled_features=features)
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_AGE
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("34"), connector=connector, enabled_features=features)
+    assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_DOB
+    await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("15/08/1990"), connector=connector, enabled_features=features)
     assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_GENDER
+    await _answer_age_and_dob_if_pending(wa, sessions, PHONE, hospital_id, connector, features)
     await flows.handle_incoming(
         wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_FEMALE_ID), connector=connector, enabled_features=features,
     )
     assert sessions.get(hospital_id, PHONE)["state"] == "IDLE"
 
     asked = " ".join((kw.get("text") or kw.get("body_text") or "").lower() for _, kw in wa.sent)
-    assert "age" not in asked and "contact" not in asked and "myself" not in asked and "someone" not in asked
+    assert "date of birth" in asked and "contact" not in asked and "myself" not in asked and "someone" not in asked
 
     linked = connector.list_active_patients(hospital_id, PHONE)
     assert len(linked) == 1 and linked[0]["relationship_label"] == "Self"
     patient = db.get_patient(hospital_id, linked[0]["id"])
     assert patient["name"] == "Priya Kumar" and patient["gender"] == "Female"
-    assert patient["age"] is None and patient["phone"] == PHONE
+    assert patient["date_of_birth"] == "1990-08-15"
+    assert patient["age"] == 34 and patient["phone"] == PHONE
 
 
 @pytest.mark.asyncio
@@ -234,6 +249,7 @@ async def test_readding_the_same_name_and_contact_from_your_own_phone_is_blocked
     await flows.handle_incoming(
         wa, sessions, PHONE, hospital_id, text_reply("30"), connector=connector, enabled_features=["manage_patients"],
     )
+    await _answer_age_and_dob_if_pending(wa, sessions, PHONE, hospital_id, connector, ["manage_patients"])
     await flows.handle_incoming(
         wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_OTHER_ID),
         connector=connector, enabled_features=["manage_patients"],
@@ -299,6 +315,7 @@ async def test_patient_list_never_shows_the_self_or_other_relationship_label(hos
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap("menu_manage_patients"), connector=connector, enabled_features=features)
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap(patient_identity.MANAGE_ADD_ROW_ID), connector=connector, enabled_features=features)
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply("Chandu"), connector=connector, enabled_features=features)
+    await _answer_age_and_dob_if_pending(wa, sessions, PHONE, hospital_id, connector, features)
     await flows.handle_incoming(wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_OTHER_ID), connector=connector, enabled_features=features)
     # Adding a patient now lands on the main menu, not a patient list --
     # Manage Patients' own patient list is the Remove Patient screen.

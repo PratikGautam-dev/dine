@@ -1,3 +1,4 @@
+import re
 # flows/patient_identity/state.py
 """Conversation states, row/button ids, and pure parsing helpers for the
 patient-identity package -- no WhatsApp sends, no Connector calls, nothing
@@ -97,6 +98,7 @@ STATE_AWAITING_BOOKING_FOR = "IDENTITY_AWAITING_BOOKING_FOR"
 STATE_AWAITING_PATIENT_NAME = "IDENTITY_AWAITING_NAME"
 STATE_AWAITING_PATIENT_CONTACT_PHONE = "IDENTITY_AWAITING_CONTACT_PHONE"
 STATE_AWAITING_PATIENT_AGE = "IDENTITY_AWAITING_AGE"
+STATE_AWAITING_PATIENT_DOB = "IDENTITY_AWAITING_DOB"
 STATE_AWAITING_PATIENT_GENDER = "IDENTITY_AWAITING_GENDER"
 STATE_AWAITING_DUPLICATE_DECISION = "IDENTITY_AWAITING_DUPLICATE_DECISION"
 STATE_AWAITING_SINGLE_PATIENT_CONFIRM = "IDENTITY_AWAITING_SINGLE_CONFIRM"
@@ -105,13 +107,29 @@ STATE_AWAITING_REMOVE_PATIENT_SELECTION = "IDENTITY_AWAITING_REMOVE_PATIENT_SELE
 STATE_AWAITING_UNLINK_CONFIRM = "IDENTITY_AWAITING_UNLINK_CONFIRM"
 STATE_AWAITING_CONSENT_ACTION = "IDENTITY_AWAITING_CONSENT_ACTION"
 
-FREE_TEXT_INPUT_STATES = {STATE_AWAITING_PATIENT_NAME, STATE_AWAITING_PATIENT_CONTACT_PHONE, STATE_AWAITING_PATIENT_AGE}
+FREE_TEXT_INPUT_STATES = {
+    STATE_AWAITING_PATIENT_NAME, STATE_AWAITING_PATIENT_CONTACT_PHONE, STATE_AWAITING_PATIENT_AGE, STATE_AWAITING_PATIENT_DOB,
+}
 
 MIN_PATIENT_AGE = 0
 MAX_PATIENT_AGE = 120
 
 MIN_PATIENT_NAME_LENGTH = 3  # ">=3 characters" per spec
 MAX_PATIENT_NAME_LENGTH = 50
+
+
+def _parse_patient_dob(text: str) -> str | None:
+    """A real calendar date, DD/MM/YYYY (also DD-MM-YYYY or DD.MM.YYYY), not in the future and
+    not before 1900. Returns ISO YYYY-MM-DD, or None."""
+    from datetime import date as _date, datetime as _datetime
+    cleaned = re.sub(r"[-.]", "/", (text or "").strip())
+    try:
+        parsed = _datetime.strptime(cleaned, "%d/%m/%Y").date()
+    except ValueError:
+        return None
+    if parsed > _date.today() or parsed.year < 1900:
+        return None
+    return parsed.isoformat()
 
 
 def _parse_patient_age(text: str) -> int | None:

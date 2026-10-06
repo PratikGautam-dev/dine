@@ -53,7 +53,18 @@ PLEASE_ADD_NEW_PATIENT = "please_add_new_patient"
 MULTI_PATIENT_SELECTOR_PROMPT = "multi_patient_selector_prompt"
 PATIENT_SELECTED_BANNER = "patient_selected_banner"
 
+ASK_PATIENT_DOB = "ask_patient_dob"
+INVALID_PATIENT_DOB = "invalid_patient_dob"
+
 STRINGS: dict[str, dict[Language, str]] = {
+    ASK_PATIENT_DOB: {
+        "en": "What is {patient_name}'s date of birth? Please reply as DD/MM/YYYY, for example 15/08/1990.",
+        "hi": "{patient_name} की जन्म तिथि क्या है? कृपया DD/MM/YYYY के रूप में लिखें, जैसे 15/08/1990।",
+    },
+    INVALID_PATIENT_DOB: {
+        "en": "That doesn't look like a valid date. Please reply as DD/MM/YYYY, for example 15/08/1990.",
+        "hi": "यह मान्य तिथि नहीं लगती। कृपया DD/MM/YYYY के रूप में लिखें, जैसे 15/08/1990।",
+    },
     # The shared "who is this for" selector, shown whenever a phone has >1
     # active linked patient, ahead of booking/cancel/reschedule/
     # view_appointments. One prompt per next_action -- the body text differs

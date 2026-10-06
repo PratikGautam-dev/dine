@@ -2,6 +2,7 @@
 """Patient search/directory, profiles, and the patient-identity-separation
 linking/consent model (Spec.md Section 0). Split out of db/repository.py --
 see ARCHITECTURE_PLAN.md Phase 1."""
+import json
 from datetime import datetime
 from typing import cast
 
@@ -12,7 +13,7 @@ from db.connection import get_connection, get_session
 from db.models import (
     STATUS_ATTENDED, STATUS_BOOKED, DuplicateSelfLinkError, TooManyLinkedPatientsError, _generate_patient_identifiers,
 )
-from db.orm_models import AppointmentReminder, AppointmentRow, PatientLink, PatientRow
+from db.orm_models import AppointmentReminder, AppointmentRow, HospitalRow, PatientLink, PatientRow
 from db.repositories.accounts import _get_or_create_account_in_conn
 
 # --- Patients (Section 12.9 -- staff-created bookings need to search by name,
@@ -121,18 +122,27 @@ def list_patients(hospital_id: int, search: str | None = None, limit: int = 200)
     session = get_session()
     search = (search or "").strip()
     rows = session.execute(_patients_with_visit_stats_stmt(hospital_id, search or None).limit(limit)).all()
-    return [
-        {
+    threshold = session.execute(
+        select(HospitalRow.vip_spend_threshold_paise).where(HospitalRow.id == hospital_id)
+    ).scalar_one_or_none() or 0
+    tag_rows = session.execute(
+        select(PatientRow.id, PatientRow.is_vip_override, PatientRow.tags).where(PatientRow.hospital_id == hospital_id)
+    ).all()
+    extras = {tr.id: (tr.is_vip_override, json.loads(tr.tags or "[]")) for tr in tag_rows}
+    result = []
+    for r in rows:
+        vip_override, tags = extras.get(r.id, (None, []))
+        is_vip = vip_override if vip_override is not None else (r.total_spend_paise or 0) >= threshold
+        result.append({
             "id": r.id, "phone": r.phone, "name": r.name, "patient_display_id": r.patient_display_id,
             "mrn": r.mrn, "last_visit": r.last_visit, "visit_count": r.visit_count,
             "visited_count": r.visited_count, "email": r.email, "loyalty_tier": r.loyalty_tier,
             "loyalty_points": r.loyalty_points, "total_orders": r.total_orders,
             "total_spend_paise": r.total_spend_paise, "favorite_item": r.favorite_item,
             "address": r.address, "dietary_preference": r.dietary_preference, "gender": r.gender,
-            "created_at": r.created_at,
-        }
-        for r in rows
-    ]
+            "created_at": r.created_at, "tags": tags, "is_vip": is_vip,
+        })
+    return result
 
 
 def get_recent_patients(hospital_id: int, limit: int = 5) -> list[dict]:
@@ -518,7 +528,7 @@ def find_potential_duplicate_patient(hospital_id: int, name: str, contact_phone:
 
 def create_patient_profile(
     hospital_id: int, phone: str, name: str, age: int | None, relationship_label: str | None = None,
-    gender: str | None = None, contact_phone: str | None = None,
+    gender: str | None = None, contact_phone: str | None = None, date_of_birth: str | None = None,
 ) -> dict:
     """Creates a brand-new `patients` row (NEVER an upsert-by-phone -- multiple
     profiles are the whole point now) and links it to `phone` via a new
@@ -563,8 +573,8 @@ def create_patient_profile(
     conn.execute("BEGIN")
     try:
         patient_row = conn.execute(
-            "INSERT INTO patients (hospital_id, phone, name, age, gender) VALUES (?, ?, ?, ?, ?) RETURNING id",
-            (hospital_id, contact_phone or phone, name, age, gender),
+            "INSERT INTO patients (hospital_id, phone, name, age, gender, date_of_birth) VALUES (?, ?, ?, ?, ?, ?) RETURNING id",
+            (hospital_id, contact_phone or phone, name, age, gender, date_of_birth or None),
         ).fetchone()
         assert patient_row is not None  # INSERT ... RETURNING always returns the inserted row
         patient_id = patient_row["id"]

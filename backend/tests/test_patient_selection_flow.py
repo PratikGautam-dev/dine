@@ -23,6 +23,14 @@ import flows
 import flows.patient_identity as patient_identity
 from core.session_store import InMemorySessionStore
 
+
+async def _answer_age_and_dob_if_pending(wa, sessions, phone, hospital_id, connector, features):
+    """Registration asks age, then date of birth, before gender -- answer whichever is still pending."""
+    if sessions.get(hospital_id, phone)["state"] == patient_identity.STATE_AWAITING_PATIENT_AGE:
+        await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("34"), connector=connector, enabled_features=features)
+    if sessions.get(hospital_id, phone)["state"] == patient_identity.STATE_AWAITING_PATIENT_DOB:
+        await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply("15/08/1990"), connector=connector, enabled_features=features)
+
 PHONE = "5491112345678"
 
 
@@ -79,6 +87,7 @@ async def _add_patient_via_chat(wa, sessions, hospital_id, connector, name, age,
     await flows.handle_incoming(wa, sessions, phone, hospital_id, tap("menu_book"), connector=connector, enabled_features=list(enabled))
     await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply(name), connector=connector, enabled_features=list(enabled))
     await flows.handle_incoming(wa, sessions, phone, hospital_id, text_reply(str(age)), connector=connector, enabled_features=list(enabled))
+    await _answer_age_and_dob_if_pending(wa, sessions, phone, hospital_id, connector, list(enabled))
     await flows.handle_incoming(wa, sessions, phone, hospital_id, tap("new"), connector=connector, enabled_features=list(enabled))
 
 
@@ -161,6 +170,7 @@ async def test_adding_a_second_through_fifth_patient_works(hospital_id):
         await flows.handle_incoming(wa, sessions, PHONE, hospital_id, text_reply(str(age)), connector=connector, enabled_features=["manage_patients"])
         # Gender -- required before the profile is actually created.
         assert sessions.get(hospital_id, PHONE)["state"] == patient_identity.STATE_AWAITING_PATIENT_GENDER
+        await _answer_age_and_dob_if_pending(wa, sessions, PHONE, hospital_id, connector, ["manage_patients"])
         await flows.handle_incoming(
             wa, sessions, PHONE, hospital_id, tap(patient_identity.GENDER_OTHER_ID),
             connector=connector, enabled_features=["manage_patients"],

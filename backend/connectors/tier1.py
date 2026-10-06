@@ -55,10 +55,10 @@ class Tier1Connector(Connector):
     def list_active_patients(self, hospital_id, phone):
         return repo.get_active_patients_for_phone(hospital_id, phone)
 
-    def create_patient_profile(self, hospital_id, phone, name, age, relationship_label=None, gender=None, contact_phone=None):
+    def create_patient_profile(self, hospital_id, phone, name, age, relationship_label=None, gender=None, contact_phone=None, date_of_birth=None):
         return repo.create_patient_profile(
             hospital_id, phone, name, age, relationship_label=relationship_label, gender=gender,
-            contact_phone=contact_phone,
+            contact_phone=contact_phone, date_of_birth=date_of_birth,
         )
 
     def has_self_linked_patient(self, hospital_id, care_connect_account_id):

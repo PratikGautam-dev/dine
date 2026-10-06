@@ -12,12 +12,14 @@ from flows.patient_identity.registration import (
     _handle_awaiting_booking_for,
     _handle_awaiting_duplicate_decision,
     _handle_awaiting_patient_age,
+    _handle_awaiting_patient_dob,
     _handle_awaiting_patient_contact_number,
     _handle_awaiting_patient_gender,
     _handle_awaiting_patient_name,
 )
 from flows.patient_identity.resolution import _handle_awaiting_single_patient_confirm
 from flows.patient_identity.state import (
+    STATE_AWAITING_PATIENT_DOB,
     STATE_AWAITING_BOOKING_FOR,
     STATE_AWAITING_DUPLICATE_DECISION,
     STATE_AWAITING_MANAGE_PATIENTS_ACTION,
@@ -35,6 +37,7 @@ _HANDLERS = {
     STATE_AWAITING_PATIENT_NAME: _handle_awaiting_patient_name,
     STATE_AWAITING_PATIENT_CONTACT_PHONE: _handle_awaiting_patient_contact_number,
     STATE_AWAITING_PATIENT_AGE: _handle_awaiting_patient_age,
+    STATE_AWAITING_PATIENT_DOB: _handle_awaiting_patient_dob,
     STATE_AWAITING_PATIENT_GENDER: _handle_awaiting_patient_gender,
     STATE_AWAITING_DUPLICATE_DECISION: _handle_awaiting_duplicate_decision,
     STATE_AWAITING_SINGLE_PATIENT_CONFIRM: _handle_awaiting_single_patient_confirm,

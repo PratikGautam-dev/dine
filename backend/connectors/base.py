@@ -118,7 +118,7 @@ class Connector(abc.ABC):
     @abc.abstractmethod
     def create_patient_profile(
         self, hospital_id: int, phone: str, name: str, age: int | None, relationship_label: str | None = None,
-        gender: str | None = None, contact_phone: str | None = None,
+        gender: str | None = None, contact_phone: str | None = None, date_of_birth: str | None = None,
     ) -> dict: ...
 
     # "Myself / Someone Else" registration step (flows/patient_identity.py):
@@ -484,7 +484,7 @@ class _UnimplementedTierConnector(Connector):
     def list_active_patients(self, hospital_id, phone):
         self._not_implemented("list_active_patients")
 
-    def create_patient_profile(self, hospital_id, phone, name, age, relationship_label=None, gender=None, contact_phone=None):
+    def create_patient_profile(self, hospital_id, phone, name, age, relationship_label=None, gender=None, contact_phone=None, date_of_birth=None):
         self._not_implemented("create_patient_profile")
 
     def has_self_linked_patient(self, hospital_id, care_connect_account_id):
