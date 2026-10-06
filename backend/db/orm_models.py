@@ -538,6 +538,17 @@ class FoodOrderItem(Base):
     quantity: Mapped[int]
 
 
+class CustomerAddress(Base):
+    """A saved delivery address for a WhatsApp customer (migration 0064). At most 5 per phone."""
+    __tablename__ = "customer_addresses"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    hospital_id: Mapped[int]
+    phone: Mapped[str]
+    address: Mapped[str]
+    created_at: Mapped[str]
+
+
 class LoyaltyTransaction(Base):
     """Audit trail behind patients.loyalty_points (migration 0062). (order_id, kind) is unique where
     order_id is set, so a repeated paid event cannot award the same order twice."""

@@ -1865,6 +1865,12 @@ def init_db_on_connection(conn) -> int:
     conn.execute("ALTER TABLE patients ADD COLUMN IF NOT EXISTS is_vip_override BOOLEAN")
     # Migration 0063 -- per-restaurant loyalty settings (JSON; missing keys use the code defaults).
     conn.execute("ALTER TABLE hospitals ADD COLUMN IF NOT EXISTS loyalty_settings TEXT NOT NULL DEFAULT '{}'")
+    # Migration 0064 -- saved delivery addresses per WhatsApp customer (5 max, enforced in the repository).
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS customer_addresses (id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL, "
+        "phone TEXT NOT NULL, address TEXT NOT NULL, created_at TEXT NOT NULL)"
+    )
+    conn.execute("CREATE INDEX IF NOT EXISTS ix_customer_addresses_phone ON customer_addresses (hospital_id, phone)")
     conn.execute(
         "CREATE TABLE IF NOT EXISTS loyalty_transactions (id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL, "
         "patient_id INTEGER NOT NULL, order_id INTEGER, kind TEXT NOT NULL, points INTEGER NOT NULL, created_at TEXT NOT NULL)"
