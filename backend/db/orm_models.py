@@ -809,6 +809,7 @@ class HospitalRow(Base):
     tax_inclusive_prices: Mapped[bool]
     default_tax_rate: Mapped[float] = mapped_column(Numeric(5, 2))
     vip_spend_threshold_paise: Mapped[int]
+    loyalty_settings: Mapped[str]
     # JSON-encoded TEXT, same convention enabled_features/admin_capabilities already use -- not a
     # native jsonb column.
     branding: Mapped[str]

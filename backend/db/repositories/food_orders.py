@@ -258,12 +258,15 @@ async def create_razorpay_payment(hospital_id: int, order_id: int) -> dict:
     }
 
 
-LOYALTY_PAISE_PER_POINT = 10000
-
-
 def _award_loyalty(conn, hospital_id: int, order_id: int) -> None:
-    """Points for a paid order: 1 point per ₹100. The ledger row's unique (order_id, kind) index
-    makes this a no-op on any repeat, so it's safe to call on every paid/completed transition."""
+    """Points for a paid order at this restaurant's own earn rate (hospitals.loyalty_settings). The
+    ledger row's unique (order_id, kind) index makes this a no-op on any repeat, so it's safe to call
+    on every paid/completed transition."""
+    from db.repositories.hospitals import get_loyalty_settings
+
+    settings = get_loyalty_settings(hospital_id)
+    if not settings["enabled"]:
+        return
     order = conn.execute(
         "SELECT patient_id, phone, total_paise FROM food_orders WHERE hospital_id = ? AND id = ?",
         (hospital_id, order_id),
@@ -276,7 +279,7 @@ def _award_loyalty(conn, hospital_id: int, order_id: int) -> None:
         if patient is None:
             return
         patient_id = patient["id"]
-    points = order["total_paise"] // LOYALTY_PAISE_PER_POINT
+    points = order["total_paise"] // settings["paise_per_point"]
     ledger = conn.execute(
         "INSERT INTO loyalty_transactions (hospital_id, patient_id, order_id, kind, points, created_at) "
         "VALUES (?, ?, ?, 'earn', ?, ?) ON CONFLICT DO NOTHING RETURNING id",

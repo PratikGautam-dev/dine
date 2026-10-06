@@ -344,6 +344,32 @@ async def portal_update_storefront(payload: dict, authorization: str | None = He
     return JSONResponse({**storefront, "public_url_path": f"/order/{storefront['slug']}" if storefront["slug"] else None})
 
 
+@router.get("/api/portal/settings/loyalty")
+async def portal_get_loyalty_settings(authorization: str | None = Header(default=None)):
+    principal, error = authorize(authorization, "settings", "view")
+    if error:
+        return error
+    return JSONResponse(db.get_loyalty_settings(principal.hospital.id))
+
+
+@router.post("/api/portal/settings/loyalty")
+async def portal_update_loyalty_settings(payload: dict, authorization: str | None = Header(default=None)):
+    principal, error = authorize(authorization, "settings", "write")
+    if error:
+        return error
+    hospital = principal.hospital
+    before = db.get_loyalty_settings(hospital.id)
+    try:
+        updated = db.update_loyalty_settings(hospital.id, payload or {})
+    except ValueError as exc:
+        return JSONResponse({"error": str(exc)}, status_code=400)
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "settings.loyalty",
+        entity_type="hospital", entity_id=str(hospital.id), before=before, after=updated,
+    )
+    return JSONResponse(updated)
+
+
 @router.get("/api/portal/settings/tenant")
 async def portal_get_tenant_settings(authorization: str | None = Header(default=None)):
     """General Settings' own sub-page -- currency, date format, tax fields, branding (migration

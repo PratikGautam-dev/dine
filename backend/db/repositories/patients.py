@@ -122,9 +122,9 @@ def list_patients(hospital_id: int, search: str | None = None, limit: int = 200)
     session = get_session()
     search = (search or "").strip()
     rows = session.execute(_patients_with_visit_stats_stmt(hospital_id, search or None).limit(limit)).all()
-    threshold = session.execute(
-        select(HospitalRow.vip_spend_threshold_paise).where(HospitalRow.id == hospital_id)
-    ).scalar_one_or_none() or 0
+    from db.repositories.hospitals import get_loyalty_settings
+
+    threshold = get_loyalty_settings(hospital_id)["vip_spend_threshold_paise"]
     tag_rows = session.execute(
         select(PatientRow.id, PatientRow.is_vip_override, PatientRow.tags).where(PatientRow.hospital_id == hospital_id)
     ).all()

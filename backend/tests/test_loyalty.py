@@ -68,3 +68,30 @@ def test_completing_a_paid_online_order_does_not_award_twice(hospital_id):
     db.advance_order_status(hospital_id, order["id"], "completed", "paid")
 
     assert _patient(hospital_id, "919900000012")["loyalty_points"] == 2
+
+
+def test_restaurant_earn_rate_setting_changes_points(hospital_id):
+    db.update_loyalty_settings(hospital_id, {"paise_per_point": 5000})
+    item = _item(hospital_id, 25000)
+    order = db.create_food_order(hospital_id, "919900000013", [{"menu_item_id": item, "quantity": 1}], "pickup", payment_method="online")
+    db.advance_order_status(hospital_id, order["id"], "paid", "pending_payment")
+
+    assert _patient(hospital_id, "919900000013")["loyalty_points"] == 5
+
+
+def test_disabled_loyalty_awards_nothing(hospital_id):
+    db.update_loyalty_settings(hospital_id, {"enabled": False})
+    item = _item(hospital_id, 25000)
+    order = db.create_food_order(hospital_id, "919900000014", [{"menu_item_id": item, "quantity": 1}], "pickup", payment_method="online")
+    db.advance_order_status(hospital_id, order["id"], "paid", "pending_payment")
+
+    assert _patient(hospital_id, "919900000014")["loyalty_points"] == 0
+
+
+def test_loyalty_settings_reject_invalid_values(hospital_id):
+    import pytest as _pytest
+
+    with _pytest.raises(ValueError):
+        db.update_loyalty_settings(hospital_id, {"paise_per_point": 0})
+    with _pytest.raises(ValueError):
+        db.update_loyalty_settings(hospital_id, {"unknown_key": 1})

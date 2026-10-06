@@ -524,3 +524,47 @@ def update_tenant_settings(hospital_id: int, fields: dict) -> dict:
     return get_tenant_settings(hospital_id)
 
 
+
+
+LOYALTY_DEFAULTS: dict = {
+    "enabled": True,
+    "paise_per_point": 10000,
+    "vip_spend_threshold_paise": 1000000,
+    "redeem_points": 10,
+    "redeem_value_paise": 100,
+    "vip_benefit": "",
+}
+
+
+def get_loyalty_settings(hospital_id: int) -> dict:
+    session = get_session()
+    raw = session.execute(select(HospitalRow.loyalty_settings).where(HospitalRow.id == hospital_id)).scalar_one_or_none()
+    stored = json_lib.loads(raw) if raw else {}
+    return {**LOYALTY_DEFAULTS, **stored}
+
+
+def update_loyalty_settings(hospital_id: int, fields: dict) -> dict:
+    current = get_loyalty_settings(hospital_id)
+    merged = dict(current)
+    for key, value in fields.items():
+        if key not in LOYALTY_DEFAULTS:
+            raise ValueError(f"Unknown loyalty setting: {key}")
+        merged[key] = value
+    if not isinstance(merged["enabled"], bool):
+        raise ValueError("enabled must be true or false.")
+    if not isinstance(merged["paise_per_point"], int) or merged["paise_per_point"] < 100:
+        raise ValueError("Each point must be worth at least ₹1 of spend.")
+    if not isinstance(merged["vip_spend_threshold_paise"], int) or merged["vip_spend_threshold_paise"] < 0:
+        raise ValueError("The VIP spend threshold cannot be negative.")
+    if not isinstance(merged["redeem_points"], int) or merged["redeem_points"] < 1:
+        raise ValueError("Redeeming needs at least 1 point.")
+    if not isinstance(merged["redeem_value_paise"], int) or merged["redeem_value_paise"] < 0:
+        raise ValueError("The redemption value cannot be negative.")
+    if not isinstance(merged["vip_benefit"], str) or len(merged["vip_benefit"]) > 200:
+        raise ValueError("The VIP benefit text must be 200 characters or fewer.")
+    session = get_session()
+    session.execute(
+        HospitalRow.__table__.update().where(HospitalRow.id == hospital_id).values(loyalty_settings=json_lib.dumps(merged))
+    )
+    session.commit()
+    return merged
