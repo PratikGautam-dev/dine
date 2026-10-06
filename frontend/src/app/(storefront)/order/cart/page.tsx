@@ -127,8 +127,8 @@ export default function CartPage() {
         <span className="flex h-16 w-16 items-center justify-center rounded-full bg-brand-50 text-brand-600"><ShoppingBag size={28} /></span>
         <p className="text-[16px] font-extrabold text-ink-900">Your cart is empty</p>
         <p className="text-[13px] text-ink-500">Add something delicious and it will show up here.</p>
-        <Link href="/order" className="mt-space-2 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-space-5 py-space-3 text-[14px] font-bold text-white hover:bg-brand-700">
-          Browse menu <ArrowRight size={16} />
+        <Link href={cart.slug ? `/order/${cart.slug}` : "/order"} className="mt-space-2 inline-flex items-center gap-2 rounded-xl bg-brand-600 px-space-5 py-space-3 text-[14px] font-bold text-white hover:bg-brand-700">
+          {cart.slug ? "Back to menu" : "Browse menu"} <ArrowRight size={16} />
         </Link>
       </div>
     );
