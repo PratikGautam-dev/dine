@@ -177,6 +177,7 @@ class CreateOrderPayload(BaseModel):
     # restaurant has more than one active branch -- unset resolves to the hospital's default
     # branch inside create_food_order() itself, same as every other caller.
     branch_id: str | None = None
+    redeem_points: int = 0
 
 
 @router.post("/api/public/orders")
@@ -242,7 +243,7 @@ async def public_create_order(payload: CreateOrderPayload, authorization: str | 
             payload.fulfillment_type, delivery_address=payload.delivery_address,
             patient_name=(payload.name or customer.get("name") or None),
             payment_method=payload.payment_method, coupon_code=payload.coupon_code, source=SOURCE_WEB,
-            branch_id=branch_id,
+            branch_id=branch_id, redeem_points=payload.redeem_points,
         )
     except IntegrityError as e:
         return JSONResponse({"error": str(e)}, status_code=409)

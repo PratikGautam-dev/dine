@@ -82,7 +82,7 @@ def create_food_order(
     hospital_id: int, phone: str, items: list[dict], fulfillment_type: str,
     delivery_address: str | None = None, patient_name: str | None = None, patient_id: int | None = None,
     payment_method: str = PAYMENT_ONLINE, coupon_code: str | None = None, source: str = SOURCE_WHATSAPP,
-    branch_id: str | None = None,
+    branch_id: str | None = None, redeem_points: int = 0,
 ) -> dict:
     """Checkout. `items` is [{"menu_item_id": str, "quantity": int}, ...] --
     every item's current name/price is read and snapshotted here (not passed
@@ -160,6 +160,24 @@ def create_food_order(
         # hospital_settings.home_collection_charge, shown in the portal as "Delivery fee"); no
         # distance-based pricing. Discount applies to the subtotal only, same "before the fee"
         # convention a coupon almost always means.
+        points_used = 0
+        if redeem_points:
+            from db.repositories.hospitals import get_loyalty_settings
+
+            loyalty = get_loyalty_settings(hospital_id)
+            if not loyalty["enabled"]:
+                raise ValueError("Loyalty points are not available at this restaurant.")
+            if redeem_points < 0 or redeem_points % loyalty["redeem_points"]:
+                raise ValueError(f"Points can only be redeemed in multiples of {loyalty['redeem_points']}.")
+            balance = conn.execute(
+                "SELECT loyalty_points FROM patients WHERE hospital_id = ? AND id = ?", (hospital_id, resolved_patient_id),
+            ).fetchone()["loyalty_points"]
+            if balance < redeem_points:
+                raise ValueError("Not enough loyalty points.")
+            units = redeem_points // loyalty["redeem_points"]
+            discount_paise += min(units * loyalty["redeem_value_paise"], max(0, subtotal_paise - discount_paise))
+            points_used = redeem_points
+
         delivery_fee_paise = get_delivery_fee_paise(hospital_id, fulfillment_type, branch_id=branch_id)
         total_paise = max(0, subtotal_paise - discount_paise) + (delivery_fee_paise or 0)
 
@@ -179,6 +197,17 @@ def create_food_order(
         order_id_row = cur.fetchone()
         assert order_id_row is not None
         order_id = order_id_row["id"]
+
+        if points_used:
+            conn.execute(
+                "INSERT INTO loyalty_transactions (hospital_id, patient_id, order_id, kind, points, created_at) "
+                "VALUES (?, ?, ?, 'redeem', ?, ?)",
+                (hospital_id, resolved_patient_id, order_id, -points_used, datetime.now(timezone.utc).isoformat()),
+            )
+            conn.execute(
+                "UPDATE patients SET loyalty_points = loyalty_points - ? WHERE hospital_id = ? AND id = ?",
+                (points_used, hospital_id, resolved_patient_id),
+            )
 
         for line in line_items:
             conn.execute(
@@ -258,6 +287,28 @@ async def create_razorpay_payment(hospital_id: int, order_id: int) -> dict:
     }
 
 
+def _restore_redeemed_points(conn, hospital_id: int, order_id: int) -> None:
+    """Gives back points spent on an order that is cancelled. The unique (order_id, kind) index
+    keeps this to one restore per order."""
+    row = conn.execute(
+        "SELECT patient_id, points FROM loyalty_transactions WHERE hospital_id = ? AND order_id = ? AND kind = 'redeem'",
+        (hospital_id, order_id),
+    ).fetchone()
+    if row is None:
+        return
+    restored = conn.execute(
+        "INSERT INTO loyalty_transactions (hospital_id, patient_id, order_id, kind, points, created_at) "
+        "VALUES (?, ?, ?, 'restore', ?, ?) ON CONFLICT DO NOTHING RETURNING id",
+        (hospital_id, row["patient_id"], order_id, -row["points"], datetime.now(timezone.utc).isoformat()),
+    ).fetchone()
+    if restored is None:
+        return
+    conn.execute(
+        "UPDATE patients SET loyalty_points = loyalty_points + ? WHERE hospital_id = ? AND id = ?",
+        (-row["points"], hospital_id, row["patient_id"]),
+    )
+
+
 def _award_loyalty(conn, hospital_id: int, order_id: int) -> None:
     """Points for a paid order at this restaurant's own earn rate (hospitals.loyalty_settings). The
     ledger row's unique (order_id, kind) index makes this a no-op on any repeat, so it's safe to call
@@ -319,6 +370,7 @@ def advance_order_status(hospital_id: int, order_id: int, new_status: str, expec
     if new_status in (STATUS_PAID, STATUS_COMPLETED):
         _award_loyalty(conn, hospital_id, order_id)
     if new_status == STATUS_CANCELLED:
+        _restore_redeemed_points(conn, hospital_id, order_id)
         # The transition above is guarded, so this runs exactly once per order:
         # a cancelled order gives its stock back.
         for item in conn.execute(

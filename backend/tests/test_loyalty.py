@@ -5,6 +5,7 @@ import os
 
 os.environ.setdefault("INTERNAL_SECRET", "internalsecret")
 
+import pytest  # noqa: E402
 import db.repository as db  # noqa: E402
 from db.connection import get_connection  # noqa: E402
 from db.repositories.food_orders import _award_loyalty  # noqa: E402
@@ -95,3 +96,42 @@ def test_loyalty_settings_reject_invalid_values(hospital_id):
         db.update_loyalty_settings(hospital_id, {"paise_per_point": 0})
     with _pytest.raises(ValueError):
         db.update_loyalty_settings(hospital_id, {"unknown_key": 1})
+
+
+def _earned_customer(hospital_id, phone, points_paise_total):
+    item = _item(hospital_id, points_paise_total)
+    order = db.create_food_order(hospital_id, phone, [{"menu_item_id": item, "quantity": 1}], "pickup", payment_method="online")
+    db.advance_order_status(hospital_id, order["id"], "paid", "pending_payment")
+    return item
+
+
+def test_redeeming_points_takes_rupees_off_the_order_and_deducts_them(hospital_id):
+    _earned_customer(hospital_id, "919900000015", 100000)  # 10 points
+    item = _item(hospital_id, 20000)
+    order = db.create_food_order(hospital_id, "919900000015", [{"menu_item_id": item, "quantity": 1}], "pickup",
+                                 payment_method="online", redeem_points=10)
+
+    assert order["discount_paise"] == 100
+    assert order["total_paise"] == 19900
+    assert _patient(hospital_id, "919900000015")["loyalty_points"] == 0
+
+
+def test_cannot_redeem_more_points_than_the_customer_has(hospital_id):
+    _earned_customer(hospital_id, "919900000016", 100000)  # 10 points
+    item = _item(hospital_id, 20000)
+    with pytest.raises(ValueError):
+        db.create_food_order(hospital_id, "919900000016", [{"menu_item_id": item, "quantity": 1}], "pickup",
+                             payment_method="online", redeem_points=20)
+    assert _patient(hospital_id, "919900000016")["loyalty_points"] == 10
+
+
+def test_cancelling_a_redeemed_order_gives_the_points_back(hospital_id):
+    _earned_customer(hospital_id, "919900000017", 100000)  # 10 points
+    item = _item(hospital_id, 20000)
+    order = db.create_food_order(hospital_id, "919900000017", [{"menu_item_id": item, "quantity": 1}], "pickup",
+                                 payment_method="online", redeem_points=10)
+    assert _patient(hospital_id, "919900000017")["loyalty_points"] == 0
+
+    db.advance_order_status(hospital_id, order["id"], "cancelled", order["status"])
+
+    assert _patient(hospital_id, "919900000017")["loyalty_points"] == 10
