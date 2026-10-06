@@ -258,6 +258,39 @@ async def create_razorpay_payment(hospital_id: int, order_id: int) -> dict:
     }
 
 
+LOYALTY_PAISE_PER_POINT = 10000
+
+
+def _award_loyalty(conn, hospital_id: int, order_id: int) -> None:
+    """Points for a paid order: 1 point per ₹100. The ledger row's unique (order_id, kind) index
+    makes this a no-op on any repeat, so it's safe to call on every paid/completed transition."""
+    order = conn.execute(
+        "SELECT patient_id, phone, total_paise FROM food_orders WHERE hospital_id = ? AND id = ?",
+        (hospital_id, order_id),
+    ).fetchone()
+    patient_id = order["patient_id"]
+    if patient_id is None:
+        patient = conn.execute(
+            "SELECT id FROM patients WHERE hospital_id = ? AND phone = ?", (hospital_id, order["phone"]),
+        ).fetchone()
+        if patient is None:
+            return
+        patient_id = patient["id"]
+    points = order["total_paise"] // LOYALTY_PAISE_PER_POINT
+    ledger = conn.execute(
+        "INSERT INTO loyalty_transactions (hospital_id, patient_id, order_id, kind, points, created_at) "
+        "VALUES (?, ?, ?, 'earn', ?, ?) ON CONFLICT DO NOTHING RETURNING id",
+        (hospital_id, patient_id, order_id, points, datetime.now(timezone.utc).isoformat()),
+    ).fetchone()
+    if ledger is None:
+        return
+    conn.execute(
+        "UPDATE patients SET loyalty_points = loyalty_points + ?, total_orders = total_orders + 1, "
+        "total_spend_paise = total_spend_paise + ? WHERE hospital_id = ? AND id = ?",
+        (points, order["total_paise"], hospital_id, patient_id),
+    )
+
+
 def advance_order_status(hospital_id: int, order_id: int, new_status: str, expected_status: str) -> dict | None:
     """The guarded UPDATE ... WHERE status = '<expected_status>' pattern
     borrowed from the commerce reference doc (flagged in Spec.md as a future
@@ -280,6 +313,8 @@ def advance_order_status(hospital_id: int, order_id: int, new_status: str, expec
         "VALUES (?, ?, ?, ?, ?)",
         (hospital_id, order_id, expected_status, new_status, datetime.now(timezone.utc).isoformat()),
     )
+    if new_status in (STATUS_PAID, STATUS_COMPLETED):
+        _award_loyalty(conn, hospital_id, order_id)
     if new_status == STATUS_CANCELLED:
         # The transition above is guarded, so this runs exactly once per order:
         # a cancelled order gives its stock back.

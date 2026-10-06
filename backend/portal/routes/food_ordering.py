@@ -16,6 +16,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import db.repository as db
+import logging
+
 from core.whatsapp import WhatsAppClient
 from db.repositories.food_orders import (
     STATUS_ACCEPTED, STATUS_CANCELLED, STATUS_COMPLETED, STATUS_OUT_FOR_DELIVERY, STATUS_PAID,
@@ -25,6 +27,7 @@ from portal.capabilities import MANAGE_FOOD_ORDERING
 from portal.deps import _authenticate, require_capability, authorize, check_branch_access
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 
 class ComboLinePayload(BaseModel):
@@ -452,13 +455,10 @@ async def portal_advance_food_order(order_id: int, action: str, authorization: s
         "portal", hospital.id, "tenant portal", f"food_order.{action}",
         entity_type="food_order", entity_id=str(order_id), before={"status": order["status"]}, after={"status": updated["status"]},
     )
-    # Auto-notify the guest on the two transitions they actually care about hearing about
-    # proactively -- accepted (kitchen has it) and ready (come get it / it's on the way). Other
-    # transitions (preparing, completed, cancelled) don't get an automatic ping, only the manual
-    # "Notify customer" button below -- never blocks the portal action itself on a WhatsApp failure.
-    if action in ("accept", "mark_ready"):
-        try:
-            await _notify_customer_of_status(hospital, updated)
-        except Exception:
-            pass
+    # Every status change tells the guest, so they never have to ask where their order is. The
+    # manual "Notify customer" button stays for re-sending the current status.
+    try:
+        await _notify_customer_of_status(hospital, updated)
+    except Exception:
+        logger.exception("Status notification failed for food order %s (status %s)", order_id, updated["status"])
     return JSONResponse({"food_order": updated})
