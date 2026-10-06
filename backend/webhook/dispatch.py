@@ -24,7 +24,6 @@ import flows
 from core.chat_history import get_history
 from core.session_store import get_session_store
 from core.whatsapp import WhatsAppClient
-from reminders.idle_followup import cancel_idle_followup, schedule_idle_followup
 
 logger = logging.getLogger(__name__)
 
@@ -137,8 +136,6 @@ async def _process_message(
         phone, hospital.id, hospital.enabled_features, reply,
     )
     HISTORY.add(phone, "user", reply.get("text") or reply.get("title") or f"[{reply.get('type')}]")
-    cancel_idle_followup(hospital.id, phone)
-    previous_state = SESSIONS.get(hospital.id, phone).get("state")
     try:
         db.record_message(hospital.id, "inbound")
     except Exception:
@@ -178,5 +175,3 @@ async def _process_message(
         multi_branch_enabled=multi_branch_enabled,
     )
     logger.info("Flow router returned for %s (hospital %s)", phone, hospital.id)
-    if previous_state != "IDLE" and SESSIONS.get(hospital.id, phone).get("state") == "IDLE":
-        schedule_idle_followup(wa, SESSIONS, hospital.id, phone, hospital.name)
