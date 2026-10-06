@@ -1871,6 +1871,10 @@ def init_db_on_connection(conn) -> int:
         "phone TEXT NOT NULL, address TEXT NOT NULL, created_at TEXT NOT NULL)"
     )
     conn.execute("CREATE INDEX IF NOT EXISTS ix_customer_addresses_phone ON customer_addresses (hospital_id, phone)")
+    # Migration 0065 -- public UUIDs for customers and orders (URLs); integer ids stay internal.
+    for _table in ("patients", "food_orders"):
+        conn.execute(f"ALTER TABLE {_table} ADD COLUMN IF NOT EXISTS public_id TEXT NOT NULL DEFAULT gen_random_uuid()::text")
+        conn.execute(f"CREATE UNIQUE INDEX IF NOT EXISTS uq_{_table}_public_id ON {_table} (public_id)")
     conn.execute(
         "CREATE TABLE IF NOT EXISTS loyalty_transactions (id SERIAL PRIMARY KEY, hospital_id INTEGER NOT NULL, "
         "patient_id INTEGER NOT NULL, order_id INTEGER, kind TEXT NOT NULL, points INTEGER NOT NULL, created_at TEXT NOT NULL)"

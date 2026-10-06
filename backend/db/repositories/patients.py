@@ -84,7 +84,7 @@ def _patients_with_visit_stats_stmt(hospital_id: int, search: str | None = None)
     visited_count = func.count(case((AppointmentRow.status == STATUS_ATTENDED, AppointmentRow.id)))
     stmt = (
         select(
-            PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
+            PatientRow.id, PatientRow.public_id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
             PatientRow.email, PatientRow.loyalty_tier, PatientRow.loyalty_points,
             PatientRow.total_orders, PatientRow.total_spend_paise, PatientRow.favorite_item,
             PatientRow.address, PatientRow.dietary_preference, PatientRow.gender,
@@ -99,7 +99,7 @@ def _patients_with_visit_stats_stmt(hospital_id: int, search: str | None = None)
         )
         .where(PatientRow.hospital_id == hospital_id)
         .group_by(
-            PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
+            PatientRow.id, PatientRow.public_id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
             PatientRow.email, PatientRow.loyalty_tier, PatientRow.loyalty_points,
             PatientRow.total_orders, PatientRow.total_spend_paise, PatientRow.favorite_item,
             PatientRow.address, PatientRow.dietary_preference, PatientRow.gender,
@@ -134,7 +134,7 @@ def list_patients(hospital_id: int, search: str | None = None, limit: int = 200)
         vip_override, tags = extras.get(r.id, (None, []))
         is_vip = vip_override if vip_override is not None else (r.total_spend_paise or 0) >= threshold
         result.append({
-            "id": r.id, "phone": r.phone, "name": r.name, "patient_display_id": r.patient_display_id,
+            "id": r.id, "public_id": r.public_id, "phone": r.phone, "name": r.name, "patient_display_id": r.patient_display_id,
             "mrn": r.mrn, "last_visit": r.last_visit, "visit_count": r.visit_count,
             "visited_count": r.visited_count, "email": r.email, "loyalty_tier": r.loyalty_tier,
             "loyalty_points": r.loyalty_points, "total_orders": r.total_orders,
@@ -169,7 +169,7 @@ def get_patients_for_doctor(hospital_id: int, doctor_id: str, limit: int = 500) 
     session = get_session()
     rows = session.execute(
         select(
-            PatientRow.id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
+            PatientRow.id, PatientRow.public_id, PatientRow.phone, PatientRow.name, PatientRow.patient_display_id, PatientRow.mrn,
             last_visit.label("last_visit"), visit_count.label("visit_count"),
             visited_count.label("visited_count"),
         )
@@ -188,7 +188,7 @@ def get_patients_for_doctor(hospital_id: int, doctor_id: str, limit: int = 500) 
     ).all()
     return [
         {
-            "id": r.id, "phone": r.phone, "name": r.name, "patient_display_id": r.patient_display_id,
+            "id": r.id, "public_id": r.public_id, "phone": r.phone, "name": r.name, "patient_display_id": r.patient_display_id,
             "mrn": r.mrn, "last_visit": r.last_visit, "visit_count": r.visit_count,
             "visited_count": r.visited_count,
         }
@@ -199,13 +199,22 @@ def get_patients_for_doctor(hospital_id: int, doctor_id: str, limit: int = 500) 
 # --- Patient records (Section 12.10: visit history, notes, documents) ---
 
 _PATIENT_COLUMNS = (
-    PatientRow.id, PatientRow.hospital_id, PatientRow.phone, PatientRow.name, PatientRow.date_of_birth,
+    PatientRow.id, PatientRow.public_id, PatientRow.hospital_id, PatientRow.phone, PatientRow.name, PatientRow.date_of_birth,
     PatientRow.gender, PatientRow.address, PatientRow.age, PatientRow.patient_display_id, PatientRow.mrn,
     PatientRow.status, PatientRow.created_at,
     PatientRow.email, PatientRow.dietary_preference, PatientRow.allergies, PatientRow.notes,
     PatientRow.favorite_item, PatientRow.loyalty_tier, PatientRow.loyalty_points,
     PatientRow.total_orders, PatientRow.total_spend_paise,
 )
+
+
+def get_patient_by_public_id(hospital_id: int, public_id: str) -> dict | None:
+    """The customer behind a public UUID URL, scoped to this hospital the same way get_patient() is."""
+    session = get_session()
+    row = session.execute(
+        select(*_PATIENT_COLUMNS).where(PatientRow.hospital_id == hospital_id, PatientRow.public_id == public_id)
+    ).first()
+    return dict(row._mapping) if row else None
 
 
 def get_patient(hospital_id: int, patient_id: int) -> dict | None:

@@ -1361,7 +1361,7 @@ def test_patient_list_and_detail_surface_the_same_patient_display_id(two_hospita
     assert listed["mrn"] is not None
     assert listed["mrn"].startswith("MRN-")
 
-    detail_resp = client.get(f"/api/portal/patients/{listed['id']}", headers=_auth(a["token"]))
+    detail_resp = client.get(f"/api/portal/patients/by-public-id/{listed['public_id']}", headers=_auth(a["token"]))
     assert detail_resp.json()["patient"]["patient_display_id"] == listed["patient_display_id"]
 
 

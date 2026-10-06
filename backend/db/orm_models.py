@@ -482,6 +482,7 @@ class FoodOrder(Base):
     # migration 0033 -- 'pay_at_restaurant' | 'online'.
     payment_method: Mapped[str]
     reference_id: Mapped[str | None]
+    public_id: Mapped[str]
     created_at: Mapped[str]
     updated_at: Mapped[str]
     # Offers (migration 0046): the coupon this order redeemed, if any -- offer_id null and
@@ -899,6 +900,7 @@ class PatientRow(Base):
     total_spend_paise: Mapped[int]
     tags: Mapped[str]
     is_vip_override: Mapped[bool | None]
+    public_id: Mapped[str]
 
 
 class Feedback(Base):

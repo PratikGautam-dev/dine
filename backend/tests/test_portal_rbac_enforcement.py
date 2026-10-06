@@ -97,7 +97,7 @@ def test_kitchen_cannot_touch_guests_messages_settings_staff_or_reservations(hos
 
     denied = [
         client.get("/api/portal/patients", headers=kitchen),
-        client.get(f"/api/portal/patients/{patient['id']}", headers=kitchen),
+        client.get(f"/api/portal/patients/by-public-id/{db.get_patient(hospital_id, patient['id'])['public_id']}", headers=kitchen),
         client.post("/api/portal/patients/delete", headers=kitchen, json={"patient_ids": [patient["id"]]}),
         client.get("/api/portal/handoffs", headers=kitchen),
         client.post(f"/api/portal/handoffs/{handoff['id']}/resolve", headers=kitchen),

@@ -48,7 +48,7 @@ async def portal_delete_patients(payload: dict, authorization: str | None = Head
 
 def _patient_json(p: dict) -> dict:
     return {
-        "id": p["id"], "phone": p["phone"], "name": p["name"],
+        "id": p["id"], "public_id": p.get("public_id"), "phone": p["phone"], "name": p["name"],
         # Patient identity system (Spec.md Section 0): the permanent,
         # human-readable id (PAT-<hospital short code>-<seq>) -- None only
         # for a patient predating the backfill, which db/init_db.py's
@@ -70,9 +70,9 @@ def _patient_json(p: dict) -> dict:
     }
 
 
-@router.get("/api/portal/patients/{patient_id}")
-async def portal_patient_detail(patient_id: int, authorization: str | None = Header(default=None)):
-    """One guest of the caller's own restaurant, with their visit history."""
+@router.get("/api/portal/patients/id/{patient_id}")
+async def portal_patient_detail_by_id(patient_id: int, authorization: str | None = Header(default=None)):
+    """Internal API lookup by numeric id, for pages that only hold the id. Browser URLs use the public UUID route."""
     principal, error = authorize(authorization, "patients", "view")
     if error:
         return error
@@ -80,6 +80,25 @@ async def portal_patient_detail(patient_id: int, authorization: str | None = Hea
     patient = db.get_patient(hospital.id, patient_id)
     if patient is None:
         return JSONResponse({"error": "No such patient."}, status_code=404)
+    visit_history = db.get_patient_visit_history(hospital.id, patient_id)
+    validity_days = db.get_followup_validity_days(hospital.id)
+    return JSONResponse({
+        "patient": _patient_json(patient),
+        "visit_history": [_appointment_json(a, validity_days) for a in visit_history],
+    })
+
+
+@router.get("/api/portal/patients/by-public-id/{public_id}")
+async def portal_patient_detail(public_id: str, authorization: str | None = Header(default=None)):
+    """One guest of the caller's own restaurant, by public UUID, with their visit history."""
+    principal, error = authorize(authorization, "patients", "view")
+    if error:
+        return error
+    hospital = principal.hospital
+    patient = db.get_patient_by_public_id(hospital.id, public_id)
+    if patient is None:
+        return JSONResponse({"error": "No such patient."}, status_code=404)
+    patient_id = patient["id"]
 
     visit_history = db.get_patient_visit_history(hospital.id, patient_id)
     validity_days = db.get_followup_validity_days(hospital.id)
