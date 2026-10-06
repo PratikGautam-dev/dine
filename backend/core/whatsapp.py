@@ -45,7 +45,7 @@ class WhatsAppClient:
         except Exception:
             logger.exception("Failed to record outbound message log (hospital %s) -- send itself was unaffected", self._hospital_id)
 
-    async def send_text(self, to: str, text: str) -> None:
+    async def send_text(self, to: str, text: str) -> bool:
         to = normalize_phone(to)
         url = f"{WA_API_BASE}/{self._phone_number_id}/messages"
         payload = {
@@ -60,12 +60,13 @@ class WhatsAppClient:
         except httpx.HTTPError:
             logger.exception("WhatsApp send_text request to %s failed (network/transport error)", url)
             self._log_send(False)
-            return
+            return False
         if resp.is_success:
             logger.info("WhatsApp send_text: %s OK for %s", resp.status_code, to)
         else:
             logger.error("WhatsApp send_text error %s: %s", resp.status_code, resp.text)
         self._log_send(resp.is_success)
+        return resp.is_success
 
     async def download_media(self, media_id: str) -> tuple[bytes, str]:
         url = f"{WA_API_BASE}/{media_id}"

@@ -48,6 +48,11 @@ export const NEXT_ACTION_BY_STATUS: Record<string, { action: string; label: stri
 
 export const CANCELLABLE_STATUSES = new Set(["placed", "paid", "accepted", "preparing"]);
 
+// Mirrors backend/portal/routes/food_ordering.py's own _STATUS_NOTIFICATION_TEXT keys -- the
+// "Notify customer" button only shows for a status that actually has a WhatsApp message to send;
+// 'placed'/'pending_payment' are skipped since the guest already saw a confirmation at checkout.
+export const NOTIFIABLE_STATUSES = new Set(["accepted", "preparing", "ready_for_pickup", "out_for_delivery", "completed"]);
+
 export const STATUS_LABELS: Record<string, string> = {
   pending_payment: "Awaiting Payment",
   placed: "New order",
@@ -111,12 +116,12 @@ export function useFoodOrders(ready: boolean, statusFilter: string, days = 90, p
         // another staff member acted first) -- refresh rather than treat it
         // as a hard failure, same "no-op, not an error" contract
         // advance_order_status() establishes server-side.
-        toast.error("Couldn't update order", result.error);
+        toast.error(action === "notify" ? "Couldn't notify customer" : "Couldn't update order", result.error);
         load();
       }
       return;
     }
-    toast.success("Order updated");
+    toast.success(action === "notify" ? "Customer notified on WhatsApp" : "Order updated");
     load();
   }
 
@@ -163,6 +168,7 @@ export function useFoodOrderDetail(orderId: number | null) {
   const [detail, setDetail] = useState<FoodOrderDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [refunding, setRefunding] = useState(false);
+  const [notifying, setNotifying] = useState(false);
   const idRef = useRef(orderId);
   idRef.current = orderId;
 
@@ -206,5 +212,19 @@ export function useFoodOrderDetail(orderId: number | null) {
     return true;
   }
 
-  return { detail, loading, refunding, issueRefund, reload: load };
+  async function notifyCustomer(): Promise<boolean> {
+    if (orderId == null) return false;
+    setNotifying(true);
+    const result = await portalFetch(`/api/portal/food-orders/${orderId}/notify`, { method: "POST" });
+    setNotifying(false);
+    if (!result.ok) {
+      if (result.unauthorized) toast.error("Session expired", "Please log in again.");
+      else toast.error("Couldn't notify customer", result.error);
+      return false;
+    }
+    toast.success("Customer notified on WhatsApp");
+    return true;
+  }
+
+  return { detail, loading, refunding, notifying, issueRefund, notifyCustomer, reload: load };
 }

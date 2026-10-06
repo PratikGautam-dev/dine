@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
-  BellRing, ChefHat, ClipboardList, Download, Eye, MoreHorizontal, PackageCheck, Search, ShieldCheck, X, XCircle,
+  Bell, BellRing, ChefHat, ClipboardList, Download, Eye, MoreHorizontal, PackageCheck, Search, ShieldCheck, X, XCircle,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -21,7 +21,7 @@ import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { useBranchFilter } from "@/lib/branchContext";
 import {
-  CANCELLABLE_STATUSES, FoodOrder, NEXT_ACTION_BY_STATUS, STATUS_LABELS, useFoodOrders,
+  CANCELLABLE_STATUSES, FoodOrder, NEXT_ACTION_BY_STATUS, NOTIFIABLE_STATUSES, STATUS_LABELS, useFoodOrders,
 } from "@/hooks/useFoodOrders";
 import { cn } from "@/lib/cn";
 import {
@@ -274,6 +274,17 @@ export default function PortalFoodOrdersPage() {
                 <Button size="md" disabled={busy} onClick={() => runAction(order, next.action)}>
                   {busy ? "…" : next.label}
                 </Button>
+              )}
+              {canWrite && NOTIFIABLE_STATUSES.has(order.status) && (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => runAction(order, "notify")}
+                  aria-label={`Notify ${order.patient_name || order.phone} on WhatsApp about order ${order.reference_id ?? order.id}`}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-300 bg-brand-50 px-space-3 text-[12.5px] font-semibold text-brand-700 hover:bg-brand-100 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none disabled:opacity-50"
+                >
+                  <Bell size={14} /> Notify
+                </button>
               )}
               <DropdownMenu>
                 <DropdownMenuTrigger

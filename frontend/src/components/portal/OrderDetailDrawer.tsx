@@ -1,14 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { History, IndianRupee, Receipt, X } from "lucide-react";
+import { Bell, History, IndianRupee, Receipt, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { formatShortDateTime } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
-import { STATUS_LABELS, useFoodOrderDetail } from "@/hooks/useFoodOrders";
+import { NOTIFIABLE_STATUSES, STATUS_LABELS, useFoodOrderDetail } from "@/hooks/useFoodOrders";
 
 const PAYMENT_STATUS_TONE: Record<string, "success" | "warning" | "clay"> = {
   paid: "success", pending: "warning", failed: "clay",
@@ -19,7 +19,7 @@ const PAYMENT_STATUS_TONE: Record<string, "success" | "warning" | "clay"> = {
  * are record-keeping only (no live gateway refund call), same scope db/repositories/payments.py's
  * create_refund() itself documents. */
 export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClose: () => void }) {
-  const { detail, loading, refunding, issueRefund } = useFoodOrderDetail(orderId);
+  const { detail, loading, refunding, notifying, issueRefund, notifyCustomer } = useFoodOrderDetail(orderId);
   const [refundAmount, setRefundAmount] = useState("");
   const [refundReason, setRefundReason] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
@@ -59,9 +59,16 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
           <h2 className="text-[15px] font-bold text-ink-900">
             Order {detail?.food_order.reference_id ?? `#${orderId}`}
           </h2>
-          <button type="button" onClick={onClose} className="rounded-md p-1 text-ink-400 hover:bg-black/4 hover:text-ink-900" aria-label="Close">
-            <X size={16} />
-          </button>
+          <div className="flex items-center gap-space-1">
+            {detail && NOTIFIABLE_STATUSES.has(detail.food_order.status) && (
+              <Button type="button" size="md" variant="secondary" disabled={notifying} onClick={() => notifyCustomer()}>
+                <Bell size={14} /> {notifying ? "Sending…" : "Notify customer"}
+              </Button>
+            )}
+            <button type="button" onClick={onClose} className="rounded-md p-1 text-ink-400 hover:bg-black/4 hover:text-ink-900" aria-label="Close">
+              <X size={16} />
+            </button>
+          </div>
         </div>
 
         {loading && !detail ? (
@@ -155,6 +162,13 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
                 <p className="text-[12.5px] text-ink-400">No paid payment to refund.</p>
               )}
             </section>
+          </div>
+        )}
+        {detail && NOTIFIABLE_STATUSES.has(detail.food_order.status) && (
+          <div className="sticky bottom-0 mt-auto border-t border-line bg-card p-space-4">
+            <Button type="button" className="w-full" disabled={notifying} onClick={() => notifyCustomer()}>
+              <Bell size={16} /> {notifying ? "Sending…" : "Notify customer on WhatsApp"}
+            </Button>
           </div>
         )}
       </div>

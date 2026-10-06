@@ -4,6 +4,7 @@ import { CalendarDays, Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
@@ -46,6 +47,7 @@ export function PortalShell({ hospital, active, children }: Props) {
       <PortalSidebar hospital={hospital} active={active} open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <NewOrderAlert />
         <header className="flex h-16 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
           <button
             type="button"

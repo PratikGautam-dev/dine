@@ -16,6 +16,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
 import db.repository as db
+from core.whatsapp import WhatsAppClient
 from db.repositories.food_orders import (
     STATUS_ACCEPTED, STATUS_CANCELLED, STATUS_COMPLETED, STATUS_OUT_FOR_DELIVERY, STATUS_PAID,
     STATUS_PLACED, STATUS_PREPARING, STATUS_READY_FOR_PICKUP,
@@ -329,6 +330,61 @@ def _ready_status_for(order: dict) -> str:
     return STATUS_OUT_FOR_DELIVERY if order["fulfillment_type"] == "delivery" else STATUS_READY_FOR_PICKUP
 
 
+_STATUS_NOTIFICATION_TEXT = {
+    STATUS_ACCEPTED: "👨‍🍳 Your order {ref} has been accepted and the kitchen is getting started.",
+    STATUS_PREPARING: "👨‍🍳 Your order {ref} is being prepared.",
+    STATUS_READY_FOR_PICKUP: "🥡 Your order {ref} is ready for pickup!",
+    STATUS_OUT_FOR_DELIVERY: "🛵 Your order {ref} is out for delivery!",
+    STATUS_COMPLETED: "✅ Your order {ref} is complete. Thank you!",
+}
+
+
+async def _notify_customer_of_status(hospital, order: dict) -> bool:
+    """A real WhatsApp text sent for an order's CURRENT status -- same "send via WhatsAppClient
+    right from the portal route" precedent portal_confirm_booking()/portal_send_booking_reminder()
+    already set (bookings.py), not the live-flow's own rich status messages (those only make sense
+    mid-conversation). Returns False (no-op, not an error) when WhatsApp isn't configured or this
+    status has no customer-facing message of its own (e.g. 'placed'/'cancelled', which the guest
+    already saw at checkout time)."""
+    if not (hospital.whatsapp_phone_number_id and hospital.access_token):
+        return False
+    template = _STATUS_NOTIFICATION_TEXT.get(order["status"])
+    if template is None:
+        return False
+    wa = WhatsAppClient(phone_number_id=hospital.whatsapp_phone_number_id, access_token=hospital.access_token, hospital_id=hospital.id)
+    return await wa.send_text(order["phone"], template.format(ref=order["reference_id"] or f"#{order['id']}"))
+
+
+@router.post("/api/portal/food-orders/{order_id}/notify")
+async def portal_notify_food_order_customer(order_id: int, authorization: str | None = Header(default=None)):
+    """The "Notify customer" button -- sends the guest a WhatsApp text about the order's CURRENT
+    status on demand, same manual-nudge precedent portal_send_booking_reminder() already sets.
+    Registered BEFORE the generic {order_id}/{action} route below -- FastAPI matches path
+    operations in registration order, so this specific route must come first or the catch-all
+    would swallow "notify" as an unknown action."""
+    hospital, principal, error = _require_food_ordering(authorization, "food_orders", "write")
+    if error:
+        return error
+    order = db.get_food_order(hospital.id, order_id)
+    if order is None:
+        return JSONResponse({"error": "Order not found."}, status_code=404)
+    if not (hospital.whatsapp_phone_number_id and hospital.access_token):
+        return JSONResponse({"error": "WhatsApp is not configured for this hospital yet."}, status_code=400)
+    if order["status"] not in _STATUS_NOTIFICATION_TEXT:
+        return JSONResponse({"error": "No customer-facing update exists for this order's current status."}, status_code=400)
+    sent = await _notify_customer_of_status(hospital, order)
+    if not sent:
+        return JSONResponse(
+            {"error": "WhatsApp did not deliver the message. The guest may be outside the 24-hour messaging window."},
+            status_code=502,
+        )
+    db.record_audit_log(
+        "portal", hospital.id, "tenant portal", "food_order.notify",
+        entity_type="food_order", entity_id=str(order_id), after={"status": order["status"]},
+    )
+    return JSONResponse({"ok": True})
+
+
 # action name -> (expected_prior_status, new_status) for the straight-line
 # transitions ("accept" is handled separately: an online order arrives 'paid', a
 # pay-at-restaurant order arrives 'placed'). "mark_ready"'s target depends on fulfillment_type, so
@@ -396,4 +452,13 @@ async def portal_advance_food_order(order_id: int, action: str, authorization: s
         "portal", hospital.id, "tenant portal", f"food_order.{action}",
         entity_type="food_order", entity_id=str(order_id), before={"status": order["status"]}, after={"status": updated["status"]},
     )
+    # Auto-notify the guest on the two transitions they actually care about hearing about
+    # proactively -- accepted (kitchen has it) and ready (come get it / it's on the way). Other
+    # transitions (preparing, completed, cancelled) don't get an automatic ping, only the manual
+    # "Notify customer" button below -- never blocks the portal action itself on a WhatsApp failure.
+    if action in ("accept", "mark_ready"):
+        try:
+            await _notify_customer_of_status(hospital, updated)
+        except Exception:
+            pass
     return JSONResponse({"food_order": updated})
