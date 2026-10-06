@@ -1,3 +1,4 @@
+import json
 # db/repositories/storefront.py
 """Web Storefront (migration 0051): a public marketplace website (/order), a second ordering
 channel alongside the WhatsApp bot, feeding the exact same food_orders/menu_items data. Four things
@@ -184,7 +185,7 @@ _CARD_COLUMNS = (
     HospitalRow.id, HospitalRow.name, HospitalRow.storefront_slug, HospitalRow.cuisine_tags,
     HospitalRow.tagline, HospitalRow.address_line, HospitalRow.city, HospitalRow.logo_url,
     HospitalRow.cover_image_url, HospitalRow.min_order_paise, HospitalRow.avg_prep_minutes,
-    HospitalRow.timezone,
+    HospitalRow.timezone, HospitalRow.branding,
 )
 
 
@@ -198,7 +199,16 @@ def _card(row) -> dict:
         "logo_url": row.logo_url, "cover_image_url": row.cover_image_url,
         "min_order_paise": row.min_order_paise, "avg_prep_minutes": row.avg_prep_minutes,
         "is_open": is_open_now(row.id, row.timezone, settings["operating_days"], settings["operating_hours"]),
+        "storefront_locked": _storefront_locked(row.branding),
     }
+
+
+def _storefront_locked(branding: str | None) -> bool:
+    """Restaurant-only storefront: its pages hide every other restaurant, so customers stay on this URL."""
+    try:
+        return bool(json.loads(branding or "{}").get("storefront_locked", False))
+    except (ValueError, AttributeError):
+        return False
 
 
 def list_public_restaurants(search: str | None = None, city: str | None = None, cuisine: str | None = None) -> list[dict]:
