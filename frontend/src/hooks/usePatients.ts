@@ -142,7 +142,7 @@ export function usePatients(ready: boolean) {
       setActiveId(id);
       setProfile(null);
       setProfileLoading(true);
-      const result = await portalFetch(`/api/portal/patients/${id}`);
+      const result = await portalFetch(`/api/portal/patients/id/${id}`);
       setProfileLoading(false);
       if (!result.ok) {
         if (result.unauthorized) router.push("/portal/login");
