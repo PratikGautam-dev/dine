@@ -34,7 +34,7 @@ live deployment.
 - **Backend (Railway)**: `railway.toml` at the repo root pins
   `builder = "NIXPACKS"` explicitly — Railway builds from source via
   Nixpacks (`backend/nixpacks.toml`'s install phase: `uv sync --locked
-  --no-dev` against `backend/pyproject.toml`/`uv.lock`, no Dockerfile
+--no-dev` against `backend/pyproject.toml`/`uv.lock`, no Dockerfile
   involved), and runs `uv run uvicorn main:app --host 0.0.0.0 --port $PORT`
   ($PORT is
   Railway's own assigned port, not the `8000` the Docker image hardcodes).
@@ -265,10 +265,10 @@ tele-consultation link, only relevant if a hospital admin wants to connect
 one Google account for the whole hospital (used for every doctor's
 tele-consultation Meet links — not a per-doctor connection):**
 
-| Variable                                                          | Purpose                                                                                                                                                                                                     |
-| ------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `GOOGLE_CALENDAR_CLIENT_ID` / `GOOGLE_CALENDAR_CLIENT_SECRET`     | A **separate** OAuth client from `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` above (its own entry in Google Cloud Console, Calendar scope only) — a leaked credential for one must never work for the other.  |
-| `CALENDAR_TOKEN_ENCRYPTION_KEY`                                   | Fernet key encrypting stored Calendar access/refresh tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.                            |
+| Variable                                                      | Purpose                                                                                                                                                                                                    |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GOOGLE_CALENDAR_CLIENT_ID` / `GOOGLE_CALENDAR_CLIENT_SECRET` | A **separate** OAuth client from `GOOGLE_CLIENT_ID`/`GOOGLE_CLIENT_SECRET` above (its own entry in Google Cloud Console, Calendar scope only) — a leaked credential for one must never work for the other. |
+| `CALENDAR_TOKEN_ENCRYPTION_KEY`                               | Fernet key encrypting stored Calendar access/refresh tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`.                            |
 
 All three default to `""`. With any of them unset, the app boots completely
 normally and the hospital admin's Settings page's "Connect Google Calendar"

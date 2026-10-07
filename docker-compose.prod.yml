@@ -17,29 +17,12 @@
 # pushed most recently," which makes rollback ("go back to what was
 # running before") impossible to express.
 services:
-  backend:
-    image: ${REGISTRY:-daaprime}/dine-connect-backend:${IMAGE_TAG:-latest}
-    container_name: dine-connect-backend
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    env_file:
-      - .env
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
   frontend:
     image: ${REGISTRY:-daaprime}/dine-connect-frontend:${IMAGE_TAG:-latest}
     container_name: dine-connect-frontend
     restart: unless-stopped
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
 
 # No build.args here for NEXT_PUBLIC_API_BASE_URL -- unlike docker-compose.yml
 # (the build-from-source file), this file never builds the frontend image,

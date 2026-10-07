@@ -42,40 +42,28 @@ fi
 
 VERSION="$(git describe --tags --always --dirty 2>/dev/null || date +%Y%m%d%H%M%S)"
 
-BACKEND_IMAGE="${REGISTRY}/dine-connect-backend"
 FRONTEND_IMAGE="${REGISTRY}/dine-connect-frontend"
-
-echo "==> Building ${BACKEND_IMAGE}:${VERSION} (and :latest)"
-docker build \
-  -t "${BACKEND_IMAGE}:${VERSION}" \
-  -t "${BACKEND_IMAGE}:latest" \
-  -f backend/Dockerfile backend
 
 echo "==> Building ${FRONTEND_IMAGE}:${VERSION} (and :latest)"
 docker build \
   --build-arg NEXT_PUBLIC_API_BASE_URL="${NEXT_PUBLIC_API_BASE_URL}" \
   -t "${FRONTEND_IMAGE}:${VERSION}" \
   -t "${FRONTEND_IMAGE}:latest" \
-  -f frontend/Dockerfile frontend
+  -f Dockerfile .
 
 echo
 echo "==> Image sizes"
 docker images --format "table {{.Repository}}:{{.Tag}}\t{{.Size}}" \
-  | grep -E "REPOSITORY|dine-connect-(backend|frontend)"
+  | grep -E "REPOSITORY|dine-connect-frontend"
 
 if [[ "$PUSH" -eq 0 ]]; then
   echo
   echo "==> --no-push given, skipping push. Built tags:"
-  echo "    ${BACKEND_IMAGE}:${VERSION}  ${BACKEND_IMAGE}:latest"
   echo "    ${FRONTEND_IMAGE}:${VERSION}  ${FRONTEND_IMAGE}:latest"
   exit 0
 fi
 
 echo
-echo "==> Pushing ${BACKEND_IMAGE} (${VERSION}, latest)"
-docker push "${BACKEND_IMAGE}:${VERSION}"
-docker push "${BACKEND_IMAGE}:latest"
-
 echo "==> Pushing ${FRONTEND_IMAGE} (${VERSION}, latest)"
 docker push "${FRONTEND_IMAGE}:${VERSION}"
 docker push "${FRONTEND_IMAGE}:latest"

@@ -9,10 +9,10 @@ this repo as the starting point, keeping the hard, already-solved infrastructure
 stripping/renaming the healthcare-specific parts.
 
 This file is written so you can hand it to Claude (or anyone else) **cold**, in the
-freshly cloned repo, with an instruction like: *"Read
+freshly cloned repo, with an instruction like: _"Read
 docs/ARCHITECTURE_REFERENCE_FOR_FORKING.md, then strip out everything under 'Delete
 or heavily rework' and rename per the vocabulary table, keeping everything under
-'Reusable as-is / rename only.'"*
+'Reusable as-is / rename only.'"_
 
 It does **not** duplicate `docs/Spec.md` (954 lines, the full build history/decision
 log of THIS product) or `docs/ARCHITECTURE_PLAN.md` (the `flows.booking` package
@@ -89,6 +89,7 @@ This is the "hard part already solved" — the whole reason to fork instead of
 starting from zero. Keep the mechanism, rename the vocabulary.
 
 ### 3.1 WhatsApp integration layer
+
 - `core/whatsapp.py` — `WhatsAppClient`: thin wrapper around Meta's Cloud API
   (`send_text`, `send_buttons` (max 3 options), `send_list` (>3 options, capped
   to WhatsApp's 10-row limit via `flows/common.py`'s `cap_rows()`), `send_document`).
@@ -102,6 +103,7 @@ starting from zero. Keep the mechanism, rename the vocabulary.
   "your table reservation reminder."
 
 ### 3.2 Conversation state machine pattern
+
 - `flows/booking/state.py` — `STATE_*` constants, a **step-history stack**
   (`_push_history`/`_history_pop`/`_history_pop_to`) that makes "Back" and
   "change an earlier answer from the confirmation screen" work generically for
@@ -116,6 +118,7 @@ starting from zero. Keep the mechanism, rename the vocabulary.
   session expiry/timeout (configurable per tenant) automatically. Keep as-is.
 
 ### 3.3 The `TypeFlow` abstraction — the most valuable pattern here
+
 `flows/booking/types/base.py`'s `TypeFlow` dataclass is a **generic "pluggable
 booking variant" engine**. A hospital has `new` / `followup` / `tele` /
 `second_opinion` / `procedure` / `diagnostic` / `lab` appointment types, each
@@ -136,6 +139,7 @@ TypeFlow(
     build_success_summary: SuccessSummaryBuilder | None,
 )
 ```
+
 `flows/booking/types/registry.py` maps a stored `appointment_types.id` string to
 its `TypeFlow`; an unrecognized id safely falls back to the generic `FULL_FLOW`.
 
@@ -147,6 +151,7 @@ variants sharing the same core pipeline. **Keep this abstraction, rename the
 concrete type modules.**
 
 ### 3.4 Multi-tenancy + pluggable data backend (Connector interface)
+
 - `connectors.py` (`Connector` ABC, `Tier1Connector` the concrete Postgres-backed
   implementation) is the **one seam** `flows/`, `reminders/scheduler.py`, and the
   portal talk through — never raw SQL from flow code directly. This is what lets
@@ -167,6 +172,7 @@ concrete type modules.**
   name and changing only user-facing copy).
 
 ### 3.5 Staff identity, RBAC, and the portal
+
 - `auth/jwt_session.py` + `portal/deps.py` (`get_current_staff`,
   `require_permission`) + `portal/permissions.py`
   (`DEFAULT_PERMISSIONS_BY_ROLE`, page-key/action grid) — a real per-page,
@@ -182,12 +188,13 @@ concrete type modules.**
   `entity_id`, `actor`) — keep verbatim, it's already domain-agnostic.
 - Frontend: `frontend/src/app/portal/*` page structure, `components/portal/*`,
   the settings/roles/staff management sub-pages, the `Card`/`Button`/design-token
-  system in `components/ui/*` — all reusable UI scaffolding. Swap page *content*
+  system in `components/ui/*` — all reusable UI scaffolding. Swap page _content_
   (schedule → floor plan, doctors list → tables/staff list), keep the shell,
   auth guards, and navigation pattern (`PortalSidebar`, `useStaffSession`,
   `usePermission`).
 
 ### 3.6 Onboarding wizard pattern
+
 `docs/Spec.md` §12.1 — the step-by-step guided Meta-credential wizard (Business
 Account → App → Verification → Access Token → paste credentials) is **entirely
 Meta-API-specific, not hospital-specific** — every WhatsApp Cloud API product
@@ -197,6 +204,7 @@ departments/doctors/working-hours → sections/tables/floor-capacity, or
 menu-categories/items) and the **feature-toggle grid** (§3.9 below).
 
 ### 3.7 Reminders
+
 `reminders/scheduler.py` — cron-triggered (`POST /internal/send-reminders`),
 per-tenant configurable offsets (`hospital_settings.reminder_offsets_hours`,
 e.g. `[24, 1]`), idempotent (`mark_reminder_sent` prevents double-sends). Fully
@@ -204,6 +212,7 @@ generic — "your appointment reminder" becomes "your table reservation reminder
 with zero mechanism change, just copy.
 
 ### 3.8 Translations
+
 `core/translations/` — a flat `STRINGS[key][lang]` dict + `t(key, lang, **kwargs)`
 lookup function, English/Hindi today, WhatsApp button (20-char) and list-row
 (24-char) length limits **enforced by a real test**
@@ -212,6 +221,7 @@ mechanism and the length-limit test discipline exactly; retranslate the actual
 copy.
 
 ### 3.9 Feature-toggle architecture
+
 `docs/Spec.md` §14.5 — `hospitals.enabled_features` (a stored JSON array of
 capability keys), `flows/patient_identity/menu.py`'s `_FEATURE_MENU` (ordered
 dict of `feature_key → (row_id, translation_key)`), a hidden-from-menu escape
@@ -223,6 +233,7 @@ to Staff / FAQ), toggle-able per restaurant, with placeholder ("coming soon")
 features supported from day one.
 
 ### 3.10 Patient (→ "Diner"/"Guest") identity & multi-profile-per-phone
+
 `patient_links` table + `db/repository.py`'s `create_patient_profile`/
 `get_active_patients_for_phone`/`unlink_patient` — one WhatsApp number can link
 up to N profiles (a parent booking for their spouse and kids), captured once,
@@ -232,6 +243,7 @@ Keep the whole mechanism; rename `patients`/`patient_links` → `guests`/
 `guest_links` if desired (same blast-radius tradeoff note as §3.4).
 
 ### 3.11 Migration discipline
+
 `db/init_db.py`'s **idempotent, replayed-on-every-boot** `ALTER TABLE ... ADD
 COLUMN IF NOT EXISTS` pattern, run alongside a **separate** Alembic migration
 history (`db/migrations/`) — both apply the same logical change, so either path
@@ -243,6 +255,7 @@ repo's own recent history for a worked example) is a **process to keep**, not
 specific code.
 
 ### 3.12 Crypto / secrets-at-rest
+
 `core/crypto.py` (Fernet symmetric encryption) — used today only for Google
 Calendar OAuth tokens, but the pattern (`encrypt_secret`/`decrypt_secret`,
 `CryptoNotConfiguredError` on missing/bad key) is exactly what you'd reuse for
@@ -251,7 +264,7 @@ integration key, etc.).
 
 ---
 
-## 4. Reusable *pattern*, but needs a genuinely new concrete implementation
+## 4. Reusable _pattern_, but needs a genuinely new concrete implementation
 
 These are architecturally the right shape to imitate, but the actual logic is
 healthcare-specific and won't port by renaming alone.
@@ -265,7 +278,7 @@ healthcare-specific and won't port by renaming alone.
   shift," but **table/reservation availability is fundamentally different from
   doctor slots**: a doctor slot is a fixed duration per patient; a restaurant
   table's "slot" depends on party size, turnover time, and how many tables of
-  that size/section exist simultaneously (a resource *pool*, not a single
+  that size/section exist simultaneously (a resource _pool_, not a single
   resource) — closer in shape to this repo's **procedure/diagnostic resource
   pool model** (`procedure_resources`, `procedure_resource_slots`,
   multi-resource reservation under an advisory lock — see
@@ -274,14 +287,14 @@ healthcare-specific and won't port by renaming alone.
   resource-pool locking pattern as the closer template**, not
   `new_consultation.py`.
 - **Appointment-type consent flow** (`requires_consent`, `dpdp_consents` table,
-  India's Digital Personal Data Protection Act framing) — the *mechanism*
+  India's Digital Personal Data Protection Act framing) — the _mechanism_
   (an extra consent tap before certain booking types) is reusable for, e.g., a
   private event booking needing a deposit-forfeiture-policy acknowledgment; the
-  *content and legal framing* is healthcare/India-specific and must be rewritten
+  _content and legal framing_ is healthcare/India-specific and must be rewritten
   entirely, likely dropped if not needed.
 - **Google Calendar/Meet integration** (`modules/google_calendar.py`,
   `auth/google_calendar_oauth.py`, per-hospital admin-connected single Google
-  account): the OAuth/encryption/per-tenant-connection *pattern* is generic and
+  account): the OAuth/encryption/per-tenant-connection _pattern_ is generic and
   reusable for **any** third-party integration a restaurant might want (a POS
   system, a payments provider, Google Business Profile reviews sync) — but
   tele-consultation Meet links themselves are meaningless for dining and should
@@ -298,18 +311,18 @@ through fake "General Enquiries" department/doctor data) produces exactly the
 kind of awkward placeholder-data workaround this repo's own history warns
 against.
 
-| Remove / rework | Why |
-|---|---|
-| `flows/booking/types/tele_consultation.py`, Google Meet integration | No video-consultation concept in dining. |
-| `flows/booking/types/diagnostic.py`, `lab.py`, `_diagnostic_shared.py`, `diagnostic_tests`/`diagnostic_test_variants`/`lab_service_areas`/`appointment_lab_tests` tables | Medical tests have no restaurant equivalent. |
-| `flows/booking/types/second_opinion.py` | Medical-specific consultation type. |
-| `flows/booking/types/followup.py`'s "eligible attended visit" concept | A restaurant doesn't have "follow-up to your last visit" as a first-class flow — though the *underlying mechanism* (auto-suggest based on order history, e.g. "rebook your usual table") could inspire a "Book Again" feature reusing the same code shape. Worth reviewing before deleting outright. |
-| `patient_documents` (prescriptions/lab reports), `portal/routes/documents.py`, the "Reports & Prescriptions" WhatsApp menu feature | No documents concept in dining (unless you want digital receipts — different enough to rebuild fresh). |
-| `patient_visit_notes` | Clinical notes have no equivalent. |
-| DPDP-consent-specific health-data framing | Rework as generic ToS/privacy consent if needed at all; drop the health-data-specific legal language. |
-| `hospital_info`/business-hours-as-a-menu-feature naming | Keep the *mechanism* (a static info reply), rename to "Restaurant Info" (address/hours/parking). |
-| Doctor-specific fields: `specialization`, `qualification`, `years_of_experience` | Replace with staff-relevant fields (role, section assigned) or drop if staff aren't patient-facing "pickable" the way doctors are. |
-| `doctor/` frontend routes and `DoctorShell`/`useDoctorGuard` | Only relevant if Dine Connect has an equivalent "staff self-service portal" (e.g. a waiter checking their own section's reservations) — otherwise delete. |
+| Remove / rework                                                                                                                                                          | Why                                                                                                                                                                                                                                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `flows/booking/types/tele_consultation.py`, Google Meet integration                                                                                                      | No video-consultation concept in dining.                                                                                                                                                                                                                                                             |
+| `flows/booking/types/diagnostic.py`, `lab.py`, `_diagnostic_shared.py`, `diagnostic_tests`/`diagnostic_test_variants`/`lab_service_areas`/`appointment_lab_tests` tables | Medical tests have no restaurant equivalent.                                                                                                                                                                                                                                                         |
+| `flows/booking/types/second_opinion.py`                                                                                                                                  | Medical-specific consultation type.                                                                                                                                                                                                                                                                  |
+| `flows/booking/types/followup.py`'s "eligible attended visit" concept                                                                                                    | A restaurant doesn't have "follow-up to your last visit" as a first-class flow — though the _underlying mechanism_ (auto-suggest based on order history, e.g. "rebook your usual table") could inspire a "Book Again" feature reusing the same code shape. Worth reviewing before deleting outright. |
+| `patient_documents` (prescriptions/lab reports), `portal/routes/documents.py`, the "Reports & Prescriptions" WhatsApp menu feature                                       | No documents concept in dining (unless you want digital receipts — different enough to rebuild fresh).                                                                                                                                                                                               |
+| `patient_visit_notes`                                                                                                                                                    | Clinical notes have no equivalent.                                                                                                                                                                                                                                                                   |
+| DPDP-consent-specific health-data framing                                                                                                                                | Rework as generic ToS/privacy consent if needed at all; drop the health-data-specific legal language.                                                                                                                                                                                                |
+| `hospital_info`/business-hours-as-a-menu-feature naming                                                                                                                  | Keep the _mechanism_ (a static info reply), rename to "Restaurant Info" (address/hours/parking).                                                                                                                                                                                                     |
+| Doctor-specific fields: `specialization`, `qualification`, `years_of_experience`                                                                                         | Replace with staff-relevant fields (role, section assigned) or drop if staff aren't patient-facing "pickable" the way doctors are.                                                                                                                                                                   |
+| `doctor/` frontend routes and `DoctorShell`/`useDoctorGuard`                                                                                                             | Only relevant if Dine Connect has an equivalent "staff self-service portal" (e.g. a waiter checking their own section's reservations) — otherwise delete.                                                                                                                                            |
 
 ---
 
@@ -319,21 +332,21 @@ Not a mandate — a reference table for renaming as you go. Column/table renames
 are optional (real cost, zero behavior change); user-facing copy renames are
 not optional (they're the whole point).
 
-| CareConnect (hospital) | Dine Connect (restaurant) |
-|---|---|
-| Hospital / tenant | Restaurant / venue |
-| Department | Section / cuisine station (or drop — many restaurants have no departments) |
-| Doctor | Table (for booking) *or* Staff member (for the portal) — these are two different concepts CareConnect conflates into one "doctor" resource; **don't conflate them for Dine Connect** |
-| Patient | Diner / Guest |
-| Appointment | Reservation (or "Order" for a food-ordering feature — keep these conceptually separate) |
-| Appointment type (new/followup/tele/...) | Reservation type (standard/private-room/large-party/waitlist) |
-| Slot | Table availability / seating time |
-| Working hours / working days | Operating hours / open days |
-| Consultation fee | Deposit / minimum spend |
-| Reminder | Reservation reminder |
-| Reception / "Talk to Reception" | Talk to Host / Talk to Staff |
-| Patient Code (`patient_display_id`) | Guest reference / loyalty number, if you want one |
-| Reference ID (booking confirmation number) | Reservation confirmation number (keep as-is, just renamed) |
+| CareConnect (hospital)                     | Dine Connect (restaurant)                                                                                                                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Hospital / tenant                          | Restaurant / venue                                                                                                                                                                   |
+| Department                                 | Section / cuisine station (or drop — many restaurants have no departments)                                                                                                           |
+| Doctor                                     | Table (for booking) _or_ Staff member (for the portal) — these are two different concepts CareConnect conflates into one "doctor" resource; **don't conflate them for Dine Connect** |
+| Patient                                    | Diner / Guest                                                                                                                                                                        |
+| Appointment                                | Reservation (or "Order" for a food-ordering feature — keep these conceptually separate)                                                                                              |
+| Appointment type (new/followup/tele/...)   | Reservation type (standard/private-room/large-party/waitlist)                                                                                                                        |
+| Slot                                       | Table availability / seating time                                                                                                                                                    |
+| Working hours / working days               | Operating hours / open days                                                                                                                                                          |
+| Consultation fee                           | Deposit / minimum spend                                                                                                                                                              |
+| Reminder                                   | Reservation reminder                                                                                                                                                                 |
+| Reception / "Talk to Reception"            | Talk to Host / Talk to Staff                                                                                                                                                         |
+| Patient Code (`patient_display_id`)        | Guest reference / loyalty number, if you want one                                                                                                                                    |
+| Reference ID (booking confirmation number) | Reservation confirmation number (keep as-is, just renamed)                                                                                                                           |
 
 ---
 
@@ -344,13 +357,13 @@ building from scratch — don't waste time hunting for a template for them here:
 
 - **Payment gateway.** Confirmed via direct code search this session: **there is
   no payment integration anywhere in this repo** — no Razorpay/Stripe/PayU/etc.
-  The only money-related code is *display-only* fee text (`new_consultation_fee`/
+  The only money-related code is _display-only_ fee text (`new_consultation_fee`/
   `followup_fee` shown as a line on the confirmation card, never actually
   charged). If Dine Connect needs to take a deposit or prepay an order, that's
   a fully new integration: gateway SDK, webhook for payment-confirmed events,
   a `payments` table, refund/cancellation-policy logic tied into the existing
   cancel flow. The `core/crypto.py` pattern (§3.12) and the Connector-interface
-  discipline (§3.4) are the right *shape* to hang this off of, but none of the
+  discipline (§3.4) are the right _shape_ to hang this off of, but none of the
   actual payment logic exists to reuse.
 - **Table/resource-pool availability with party size + turnover time.** Closer
   to `procedure.py`'s multi-resource pattern than to doctor slots (§4), but

@@ -1,0 +1,304 @@
+@import "tailwindcss";
+
+/* ==========================================================================
+   Design tokens
+   ==========================================================================
+   Dine Connect brand identity (Stage 3 reskin, chosen from 3 proposed
+   options -- confirmed with the user): "Terracotta & Char" -- warm burnt
+   terracotta + a warm off-white/linen background, picked specifically for
+   being broadly applicable across many different restaurant tenants'
+   styles, the same reasoning CareConnect's own forest green worked for a
+   generic "clean and trustworthy" healthcare-ops identity rather than any
+   one clinic's branding. Visual pass ONLY -- every selector any page's
+   structure/logic depends on is unchanged; only the :root custom property
+   VALUES below changed (same token names, same scale shape, so no
+   component file needed touching). No dark mode: confirmed with the user
+   to skip it this stage (CareConnect itself never had one either, and nothing
+   here has asked for it yet) -- this is deliberately a single light theme. --- */
+
+:root {
+  /* --- Brand red scale. 600 = #E21220, the exact red of the DAAP DineConnect logo mark (replaces the earlier
+     terracotta accent; the warm neutrals below are unchanged). Contrast: white on 600 is 4.84:1 (AA for text),
+     white on 700 is 7.0:1. 600 itself is NOT used as small text on tinted surfaces (4.2:1 on brand-50) --
+     text/links in the brand colour use 700, which every existing component already does. --- */
+  --brand-50: #fef2f2;
+  --brand-100: #fde1e2;
+  --brand-200: #fbc2c5;
+  --brand-300: #f6959b;
+  --brand-400: #ee5661;
+  --brand-500: #e83341;
+  --brand-600: #e21220;
+  --brand-700: #b30d18;
+  --brand-800: #870a12;
+  --brand-900: #5c070d;
+
+  /* --- Clay accent scale, repurposed to a deep olive (500 = #6B7A4F) --
+     Option A's accent, keeping the terracotta primary from being the only
+     color on the page (a badge/tag/secondary-accent role, same as the old
+     tan/gold clay scale filled before) --- */
+  --clay-100: #e7ebdc;
+  --clay-300: #adb88b;
+  --clay-500: #6b7a4f;
+  --clay-700: #495536;
+
+  /* --- Neutrals: warm linen background/border instead of the old cool
+     grey-green, "Char" for the ink scale (a warm near-black, not a cool
+     grey-black) so text doesn't clash with the warm brand/background --- */
+  --paper: #fbf6f1;
+  --card: #ffffff;
+  --line: #ebe0d6;
+  --ink-900: #2a211c;
+  --ink-600: #6b5f56;
+  --ink-400: #9c9086;
+
+  /* --- Semantic: unchanged on purpose -- green "success"/red "error" are
+     functionally standard regardless of brand, changing them would hurt
+     usability for zero visual-identity benefit. --- */
+  --success: #1e9e5a;
+  --success-tint: #e4f6ec;
+  --error: #d14343;
+  /* Destructive ACTIONS (delete, cancel a booking, deactivate) use an outlined button in this colour -- never a
+     solid red fill, so they can't be mistaken for the brand-red primary button. 6.5:1 on white. --error above
+     stays for validation/error TEXT and status pills. */
+  --destructive: #b42318;
+  --destructive-tint: #fef3f2;
+  /* Warning -- a genuinely distinct amber, for a status tile/badge that needs to read as "needs attention"
+     without being confused with the brand red or the destructive red (both of which it would sit too close
+     to in hue if reused for this). #b45309 on white is ~5.1:1 (AA for normal text). */
+  --warning: #b45309;
+  --warning-tint: #fef3e2;
+  --error-tint: #fbeaea;
+  /* Info (blue) / accent-violet -- Table Bookings' KPI-tile row needs two more distinct hues
+     (Confirmed / Walk-ins) beyond brand/success/warning/clay/neutral; both are genuinely reusable
+     status colors (blue = a confirmed/settled state, violet = a people/headcount metric), not
+     one-off page-specific colors, so they join the shared token set rather than living as inline hex. */
+  --info: #1d4ed8;
+  --info-tint: #eaf0fd;
+  --accent-violet: #6d28d9;
+  --accent-violet-tint: #f1ecfc;
+
+  /* --- Spacing scale (8px-based; step 1/2 drop to 4px for the tightest
+     icon-to-label gaps). Named --space-N rather than overriding Tailwind's
+     own numeric padding, margin, and gap scale on purpose: redefining what
+     "p-4" means site-wide would be a trap for anyone (including future
+     edits) reaching for an ordinary Tailwind number expecting the standard
+     behavior. These are also exposed as real utility classes below
+     (p-space-4, gap-space-6, etc.) via Tailwind's namespaced spacing keys,
+     so they're not just var()-only tokens. --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 16px;
+  --space-4: 24px;
+  --space-5: 32px;
+  --space-6: 40px;
+  --space-7: 48px;
+  --space-8: 64px;
+  --space-9: 80px;
+  --space-10: 96px;
+
+  /* --- Radius --- */
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-full: 999px;
+
+  /* --- Elevation: layered box-shadows (a soft diffuse layer + a tighter,
+     darker one underneath), not a single flat drop-shadow -- three levels:
+     resting, hover, and an active/focused state for e.g. the wizard's
+     current-step card. --- */
+  --shadow-sm: 0 1px 2px rgba(42, 33, 28, 0.04), 0 1px 1px rgba(42, 33, 28, 0.03);
+  --shadow-md: 0 8px 16px -4px rgba(42, 33, 28, 0.1), 0 3px 6px -3px rgba(42, 33, 28, 0.08);
+  --shadow-lg: 0 16px 32px -8px rgba(42, 33, 28, 0.16), 0 6px 12px -6px rgba(42, 33, 28, 0.1);
+
+  /* --- Motion --- */
+  --ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --duration-fast: 0.15s;
+}
+
+@theme inline {
+  --color-brand-50: var(--brand-50);
+  --color-brand-100: var(--brand-100);
+  --color-brand-200: var(--brand-200);
+  --color-brand-300: var(--brand-300);
+  --color-brand-400: var(--brand-400);
+  --color-brand-500: var(--brand-500);
+  --color-brand-600: var(--brand-600);
+  --color-brand-700: var(--brand-700);
+  --color-brand-800: var(--brand-800);
+  --color-brand-900: var(--brand-900);
+
+  --color-clay-100: var(--clay-100);
+  --color-clay-300: var(--clay-300);
+  --color-clay-500: var(--clay-500);
+  --color-clay-700: var(--clay-700);
+
+  --color-paper: var(--paper);
+  --color-card: var(--card);
+  --color-line: var(--line);
+  --color-ink-900: var(--ink-900);
+  --color-ink-600: var(--ink-600);
+  --color-ink-400: var(--ink-400);
+
+  --color-success: var(--success);
+  --color-success-tint: var(--success-tint);
+  --color-error: var(--error);
+  --color-destructive: var(--destructive);
+  --color-destructive-tint: var(--destructive-tint);
+  --color-warning: var(--warning);
+  --color-warning-tint: var(--warning-tint);
+  --color-error-tint: var(--error-tint);
+  --color-info: var(--info);
+  --color-info-tint: var(--info-tint);
+  --color-accent-violet: var(--accent-violet);
+  --color-accent-violet-tint: var(--accent-violet-tint);
+
+  --spacing-space-1: var(--space-1);
+  --spacing-space-2: var(--space-2);
+  --spacing-space-3: var(--space-3);
+  --spacing-space-4: var(--space-4);
+  --spacing-space-5: var(--space-5);
+  --spacing-space-6: var(--space-6);
+  --spacing-space-7: var(--space-7);
+  --spacing-space-8: var(--space-8);
+  --spacing-space-9: var(--space-9);
+  --spacing-space-10: var(--space-10);
+
+  --radius-sm: var(--radius-sm);
+  --radius-md: var(--radius-md);
+  --radius-lg: var(--radius-lg);
+  --radius-full: var(--radius-full);
+
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow-md);
+  --shadow-lg: var(--shadow-lg);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+
+  /* --- Mobile-first breakpoint scale: real phones start at 320px, and
+     370px is where most modern phones (iPhone SE excepted) sit, so sm:
+     covers "small phone and up" rather than Tailwind's default tablet
+     cutoff. md/lg/xl/2xl are left at Tailwind's built-in defaults. --- */
+  --breakpoint-xs: 320px;
+  --breakpoint-sm: 370px;
+}
+
+/* ==========================================================================
+   Base
+   ========================================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+/* Native <button> defaults to cursor: default, not pointer (unlike <a>) --
+   every clickable control in the app should read as clickable on hover. */
+button:not(:disabled),
+[role="button"]:not([aria-disabled="true"]) {
+  cursor: pointer;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink-900);
+  font-family:
+    var(--font-body),
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Thin, on-brand scrollbar for dark surfaces that scroll (the portal sidebar, this-page-only lists) -- the
+   default browser scrollbar reads as a stray grey bar against the sidebar's own colour. Firefox via
+   scrollbar-width/color, WebKit/Blink via the ::-webkit-scrollbar-* pseudo-elements (no shared standard yet). */
+.scrollbar-dark {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+.scrollbar-dark::-webkit-scrollbar {
+  width: 6px;
+}
+.scrollbar-dark::-webkit-scrollbar-track {
+  background: transparent;
+}
+.scrollbar-dark::-webkit-scrollbar-thumb {
+  background-color: rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-full);
+}
+.scrollbar-dark::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Typography hierarchy -- deliberate size/weight steps, not ad hoc per use.
+   ========================================================================== */
+
+.text-eyebrow {
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--clay-500);
+}
+
+.text-display-lg {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: clamp(28px, 5.4vw, 40px);
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  color: var(--ink-900);
+  text-wrap: balance;
+}
+
+.text-display {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(20px, 3.6vw, 26px);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+  color: var(--ink-900);
+  text-wrap: balance;
+}
+
+.text-body {
+  font-size: 16px;
+  line-height: 1.7;
+  color: var(--ink-600);
+}
+
+.text-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-900);
+}
+
+.text-hint {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: var(--ink-400);
+}
+.text-hint.is-note {
+  font-style: italic;
+}

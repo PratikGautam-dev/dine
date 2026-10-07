@@ -1,4 +1,4 @@
-# Dine Connect deployment compose -- backend (FastAPI) + frontend (Next.js),
+# Dine Connect deployment compose -- Next.js frontend,
 # for a self-hosted DigitalOcean VPS behind Coolify. See DEPLOYMENT.md for
 # the full env var reference and deploy walkthrough.
 #
@@ -19,28 +19,9 @@
 # project's test suite provisions) to copy from -- just move it into this
 # file, add a named volume, and point DATABASE_URL in .env at it.
 services:
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    restart: unless-stopped
-    ports:
-      - "8000:8000"
-    # Every secret/config value is read from .env at container start (never
-    # baked into the image -- see Dockerfile/.dockerignore) -- see
-    # DEPLOYMENT.md for the full list of what's required vs. optional.
-    env_file:
-      - .env
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-
   frontend:
     build:
-      context: ./frontend
+      context: .
       dockerfile: Dockerfile
       args:
         # Next.js bakes NEXT_PUBLIC_* values into the client bundle at BUILD
@@ -55,8 +36,6 @@ services:
     restart: unless-stopped
     ports:
       - "3000:3000"
-    depends_on:
-      - backend
 
 # No top-level `env_file` for the frontend service: it has no server-side
 # secrets of its own (everything it reads is the single NEXT_PUBLIC_
