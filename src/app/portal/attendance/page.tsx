@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { StatTile } from "@/components/portal/StatTile";
@@ -242,7 +243,7 @@ export default function MyAttendancePage() {
         </div>
         <div className="overflow-x-auto">
           {!records ? (
-            <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+            <TableSkeleton rows={6} columns={5} />
           ) : filtered.length === 0 ? (
             <p className="p-space-4 text-[13px] text-ink-400">No attendance in this period.</p>
           ) : (

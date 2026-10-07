@@ -9,6 +9,7 @@ import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
@@ -184,7 +185,7 @@ export default function MyLeavePage() {
         <Card className="p-space-5">
           <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">My requests</h2>
           {!requests ? (
-            <p className="text-[13px] text-ink-400">Loading…</p>
+            <ListSkeleton rows={3} />
           ) : requests.length === 0 ? (
             <p className="text-[13px] text-ink-400">You haven&apos;t asked for any leave yet.</p>
           ) : (

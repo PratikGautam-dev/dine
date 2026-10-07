@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { BoardSkeleton } from "@/components/ui/Skeleton";
 import { ChefNotesCard } from "@/components/portal/ChefNotesCard";
 import { KitchenLoadDonut } from "@/components/portal/KitchenLoadDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -357,7 +358,7 @@ export default function PortalKitchenOrdersPage() {
         </div>
 
         {!orders ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <BoardSkeleton columns={4} />
         ) : (
           <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-4">
             {columns.map(({ key, label, icon: Icon }) => (

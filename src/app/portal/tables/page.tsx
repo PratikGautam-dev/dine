@@ -19,6 +19,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { FloorMap } from "@/components/portal/FloorMap";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { SectionsPanel } from "@/components/portal/SectionsPanel";
@@ -352,7 +353,7 @@ export default function PortalTablesPage() {
         </div>
 
         {!departments ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={6} columns={7} />
         ) : visibleTables.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">
             No tables match your search or filter.

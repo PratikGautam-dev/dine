@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
@@ -229,7 +230,7 @@ export default function AttendanceSettingsPage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
       {!settings ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <FormSkeleton fields={4} />
       ) : (
         <SettingsForm initial={settings} onSave={save} />
       )}

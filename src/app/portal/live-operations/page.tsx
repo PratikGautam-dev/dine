@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -89,7 +90,7 @@ export default function LiveOperationsPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {!data ? (
-        <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+        <DashboardSkeleton tiles={5} />
       ) : (
         <>
           <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

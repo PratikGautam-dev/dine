@@ -10,6 +10,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { BranchFormDialog } from "@/components/portal/BranchFormDialog";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -274,7 +275,7 @@ export default function BranchesSettingsPage() {
               Branch Directory ({counts.total})
             </h2>
             {!branches ? (
-              <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+              <TableSkeleton rows={5} columns={5} />
             ) : (
               <DataTable
                 columns={columns}

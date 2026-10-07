@@ -2,6 +2,7 @@
 
 import { CalendarCheck, CalendarDays, CircleCheck, UserPlus, UserX } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { ActivityFeed } from "@/components/portal/ActivityFeed";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -53,7 +54,7 @@ function RestaurantDashboard() {
       />
 
       {!data ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <DashboardSkeleton tiles={5} />
       ) : (
         <>
           <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">

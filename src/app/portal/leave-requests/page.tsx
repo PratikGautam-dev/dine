@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -202,7 +203,7 @@ export default function LeaveRequestsPage() {
             ))}
           </div>
           {!requests ? (
-            <p className="text-[13px] text-ink-400">Loading…</p>
+            <ListSkeleton rows={4} />
           ) : requests.length === 0 ? (
             <p className="text-[13px] text-ink-400">Nothing here.</p>
           ) : (

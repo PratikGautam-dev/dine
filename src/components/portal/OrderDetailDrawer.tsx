@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { formatShortDateTime } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { NOTIFIABLE_STATUSES, STATUS_LABELS, useFoodOrderDetail } from "@/hooks/useFoodOrders";
@@ -86,7 +87,7 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
         </div>
 
         {loading && !detail ? (
-          <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+          <FormSkeleton fields={4} />
         ) : !detail ? (
           <p className="p-space-4 text-[13px] text-error">Couldn&apos;t load this order.</p>
         ) : (

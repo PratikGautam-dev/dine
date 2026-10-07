@@ -21,6 +21,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ListSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { ALL_PAGE_KEYS, PAGE_LABEL } from "@/components/portal/RolePermissionSummary";
@@ -158,7 +159,7 @@ export default function RolesAndPermissionsPage() {
             </p>
           </div>
           {!matrix ? (
-            <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+            <ListSkeleton rows={4} />
           ) : (
             <div className="divide-y divide-line">
               {roles.map((role) => {
@@ -248,7 +249,7 @@ export default function RolesAndPermissionsPage() {
             </p>
           </div>
           {!matrix ? (
-            <p className="text-[13px] text-ink-400">Loading…</p>
+            <TableSkeleton rows={6} columns={5} />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-[12.5px]">

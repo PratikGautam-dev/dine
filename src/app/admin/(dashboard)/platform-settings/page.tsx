@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { usePlatformSettings } from "@/hooks/usePlatformSettings";
 
 const FEATURE_DISPLAY_NAMES: Record<string, string> = {
@@ -46,7 +47,7 @@ function PlatformSettingsForm() {
 
       {!settings ? (
         <Card className="p-space-5">
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <FormSkeleton fields={4} />
         </Card>
       ) : (
         <form onSubmit={handleSubmit} className="flex flex-col gap-space-5">

@@ -41,6 +41,7 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -511,7 +512,7 @@ export default function PortalMessagesAutomationsPage() {
           </div>
 
           {!automations ? (
-            <p className="text-[13px] text-ink-400">Loading…</p>
+            <ListSkeleton rows={3} />
           ) : automations.length === 0 && !showNewForm ? (
             <div className="py-space-4 text-center">
               <p className="mb-space-3 text-[13px] text-ink-400">

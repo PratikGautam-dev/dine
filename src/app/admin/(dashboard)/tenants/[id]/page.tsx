@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/Card";
 import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { useEditTenant } from "@/hooks/useEditTenant";
 
 function capabilitiesMatch(a: string[], b: string[]): boolean {
@@ -72,7 +73,7 @@ function EditTenantForm({ tenantId }: { tenantId: number }) {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {!tenant || !form ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <FormSkeleton fields={5} />
       ) : (
         <Card className="p-space-5">
           <p className="text-eyebrow mb-space-1">Editing tenant #{tenant.id}</p>

@@ -4,6 +4,7 @@ import { use } from "react";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { useStaffDetail } from "@/hooks/useStaffDetail";
@@ -29,7 +30,7 @@ function StaffDetailView({ hospitalId, staffId }: { hospitalId: number; staffId:
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {!staff ? (
-        <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+        <FormSkeleton fields={4} />
       ) : (
         <>
           <div className="mb-space-5 flex flex-col gap-space-3 sm:flex-row sm:items-start sm:justify-between">

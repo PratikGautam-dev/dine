@@ -28,6 +28,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { OrderDetailDrawer } from "@/components/portal/OrderDetailDrawer";
 import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -591,7 +592,7 @@ export default function PortalFoodOrdersPage() {
 
       <Card className="p-space-4">
         {!orders ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={6} columns={6} />
         ) : orders.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">No orders here yet.</p>
         ) : visible.length === 0 ? (

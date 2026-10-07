@@ -24,6 +24,7 @@ import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { FormSkeleton, ListSkeleton } from "@/components/ui/Skeleton";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { TenantSettingsDialog } from "@/components/portal/TenantSettingsDialog";
@@ -117,7 +118,7 @@ function PortalSettingsPageContent() {
       />
 
       {!settings ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <FormSkeleton fields={5} />
       ) : (
         <div className="grid grid-cols-1 items-start gap-space-4 xl:grid-cols-[220px_minmax(0,1fr)]">
           <nav className="flex gap-space-1 overflow-x-auto xl:flex-col xl:overflow-visible">
@@ -397,7 +398,7 @@ function PortalSettingsPageContent() {
                       <h2 className="text-[15px] font-bold text-ink-900">Security & Access</h2>
                     </div>
                     {auditEntries === undefined ? (
-                      <p className="text-[12.5px] text-ink-400">Loading…</p>
+                      <ListSkeleton rows={3} />
                     ) : auditEntries === null || auditEntries.length === 0 ? (
                       <p className="text-[12.5px] text-ink-400">No recent activity recorded yet.</p>
                     ) : (

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
@@ -52,7 +53,7 @@ export default function NewBookingPage() {
             <Button href="/portal/appointments">View reservations</Button>
           </div>
         ) : !ctx ? (
-          <p className="text-[13px] text-ink-400">Loading…</p>
+          <FormSkeleton fields={4} />
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-2">

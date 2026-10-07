@@ -9,6 +9,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Input";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
@@ -81,7 +82,7 @@ export default function PatientDetailPage() {
         {error ? (
           <p className="text-[13px] text-error">{error}</p>
         ) : (
-          <p className="text-[13px] text-ink-400">Loading…</p>
+          <FormSkeleton fields={5} />
         )}
       </PortalShell>
     );

@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -214,7 +215,7 @@ export default function TeamAttendancePage() {
           </div>
           <Card className="overflow-x-auto p-space-2">
             {!rows ? (
-              <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+              <TableSkeleton rows={6} columns={5} />
             ) : rows.length === 0 ? (
               <p className="p-space-4 text-[13px] text-ink-400">No staff.</p>
             ) : (
@@ -292,7 +293,7 @@ export default function TeamAttendancePage() {
       ) : (
         <Card className="overflow-x-auto p-space-2">
           {!summary ? (
-            <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+            <TableSkeleton rows={6} columns={5} />
           ) : (
             <table className="w-full text-left text-[13px]">
               <thead>

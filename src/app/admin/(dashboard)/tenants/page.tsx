@@ -4,6 +4,7 @@ import { Pencil } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { useTenants } from "@/hooks/useTenants";
@@ -29,7 +30,7 @@ function TenantsList() {
 
       <Card className="p-space-4">
         {!tenants ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={6} columns={5} />
         ) : tenants.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">
             No tenants onboarded yet.
@@ -79,7 +80,7 @@ function TenantsList() {
       </div>
       <Card className="p-space-4">
         {!stalledSignups ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={4} columns={4} />
         ) : stalledSignups.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">
             Nobody — every signed-in account owns at least one restaurant.

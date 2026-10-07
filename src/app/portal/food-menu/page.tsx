@@ -20,6 +20,7 @@ import { DataTable } from "@/components/ui/DataTable";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { MenuItemPanel } from "@/components/portal/MenuItemPanel";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -516,7 +517,7 @@ export default function PortalFoodMenuPage() {
 
           <Card className="p-space-4">
             {!items ? (
-              <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+              <TableSkeleton rows={6} columns={5} />
             ) : items.length === 0 ? (
               <p className="py-space-4 text-center text-[13px] text-ink-400">
                 No menu items yet. Add your first one above.

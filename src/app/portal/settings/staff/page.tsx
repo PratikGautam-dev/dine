@@ -36,6 +36,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { EditStaffBranchesDialog } from "@/components/portal/EditStaffBranchesDialog";
@@ -551,7 +552,7 @@ export default function StaffManagementPage() {
               Team Directory ({counts.total})
             </h2>
             {!staff || !roster ? (
-              <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+              <TableSkeleton rows={6} columns={6} />
             ) : (
               <DataTable
                 columns={columns}

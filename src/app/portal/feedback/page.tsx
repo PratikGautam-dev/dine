@@ -26,6 +26,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ListSkeleton } from "@/components/ui/Skeleton";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -426,7 +427,7 @@ export default function PortalFeedbackPage() {
           </div>
           <Card className="p-space-2">
             {!entries ? (
-              <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+              <ListSkeleton rows={5} />
             ) : filtered.length === 0 ? (
               <p className="p-space-4 text-center text-[13px] text-ink-400">
                 {search

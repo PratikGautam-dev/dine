@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -190,7 +191,7 @@ export default function PortalReportsPage() {
       </div>
 
       {!data ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <DashboardSkeleton tiles={5} />
       ) : (
         <>
           <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">

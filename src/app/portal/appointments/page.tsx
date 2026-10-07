@@ -19,6 +19,7 @@ import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { NewReservationDialog } from "@/components/portal/NewReservationDialog";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { QuickActionsBar } from "@/components/portal/QuickActionsBar";
@@ -720,7 +721,7 @@ export default function PortalAppointmentsPage() {
 
           <Card className="p-space-4">
             {!appointments ? (
-              <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+              <TableSkeleton rows={6} columns={6} />
             ) : appointments.length === 0 ? (
               <p className="py-space-4 text-center text-[13px] text-ink-400">
                 No reservations yet.

@@ -27,6 +27,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { FormSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -333,7 +334,7 @@ export default function PortalPatientsPage() {
 
           <Card className="p-space-4">
             {!patients ? (
-              <p className="text-[13px] text-ink-400">Loading…</p>
+              <TableSkeleton rows={6} columns={6} />
             ) : patients.length === 0 ? (
               <div className="py-space-6 text-center">
                 <UserRound size={28} className="mx-auto mb-space-2 text-ink-300" />
@@ -375,7 +376,7 @@ export default function PortalPatientsPage() {
               </div>
 
               {profileLoading || !profile ? (
-                <p className="text-[12.5px] text-ink-400">Loading…</p>
+                <FormSkeleton fields={3} />
               ) : (
                 <>
                   <div className="mb-space-4 flex items-center gap-space-3">

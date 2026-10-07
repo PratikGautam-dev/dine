@@ -29,6 +29,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -517,7 +518,7 @@ export default function PortalOffersPage() {
 
       <Card className="mb-space-4 overflow-x-auto p-space-2">
         {!data ? (
-          <p className="p-space-4 text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={5} columns={5} />
         ) : filteredOffers.length === 0 ? (
           <p className="p-space-4 text-center text-[13px] text-ink-400">
             {search ? "No offers match that search." : "No offers yet — create one above."}

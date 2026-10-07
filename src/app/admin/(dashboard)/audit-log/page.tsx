@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { useAuditLog, type AuditEntry } from "@/hooks/useAuditLog";
 
@@ -70,7 +71,7 @@ function AuditLogList() {
 
       <Card className="p-space-4">
         {!entries ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={6} columns={5} />
         ) : entries.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">
             No activity recorded yet.

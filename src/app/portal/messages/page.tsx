@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { ListSkeleton, TextSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -290,7 +291,7 @@ export default function PortalMessagesPage() {
       {bulkError && <p className="mb-space-4 text-[13px] text-error">{bulkError}</p>}
 
       {!handoffs ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <ListSkeleton rows={5} />
       ) : handoffs.length === 0 ? (
         <Card className="p-space-6 text-center">
           <MessageCircle size={28} className="mx-auto mb-space-2 text-ink-300" />
@@ -557,7 +558,7 @@ export default function PortalMessagesPage() {
               </div>
               {canSeeGuests &&
                 (guestLoading ? (
-                  <p className="text-[12.5px] text-ink-400">Loading…</p>
+                  <TextSkeleton className="w-32" />
                 ) : guest ? (
                   <>
                     <p className="mb-space-2 text-[12px] font-semibold text-ink-400">

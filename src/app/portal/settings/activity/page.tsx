@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { DataTable } from "@/components/ui/DataTable";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalAuditLog, type AuditEntry } from "@/hooks/usePortalAuditLog";
@@ -68,7 +69,7 @@ export default function PortalActivityLogPage() {
       />
 
       {entries === undefined ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <TableSkeleton rows={6} columns={5} />
       ) : entries === null ? (
         <p className="text-[13px] text-ink-400">
           Activity log isn&apos;t available for your account type.

@@ -9,6 +9,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { rupees } from "@/lib/foodOrders";
@@ -66,7 +67,7 @@ export default function StorefrontSettingsPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {!active ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <FormSkeleton fields={5} />
       ) : (
         <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[1fr_320px]">
           <form onSubmit={handleSubmit}>

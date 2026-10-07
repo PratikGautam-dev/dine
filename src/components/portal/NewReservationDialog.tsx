@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
+import { FormSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { useNewBooking } from "@/hooks/useNewBooking";
 
@@ -55,7 +56,7 @@ export function NewReservationDialog({ hospitalName, onClose, onCreated }: Props
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {!ctx ? (
-        <p className="text-[13px] text-ink-400">Loading…</p>
+        <FormSkeleton fields={4} />
       ) : (
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-2">

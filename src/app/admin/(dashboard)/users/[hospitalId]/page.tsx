@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
+import { TableSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
 import { useHospitalStaff } from "@/hooks/useHospitalStaff";
 
@@ -88,7 +89,7 @@ function HospitalStaffList({ hospitalId }: { hospitalId: number }) {
 
       <Card className="p-space-4">
         {!staff ? (
-          <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          <TableSkeleton rows={6} columns={4} />
         ) : staff.length === 0 ? (
           <p className="py-space-4 text-center text-[13px] text-ink-400">
             No staff match this filter.
