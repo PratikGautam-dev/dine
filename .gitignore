@@ -26,3 +26,6 @@ design-reference/
 frontend/.next/
 frontend/node_modules/
 node_modules/
+
+# Backend now lives in its own repo (erp-dine-backend); kept on disk here for local dev/testing
+backend/
