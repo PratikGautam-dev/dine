@@ -1,4 +1,4 @@
-// Shared axios plumbing for adminAuth.ts/staffAuth.ts -- both wrappers keep
+// Shared axios plumbing for staffAuth.ts -- both wrappers keep
 // their original fetch-style `(path, init?: RequestInit)` signature (every
 // existing caller across pages/components passes a RequestInit-shaped
 // object), so this just repackages that into the axios request config
