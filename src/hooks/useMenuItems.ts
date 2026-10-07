@@ -94,6 +94,7 @@ export function useMenuItems(ready: boolean) {
   const [form, setForm] = useState<MenuItemFormState>(emptyMenuItemForm());
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const load = useCallback(async () => {
     const result = await portalFetch("/api/portal/menu-items");
@@ -177,6 +178,26 @@ export function useMenuItems(ready: boolean) {
     load();
   }
 
+  /** Uploads a photo file to the public menu-image bucket (core/menu_image_storage.py) and fills
+   * form.image_url with the url it comes back with -- a separate step from Save, same "upload
+   * now, reference the url when the item itself is saved" shape the backend route documents. */
+  async function handleImageUpload(file: File) {
+    setUploadingImage(true);
+    const body = new FormData();
+    body.append("file", file);
+    const result = await portalFetch("/api/portal/menu-items/upload-image", { method: "POST", body });
+    setUploadingImage(false);
+    if (!result.ok) {
+      toast.error(
+        "Couldn't upload photo",
+        result.unauthorized ? "Session expired — please log in again." : result.error,
+      );
+      return;
+    }
+    const { image_url } = result.data as { image_url: string };
+    setForm((f) => ({ ...f, image_url }));
+  }
+
   async function handleRestock(item: MenuItem, add: number) {
     setBusyId(item.id);
     const result = await portalFetch(`/api/portal/menu-items/${item.id}/restock`, {
@@ -236,10 +257,12 @@ export function useMenuItems(ready: boolean) {
     setForm,
     formError,
     saving,
+    uploadingImage,
     openAddForm,
     openEditForm,
     cancelForm,
     handleSave,
+    handleImageUpload,
     handleRestock,
     handleAvailability,
   };

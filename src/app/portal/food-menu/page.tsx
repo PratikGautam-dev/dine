@@ -62,10 +62,12 @@ export default function PortalFoodMenuPage() {
     setForm,
     formError,
     saving,
+    uploadingImage,
     openAddForm,
     openEditForm,
     cancelForm,
     handleSave,
+    handleImageUpload,
     handleRestock,
     handleAvailability,
   } = useMenuItems(ready);
@@ -452,8 +454,10 @@ export default function PortalFoodMenuPage() {
             formError={formError}
             saving={saving}
             busy={busyId !== null}
+            uploadingImage={uploadingImage}
             onSubmit={handleSave}
             onCancel={cancelForm}
+            onImageUpload={handleImageUpload}
             onRestock={handleRestock}
             onAvailability={handleAvailability}
           />

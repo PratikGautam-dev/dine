@@ -20,11 +20,16 @@ type Props = {
   formError: string | null;
   saving: boolean;
   busy: boolean;
+  uploadingImage: boolean;
   onSubmit: (e: React.FormEvent) => void;
   onCancel: () => void;
+  onImageUpload: (file: File) => void | Promise<void>;
   onRestock: (item: MenuItem, add: number) => void | Promise<void>;
   onAvailability: (item: MenuItem, isAvailable: boolean) => void | Promise<void>;
 };
+
+const _MAX_IMAGE_UPLOAD_BYTES = 5 * 1024 * 1024;
+const _ALLOWED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"];
 
 /** The add / edit panel: the item's details, plus (when editing) quick restock and the independent sold-out
  * switch, which act immediately rather than waiting for Save. Mount it with key={item id} so its own state
@@ -37,16 +42,35 @@ export function MenuItemPanel({
   formError,
   saving,
   busy,
+  uploadingImage,
   onSubmit,
   onCancel,
+  onImageUpload,
   onRestock,
   onAvailability,
 }: Props) {
   const [newCategoryMode, setNewCategoryMode] = useState(false);
   const [restockAmount, setRestockAmount] = useState("");
+  const [imageError, setImageError] = useState<string | null>(null);
   const categoryKnown = form.category === "" || categories.includes(form.category);
   const showNewCategory = newCategoryMode || !categoryKnown;
   const amount = Math.floor(Number(restockAmount));
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // lets picking the exact same file again re-fire onChange
+    if (!file) return;
+    if (!_ALLOWED_IMAGE_TYPES.includes(file.type)) {
+      setImageError("Photo must be a JPEG, PNG, or WebP image.");
+      return;
+    }
+    if (file.size > _MAX_IMAGE_UPLOAD_BYTES) {
+      setImageError("Photo must be 5 MB or smaller.");
+      return;
+    }
+    setImageError(null);
+    onImageUpload(file);
+  }
 
   return (
     <>
@@ -54,7 +78,7 @@ export function MenuItemPanel({
         {item ? "Edit item" : "Add item"}
       </h2>
 
-      {form.image_url.trim().startsWith("https://") && (
+      {(form.image_url.trim().startsWith("https://") || form.image_url.trim().startsWith("/api/")) && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={form.image_url.trim()}
@@ -149,15 +173,28 @@ export function MenuItemPanel({
           />
         </Field>
         <Field
-          label="Photo link"
-          htmlFor="mi-image"
-          hint="Optional. A public https:// link to a photo of the dish; guests see it when they open the item on WhatsApp."
+          label="Photo"
+          htmlFor="mi-image-upload"
+          hint="Optional. Guests see it when they open the item on WhatsApp."
         >
+          <div className="flex items-center gap-space-2">
+            <input
+              id="mi-image-upload"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              disabled={uploadingImage}
+              onChange={handleFileChange}
+              className="text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+            />
+            {uploadingImage && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
+          </div>
+          {imageError && <p className="mt-space-1 text-[12.5px] text-error">{imageError}</p>}
           <Input
             id="mi-image"
             type="url"
             inputMode="url"
-            placeholder="https://…"
+            placeholder="or paste a photo link"
+            className="mt-space-2"
             value={form.image_url}
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
