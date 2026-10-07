@@ -400,7 +400,7 @@ export default function PortalFeedbackPage() {
                   <div className="mb-space-4">
                     <div className="mb-space-2 flex items-center justify-between">
                       <p className="text-[11px] font-semibold text-ink-600">INTERNAL NOTES</p>
-                      <a href={`/portal/patients/${guest.id}`} className="text-[12px] font-semibold text-brand-700 hover:underline">View guest profile</a>
+                      <a href={`/portal/patients/${guest.public_id}`} className="text-[12px] font-semibold text-brand-700 hover:underline">View guest profile</a>
                     </div>
                     {guest.notes && <p className="mb-space-2 rounded-md bg-paper p-space-2 text-[12.5px] text-ink-700">{guest.notes}</p>}
                     <div className="flex gap-space-2">

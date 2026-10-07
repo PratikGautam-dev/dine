@@ -96,7 +96,7 @@ export default function CartPage() {
     }
     setPlacing(true);
     setPlaceError(null);
-    const result = await publicFetch<{ order: { id: number }; next: string }>("/api/public/orders", {
+    const result = await publicFetch<{ order: { id: number; public_id: string }; next: string }>("/api/public/orders", {
       method: "POST",
       body: JSON.stringify({
         slug: cart.slug,
@@ -118,7 +118,7 @@ export default function CartPage() {
       return;
     }
     clearCart();
-    router.push(result.data.next === "pay" ? `/order/pay/${result.data.order.id}` : `/order/orders/${result.data.order.id}`);
+    router.push(result.data.next === "pay" ? `/order/pay/${result.data.order.public_id}` : `/order/orders/${result.data.order.public_id}`);
   }
 
   if (!cart.slug || cart.items.length === 0) {

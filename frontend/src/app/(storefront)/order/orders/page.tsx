@@ -11,6 +11,7 @@ import { STATUS_LABELS, STATUS_TONE } from "@/components/storefront/orderStatus"
 
 type OrderSummary = {
   id: number;
+  public_id: string;
   status: string;
   total_paise: number;
   created_at: string;
@@ -63,7 +64,7 @@ export default function OrdersListPage() {
         {orders.map((o) => (
           <Link
             key={o.id}
-            href={`/order/orders/${o.id}`}
+            href={`/order/orders/${o.public_id}`}
             className="flex items-center gap-space-3 rounded-lg border border-line bg-card p-space-4 shadow-[var(--shadow-sm)] transition-colors hover:border-brand-200"
           >
             <div className="min-w-0 flex-1">

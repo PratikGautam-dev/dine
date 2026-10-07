@@ -376,7 +376,7 @@ export default function PortalMessagesPage() {
                 <div className="mb-space-4 flex items-center justify-between">
                   <h3 className="text-[15px] font-bold text-ink-900">Customer Details</h3>
                   {guest && (
-                    <Link href={`/portal/patients/${guest.id}`} className="text-[12px] font-semibold text-brand-700 hover:underline">
+                    <Link href={`/portal/patients/${guest.public_id}`} className="text-[12px] font-semibold text-brand-700 hover:underline">
                       Edit
                     </Link>
                   )}
@@ -408,7 +408,7 @@ export default function PortalMessagesPage() {
                       </dl>
                       <p className="mb-space-3 font-mono text-[11.5px] text-ink-400">{guest.patient_display_id}</p>
                       <Link
-                        href={`/portal/patients/${guest.id}`}
+                        href={`/portal/patients/${guest.public_id}`}
                         className="inline-flex text-[13px] font-semibold text-brand-700 hover:underline"
                       >
                         Open guest profile →

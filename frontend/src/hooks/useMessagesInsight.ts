@@ -34,6 +34,7 @@ export function useHandoffOverview(ready: boolean, refreshKey: unknown): Handoff
 
 export type GuestSummary = {
   id: number;
+  public_id: string;
   name: string | null;
   phone: string;
   patient_display_id: string | null;

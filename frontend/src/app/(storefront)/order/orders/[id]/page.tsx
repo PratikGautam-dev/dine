@@ -16,6 +16,7 @@ type OrderItem = { menu_item_id: string; item_name_snapshot: string; unit_price_
 
 type Order = {
   id: number;
+  public_id: string;
   status: string;
   fulfillment_type: string;
   delivery_address: string | null;
@@ -93,7 +94,7 @@ export default function OrderTrackerPage() {
     return (
       <div className="mx-auto flex max-w-[440px] flex-col items-center px-space-4 py-space-9 text-center">
         <p className="mb-space-4 text-[14px] font-semibold text-ink-600">This order is awaiting payment.</p>
-        <Button href={`/order/pay/${order.id}`}>Complete payment</Button>
+        <Button href={`/order/pay/${order.public_id}`}>Complete payment</Button>
       </div>
     );
   }
