@@ -15,14 +15,20 @@ type Props = {
   onClose: () => void;
 };
 
-/** Loyalty rules for the restaurant: when points are earned, when a customer becomes VIP, and what redeeming and the VIP pass are worth. */
+/** Loyalty rules for the restaurant: when points are earned, the three spend thresholds a
+ * customer's tier (Silver/Gold/Platinum) is computed from, and what each tier's benefit and
+ * redeeming points are worth. */
 export function LoyaltySettingsDialog({ settings, saving, onSave, onClose }: Props) {
   const [enabled, setEnabled] = useState(settings.enabled);
   const [spendPerPoint, setSpendPerPoint] = useState(String(settings.paise_per_point / 100));
-  const [vipSpend, setVipSpend] = useState(String(settings.vip_spend_threshold_paise / 100));
   const [redeemPoints, setRedeemPoints] = useState(String(settings.redeem_points));
   const [redeemValue, setRedeemValue] = useState(String(settings.redeem_value_paise / 100));
-  const [vipBenefit, setVipBenefit] = useState(settings.vip_benefit);
+  const [silverSpend, setSilverSpend] = useState(String(settings.silver_spend_threshold_paise / 100));
+  const [silverBenefit, setSilverBenefit] = useState(settings.silver_benefit);
+  const [goldSpend, setGoldSpend] = useState(String(settings.gold_spend_threshold_paise / 100));
+  const [goldBenefit, setGoldBenefit] = useState(settings.gold_benefit);
+  const [platinumSpend, setPlatinumSpend] = useState(String(settings.platinum_spend_threshold_paise / 100));
+  const [platinumBenefit, setPlatinumBenefit] = useState(settings.platinum_benefit);
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
@@ -31,10 +37,14 @@ export function LoyaltySettingsDialog({ settings, saving, onSave, onClose }: Pro
     const message = await onSave({
       enabled,
       paise_per_point: Math.round(Number(spendPerPoint) * 100),
-      vip_spend_threshold_paise: Math.round(Number(vipSpend) * 100),
       redeem_points: Math.round(Number(redeemPoints)),
       redeem_value_paise: Math.round(Number(redeemValue) * 100),
-      vip_benefit: vipBenefit.trim(),
+      silver_spend_threshold_paise: Math.round(Number(silverSpend) * 100),
+      silver_benefit: silverBenefit.trim(),
+      gold_spend_threshold_paise: Math.round(Number(goldSpend) * 100),
+      gold_benefit: goldBenefit.trim(),
+      platinum_spend_threshold_paise: Math.round(Number(platinumSpend) * 100),
+      platinum_benefit: platinumBenefit.trim(),
     });
     if (message) setError(message);
     else onClose();
@@ -68,20 +78,6 @@ export function LoyaltySettingsDialog({ settings, saving, onSave, onClose }: Pro
             onChange={(e) => setSpendPerPoint(e.target.value)}
           />
         </Field>
-        <Field
-          label="VIP after total spend (₹)"
-          htmlFor="loyalty-vip-spend"
-          hint="Customers become VIP once their lifetime spend reaches this amount."
-        >
-          <Input
-            id="loyalty-vip-spend"
-            type="number"
-            min={0}
-            step="1"
-            value={vipSpend}
-            onChange={(e) => setVipSpend(e.target.value)}
-          />
-        </Field>
         <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
           <Field label="Points to redeem" htmlFor="loyalty-redeem-points">
             <Input
@@ -104,18 +100,72 @@ export function LoyaltySettingsDialog({ settings, saving, onSave, onClose }: Pro
             />
           </Field>
         </div>
-        <Field
-          label="VIP pass benefit"
-          htmlFor="loyalty-vip-benefit"
-          hint="Shown to VIP customers, for example: free dessert on your birthday."
-        >
-          <Input
-            id="loyalty-vip-benefit"
-            maxLength={200}
-            value={vipBenefit}
-            onChange={(e) => setVipBenefit(e.target.value)}
-          />
-        </Field>
+
+        <p className="mb-space-2 mt-space-4 text-[13px] font-semibold text-ink-900">Tiers</p>
+        <p className="mb-space-3 text-hint">
+          A customer&apos;s tier is whichever threshold their lifetime spend has reached. Each must be
+          at least the one before it: Silver ≤ Gold ≤ Platinum.
+        </p>
+        <div className="mb-space-3 grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+          <Field label="Silver at total spend (₹)" htmlFor="loyalty-silver-spend">
+            <Input
+              id="loyalty-silver-spend"
+              type="number"
+              min={0}
+              step="1"
+              value={silverSpend}
+              onChange={(e) => setSilverSpend(e.target.value)}
+            />
+          </Field>
+          <Field label="Silver benefit" htmlFor="loyalty-silver-benefit">
+            <Input
+              id="loyalty-silver-benefit"
+              maxLength={200}
+              value={silverBenefit}
+              onChange={(e) => setSilverBenefit(e.target.value)}
+            />
+          </Field>
+        </div>
+        <div className="mb-space-3 grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+          <Field label="Gold at total spend (₹)" htmlFor="loyalty-gold-spend">
+            <Input
+              id="loyalty-gold-spend"
+              type="number"
+              min={0}
+              step="1"
+              value={goldSpend}
+              onChange={(e) => setGoldSpend(e.target.value)}
+            />
+          </Field>
+          <Field label="Gold benefit" htmlFor="loyalty-gold-benefit">
+            <Input
+              id="loyalty-gold-benefit"
+              maxLength={200}
+              value={goldBenefit}
+              onChange={(e) => setGoldBenefit(e.target.value)}
+            />
+          </Field>
+        </div>
+        <div className="mb-space-3 grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+          <Field label="Platinum at total spend (₹)" htmlFor="loyalty-platinum-spend">
+            <Input
+              id="loyalty-platinum-spend"
+              type="number"
+              min={0}
+              step="1"
+              value={platinumSpend}
+              onChange={(e) => setPlatinumSpend(e.target.value)}
+            />
+          </Field>
+          <Field label="Platinum benefit" htmlFor="loyalty-platinum-benefit">
+            <Input
+              id="loyalty-platinum-benefit"
+              maxLength={200}
+              value={platinumBenefit}
+              onChange={(e) => setPlatinumBenefit(e.target.value)}
+            />
+          </Field>
+        </div>
         {error && <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>}
         <div className="flex justify-end gap-space-2">
           <Button type="button" variant="secondary" onClick={onClose}>

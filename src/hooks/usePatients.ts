@@ -13,15 +13,15 @@ export type Patient = {
   last_visit: string | null;
   visit_count: number;
   visited_count: number;
-  // Customers page (migration 0044): email is staff-editable; loyalty_tier/loyalty_points/
-  // total_orders/total_spend_paise/favorite_item are demo-seeded only, no write path exists for them.
+  // Customers page (migration 0044): email is staff-editable. loyalty_tier (migration 0066: real
+  // Silver/Gold/Platinum spend tiers, not demo data)/loyalty_points/total_orders/total_spend_paise/
+  // favorite_item are maintained caches, written by paid orders -- no portal write path for them.
   email: string | null;
   loyalty_tier: string | null;
   loyalty_points: number;
   total_orders: number;
   total_spend_paise: number;
   tags: string[];
-  is_vip: boolean;
   favorite_item: string | null;
   created_at: string;
 };

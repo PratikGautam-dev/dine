@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import {
-  Award,
   Calendar,
   Crown,
   Mail,
@@ -44,10 +43,9 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const DIRECTORY_LIMIT = 200;
 
 const LOYALTY_ICON: Record<string, typeof Crown> = {
-  VIP: Crown,
+  Platinum: Crown,
   Gold: Medal,
   Silver: Star,
-  Bronze: Award,
 };
 
 export default function PortalPatientsPage() {
@@ -79,7 +77,7 @@ export default function PortalPatientsPage() {
   } = usePatients(ready);
 
   const [addOpen, setAddOpen] = useState(false);
-  const [vipOnly, setVipOnly] = useState(false);
+  const [platinumOnly, setPlatinumOnly] = useState(false);
   const [tagFilter, setTagFilter] = useState("");
   const [minPoints, setMinPoints] = useState("");
   const [minSpendRupees, setMinSpendRupees] = useState("");
@@ -91,14 +89,14 @@ export default function PortalPatientsPage() {
   const visiblePatients = useMemo(
     () =>
       (patients ?? []).filter((p) => {
-        if (vipOnly && !p.is_vip) return false;
+        if (platinumOnly && p.loyalty_tier !== "Platinum") return false;
         if (tagFilter && !(p.tags ?? []).includes(tagFilter)) return false;
         if (minPoints && p.loyalty_points < Number(minPoints)) return false;
         if (minSpendRupees && p.total_spend_paise < Number(minSpendRupees) * 100) return false;
         if (minOrders && p.total_orders < Number(minOrders)) return false;
         return true;
       }),
-    [patients, vipOnly, tagFilter, minPoints, minSpendRupees, minOrders],
+    [patients, platinumOnly, tagFilter, minPoints, minSpendRupees, minOrders],
   );
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
@@ -134,7 +132,7 @@ export default function PortalPatientsPage() {
     return {
       total: all.length,
       returning: all.filter((p) => p.visit_count >= 2).length,
-      vip: all.filter((p) => p.loyalty_tier === "VIP").length,
+      vip: all.filter((p) => p.loyalty_tier === "Platinum").length,
       active30: all.filter((p) => p.last_visit && new Date(p.last_visit).getTime() >= cutoff30)
         .length,
       newThisWeek: all.filter((p) => p.created_at && new Date(p.created_at).getTime() >= cutoff7)
@@ -212,7 +210,7 @@ export default function PortalPatientsPage() {
             />
             <StatTile
               icon={<Crown size={22} />}
-              label="VIP customers"
+              label="Platinum customers"
               value={summary.vip}
               deltaPct={null}
               hint="Top loyalty tier"
@@ -255,12 +253,12 @@ export default function PortalPatientsPage() {
             </div>
             <div className="mb-space-3 flex flex-wrap items-center gap-space-2">
               <Button
-                variant={vipOnly ? "primary" : "secondary"}
+                variant={platinumOnly ? "primary" : "secondary"}
                 size="md"
-                onClick={() => setVipOnly((v) => !v)}
-                aria-pressed={vipOnly}
+                onClick={() => setPlatinumOnly((v) => !v)}
+                aria-pressed={platinumOnly}
               >
-                VIP only
+                Platinum only
               </Button>
               <select
                 aria-label="Filter by tag"
@@ -302,12 +300,12 @@ export default function PortalPatientsPage() {
                 onChange={(e) => setMinOrders(e.target.value)}
                 className="w-[130px]"
               />
-              {(vipOnly || tagFilter || minPoints || minSpendRupees || minOrders) && (
+              {(platinumOnly || tagFilter || minPoints || minSpendRupees || minOrders) && (
                 <Button
                   variant="secondary"
                   size="md"
                   onClick={() => {
-                    setVipOnly(false);
+                    setPlatinumOnly(false);
                     setTagFilter("");
                     setMinPoints("");
                     setMinSpendRupees("");

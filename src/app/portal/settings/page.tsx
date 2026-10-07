@@ -151,9 +151,9 @@ function PortalSettingsPageContent() {
                   <Card className="p-space-5">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h2 className="text-[15px] font-bold text-ink-900">Loyalty &amp; VIP</h2>
+                        <h2 className="text-[15px] font-bold text-ink-900">Loyalty &amp; Tiers</h2>
                         <p className="text-hint">
-                          Points earned per spend, VIP threshold and VIP pass benefit.
+                          Points earned per spend, and the Silver/Gold/Platinum spend thresholds.
                         </p>
                       </div>
                       <Button
@@ -179,12 +179,11 @@ function PortalSettingsPageContent() {
                           </p>
                         </div>
                         <div>
-                          <p className="text-label mb-0.5 font-medium text-ink-600">VIP at</p>
+                          <p className="text-label mb-0.5 font-medium text-ink-600">Tiers (₹)</p>
                           <p className="text-ink-900">
-                            ₹
-                            {(loyaltySettings.vip_spend_threshold_paise / 100).toLocaleString(
-                              "en-IN",
-                            )}
+                            {(loyaltySettings.silver_spend_threshold_paise / 100).toLocaleString("en-IN")} /{" "}
+                            {(loyaltySettings.gold_spend_threshold_paise / 100).toLocaleString("en-IN")} /{" "}
+                            {(loyaltySettings.platinum_spend_threshold_paise / 100).toLocaleString("en-IN")}
                           </p>
                         </div>
                         <div>

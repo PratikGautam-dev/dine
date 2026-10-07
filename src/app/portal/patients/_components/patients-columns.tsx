@@ -1,7 +1,7 @@
 "use client";
 
 import type { ColumnDef } from "@tanstack/react-table";
-import { Award, Crown, Medal, Star } from "lucide-react";
+import { Award, Medal, Star } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
@@ -9,13 +9,12 @@ import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import type { Patient } from "@/hooks/usePatients";
 import { PatientCellAction } from "./patients-cellaction";
 
-// Demo-seeded (migration 0044's loyalty_tier column) -- no loyalty program exists in this app yet,
-// so this map only ever renders whatever tier the row already has, never invents one client-side.
-const LOYALTY_STYLES: Record<string, { icon: typeof Crown; className: string }> = {
-  VIP: { icon: Crown, className: "bg-warning-tint text-warning" },
+// Real spend-based tiers (migration 0066) -- the restaurant's own thresholds, recomputed on
+// every paid order, so this map only ever renders whatever tier the row already has.
+const LOYALTY_STYLES: Record<string, { icon: typeof Award; className: string }> = {
+  Platinum: { icon: Award, className: "bg-warning-tint text-warning" },
   Gold: { icon: Medal, className: "bg-warning-tint text-warning" },
   Silver: { icon: Star, className: "bg-black/[0.04] text-ink-600" },
-  Bronze: { icon: Award, className: "bg-clay-100 text-clay-700" },
 };
 
 type CreatePatientColumnsOptions = {

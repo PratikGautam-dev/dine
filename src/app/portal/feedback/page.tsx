@@ -522,9 +522,9 @@ export default function PortalFeedbackPage() {
                     <p className="truncate text-[15px] font-bold text-ink-900">
                       {selected.patient_name || "Guest"}
                     </p>
-                    {guest?.loyalty_tier === "VIP" && (
+                    {guest?.loyalty_tier === "Platinum" && (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-tint px-space-2 py-0.5 text-[10.5px] font-bold text-warning">
-                        <Crown size={11} /> VIP
+                        <Crown size={11} /> Platinum
                       </span>
                     )}
                   </div>
