@@ -3,7 +3,7 @@
 import { CalendarCheck, CalendarDays, CircleCheck, UserPlus, UserX } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ActivityFeed } from "@/components/portal/ActivityFeed";
-import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
+import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { RecentAppointmentsTable } from "@/components/portal/RecentAppointmentsTable";
 import { StatTile } from "@/components/portal/StatTile";
@@ -68,7 +68,7 @@ function RestaurantDashboard() {
             <div className="lg:col-span-2">
               <WeeklyTrendChart data={data.weekly_counts} />
             </div>
-            <DepartmentDonut data={data.department_breakdown} />
+            <SectionDonut data={data.department_breakdown} />
           </div>
 
           <div className="grid grid-cols-1 items-start gap-space-4 lg:grid-cols-3">

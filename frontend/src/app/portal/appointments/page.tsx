@@ -191,7 +191,7 @@ export default function PortalAppointmentsPage() {
               </select>
             </div>
             <div>
-              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Doctor</label>
+              <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">Staff member</label>
               <select
                 value={rDoctorId}
                 onChange={(e) => { setRDoctorId(e.target.value); setRDate(""); setRSlotId(""); }}

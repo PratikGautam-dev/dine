@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
+import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -232,7 +232,7 @@ export default function PortalReportsPage() {
                 </div>
               </Card>
 
-              <DepartmentDonut
+              <SectionDonut
                 data={data.channel_breakdown.map((c) => ({ department_name: c.channel, count: Math.round(c.revenue_paise / 100) }))}
                 title="Revenue by Channel"
                 subtitle={`Last ${days} day${days === 1 ? "" : "s"} · Dine-in revenue is estimated`}
@@ -242,7 +242,7 @@ export default function PortalReportsPage() {
             </div>
 
             <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-3">
-              <DepartmentDonut
+              <SectionDonut
                 data={data.reservation_outcomes}
                 title="Bookings vs No-shows"
                 subtitle={`Last ${days} day${days === 1 ? "" : "s"}`}
@@ -250,7 +250,7 @@ export default function PortalReportsPage() {
                 emptyText="No reservations in this period."
               />
               <PeakHoursChart hours={data.peak_order_hours} periodLabel={`Last ${days} days`} />
-              <DepartmentDonut
+              <SectionDonut
                 data={paymentSplit}
                 title="Payment Method Split"
                 subtitle="Illustrative -- not tracked yet"

@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
-import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
+import { SectionDonut } from "@/components/portal/SectionDonut";
 import { StatTile } from "@/components/portal/StatTile";
 import { DAY_STATE, fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
@@ -128,7 +128,7 @@ export default function MyAttendancePage() {
           )}
         </Card>
 
-        <DepartmentDonut data={statusData} title="Attendance status" subtitle={month} unit="days" emptyText="No attendance in this period." />
+        <SectionDonut data={statusData} title="Attendance status" subtitle={month} unit="days" emptyText="No attendance in this period." />
       </div>
 
       <Card className="p-space-4">

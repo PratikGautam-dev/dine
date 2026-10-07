@@ -10,7 +10,7 @@ type Props = {
   dispatch: WizardDispatch;
 };
 
-export function DepartmentCard({ deptIndex, department, dispatch }: Props) {
+export function SectionCard({ deptIndex, department, dispatch }: Props) {
   return (
     <div className="mb-space-4 rounded-lg border border-line bg-card p-space-4 shadow-[var(--shadow-sm)]">
       <div className="mb-space-3 flex items-center gap-space-3">

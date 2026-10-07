@@ -4,7 +4,7 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { TenantType, WizardState } from "../types";
 import type { WizardDispatch } from "../useWizardState";
-import { DepartmentCard } from "./DepartmentCard";
+import { SectionCard } from "./SectionCard";
 import { OperatingHoursCard } from "./OperatingHoursCard";
 import { TableRows } from "./TableRows";
 import { TopicCard } from "./TopicCard";
@@ -160,7 +160,7 @@ export function Step7HospitalDetails({ state, dispatch, error }: Props) {
                 seats — guests are automatically given the smallest free table that fits their party.
               </p>
               {state.departments.map((dept, i) => (
-                <DepartmentCard key={i} deptIndex={i} department={dept} dispatch={dispatch} />
+                <SectionCard key={i} deptIndex={i} department={dept} dispatch={dispatch} />
               ))}
               <button
                 type="button"

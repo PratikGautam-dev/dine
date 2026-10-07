@@ -17,7 +17,7 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem, DropdownMenuLabel, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
+import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -360,7 +360,7 @@ export default function PortalOffersPage() {
               )}
             </Card>
 
-            <DepartmentDonut
+            <SectionDonut
               data={data.customer_segments}
               title="Customer Segments Reached"
               subtitle="Guests who've used a coupon"

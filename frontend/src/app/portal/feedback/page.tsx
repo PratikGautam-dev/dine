@@ -10,7 +10,7 @@ import {
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
+import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
@@ -217,7 +217,7 @@ export default function PortalFeedbackPage() {
             )}
           </Card>
 
-          <DepartmentDonut
+          <SectionDonut
             data={sourceSplit}
             title="Feedback by Source"
             subtitle="Illustrative -- not linked to a visit type yet"

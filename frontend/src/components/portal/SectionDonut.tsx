@@ -22,7 +22,7 @@ function DonutTooltip({ active, payload, unit }: { active?: boolean; payload?: {
 
 /** A donut with a legend of names, counts and shares. Defaults are the Dashboard's: reservations by section over the
  * window its API uses (30 days back and 30 ahead). */
-export function DepartmentDonut({
+export function SectionDonut({
   data, title = "Reservations by section", subtitle = "Past and coming 30 days", unit = "reservations",
   emptyText = "No reservations in the last 30 days or scheduled in the next 30.",
 }: { data: Slice[]; title?: string; subtitle?: string; unit?: string; emptyText?: string }) {

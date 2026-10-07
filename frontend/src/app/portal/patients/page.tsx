@@ -13,7 +13,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { DepartmentDonut } from "@/components/portal/DepartmentDonut";
+import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -382,7 +382,7 @@ export default function PortalPatientsPage() {
 
         {directory && (
           <div className="mt-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">
-            <DepartmentDonut
+            <SectionDonut
               data={summary.byBookings}
               title="Customer segments"
               subtitle="How often your guests come back"
