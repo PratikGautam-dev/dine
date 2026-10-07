@@ -22,7 +22,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8
 //     so there's never a picker to show.
 //   ?token=... -- no staff account yet. Stored as the short-lived
 //     Google-identity session the onboarding wizard authenticates its
-//     submission with, then routed to /admin/onboard-hospital.
+//     submission with, then routed to /onboarding.
 function CallbackContent() {
   const router = useRouter();
   const params = useSearchParams();
@@ -75,7 +75,7 @@ function CallbackContent() {
         router.replace("/auth?error=google_sign_in_failed");
         return;
       }
-      router.replace("/admin/onboard-hospital");
+      router.replace("/onboarding");
     })();
   }, [params, router]);
 

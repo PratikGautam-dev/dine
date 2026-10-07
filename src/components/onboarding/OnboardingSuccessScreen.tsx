@@ -46,7 +46,7 @@ export function OnboardingSuccessScreen({ result }: { result: OnboardingSuccess 
         </p>
 
         <a
-          href="/admin/onboard-hospital"
+          href="/onboarding"
           className="text-[13.5px] font-semibold text-brand-600 hover:underline"
         >
           Onboard another restaurant

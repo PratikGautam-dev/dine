@@ -151,11 +151,6 @@ export const FEATURE_LABELS: Record<FeatureKey, string> = {
  * plain structured values instead of that string format. */
 export function buildSubmissionPayload(state: WizardState) {
   return {
-    // super_admin_token is NOT read off `state` here -- it's the platform
-    // operator's own super-admin session (lib/adminAuth.ts), not part of
-    // the wizard's persisted form state, so OnboardingWizard's submit
-    // handler merges it into this object right before POSTing (same
-    // pattern getUserToken() already follows for the Google-auth header).
     tenant_type: state.tenantType,
     channel: state.channel,
     name: state.name,

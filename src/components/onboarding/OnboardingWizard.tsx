@@ -32,7 +32,6 @@ import { StepGuide } from "./steps/StepGuide";
 import { RAIL_TITLES, buildSubmissionPayload } from "./types";
 import { useWizardState } from "./useWizardState";
 import { getUserToken } from "@/lib/userAuth";
-import { getAdminToken } from "@/lib/adminAuth";
 
 const ALL_STEPS = RAIL_TITLES.map((_, i) => i);
 // Website-only channel skips 1-5 (the Meta/WhatsApp setup guides, access
@@ -109,12 +108,7 @@ export function OnboardingWizard() {
   async function handleSubmit() {
     setSubmitting(true);
     setSubmitErrors([]);
-    // RBAC (docs/rbac-redis-plan.md): super_admin_token replaces the old
-    // admin_secret wizard field -- this page is now gated behind
-    // AdminSecretGate (see app/admin/onboard-hospital/page.tsx), so the
-    // operator's own super-admin session token is already sitting in
-    // lib/adminAuth.ts by the time anyone reaches this step.
-    const payload = { ...buildSubmissionPayload(state), super_admin_token: getAdminToken() || "" };
+    const payload = buildSubmissionPayload(state);
     const result = await submitOnboarding(payload, getUserToken());
     setSubmitting(false);
     if (result.ok) {
