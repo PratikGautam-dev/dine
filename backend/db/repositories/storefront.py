@@ -306,6 +306,13 @@ def _restaurant_stub(session, hospital_id: int) -> dict | None:
     return {"name": row.name, "slug": row.storefront_slug} if row else None
 
 
+def resolve_public_order_id(public_id: str) -> int | None:
+    """The internal order id behind a public UUID URL, or None if there is no such order."""
+    session = get_session()
+    row = session.execute(select(FoodOrder.id).where(FoodOrder.public_id == public_id)).first()
+    return row[0] if row else None
+
+
 def get_order_hospital_id(order_id: int) -> int | None:
     """A customer only ever has an order id, never a hospital_id -- this resolves which restaurant
     an order belongs to so the public API can then call the existing hospital-scoped

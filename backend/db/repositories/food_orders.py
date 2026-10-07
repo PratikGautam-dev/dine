@@ -393,7 +393,7 @@ def get_order_status_history(hospital_id: int, order_id: int) -> list[dict]:
 
 
 _ORDER_COLUMNS = (
-    FoodOrder.id, FoodOrder.hospital_id, FoodOrder.branch_id, FoodOrder.patient_id, FoodOrder.phone, FoodOrder.status,
+    FoodOrder.id, FoodOrder.public_id, FoodOrder.hospital_id, FoodOrder.branch_id, FoodOrder.patient_id, FoodOrder.phone, FoodOrder.status,
     FoodOrder.fulfillment_type, FoodOrder.delivery_address, FoodOrder.subtotal_paise,
     FoodOrder.delivery_fee_paise, FoodOrder.total_paise, FoodOrder.razorpay_order_id,
     FoodOrder.razorpay_payment_id, FoodOrder.razorpay_payment_link_url, FoodOrder.payment_method,

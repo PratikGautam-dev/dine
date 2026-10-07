@@ -265,11 +265,14 @@ async def public_list_orders(authorization: str | None = Header(default=None)):
     return JSONResponse({"orders": db.list_orders_for_phone(customer["phone"])})
 
 
-@router.get("/api/public/orders/{order_id}")
-async def public_order_detail(order_id: int, authorization: str | None = Header(default=None)):
+@router.get("/api/public/orders/{public_id}")
+async def public_order_detail(public_id: str, authorization: str | None = Header(default=None)):
     customer, error = _require_customer(authorization)
     if error:
         return error
+    order_id = db.resolve_public_order_id(public_id)
+    if order_id is None:
+        return JSONResponse({"error": "Order not found."}, status_code=404)
     order = db.get_public_order(order_id)
     if order is None or order["phone"] != customer["phone"]:
         return JSONResponse({"error": "Order not found."}, status_code=404)
@@ -280,8 +283,11 @@ class MockPayPayload(BaseModel):
     outcome: str = "success"
 
 
-@router.post("/api/public/orders/{order_id}/mock-pay")
-async def public_mock_pay(order_id: int, payload: MockPayPayload, authorization: str | None = Header(default=None)):
+@router.post("/api/public/orders/{public_id}/mock-pay")
+async def public_mock_pay(public_id: str, payload: MockPayPayload, authorization: str | None = Header(default=None)):
+    order_id = db.resolve_public_order_id(public_id)
+    if order_id is None:
+        return JSONResponse({"error": "Order not found."}, status_code=404)
     customer, error = _require_customer(authorization)
     if error:
         return error
@@ -299,8 +305,11 @@ async def public_mock_pay(order_id: int, payload: MockPayPayload, authorization:
     return JSONResponse({"ok": True, "order": updated})
 
 
-@router.post("/api/public/orders/{order_id}/cancel")
-async def public_cancel_order(order_id: int, authorization: str | None = Header(default=None)):
+@router.post("/api/public/orders/{public_id}/cancel")
+async def public_cancel_order(public_id: str, authorization: str | None = Header(default=None)):
+    order_id = db.resolve_public_order_id(public_id)
+    if order_id is None:
+        return JSONResponse({"error": "Order not found."}, status_code=404)
     customer, error = _require_customer(authorization)
     if error:
         return error
