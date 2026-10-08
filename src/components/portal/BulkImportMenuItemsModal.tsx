@@ -2,6 +2,7 @@
 
 import { useMemo, useRef, useState } from "react";
 import { FileUp, Loader2, TriangleAlert, Upload, X } from "lucide-react";
+import JSZip from "jszip";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
@@ -102,8 +103,10 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
   const [imageFiles, setImageFiles] = useState<Map<string, File>>(new Map());
   const [parseError, setParseError] = useState<string | null>(null);
   const [running, setRunning] = useState(false);
+  const [extracting, setExtracting] = useState(false);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const imagesInputRef = useRef<HTMLInputElement>(null);
+  const folderInputRef = useRef<HTMLInputElement>(null);
 
   const existingSet = useMemo(() => new Set(existingNames), [existingNames]);
 
@@ -142,11 +145,40 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
     setRows(parsed);
   }
 
-  function addImageFiles(fileList: FileList | null) {
-    if (!fileList) return;
+  const ALLOWED_IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+
+  /** Accepts a mix of plain image files, a whole folder (via webkitdirectory, which also hands
+   * back File objects, just with a relativePath), and .zip archives -- staff shouldn't have to
+   * extract a zip ChatGPT/a photographer handed them before this works. Zip entries are matched
+   * by their base filename only (an "images/paneer-tikka.jpg" entry inside the zip still matches
+   * a CSV row's plain "paneer-tikka.jpg"). */
+  async function addImageFiles(fileList: FileList | null) {
+    if (!fileList || fileList.length === 0) return;
+    setExtracting(true);
+    const extracted: File[] = [];
+    for (const f of fileList) {
+      if (f.name.toLowerCase().endsWith(".zip")) {
+        try {
+          const zip = await JSZip.loadAsync(f);
+          for (const entry of Object.values(zip.files)) {
+            if (entry.dir) continue;
+            const baseName = entry.name.split("/").pop() || entry.name;
+            if (!/\.(jpe?g|png|webp)$/i.test(baseName)) continue;
+            const blob = await entry.async("blob");
+            extracted.push(new File([blob], baseName));
+          }
+        } catch {
+          toast.error("Couldn't read zip file", `"${f.name}" doesn't look like a valid .zip archive.`);
+        }
+      } else if (ALLOWED_IMAGE_TYPES.has(f.type)) {
+        extracted.push(f);
+      }
+    }
+    setExtracting(false);
+    if (extracted.length === 0) return;
     setImageFiles((prev) => {
       const next = new Map(prev);
-      for (const f of fileList) next.set(f.name.toLowerCase(), f);
+      for (const f of extracted) next.set(f.name.toLowerCase(), f);
       return next;
     });
   }
@@ -237,7 +269,8 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
           </h2>
           <p className="text-hint mt-1">
             Upload a CSV of items (name, price_rupees, category, description, stock_count,
-            image_filename) and, optionally, the photo files it refers to. Review every row below
+            image_filename) and, optionally, the photos it refers to — loose files, a whole
+            folder, or a single .zip (no need to extract it first). Review every row below
             before anything is created —{" "}
             <button type="button" onClick={downloadTemplate} className="font-semibold text-brand-700 hover:underline">
               download a template
@@ -268,10 +301,28 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
           e.target.value = "";
         }}
       />
+      {/* Takes loose image files OR one or more .zip archives (e.g. a batch of AI-generated
+          photos downloaded as a single zip) -- extracted client-side via JSZip, no manual
+          "extract first" step needed. */}
       <input
         ref={imagesInputRef}
         type="file"
-        accept="image/jpeg,image/png,image/webp"
+        accept="image/jpeg,image/png,image/webp,.zip,application/zip"
+        multiple
+        className="hidden"
+        onChange={(e) => {
+          addImageFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      {/* Folder picker for staff who already extracted a zip into a folder themselves --
+          webkitdirectory isn't in React's DOM typings, so it's set imperatively below. */}
+      <input
+        ref={(el) => {
+          folderInputRef.current = el;
+          if (el) el.setAttribute("webkitdirectory", "");
+        }}
+        type="file"
         multiple
         className="hidden"
         onChange={(e) => {
@@ -300,16 +351,30 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
           <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
             <span className="text-[12.5px] text-ink-600">
               {rows.length} row{rows.length === 1 ? "" : "s"} · {validRows.length} ready to create ·{" "}
-              {imageFiles.size} photo{imageFiles.size === 1 ? "" : "s"} attached
+              {extracting ? (
+                <span className="inline-flex items-center gap-space-1">
+                  <Loader2 size={12} className="animate-spin" /> reading photos…
+                </span>
+              ) : (
+                `${imageFiles.size} photo${imageFiles.size === 1 ? "" : "s"} attached`
+              )}
             </span>
             <div className="flex items-center gap-space-3">
               <button
                 type="button"
                 onClick={() => imagesInputRef.current?.click()}
-                disabled={running}
+                disabled={running || extracting}
                 className="text-[12.5px] font-semibold text-brand-700 hover:underline disabled:opacity-50"
               >
-                + Add photos
+                + Add photos or a .zip
+              </button>
+              <button
+                type="button"
+                onClick={() => folderInputRef.current?.click()}
+                disabled={running || extracting}
+                className="text-[12.5px] font-semibold text-brand-700 hover:underline disabled:opacity-50"
+              >
+                + Add a folder
               </button>
               <button
                 type="button"
