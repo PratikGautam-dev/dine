@@ -163,9 +163,16 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
           for (const entry of Object.values(zip.files)) {
             if (entry.dir) continue;
             const baseName = entry.name.split("/").pop() || entry.name;
-            if (!/\.(jpe?g|png|webp)$/i.test(baseName)) continue;
+            const match = /\.(jpe?g|png|webp)$/i.exec(baseName);
+            if (!match) continue;
+            // Zip entries carry no MIME type of their own -- entry.async("blob") comes back with
+            // type "", which the backend's upload route then rejects outright (it checks
+            // file.content_type, not the extension). Set it explicitly from the extension so the
+            // extracted File behaves exactly like one picked straight off disk.
+            const ext = match[1].toLowerCase();
+            const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
             const blob = await entry.async("blob");
-            extracted.push(new File([blob], baseName));
+            extracted.push(new File([blob], baseName, { type: mimeType }));
           }
         } catch {
           toast.error("Couldn't read zip file", `"${f.name}" doesn't look like a valid .zip archive.`);
