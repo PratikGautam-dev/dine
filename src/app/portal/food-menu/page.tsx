@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   CircleCheck,
   CirclePause,
+  FileUp,
   ImageUp,
   Layers,
   Package,
@@ -22,6 +23,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { BulkImportMenuItemsModal } from "@/components/portal/BulkImportMenuItemsModal";
 import { BulkPhotoUploadModal } from "@/components/portal/BulkPhotoUploadModal";
 import { MenuItemPanel } from "@/components/portal/MenuItemPanel";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -83,6 +85,7 @@ export default function PortalFoodMenuPage() {
   const [availabilityView, setAvailabilityView] = useState<AvailabilityView>("all");
   const [search, setSearch] = useState("");
   const [showBulkUpload, setShowBulkUpload] = useState(false);
+  const [showBulkImport, setShowBulkImport] = useState(false);
 
   const stats = useMemo(() => {
     const all = items || [];
@@ -334,6 +337,9 @@ export default function PortalFoodMenuPage() {
         actions={
           canManage && (
             <div className="flex items-center gap-space-2">
+              <Button size="md" variant="secondary" onClick={() => setShowBulkImport(true)}>
+                <FileUp size={14} /> Bulk import (CSV)
+              </Button>
               <Button size="md" variant="secondary" onClick={() => setShowBulkUpload(true)}>
                 <ImageUp size={14} /> Bulk upload photos
               </Button>
@@ -450,6 +456,14 @@ export default function PortalFoodMenuPage() {
             </tbody>
           </table>
         </Card>
+      )}
+
+      {showBulkImport && (
+        <BulkImportMenuItemsModal
+          existingNames={(items || []).map((i) => i.name.trim().toLowerCase())}
+          onClose={() => setShowBulkImport(false)}
+          onImported={load}
+        />
       )}
 
       {showBulkUpload && (
