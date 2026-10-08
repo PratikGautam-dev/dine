@@ -1,12 +1,11 @@
 "use client";
 
+// Re-skinned onto the "Daap Dine" (dine-client) visual language -- dine-client has no login UI
+// of its own at all (no auth exists there), so there is nothing to port here; this flow was
+// already fully real (OTP request/verify, saveCustomerSession) and keeps that logic identical,
+// only the JSX/classes changed to sf-* tokens + Material Symbols.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Phone, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { Field } from "@/components/ui/Field";
-import { Input } from "@/components/ui/Input";
 import { publicFetch, saveCustomerSession } from "@/lib/customerAuth";
 
 // Reads the redirect target directly off window.location.search instead of
@@ -36,10 +35,7 @@ export default function CustomerLoginPage() {
     setBusy(true);
     const result = await publicFetch<{ sent: boolean; mock_code?: string }>(
       "/api/public/auth/otp/request",
-      {
-        method: "POST",
-        body: JSON.stringify({ phone }),
-      },
+      { method: "POST", body: JSON.stringify({ phone }) },
     );
     setBusy(false);
     if (!result.ok) {
@@ -54,13 +50,10 @@ export default function CustomerLoginPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const result = await publicFetch<{
-      token: string;
-      customer: { phone: string; name: string | null };
-    }>("/api/public/auth/otp/verify", {
-      method: "POST",
-      body: JSON.stringify({ phone, code, name: name.trim() || undefined }),
-    });
+    const result = await publicFetch<{ token: string; customer: { phone: string; name: string | null } }>(
+      "/api/public/auth/otp/verify",
+      { method: "POST", body: JSON.stringify({ phone, code, name: name.trim() || undefined }) },
+    );
     setBusy(false);
     if (!result.ok) {
       setError(result.error);
@@ -71,76 +64,92 @@ export default function CustomerLoginPage() {
   }
 
   return (
-    <div className="mx-auto flex max-w-[420px] flex-col items-center px-space-4 py-space-9">
-      <div className="mb-space-5 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-        {step === "phone" ? <Phone size={22} /> : <ShieldCheck size={22} />}
+    <div className="mx-auto flex max-w-[420px] flex-col items-center px-4 py-12">
+      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-sf-primary-light text-sf-primary">
+        <span className="material-symbols-outlined text-[26px]">
+          {step === "phone" ? "call" : "verified_user"}
+        </span>
       </div>
-      <h1 className="text-display mb-space-1 text-center text-[20px]">
+      <h1 className="font-sf-headline mb-1 text-center text-[22px] font-extrabold text-sf-on-surface">
         {step === "phone" ? "Log in to order" : "Enter the code we sent"}
       </h1>
-      <p className="mb-space-6 text-center text-[13px] text-ink-500">
+      <p className="mb-6 text-center font-sf-body text-[13px] text-sf-text-muted">
         {step === "phone" ? "We'll text you a one-time code." : `Sent to ${phone}`}
       </p>
 
-      <Card className="w-full p-space-5">
+      <div className="w-full rounded-2xl border border-sf-border-divider bg-sf-surface p-6 shadow-sm">
         {step === "phone" ? (
           <form onSubmit={requestOtp}>
-            <Field label="Phone number" htmlFor="login-phone" required className="mb-space-4">
-              <Input
-                id="login-phone"
-                type="tel"
-                inputMode="numeric"
-                placeholder="98765 43210"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                autoFocus
-              />
-            </Field>
-            {error && <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>}
-            <Button type="submit" size="lg" className="w-full" disabled={busy || !phone.trim()}>
+            <label htmlFor="login-phone" className="mb-1.5 block font-sf-body text-[12.5px] font-bold text-sf-on-surface">
+              Phone number
+            </label>
+            <input
+              id="login-phone"
+              type="tel"
+              inputMode="numeric"
+              placeholder="98765 43210"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              autoFocus
+              className="mb-4 h-12 w-full rounded-xl border border-sf-border-divider bg-sf-surface px-4 font-sf-body text-[14px] text-sf-on-surface placeholder:text-sf-text-muted focus:border-sf-primary focus:outline-none"
+            />
+            {error && <p className="mb-3 font-sf-body text-[13px] font-medium text-sf-error">{error}</p>}
+            <button
+              type="submit"
+              disabled={busy || !phone.trim()}
+              className="w-full rounded-xl bg-sf-primary py-3.5 font-sf-body text-sm font-bold text-sf-on-primary shadow-md transition-colors hover:bg-sf-secondary disabled:opacity-50"
+            >
               {busy ? "Sending…" : "Send OTP"}
-            </Button>
+            </button>
           </form>
         ) : (
           <form onSubmit={verifyOtp}>
             {mockCode && (
-              <div className="mb-space-4 rounded-md border border-brand-200 bg-brand-50 p-space-3 text-center text-[13px] font-semibold text-brand-700">
-                Test mode -- your code is <span className="font-mono text-[15px]">{mockCode}</span>
+              <div className="mb-4 rounded-xl border border-sf-primary/30 bg-sf-primary-light p-3 text-center font-sf-body text-[13px] font-semibold text-sf-primary">
+                Test mode — your code is <span className="font-mono text-[15px]">{mockCode}</span>
               </div>
             )}
-            <Field label="6-digit code" htmlFor="login-code" required className="mb-space-3">
-              <Input
-                id="login-code"
-                inputMode="numeric"
-                maxLength={6}
-                placeholder="000000"
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                autoFocus
-              />
-            </Field>
-            <Field label="Your name (optional)" htmlFor="login-name" className="mb-space-4">
-              <Input
-                id="login-name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="For the restaurant"
-              />
-            </Field>
-            {error && <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>}
-            <Button type="submit" size="lg" className="w-full" disabled={busy || code.length !== 6}>
+            <label htmlFor="login-code" className="mb-1.5 block font-sf-body text-[12.5px] font-bold text-sf-on-surface">
+              6-digit code
+            </label>
+            <input
+              id="login-code"
+              inputMode="numeric"
+              maxLength={6}
+              placeholder="000000"
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              autoFocus
+              className="mb-3 h-12 w-full rounded-xl border border-sf-border-divider bg-sf-surface px-4 font-sf-body text-[14px] tracking-[0.3em] text-sf-on-surface placeholder:text-sf-text-muted focus:border-sf-primary focus:outline-none"
+            />
+            <label htmlFor="login-name" className="mb-1.5 block font-sf-body text-[12.5px] font-bold text-sf-on-surface">
+              Your name (optional)
+            </label>
+            <input
+              id="login-name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="For the restaurant"
+              className="mb-4 h-12 w-full rounded-xl border border-sf-border-divider bg-sf-surface px-4 font-sf-body text-[14px] text-sf-on-surface placeholder:text-sf-text-muted focus:border-sf-primary focus:outline-none"
+            />
+            {error && <p className="mb-3 font-sf-body text-[13px] font-medium text-sf-error">{error}</p>}
+            <button
+              type="submit"
+              disabled={busy || code.length !== 6}
+              className="w-full rounded-xl bg-sf-primary py-3.5 font-sf-body text-sm font-bold text-sf-on-primary shadow-md transition-colors hover:bg-sf-secondary disabled:opacity-50"
+            >
               {busy ? "Verifying…" : "Verify & continue"}
-            </Button>
+            </button>
             <button
               type="button"
               onClick={() => setStep("phone")}
-              className="mt-space-3 w-full text-center text-[12.5px] font-semibold text-ink-500 hover:text-ink-700"
+              className="mt-3 w-full text-center font-sf-body text-[12.5px] font-semibold text-sf-text-muted hover:text-sf-on-surface"
             >
               Change phone number
             </button>
           </form>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

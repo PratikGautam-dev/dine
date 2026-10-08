@@ -1,0 +1,119 @@
+/* storefront-tokens.css -- dine-client's ("Daap Dine") Material-3-style design tokens,
+ * every name prefixed `sf-` (storefront) so Tailwind v4's single project-wide @theme merge
+ * can never collide with the portal's own tokens in src/app/globals.css (e.g. --color-error,
+ * --font-body are both already taken there). Imported ONLY by
+ * src/app/(storefront)/order/layout.tsx, so none of this reaches the staff portal's pages.
+ *
+ * `@import "tailwindcss"` here (not just `@theme`) is required, not decorative: Tailwind v4
+ * only runs its utility-class GENERATOR (the part that turns `bg-sf-primary` in a .tsx file into
+ * a real `.bg-sf-primary { background-color: ... }` rule) inside a file that is itself a Tailwind
+ * entry point. Without this line, @tailwindcss/postcss still processes the @theme block below
+ * (emitting the --color-sf-* custom properties as plain :root variables) but never generates a
+ * single sf-prefixed utility class anywhere -- which is exactly the bug this comment replaced:
+ * every ported component's bg-sf-, text-sf- and font-sf- classes all resolved to nothing, so the
+ * whole storefront rendered unstyled despite the tokens technically existing. */
+@import "tailwindcss";
+
+@theme {
+  --color-sf-primary: #b7122a;
+  --color-sf-primary-container: #db313f;
+  --color-sf-primary-light: #fdecee;
+  --color-sf-primary-soft: #f8c9ce;
+  --color-sf-secondary: #b81d2c;
+  --color-sf-secondary-container: #ff5358;
+  --color-sf-tertiary: #006762;
+  --color-sf-tertiary-container: #00837c;
+  --color-sf-surface: #ffffff;
+  --color-sf-surface-dim: #dcd9d9;
+  --color-sf-surface-bright: #fcf9f8;
+  --color-sf-surface-container: #f0eded;
+  --color-sf-surface-container-low: #f6f3f2;
+  --color-sf-surface-container-high: #eae7e7;
+  --color-sf-surface-container-highest: #e5e2e1;
+  --color-sf-on-surface: #1b1b1b;
+  --color-sf-on-surface-variant: #5b403f;
+  --color-sf-on-primary: #ffffff;
+  --color-sf-on-secondary: #ffffff;
+  --color-sf-on-tertiary: #ffffff;
+  --color-sf-bg-page: #fafafa;
+  --color-sf-text-body: #4f4f4f;
+  --color-sf-text-muted: #9c9c9c;
+  --color-sf-border-divider: #e8e8e8;
+  --color-sf-veg-green: #267e3e;
+  --color-sf-rating-amber: #f5a623;
+  --color-sf-non-veg-brown: #8b1a10;
+  --color-sf-inverse-surface: #313030;
+  --color-sf-inverse-on-surface: #f3f0ef;
+  --color-sf-secondary-fixed-dim: #ffb3b0;
+  --color-sf-error: #ba1a1a;
+
+  --color-sf-ink: #1c1c1c;
+  --color-sf-ink-wine: #2a1719;
+
+  --color-sf-success-soft: oklch(97.9% 0.021 166.113);
+  --color-sf-success-soft-strong: oklch(95% 0.052 163.051);
+  --color-sf-warning-soft: oklch(98.7% 0.022 95.277);
+  --color-sf-warning: oklch(82.8% 0.189 84.429);
+  --color-sf-danger-soft: oklch(97.1% 0.013 17.38);
+  --color-sf-danger: oklch(63.7% 0.237 25.331);
+  --color-sf-danger-strong: oklch(57.7% 0.245 27.325);
+  --color-sf-danger-dark: oklch(50.5% 0.213 27.518);
+
+  --color-sf-scrim: #000;
+  --color-sf-switch-off: #d6d3d2;
+
+  --color-sf-map-land: #efebe9;
+  --color-sf-map-block: #e6e1df;
+  --color-sf-map-park: #d9e8d4;
+  --color-sf-map-road: #ffffff;
+  --color-sf-map-road-edge: #e2dcd9;
+
+  --font-sf-headline: "Plus Jakarta Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sf-body: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Scoped to .sf-root (the storefront layout's own wrapper div) instead of html/body, which the
+ * portal's root layout already owns. */
+.sf-root {
+  font-family: var(--font-sf-body);
+  color: var(--color-sf-on-surface);
+  background-color: var(--color-sf-bg-page);
+}
+
+.sf-root .font-sf-headline {
+  font-family: var(--font-sf-headline), sans-serif;
+}
+
+.sf-root .font-sf-body {
+  font-family: var(--font-sf-body), sans-serif;
+}
+
+/* Material Symbols standard class -- the icon font's <link> itself is loaded once, globally,
+ * from src/app/layout.tsx's <head> (nested layouts can't inject into <head> in the App Router),
+ * but these rules that make the ligature text actually render as icons are scoped here since
+ * only storefront pages use them. */
+.sf-root .material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}
+
+.sf-root .no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.sf-root .no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

@@ -1,10 +1,11 @@
 "use client";
 
+// Re-skinned onto the "Daap Dine" (dine-client) visual language -- dine-client has no payment
+// page of its own (its checkout fakes payment inline with a setTimeout), so there's nothing to
+// port here; this mock-gateway flow was already fully real and keeps that logic identical, only
+// the JSX/classes changed to sf-* tokens + Material Symbols.
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { CreditCard, ShieldCheck } from "lucide-react";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
 import { getCustomerToken, publicFetch } from "@/lib/customerAuth";
 import { rupees } from "@/lib/foodOrders";
 
@@ -47,10 +48,7 @@ export default function MockPayPage() {
     setError(null);
     const result = await publicFetch<{ ok: boolean; order: Order; error?: string }>(
       `/api/public/orders/${orderId}/mock-pay`,
-      {
-        method: "POST",
-        body: JSON.stringify({ outcome }),
-      },
+      { method: "POST", body: JSON.stringify({ outcome }) },
     );
     setBusy(null);
     if (!result.ok) {
@@ -66,7 +64,7 @@ export default function MockPayPage() {
 
   if (error) {
     return (
-      <div className="mx-auto max-w-[440px] px-space-4 py-space-9 text-center text-[13.5px] text-error">
+      <div className="mx-auto max-w-[440px] px-4 py-12 text-center font-sf-body text-[13.5px] text-sf-error">
         {error}
       </div>
     );
@@ -74,56 +72,56 @@ export default function MockPayPage() {
 
   if (!order) {
     return (
-      <div className="mx-auto max-w-[440px] px-space-4 py-space-9">
-        <div className="h-[220px] animate-pulse rounded-lg bg-line/40" />
+      <div className="mx-auto max-w-[440px] px-4 py-12">
+        <div className="h-[220px] animate-pulse rounded-2xl bg-sf-surface-container-low" />
       </div>
     );
   }
 
   return (
-    <div className="mx-auto flex max-w-[440px] flex-col items-center px-space-4 py-space-9">
-      <div className="mb-space-4 flex h-12 w-12 items-center justify-center rounded-full bg-brand-50 text-brand-600">
-        <CreditCard size={22} />
+    <div className="mx-auto flex max-w-[440px] flex-col items-center px-4 py-12">
+      <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-sf-primary-light text-sf-primary">
+        <span className="material-symbols-outlined text-[26px]">credit_card</span>
       </div>
-      <h1 className="text-display mb-space-1 text-center text-[20px]">DinePay</h1>
-      <p className="mb-space-6 flex items-center gap-space-1 text-[12.5px] font-semibold text-ink-400">
-        <ShieldCheck size={14} /> Test mode -- no real money moves
+      <h1 className="font-sf-headline mb-1 text-center text-[22px] font-extrabold text-sf-on-surface">DinePay</h1>
+      <p className="mb-6 flex items-center gap-1 font-sf-body text-[12.5px] font-semibold text-sf-text-muted">
+        <span className="material-symbols-outlined text-[15px]">verified_user</span>
+        Test mode — no real money moves
       </p>
 
-      <Card className="w-full p-space-5 text-center">
-        <p className="text-[12.5px] text-ink-500">Paying {order.restaurant?.name}</p>
-        <p className="mt-space-1 text-[30px] font-extrabold text-ink-900">
+      <div className="w-full rounded-2xl border border-sf-border-divider bg-sf-surface p-6 text-center shadow-sm">
+        <p className="font-sf-body text-[12.5px] text-sf-text-muted">Paying {order.restaurant?.name}</p>
+        <p className="mt-1 font-sf-headline text-[32px] font-extrabold text-sf-on-surface">
           {rupees(order.total_paise)}
         </p>
-        <p className="mt-space-1 text-[12px] text-ink-400">Order #{order.id}</p>
+        <p className="mt-1 font-sf-body text-[12px] text-sf-text-muted">Order #{order.id}</p>
 
         {failed && (
-          <p className="mt-space-4 rounded-md bg-error-tint p-space-3 text-[13px] font-medium text-error">
+          <p className="mt-4 rounded-xl bg-sf-danger-soft p-3 font-sf-body text-[13px] font-medium text-sf-danger">
             Payment failed (simulated). You can try again below.
           </p>
         )}
+        {error && <p className="mt-3 font-sf-body text-[13px] font-medium text-sf-error">{error}</p>}
 
-        {error && <p className="mt-space-3 text-[13px] font-medium text-error">{error}</p>}
-
-        <div className="mt-space-5 flex flex-col gap-space-2">
-          <Button
-            size="lg"
-            className="w-full"
+        <div className="mt-5 flex flex-col gap-2">
+          <button
+            type="button"
             onClick={() => pay("success")}
             disabled={busy !== null}
+            className="w-full rounded-xl bg-sf-primary py-3.5 font-sf-body text-sm font-bold text-sf-on-primary shadow-md transition-colors hover:bg-sf-secondary disabled:opacity-50"
           >
             {busy === "success" ? "Processing…" : `Pay ${rupees(order.total_paise)}`}
-          </Button>
-          <Button
-            variant="secondary"
-            className="w-full"
+          </button>
+          <button
+            type="button"
             onClick={() => pay("fail")}
             disabled={busy !== null}
+            className="w-full rounded-xl border border-sf-border-divider bg-sf-surface py-3.5 font-sf-body text-sm font-bold text-sf-on-surface transition-colors hover:bg-sf-surface-container-low disabled:opacity-50"
           >
             {busy === "fail" ? "Processing…" : "Simulate failed payment"}
-          </Button>
+          </button>
         </div>
-      </Card>
+      </div>
     </div>
   );
 }
