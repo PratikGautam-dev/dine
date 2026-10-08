@@ -5,6 +5,7 @@ import type { ColumnDef } from "@tanstack/react-table";
 import {
   CircleCheck,
   CirclePause,
+  ImageUp,
   Layers,
   Package,
   PackageX,
@@ -21,6 +22,7 @@ import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Switch } from "@/components/ui/Switch";
 import { TableSkeleton } from "@/components/ui/Skeleton";
+import { BulkPhotoUploadModal } from "@/components/portal/BulkPhotoUploadModal";
 import { MenuItemPanel } from "@/components/portal/MenuItemPanel";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -55,6 +57,7 @@ export default function PortalFoodMenuPage() {
     items,
     categories,
     error,
+    load,
     busyId,
     showForm,
     editingId,
@@ -79,6 +82,7 @@ export default function PortalFoodMenuPage() {
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [availabilityView, setAvailabilityView] = useState<AvailabilityView>("all");
   const [search, setSearch] = useState("");
+  const [showBulkUpload, setShowBulkUpload] = useState(false);
 
   const stats = useMemo(() => {
     const all = items || [];
@@ -329,9 +333,14 @@ export default function PortalFoodMenuPage() {
         description="What guests can order for takeaway or delivery through WhatsApp."
         actions={
           canManage && (
-            <Button size="md" onClick={openAddForm}>
-              <Plus size={14} /> Add item
-            </Button>
+            <div className="flex items-center gap-space-2">
+              <Button size="md" variant="secondary" onClick={() => setShowBulkUpload(true)}>
+                <ImageUp size={14} /> Bulk upload photos
+              </Button>
+              <Button size="md" onClick={openAddForm}>
+                <Plus size={14} /> Add item
+              </Button>
+            </div>
           )
         }
       />
@@ -441,6 +450,14 @@ export default function PortalFoodMenuPage() {
             </tbody>
           </table>
         </Card>
+      )}
+
+      {showBulkUpload && (
+        <BulkPhotoUploadModal
+          items={items || []}
+          onClose={() => setShowBulkUpload(false)}
+          onUploaded={load}
+        />
       )}
 
       {showForm && (
