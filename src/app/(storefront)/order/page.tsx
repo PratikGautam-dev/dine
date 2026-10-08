@@ -4,11 +4,16 @@
 // (HeroSlider, CategoryList, OffersStrip, ChainsDirectory, ClosestOutlets, TopRatedDishes,
 // HowItWorks, PartnerBanner), composed around the SAME real data-fetching behavior the page had
 // before this port: a 250ms-debounced GET /api/public/restaurants?search=&city= via publicFetch,
-// flattened to one-card-per-branch via flattenToOutlets. Initial `search`/`city` are read from
-// useSearchParams() once on mount (the shared Header navigates here with those params), matching
-// this app's existing convention (see navbar/Header.tsx's own comment) rather than staying fully
-// synced to the URL on every navigation.
-import { useEffect, useState } from "react";
+// flattened to one-card-per-branch via flattenToOutlets. `search`/`city` stay LIVE-synced to the
+// URL via useSearchParams() (unlike login/account/[slug]'s one-time window.location.search read --
+// this page needs to react to a category chip or the shared Header's search box navigating here
+// again with new params while already mounted, not just an initial value).
+//
+// useSearchParams() requires a <Suspense> boundary to statically prerender -- Next's own fix,
+// confirmed the hard way: omitting it broke the Vercel production build ("Error occurred
+// prerendering page \"/order\"") even though `next dev` never surfaces the problem. HomeContent
+// below is the real page; the default export only adds the Suspense wrapper around it.
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { UtensilsCrossed } from "lucide-react";
 import { publicFetch } from "@/lib/customerAuth";
@@ -28,6 +33,22 @@ const TOP_RATED_SECTION_ID = "top-rated-section";
 const CHAINS_SECTION_ID = "chains-section";
 
 export default function StorefrontHomePage() {
+  return (
+    <Suspense fallback={<HomePageSkeleton />}>
+      <HomeContent />
+    </Suspense>
+  );
+}
+
+function HomePageSkeleton() {
+  return (
+    <div className="mx-auto max-w-7xl w-full px-4 py-8 sm:px-8">
+      <Skeleton className="h-[320px] w-full rounded-2xl" />
+    </div>
+  );
+}
+
+function HomeContent() {
   const searchParams = useSearchParams();
   const [search, setSearch] = useState(() => searchParams.get("search") ?? "");
   const [city, setCity] = useState(() => searchParams.get("city") ?? "");
