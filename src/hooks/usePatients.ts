@@ -24,6 +24,7 @@ export type Patient = {
   tags: string[];
   favorite_item: string | null;
   created_at: string;
+  loyalty_tier_override: string | null;
 };
 
 export type PatientDetail = Patient & {
@@ -35,6 +36,20 @@ export type PatientDetail = Patient & {
   dietary_preference: string | null;
   allergies: string | null;
   notes: string | null;
+};
+
+export type LoyaltyTransaction = {
+  id: number;
+  order_id: number | null;
+  kind: string;
+  points: number;
+  created_at: string;
+};
+
+export type CustomerMessage = {
+  direction: "inbound" | "outbound";
+  status: string | null;
+  created_at: string;
 };
 
 async function fetchPatients(search: string) {
@@ -69,6 +84,12 @@ export function usePatients(ready: boolean) {
   const [profileLoading, setProfileLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [savingTags, setSavingTags] = useState(false);
+  const [savingTierOverride, setSavingTierOverride] = useState(false);
+  const [ledger, setLedger] = useState<LoyaltyTransaction[] | null>(null);
+  const [ledgerLoading, setLedgerLoading] = useState(false);
+  const [messages, setMessages] = useState<CustomerMessage[] | null>(null);
+  const [messagesLoading, setMessagesLoading] = useState(false);
 
   const load = useCallback(
     async (query: string) => {
@@ -141,6 +162,8 @@ export function usePatients(ready: boolean) {
     async (id: number) => {
       setActiveId(id);
       setProfile(null);
+      setLedger(null);
+      setMessages(null);
       setProfileLoading(true);
       const result = await portalFetch(`/api/portal/patients/id/${id}`);
       setProfileLoading(false);
@@ -157,6 +180,8 @@ export function usePatients(ready: boolean) {
   const closeProfile = () => {
     setActiveId(null);
     setProfile(null);
+    setLedger(null);
+    setMessages(null);
   };
 
   const saveProfileFields = async (fields: {
@@ -202,6 +227,76 @@ export function usePatients(ready: boolean) {
     return true;
   };
 
+  /** Customers page's tag editor -- replaces the whole tag list (not a single add/remove), same
+   * "caller sends the complete set" contract portal_update_menu_item() uses for combo lines. */
+  const saveTags = async (tags: string[]): Promise<boolean> => {
+    if (activeId === null) return false;
+    setSavingTags(true);
+    const result = await portalFetch(`/api/portal/patients/${activeId}/tags`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tags }),
+    });
+    setSavingTags(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't save tags", result.error);
+      return false;
+    }
+    const updated = (result.data as { patient: PatientDetail }).patient;
+    setProfile(updated);
+    load(search);
+    return true;
+  };
+
+  /** Loyalty tab's tier-override control -- null clears it, going back to automatic. */
+  const setTierOverride = async (tierOverride: string | null): Promise<boolean> => {
+    if (activeId === null) return false;
+    setSavingTierOverride(true);
+    const result = await portalFetch(`/api/portal/patients/${activeId}/loyalty-tier`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tier_override: tierOverride }),
+    });
+    setSavingTierOverride(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't update loyalty tier", result.error);
+      return false;
+    }
+    const updated = (result.data as { patient: PatientDetail }).patient;
+    setProfile(updated);
+    toast.success(tierOverride ? `Tier set to ${tierOverride}` : "Back to automatic tier");
+    load(search);
+    return true;
+  };
+
+  const loadLedger = useCallback(async () => {
+    if (activeId === null) return;
+    setLedgerLoading(true);
+    const result = await portalFetch(`/api/portal/patients/${activeId}/loyalty-ledger`);
+    setLedgerLoading(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't load loyalty history", result.error);
+      return;
+    }
+    setLedger((result.data as { transactions: LoyaltyTransaction[] }).transactions);
+  }, [activeId, router]);
+
+  const loadMessages = useCallback(async () => {
+    if (activeId === null) return;
+    setMessagesLoading(true);
+    const result = await portalFetch(`/api/portal/patients/${activeId}/messages`);
+    setMessagesLoading(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't load message history", result.error);
+      return;
+    }
+    setMessages((result.data as { messages: CustomerMessage[] }).messages);
+  }, [activeId, router]);
+
   return {
     patients,
     directory,
@@ -226,5 +321,15 @@ export function usePatients(ready: boolean) {
     saveProfileFields,
     creating,
     createCustomer,
+    savingTags,
+    saveTags,
+    savingTierOverride,
+    setTierOverride,
+    ledger,
+    ledgerLoading,
+    loadLedger,
+    messages,
+    messagesLoading,
+    loadMessages,
   };
 }

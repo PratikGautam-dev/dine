@@ -33,10 +33,29 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { usePatients, type Patient } from "@/hooks/usePatients";
+import { useCustomerSegments } from "@/hooks/useCustomerSegments";
+import { useCustomerAnalytics } from "@/hooks/useCustomerAnalytics";
 import { createPatientColumns } from "./_components/patients-columns";
+import { CustomerPicker } from "./_components/customer-picker";
+import { TagsPanel } from "./_components/tags-panel";
+import { LoyaltyPanel } from "./_components/loyalty-panel";
+import { CommunicationPanel } from "./_components/communication-panel";
+import { SegmentsPanel } from "./_components/segments-panel";
+import { AnalyticsPanel } from "./_components/analytics-panel";
+
+const TABS = [
+  { id: "all", label: "All Customers" },
+  { id: "loyalty", label: "Loyalty" },
+  { id: "tags", label: "Tags" },
+  { id: "communication", label: "Communication" },
+  { id: "segments", label: "Segments" },
+  { id: "analytics", label: "Analytics" },
+] as const;
+type TabId = (typeof TABS)[number]["id"];
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 // The list API returns at most this many guests (most recently seen first).
@@ -74,7 +93,31 @@ export default function PortalPatientsPage() {
     saveProfileFields,
     creating,
     createCustomer,
+    savingTags,
+    saveTags,
+    savingTierOverride,
+    setTierOverride,
+    ledger,
+    ledgerLoading,
+    loadLedger,
+    messages,
+    messagesLoading,
+    loadMessages,
   } = usePatients(ready);
+
+  const { segments, creating: creatingSegment, createSegment, deletingId, deleteSegment } =
+    useCustomerSegments(ready);
+  const { analytics } = useCustomerAnalytics(ready);
+
+  const [tab, setTab] = useState<TabId>("all");
+  const [pickerSearch, setPickerSearch] = useState("");
+  const pickerPatients = useMemo(() => {
+    const q = pickerSearch.trim().toLowerCase();
+    if (!q) return patients;
+    return (patients ?? []).filter(
+      (p) => (p.name ?? "").toLowerCase().includes(q) || p.phone.includes(q),
+    );
+  }, [patients, pickerSearch]);
 
   const [addOpen, setAddOpen] = useState(false);
   const [platinumOnly, setPlatinumOnly] = useState(false);
@@ -178,7 +221,25 @@ export default function PortalPatientsPage() {
       </div>
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      {directory && (
+      <div className="mb-space-4 flex flex-wrap gap-space-2">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className={cn(
+              "rounded-full border px-space-3 py-space-1 text-[12.5px] font-semibold transition-colors duration-150",
+              tab === t.id
+                ? "border-brand-600 bg-brand-600 text-white"
+                : "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50",
+            )}
+          >
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {tab === "all" && directory && (
         <>
           <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <StatTile
@@ -236,6 +297,7 @@ export default function PortalPatientsPage() {
         </>
       )}
 
+      {tab === "all" && (
       <div className="grid grid-cols-1 gap-space-4 xl:grid-cols-[1fr_340px]">
         <div className="min-w-0">
           <div className="mb-space-3 flex flex-col gap-space-3 sm:flex-row sm:items-center sm:justify-between sm:gap-space-4">
@@ -528,8 +590,9 @@ export default function PortalPatientsPage() {
           )}
         </div>
       </div>
+      )}
 
-      {directory && (
+      {tab === "all" && directory && (
         <div className="mt-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">
           <SectionDonut
             data={summary.byBookings}
@@ -576,6 +639,58 @@ export default function PortalPatientsPage() {
           </Card>
         </div>
       )}
+
+      {(tab === "loyalty" || tab === "tags" || tab === "communication") && (
+        <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[280px_1fr]">
+          <CustomerPicker
+            patients={pickerPatients}
+            search={pickerSearch}
+            onSearchChange={setPickerSearch}
+            activeId={activeId}
+            onSelect={openProfile}
+          />
+          <div className="min-w-0">
+            {activeId === null ? (
+              <Card className="flex min-h-[240px] flex-col items-center justify-center p-space-4 text-center">
+                <UserRound size={26} className="mb-space-2 text-ink-300" />
+                <p className="text-[13px] text-ink-400">Pick a customer to see their {tab}.</p>
+              </Card>
+            ) : tab === "loyalty" ? (
+              <LoyaltyPanel
+                profile={profile}
+                profileLoading={profileLoading}
+                savingTierOverride={savingTierOverride}
+                onSetTierOverride={setTierOverride}
+                ledger={ledger}
+                ledgerLoading={ledgerLoading}
+                onLoadLedger={loadLedger}
+              />
+            ) : tab === "tags" ? (
+              <TagsPanel profile={profile} profileLoading={profileLoading} saving={savingTags} onSave={saveTags} />
+            ) : (
+              <CommunicationPanel
+                profile={profile}
+                profileLoading={profileLoading}
+                messages={messages}
+                messagesLoading={messagesLoading}
+                onLoadMessages={loadMessages}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {tab === "segments" && (
+        <SegmentsPanel
+          segments={segments}
+          creating={creatingSegment}
+          onCreate={createSegment}
+          deletingId={deletingId}
+          onDelete={deleteSegment}
+        />
+      )}
+
+      {tab === "analytics" && <AnalyticsPanel analytics={analytics} />}
 
       <ConfirmDialog
         open={pendingDelete !== null}
