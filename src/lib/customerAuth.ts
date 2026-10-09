@@ -11,7 +11,12 @@ const SESSION_KEY = "customer_session";
 
 export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
-export type CustomerSession = { phone: string; name: string | null };
+export type CustomerSession = {
+  phone: string;
+  name: string | null;
+  date_of_birth?: string | null;
+  email?: string | null;
+};
 
 // Lets already-mounted components (the shared header) react to a login/logout that happens on
 // another page -- the /order layout persists across navigations, so reading localStorage once on

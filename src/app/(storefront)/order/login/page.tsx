@@ -18,6 +18,8 @@ export default function CustomerLoginPage() {
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [name, setName] = useState("");
+  const [dob, setDob] = useState("");
+  const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
   const [mockCode, setMockCode] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -50,9 +52,18 @@ export default function CustomerLoginPage() {
     e.preventDefault();
     setError(null);
     setBusy(true);
-    const result = await publicFetch<{ token: string; customer: { phone: string; name: string | null } }>(
+    const result = await publicFetch<{
+      token: string;
+      customer: { phone: string; name: string | null; date_of_birth: string | null; email: string | null };
+    }>(
       "/api/public/auth/otp/verify",
-      { method: "POST", body: JSON.stringify({ phone, code, name: name.trim() || undefined }) },
+      {
+        method: "POST",
+        body: JSON.stringify({
+          phone, code, name: name.trim() || undefined,
+          date_of_birth: dob || undefined, email: email.trim() || undefined,
+        }),
+      },
     );
     setBusy(false);
     if (!result.ok) {
@@ -132,6 +143,33 @@ export default function CustomerLoginPage() {
               placeholder="For the restaurant"
               className="mb-4 h-12 w-full rounded-xl border border-sf-border-divider bg-sf-surface px-4 font-sf-body text-[14px] text-sf-on-surface placeholder:text-sf-text-muted focus:border-sf-primary focus:outline-none"
             />
+            <div className="mb-4 grid grid-cols-2 gap-3">
+              <div>
+                <label htmlFor="login-dob" className="mb-1.5 block font-sf-body text-[12.5px] font-bold text-sf-on-surface">
+                  Date of birth (optional)
+                </label>
+                <input
+                  id="login-dob"
+                  type="date"
+                  value={dob}
+                  onChange={(e) => setDob(e.target.value)}
+                  className="h-12 w-full rounded-xl border border-sf-border-divider bg-sf-surface px-3 font-sf-body text-[14px] text-sf-on-surface focus:border-sf-primary focus:outline-none"
+                />
+              </div>
+              <div>
+                <label htmlFor="login-email" className="mb-1.5 block font-sf-body text-[12.5px] font-bold text-sf-on-surface">
+                  Email (optional)
+                </label>
+                <input
+                  id="login-email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@email.com"
+                  className="h-12 w-full rounded-xl border border-sf-border-divider bg-sf-surface px-3 font-sf-body text-[14px] text-sf-on-surface placeholder:text-sf-text-muted focus:border-sf-primary focus:outline-none"
+                />
+              </div>
+            </div>
             {error && <p className="mb-3 font-sf-body text-[13px] font-medium text-sf-error">{error}</p>}
             <button
               type="submit"
