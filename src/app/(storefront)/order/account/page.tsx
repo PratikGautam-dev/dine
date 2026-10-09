@@ -2,11 +2,10 @@
 
 // Ported from dine-client's app/account/page.tsx. Gated behind real login (redirects to
 // /order/login?next=/order/account when logged out, same pattern orders/[id]/page.tsx already
-// used). Order History tab is REAL (OrderHistory.tsx, GET /api/public/orders). Profile tab shows
-// the real phone/name from useCustomerSession() layered onto the rest of dine-client's static
-// INITIAL_PROFILE. Membership/Credits/Favourites/Addresses/Settings tabs are fully static
-// placeholders (lib/account.ts's mock data) -- no backend exists for them yet, per the explicit
-// "port everything, stub what has no backend" decision.
+// used). Order History, Profile/Addresses, Membership tiers, Credits ledger, and Favourites are
+// all REAL now (useAccountProfile.ts, useAccountLoyalty.ts) -- only each tab's surrounding
+// decorative copy was ever mock; the underlying data (loyalty_tier/points, loyalty_transactions,
+// real order history) already existed in the backend.
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "@/components/storefront/account/Card";
@@ -21,16 +20,22 @@ import { AddressesTab } from "@/components/storefront/account/AddressesTab";
 import { FavoritesTab } from "@/components/storefront/account/FavoritesTab";
 import { SettingsTab } from "@/components/storefront/account/SettingsTab";
 import { AccountSidebar } from "@/components/storefront/account/AccountSidebar";
-import { INITIAL_PROFILE, SAVED_ADDRESSES, type AccountTab, type Profile } from "@/lib/account";
-import { getCustomerToken, useCustomerSession } from "@/lib/customerAuth";
+import type { AccountTab } from "@/lib/account";
+import { getCustomerToken } from "@/lib/customerAuth";
+import { useCart } from "@/lib/cart";
+import { useAccountProfile } from "@/lib/useAccountProfile";
+import { useAccountFavorites, useAccountLoyalty, useAccountLoyaltyLedger } from "@/lib/useAccountLoyalty";
 
 export default function AccountPage() {
   const router = useRouter();
-  const session = useCustomerSession();
   const [ready, setReady] = useState(false);
   const [tab, setTab] = useState<AccountTab>("orders");
-  const [profile, setProfile] = useState<Profile>(INITIAL_PROFILE);
-  const [primaryAddressId, setPrimaryAddressId] = useState(SAVED_ADDRESSES[0].id);
+  const { cart } = useCart();
+  const { profile, loading, saving, saveProfile, addingAddress, addAddress, deletingAddressId, deleteAddress } =
+    useAccountProfile(ready, cart.slug);
+  const { loyalty } = useAccountLoyalty(ready, cart.slug);
+  const { transactions } = useAccountLoyaltyLedger(ready, cart.slug);
+  const { dishes } = useAccountFavorites(ready);
 
   useEffect(() => {
     if (!getCustomerToken()) {
@@ -44,17 +49,12 @@ export default function AccountPage() {
     setReady(true);
   }, [router]);
 
-  // Layer the real phone/name over dine-client's static profile fields once the session loads.
-  useEffect(() => {
-    if (session) setProfile((p) => ({ ...p, name: session.name || p.name, phone: session.phone }));
-  }, [session]);
-
   function goToTab(next: AccountTab) {
     setTab(next);
     document.getElementById("account-tabs")?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
-  if (!ready) {
+  if (!ready || loading || !profile) {
     return (
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-8">
         <div className="h-40 animate-pulse rounded-2xl bg-sf-surface-container-low" />
@@ -65,14 +65,9 @@ export default function AccountPage() {
   return (
     <div className="mx-auto w-full max-w-7xl px-4 py-6 pb-20 sm:px-8">
       <div className="mb-8 grid grid-cols-1 items-stretch gap-6 lg:grid-cols-12">
-        <ProfileCard
-          profile={profile}
-          primaryAddressId={primaryAddressId}
-          onEdit={() => goToTab("settings")}
-          onManageAddresses={() => goToTab("addresses")}
-        />
-        <MembershipCard />
-        <CreditsCard onOpenLedger={() => goToTab("ledger")} />
+        <ProfileCard profile={profile} onEdit={() => goToTab("settings")} onManageAddresses={() => goToTab("addresses")} />
+        <MembershipCard loyalty={loyalty} />
+        <CreditsCard loyalty={loyalty} onOpenLedger={() => goToTab("ledger")} />
       </div>
 
       <div id="account-tabs" className="scroll-mt-24">
@@ -82,19 +77,27 @@ export default function AccountPage() {
       <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-12">
         <div id="account-panel" role="tabpanel" aria-labelledby={`account-tab-${tab}`} className="lg:col-span-8">
           {tab === "orders" && <OrderHistory />}
-          {tab === "membership" && <MembershipTab />}
+          {tab === "membership" && <MembershipTab loyalty={loyalty} />}
           {tab === "ledger" && (
             <Card className="p-6">
-              <CreditsActivity />
+              <CreditsActivity transactions={transactions} />
             </Card>
           )}
-          {tab === "addresses" && <AddressesTab primaryId={primaryAddressId} onSetPrimary={setPrimaryAddressId} />}
-          {tab === "favorites" && <FavoritesTab />}
-          {tab === "settings" && <SettingsTab profile={profile} onSave={setProfile} />}
+          {tab === "addresses" && (
+            <AddressesTab
+              addresses={profile.addresses}
+              adding={addingAddress}
+              onAdd={addAddress}
+              deletingId={deletingAddressId}
+              onDelete={deleteAddress}
+            />
+          )}
+          {tab === "favorites" && <FavoritesTab dishes={dishes} />}
+          {tab === "settings" && <SettingsTab profile={profile} saving={saving} onSave={saveProfile} />}
         </div>
 
         <aside className="lg:col-span-4">
-          <AccountSidebar onViewLedger={() => goToTab("ledger")} />
+          <AccountSidebar loyalty={loyalty} transactions={transactions} onViewLedger={() => goToTab("ledger")} />
         </aside>
       </div>
     </div>

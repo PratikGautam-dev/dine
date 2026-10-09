@@ -1,19 +1,11 @@
-import { MEMBERSHIP, TIERS, formatFullDate, formatShortDate } from "@/lib/account";
+import { rupees } from "@/lib/foodOrders";
+import type { LoyaltyInfo } from "@/lib/useAccountLoyalty";
 
-export function MembershipCard() {
-  const currentIndex = TIERS.findIndex((t) => t.id === MEMBERSHIP.currentTierId);
-  const current = TIERS[currentIndex];
-  const next = TIERS[currentIndex + 1];
-
-  // Matches the "₹spent / ₹threshold" label: lifetime spend against the next tier's threshold
-  const progress = next ? Math.min(100, (MEMBERSHIP.lifetimeSpend / next.threshold) * 100) : 100;
-  const remaining = next ? Math.max(0, next.threshold - MEMBERSHIP.lifetimeSpend) : 0;
-
-  const perks = [
-    { icon: "bolt", tone: "text-sf-primary-container", label: "Free Priority Delivery" },
-    { icon: "percent", tone: "text-sf-rating-amber", label: "10% Extra Cashback" },
-    { icon: "cake", tone: "text-sf-secondary-fixed-dim", label: "Chef's Complimentary Dessert" },
-  ];
+export function MembershipCard({ loyalty }: { loyalty: LoyaltyInfo }) {
+  const current = loyalty.tiers.find((t) => t.name === loyalty.current_tier);
+  const next = loyalty.next_tier;
+  const progress =
+    next && next.threshold_paise > 0 ? Math.min(100, (loyalty.total_spend_paise / next.threshold_paise) * 100) : 100;
 
   return (
     <div className="lg:col-span-5 bg-gradient-to-br from-sf-ink via-sf-ink-wine to-sf-ink text-sf-on-primary rounded-2xl p-6 shadow-md flex flex-col justify-between relative overflow-hidden">
@@ -24,20 +16,13 @@ export function MembershipCard() {
             <span className="material-symbols-outlined text-[16px]">stars</span>
             DAAP GOURMET CLUB
           </div>
-          <span className="font-sf-body text-xs text-sf-on-primary/70">Renews {formatFullDate(MEMBERSHIP.renewsOn)}</span>
         </div>
-        <h2 className="font-sf-headline text-2xl font-bold tracking-tight mt-1">{current.name.split(" ")[0]} Tier Member</h2>
-        <div className="flex flex-wrap gap-1.5 mt-3">
-          {perks.map((perk) => (
-            <span
-              key={perk.label}
-              className="px-2.5 py-1 rounded-full bg-sf-surface/10 text-sf-on-primary/90 font-sf-body text-xs font-semibold flex items-center gap-1"
-            >
-              <span className={`material-symbols-outlined text-[14px] ${perk.tone}`}>{perk.icon}</span>
-              {perk.label}
-            </span>
-          ))}
-        </div>
+        <h2 className="font-sf-headline text-2xl font-bold tracking-tight mt-1">
+          {current ? `${current.name} Tier Member` : "New Member"}
+        </h2>
+        {current?.benefit && (
+          <p className="font-sf-body text-sm text-sf-on-primary/85 mt-2">{current.benefit}</p>
+        )}
       </div>
 
       <div className="relative mt-4 pt-2">
@@ -46,7 +31,7 @@ export function MembershipCard() {
             <div className="flex justify-between items-center text-sf-on-primary/80 font-sf-body text-xs font-semibold mb-1.5">
               <span>Progress to {next.name}</span>
               <span className="text-sf-on-primary">
-                ₹{MEMBERSHIP.lifetimeSpend.toLocaleString("en-IN")} / ₹{next.threshold.toLocaleString("en-IN")}
+                {rupees(loyalty.total_spend_paise)} / {rupees(next.threshold_paise)}
               </span>
             </div>
             <div
@@ -62,13 +47,17 @@ export function MembershipCard() {
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="font-sf-body text-[11px] text-sf-on-primary/70 mt-1.5">
-              Spend ₹{remaining.toLocaleString("en-IN")} more before {formatShortDate(MEMBERSHIP.upgradeDeadline)} to
-              unlock concierge reservations &amp; 20% cashback.
-            </p>
+            {loyalty.amount_to_next_tier_paise != null && (
+              <p className="font-sf-body text-[11px] text-sf-on-primary/70 mt-1.5">
+                Spend {rupees(loyalty.amount_to_next_tier_paise)} more to reach {next.name}
+                {next.benefit ? `: ${next.benefit}` : "."}
+              </p>
+            )}
           </>
-        ) : (
+        ) : loyalty.tiers.length > 0 ? (
           <p className="font-sf-body text-xs text-sf-on-primary/80">You&apos;ve reached our highest tier. Enjoy every perk.</p>
+        ) : (
+          <p className="font-sf-body text-xs text-sf-on-primary/80">Place an order to start earning rewards.</p>
         )}
       </div>
     </div>

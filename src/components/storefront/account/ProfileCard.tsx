@@ -1,21 +1,22 @@
 import { Card } from "./Card";
-import { SAVED_ADDRESSES, formatMonthYear, type Profile } from "@/lib/account";
+import { formatMonthYear } from "@/lib/account";
+import type { RealProfile } from "@/lib/useAccountProfile";
 
 interface ProfileCardProps {
-  profile: Profile;
-  primaryAddressId: string;
+  profile: RealProfile;
   onEdit: () => void;
   onManageAddresses: () => void;
 }
 
-export function ProfileCard({ profile, primaryAddressId, onEdit, onManageAddresses }: ProfileCardProps) {
-  const initials = profile.name
+export function ProfileCard({ profile, onEdit, onManageAddresses }: ProfileCardProps) {
+  const displayName = profile.name || "Guest Diner";
+  const initials = displayName
     .split(/\s+/)
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0].toUpperCase())
     .join("");
-  const primary = SAVED_ADDRESSES.find((a) => a.id === primaryAddressId);
+  const primary = profile.addresses[0];
 
   return (
     <Card className="lg:col-span-4 p-6 flex flex-col justify-between relative overflow-hidden">
@@ -34,13 +35,13 @@ export function ProfileCard({ profile, primaryAddressId, onEdit, onManageAddress
             </div>
             <div className="min-w-0">
               <div className="flex items-center gap-1">
-                <h1 className="font-sf-headline text-xl font-semibold text-sf-on-surface truncate">{profile.name}</h1>
+                <h1 className="font-sf-headline text-xl font-semibold text-sf-on-surface truncate">{displayName}</h1>
                 <span className="material-symbols-outlined text-sf-primary text-[18px]" title="Verified Diner">
                   verified
                 </span>
               </div>
               <p className="font-sf-body text-xs text-sf-text-muted truncate">
-                Member since {formatMonthYear(profile.memberSince)}
+                {profile.created_at ? `Member since ${formatMonthYear(profile.created_at)}` : "New member"}
               </p>
             </div>
           </div>
@@ -57,11 +58,11 @@ export function ProfileCard({ profile, primaryAddressId, onEdit, onManageAddress
         <div className="space-y-1 font-sf-body text-xs text-sf-text-body">
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-sf-text-muted text-[16px]">call</span>
-            <span className="font-medium">{profile.phone ? `+91 ${profile.phone}` : "Not set"}</span>
+            <span className="font-medium">{profile.phone ? `+${profile.phone}` : "Not set"}</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="material-symbols-outlined text-sf-text-muted text-[16px]">mail</span>
-            <span className="truncate">{profile.email}</span>
+            <span className="truncate">{profile.email || "Not set"}</span>
           </div>
         </div>
       </div>
@@ -70,9 +71,9 @@ export function ProfileCard({ profile, primaryAddressId, onEdit, onManageAddress
         <div className="flex items-center gap-1 min-w-0">
           <span className="material-symbols-outlined text-sf-primary text-[20px]">pin_drop</span>
           <div className="leading-tight min-w-0">
-            <span className="font-sf-body text-[11px] font-semibold block text-sf-text-muted">Primary Address</span>
+            <span className="font-sf-body text-[11px] font-semibold block text-sf-text-muted">Saved address</span>
             <span className="font-sf-body text-xs font-semibold truncate block">
-              {primary ? `${primary.label} • ${primary.line}` : "Not set"}
+              {primary ? primary.address : "Not set"}
             </span>
           </div>
         </div>

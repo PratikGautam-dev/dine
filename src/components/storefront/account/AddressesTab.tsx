@@ -1,63 +1,80 @@
 "use client";
 
-import { cn } from "@/lib/cn";
+import { useState } from "react";
 import { Card } from "./Card";
-import { SAVED_ADDRESSES } from "@/lib/account";
+import type { SavedAddress } from "@/lib/useAccountProfile";
 
 interface AddressesTabProps {
-  primaryId: string;
-  onSetPrimary: (id: string) => void;
+  addresses: SavedAddress[];
+  adding: boolean;
+  onAdd: (address: string) => Promise<boolean>;
+  deletingId: number | null;
+  onDelete: (id: number) => void;
 }
 
-const ICONS = { Home: "home", Work: "work", Other: "location_on" } as const;
+export function AddressesTab({ addresses, adding, onAdd, deletingId, onDelete }: AddressesTabProps) {
+  const [draft, setDraft] = useState("");
 
-export function AddressesTab({ primaryId, onSetPrimary }: AddressesTabProps) {
+  async function handleAdd() {
+    const address = draft.trim();
+    if (!address) return;
+    const ok = await onAdd(address);
+    if (ok) setDraft("");
+  }
+
   return (
     <div className="space-y-4">
-      {SAVED_ADDRESSES.map((address) => {
-        const isPrimary = address.id === primaryId;
-        return (
-          <Card
-            key={address.id}
-            className={cn("p-5 flex items-start justify-between gap-4", isPrimary && "ring-2 ring-sf-primary")}
-          >
+      {addresses.length === 0 ? (
+        <Card className="p-6 flex flex-col items-center gap-2 text-center">
+          <span className="material-symbols-outlined text-sf-text-muted text-[28px]">location_on</span>
+          <p className="font-sf-body text-sm text-sf-on-surface font-semibold">No saved addresses yet</p>
+          <p className="font-sf-body text-xs text-sf-text-muted">Add one below for faster checkout.</p>
+        </Card>
+      ) : (
+        addresses.map((address) => (
+          <Card key={address.id} className="p-5 flex items-start justify-between gap-4">
             <div className="flex items-start gap-3 min-w-0">
-              <div
-                className={cn(
-                  "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-                  isPrimary ? "bg-sf-primary text-sf-on-primary" : "bg-sf-surface-container text-sf-text-body",
-                )}
-              >
-                <span className="material-symbols-outlined text-[20px]">{ICONS[address.label]}</span>
+              <div className="w-10 h-10 rounded-lg flex items-center justify-center shrink-0 bg-sf-surface-container text-sf-text-body">
+                <span className="material-symbols-outlined text-[20px]">location_on</span>
               </div>
-              <div className="min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-sf-body text-sm font-bold text-sf-on-surface">{address.label}</span>
-                  {isPrimary && (
-                    <span className="px-2 py-0.5 rounded-full bg-sf-primary text-sf-on-primary text-[10px] font-bold uppercase tracking-wider">
-                      Primary
-                    </span>
-                  )}
-                </div>
-                <p className="font-sf-body text-sm text-sf-on-surface mt-1">{address.line}</p>
-                {address.landmark && <p className="font-sf-body text-xs text-sf-text-muted mt-0.5">{address.landmark}</p>}
-              </div>
+              <p className="font-sf-body text-sm text-sf-on-surface mt-1.5">{address.address}</p>
             </div>
-            {!isPrimary && (
-              <button
-                type="button"
-                onClick={() => onSetPrimary(address.id)}
-                className="h-9 px-3.5 rounded-lg bg-sf-surface-container hover:bg-sf-surface-container-high text-sf-on-surface font-sf-body text-xs font-semibold shrink-0 transition-colors cursor-pointer"
-              >
-                Set as primary
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => onDelete(address.id)}
+              disabled={deletingId === address.id}
+              aria-label="Remove address"
+              className="h-9 px-3.5 rounded-lg bg-sf-surface-container hover:bg-sf-error/10 hover:text-sf-error text-sf-on-surface font-sf-body text-xs font-semibold shrink-0 transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {deletingId === address.id ? "Removing…" : "Remove"}
+            </button>
           </Card>
-        );
-      })}
-      <p className="font-sf-body text-xs text-sf-text-muted">
-        You can add a new delivery address on the checkout page.
-      </p>
+        ))
+      )}
+
+      <Card className="p-5">
+        <label htmlFor="new-address" className="block font-sf-body text-xs font-semibold text-sf-on-surface mb-2">
+          Add a new address
+        </label>
+        <div className="flex gap-2">
+          <input
+            id="new-address"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            placeholder="Flat/house no., street, area, city"
+            className="w-full h-11 px-4 rounded-lg bg-sf-surface-container-low text-sf-on-surface font-sf-body text-sm placeholder:text-sf-text-muted focus:bg-sf-surface focus:outline-none focus:ring-2 focus:ring-sf-primary"
+          />
+          <button
+            type="button"
+            onClick={handleAdd}
+            disabled={adding || !draft.trim()}
+            className="px-5 h-11 rounded-lg bg-sf-primary hover:bg-sf-secondary text-sf-on-primary font-sf-body text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer shrink-0"
+          >
+            {adding ? "Saving…" : "Add"}
+          </button>
+        </div>
+        <p className="font-sf-body text-xs text-sf-text-muted mt-2">Up to 5 saved addresses.</p>
+      </Card>
     </div>
   );
 }

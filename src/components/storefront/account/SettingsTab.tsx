@@ -2,37 +2,30 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { toast } from "@/lib/toast";
 import { clearCustomerSession } from "@/lib/customerAuth";
 import { Card } from "./Card";
-import { EMAIL_PATTERN, isValidPhone, type Profile } from "@/lib/account";
+import type { RealProfile } from "@/lib/useAccountProfile";
 
 interface SettingsTabProps {
-  profile: Profile;
-  onSave: (profile: Profile) => void;
+  profile: RealProfile;
+  saving: boolean;
+  onSave: (fields: { name?: string; date_of_birth?: string; email?: string }) => Promise<boolean>;
 }
 
 const inputClass =
-  "w-full h-11 px-4 rounded-lg bg-sf-surface-container-low text-sf-on-surface font-sf-body text-sm placeholder:text-sf-text-muted focus:bg-sf-surface focus:outline-none focus:ring-2 focus:ring-sf-primary aria-[invalid=true]:ring-2 aria-[invalid=true]:ring-sf-error transition-all";
+  "w-full h-11 px-4 rounded-lg bg-sf-surface-container-low text-sf-on-surface font-sf-body text-sm placeholder:text-sf-text-muted focus:bg-sf-surface focus:outline-none focus:ring-2 focus:ring-sf-primary disabled:opacity-60 disabled:cursor-not-allowed transition-all";
 
-export function SettingsTab({ profile, onSave }: SettingsTabProps) {
+export function SettingsTab({ profile, saving, onSave }: SettingsTabProps) {
   const router = useRouter();
-  const [name, setName] = useState(profile.name);
-  const [phone, setPhone] = useState(profile.phone);
-  const [email, setEmail] = useState(profile.email);
-  const [touched, setTouched] = useState(false);
+  const [name, setName] = useState(profile.name ?? "");
+  const [dob, setDob] = useState(profile.date_of_birth ?? "");
+  const [email, setEmail] = useState(profile.email ?? "");
 
-  const nameValid = name.trim().length > 0;
-  const phoneValid = isValidPhone(phone);
-  const emailValid = EMAIL_PATTERN.test(email);
-  const dirty = name !== profile.name || phone !== profile.phone || email !== profile.email;
+  const dirty = name !== (profile.name ?? "") || dob !== (profile.date_of_birth ?? "") || email !== (profile.email ?? "");
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setTouched(true);
-    if (!nameValid || !phoneValid || !emailValid) return;
-    onSave({ ...profile, name: name.trim(), phone, email: email.trim() });
-    toast.success("Profile updated");
+    await onSave({ name: name.trim(), date_of_birth: dob || undefined, email: email.trim() });
   };
 
   function handleLogout() {
@@ -55,36 +48,37 @@ export function SettingsTab({ profile, onSave }: SettingsTabProps) {
             autoComplete="name"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            aria-invalid={touched && !nameValid}
             className={inputClass}
           />
-          {touched && !nameValid && <p className="font-sf-body text-xs text-sf-error mt-1">Enter your name.</p>}
         </div>
         <div>
           <label htmlFor="settings-phone" className="block font-sf-body text-xs font-semibold text-sf-on-surface mb-1">
             Mobile number
           </label>
-          <div className="relative">
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 font-sf-body text-sm text-sf-text-muted pointer-events-none">
-              +91
-            </span>
-            <input
-              id="settings-phone"
-              type="tel"
-              inputMode="numeric"
-              maxLength={10}
-              autoComplete="tel-national"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))}
-              aria-invalid={touched && !phoneValid}
-              className={`${inputClass} pl-12`}
-            />
-          </div>
-          {touched && !phoneValid && (
-            <p className="font-sf-body text-xs text-sf-error mt-1">Enter a valid 10-digit number.</p>
-          )}
+          <input
+            id="settings-phone"
+            type="tel"
+            value={profile.phone ? `+${profile.phone}` : ""}
+            disabled
+            className={inputClass}
+          />
+          <p className="font-sf-body text-xs text-sf-text-muted mt-1">
+            Your mobile number is how you log in and can&apos;t be changed here.
+          </p>
         </div>
         <div>
+          <label htmlFor="settings-dob" className="block font-sf-body text-xs font-semibold text-sf-on-surface mb-1">
+            Date of birth
+          </label>
+          <input
+            id="settings-dob"
+            type="date"
+            value={dob}
+            onChange={(e) => setDob(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
           <label htmlFor="settings-email" className="block font-sf-body text-xs font-semibold text-sf-on-surface mb-1">
             Email
           </label>
@@ -94,10 +88,8 @@ export function SettingsTab({ profile, onSave }: SettingsTabProps) {
             autoComplete="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            aria-invalid={touched && !emailValid}
             className={inputClass}
           />
-          {touched && !emailValid && <p className="font-sf-body text-xs text-sf-error mt-1">Enter a valid email address.</p>}
         </div>
         <div className="sm:col-span-2 flex items-center justify-between gap-2 pt-2">
           <button
@@ -111,12 +103,11 @@ export function SettingsTab({ profile, onSave }: SettingsTabProps) {
           <div className="flex items-center gap-2">
             <button
               type="button"
-              disabled={!dirty}
+              disabled={!dirty || saving}
               onClick={() => {
-                setName(profile.name);
-                setPhone(profile.phone);
-                setEmail(profile.email);
-                setTouched(false);
+                setName(profile.name ?? "");
+                setDob(profile.date_of_birth ?? "");
+                setEmail(profile.email ?? "");
               }}
               className="px-4 h-10 rounded-lg font-sf-body text-sm font-semibold text-sf-text-body hover:bg-sf-surface-container-high transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
@@ -124,10 +115,10 @@ export function SettingsTab({ profile, onSave }: SettingsTabProps) {
             </button>
             <button
               type="submit"
-              disabled={!dirty}
+              disabled={!dirty || saving}
               className="px-5 h-10 rounded-lg bg-sf-primary hover:bg-sf-secondary text-sf-on-primary font-sf-body text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
             >
-              Save changes
+              {saving ? "Saving…" : "Save changes"}
             </button>
           </div>
         </div>

@@ -2,13 +2,22 @@
 
 import { toast } from "@/lib/toast";
 import { Card } from "./Card";
-import { CREDITS_POINTS } from "@/lib/account";
+import { rupees } from "@/lib/foodOrders";
+import type { LoyaltyInfo } from "@/lib/useAccountLoyalty";
 
 interface CreditsCardProps {
+  loyalty: LoyaltyInfo;
   onOpenLedger: () => void;
 }
 
-export function CreditsCard({ onOpenLedger }: CreditsCardProps) {
+export function CreditsCard({ loyalty, onOpenLedger }: CreditsCardProps) {
+  // Real points->rupees conversion from this restaurant's own loyalty settings (redeem_points
+  // points = redeem_value_paise rupees) -- not the mock's 1pt=₹1 assumption.
+  const worthPaise =
+    loyalty.redeem_points && loyalty.redeem_value_paise
+      ? Math.floor(loyalty.points / loyalty.redeem_points) * loyalty.redeem_value_paise
+      : 0;
+
   return (
     <Card className="lg:col-span-3 p-6 flex flex-col justify-between">
       <div>
@@ -22,13 +31,12 @@ export function CreditsCard({ onOpenLedger }: CreditsCardProps) {
         </div>
         <div className="flex items-baseline gap-1 mt-1">
           <span className="font-sf-headline text-3xl font-bold text-sf-primary">
-            {CREDITS_POINTS.toLocaleString("en-IN")}
+            {loyalty.points.toLocaleString("en-IN")}
           </span>
           <span className="font-sf-body text-sm text-sf-text-muted font-medium">Pts</span>
         </div>
         <p className="font-sf-body text-xs text-sf-text-body mt-0.5">
-          Worth <strong className="text-sf-on-surface">₹{CREDITS_POINTS.toLocaleString("en-IN")}</strong> on upcoming
-          orders
+          Worth <strong className="text-sf-on-surface">{rupees(worthPaise)}</strong> on upcoming orders
         </p>
       </div>
       <div className="space-y-1 mt-4">
