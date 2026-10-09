@@ -15,7 +15,7 @@ export function OutletNoticeBar() {
     <div className="bg-sf-primary-light border-t border-sf-border-divider/50">
       <div className="max-w-7xl mx-auto px-4 sm:px-8 py-2 flex items-center justify-between text-sf-on-surface text-xs sm:text-sm font-sf-body">
         <Link
-          href={cart.branchId ? `/order/${cart.slug}?branch=${cart.branchId}` : `/order/${cart.slug}`}
+          href={cart.branchId ? `/order/${cart.slug}?branch=${cart.branchSlug ?? cart.branchId}` : `/order/${cart.slug}`}
           className="flex items-center gap-2 truncate hover:opacity-90 transition-opacity"
         >
           <span className="material-symbols-outlined text-sf-primary text-[18px] shrink-0">restaurant</span>

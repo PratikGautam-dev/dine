@@ -24,6 +24,9 @@ export type CartState = {
   // (today's behavior, unchanged) and reset back to null whenever the cart switches restaurants.
   branchId: string | null;
   branchName: string | null;
+  // The branch's readable slug (e.g. "bandra-west"), used for the URL instead of the opaque
+  // branchId -- null for a cart saved before this existed, or a branch somehow still without one.
+  branchSlug: string | null;
 };
 
 const STORAGE_KEY = "cart_v1";
@@ -33,6 +36,7 @@ const EMPTY_CART: CartState = {
   items: [],
   branchId: null,
   branchName: null,
+  branchSlug: null,
 };
 
 function loadCart(): CartState {
@@ -42,9 +46,9 @@ function loadCart(): CartState {
     if (!raw) return EMPTY_CART;
     const parsed = JSON.parse(raw);
     if (!parsed || !Array.isArray(parsed.items)) return EMPTY_CART;
-    // A cart saved before branchId/branchName existed simply doesn't have them -- backfill so
-    // every downstream read can trust the shape without an `?? null` at every call site.
-    return { branchId: null, branchName: null, ...parsed };
+    // A cart saved before branchId/branchName/branchSlug existed simply doesn't have them --
+    // backfill so every downstream read can trust the shape without an `?? null` at every call site.
+    return { branchId: null, branchName: null, branchSlug: null, ...parsed };
   } catch {
     return EMPTY_CART;
   }
@@ -63,7 +67,7 @@ type CartContextValue = {
   setQuantity: (menuItemId: string, quantity: number) => void;
   /** Multi-branch (migration 0053): records which location this cart's order will be placed
    * against -- called once the guest picks a branch on the restaurant page. */
-  setBranch: (branchId: string, branchName: string) => void;
+  setBranch: (branchId: string, branchName: string, branchSlug: string | null) => void;
   clearCart: () => void;
   subtotalPaise: number;
   itemCount: number;
@@ -90,14 +94,14 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       return cart.slug === null || cart.slug === slug || cart.items.length === 0;
     }
     function startNewCart(slug: string, restaurantName: string) {
-      setCart({ slug, restaurantName, items: [], branchId: null, branchName: null });
+      setCart({ slug, restaurantName, items: [], branchId: null, branchName: null, branchSlug: null });
     }
     function addItem(slug: string, restaurantName: string, item: Omit<CartItem, "quantity">) {
       setCart((prev) => {
         const base: CartState =
           prev.slug === slug
             ? prev
-            : { slug, restaurantName, items: [], branchId: null, branchName: null };
+            : { slug, restaurantName, items: [], branchId: null, branchName: null, branchSlug: null };
         const existing = base.items.find((i) => i.menu_item_id === item.menu_item_id);
         const items = existing
           ? base.items.map((i) =>
@@ -107,8 +111,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
         return { ...base, slug, restaurantName, items };
       });
     }
-    function setBranch(branchId: string, branchName: string) {
-      setCart((prev) => ({ ...prev, branchId, branchName }));
+    function setBranch(branchId: string, branchName: string, branchSlug: string | null) {
+      setCart((prev) => ({ ...prev, branchId, branchName, branchSlug }));
     }
     function setQuantity(menuItemId: string, quantity: number) {
       setCart((prev) => {

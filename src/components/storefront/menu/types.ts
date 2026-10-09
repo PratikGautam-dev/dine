@@ -3,7 +3,7 @@
 // OutletHeroCanvas/MenuSearchFilter/MenuGrid/StickyCheckoutBar components it
 // renders. No fake fields are invented here.
 
-export type Branch = { id: string; name: string; address_line: string | null; city: string | null };
+export type Branch = { id: string; slug: string | null; name: string; address_line: string | null; city: string | null };
 
 export type Restaurant = {
   hospital_id: number;

@@ -55,15 +55,17 @@ export default function RestaurantMenuPage() {
     };
   }, [slug]);
 
-  // `?branch=<id>` from the home page's per-branch outlet cards: pre-select it once data has
-  // loaded, same as tapping that branch on the picker screen would, so that screen is skipped.
+  // `?branch=<slug-or-id>` from the home page's per-branch outlet cards: pre-select it once data
+  // has loaded, same as tapping that branch on the picker screen would, so that screen is
+  // skipped. Matches the readable slug first (every new link uses it); falls back to the opaque
+  // id so an already-shared old-style link keeps working.
   useEffect(() => {
     if (!data || !branchParam || appliedBranchParam.current === branchParam) return;
-    const match = data.restaurant.branches.find((b) => b.id === branchParam);
+    const match = data.restaurant.branches.find((b) => b.slug === branchParam || b.id === branchParam);
     if (match) {
       appliedBranchParam.current = branchParam;
       if (cart.slug !== slug) startNewCart(slug, data.restaurant.name);
-      setBranch(match.id, match.name);
+      setBranch(match.id, match.name, match.slug);
       setPickedBranch(match);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -136,7 +138,7 @@ export default function RestaurantMenuPage() {
 
   function handleBranchPicked(b: Branch) {
     if (cart.slug !== slug) startNewCart(slug, restaurant.name);
-    setBranch(b.id, b.name);
+    setBranch(b.id, b.name, b.slug);
     setPickedBranch(b);
     setForceBranchPicker(false);
   }
