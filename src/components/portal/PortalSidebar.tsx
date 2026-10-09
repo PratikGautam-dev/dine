@@ -10,6 +10,7 @@ import {
   ChefHat,
   ClipboardList,
   Clock,
+  CreditCard,
   Globe,
   LayoutDashboard,
   LogIn,
@@ -47,8 +48,10 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // from. The `doctors` table/booking engine itself is untouched -- still real
 // infrastructure other tenant types in this fork use -- only this portal's
 // nav entry and dedicated page for it are gone.
-type NavGroup = "Home" | "Orders" | "Catalog" | "Customers" | "Workforce" | "Settings";
-const GROUP_ORDER: NavGroup[] = ["Home", "Orders", "Catalog", "Customers", "Workforce", "Settings"];
+type NavGroup = "Home" | "Sales Channels" | "Orders" | "Catalog" | "Customers" | "Workforce" | "Settings";
+const GROUP_ORDER: NavGroup[] = [
+  "Home", "Sales Channels", "Orders", "Catalog", "Customers", "Workforce", "Settings",
+];
 
 // Grouped so a long list scans quickly; a group whose items the person can't see is hidden entirely.
 const NAV_ITEMS: {
@@ -66,6 +69,37 @@ const NAV_ITEMS: {
     href: "/portal/dashboard",
     pageKey: "dashboard",
     group: "Home",
+  },
+  // Sales Channels: Online/WhatsApp are deep links into the SAME Food Orders page (?source=web /
+  // ?source=whatsapp), not separate pages -- that page already had a real per-order source
+  // (web/whatsapp) and a working filter for it; this just gives each channel its own sidebar
+  // entry and active-highlight instead of making staff find the dropdown themselves. Both reuse
+  // Food Orders' own food_orders pageKey (same permission, same underlying data). POS has no
+  // backend yet (no in-person order-entry flow exists anywhere in this app) -- its own page says
+  // so plainly rather than silently omitting the nav entry the mockup asked for.
+  {
+    key: "sales-online",
+    label: "Online",
+    icon: Globe,
+    href: "/portal/food-orders?source=web",
+    pageKey: "food_orders",
+    group: "Sales Channels",
+  },
+  {
+    key: "sales-pos",
+    label: "POS",
+    icon: CreditCard,
+    href: "/portal/channels/pos",
+    pageKey: "food_orders",
+    group: "Sales Channels",
+  },
+  {
+    key: "sales-whatsapp",
+    label: "WhatsApp",
+    icon: MessageCircle,
+    href: "/portal/food-orders?source=whatsapp",
+    pageKey: "food_orders",
+    group: "Sales Channels",
   },
   // A read-only composite view over bookings/orders/handoffs/tables -- own page key (portal/permissions.py's
   // PAGE_LIVE_OPERATIONS) so it can be shown/hidden per role independently of the four pages it draws from.

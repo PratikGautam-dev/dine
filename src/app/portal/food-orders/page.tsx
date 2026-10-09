@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   Bell,
@@ -135,6 +135,19 @@ export default function PortalFoodOrdersPage() {
   const [search, setSearch] = useState("");
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<number | null>(null);
+
+  // Sidebar's Sales Channels group (Online/WhatsApp) deep-links here with ?source=web|whatsapp
+  // instead of duplicating this whole page per channel -- read via window.location.search rather
+  // than next/navigation's useSearchParams(), which needs a <Suspense> boundary to statically
+  // prerender (this codebase already hit that exact build break once on the storefront's home
+  // page and fixed it the same way).
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const source = new URLSearchParams(window.location.search).get("source");
+    if (source === "web" || source === "whatsapp") setSourceFilter(source);
+  }, []);
+  const activeNavKey =
+    sourceFilter === "web" ? "sales-online" : sourceFilter === "whatsapp" ? "sales-whatsapp" : "food-orders";
 
   const viewCounts = useMemo(() => {
     const counts: Record<OrderView, number> = {
@@ -419,11 +432,17 @@ export default function PortalFoodOrdersPage() {
   );
 
   return (
-    <PortalShell hospital={hospital} active="food-orders">
+    <PortalShell hospital={hospital} active={activeNavKey}>
       <PageHeader
-        title="Food Orders"
+        title={sourceFilter === "web" ? "Online Orders" : sourceFilter === "whatsapp" ? "WhatsApp Orders" : "Food Orders"}
         icon={<ClipboardList size={22} />}
-        description="All your orders from WhatsApp — in one place."
+        description={
+          sourceFilter === "web"
+            ? "Orders placed through your online storefront."
+            : sourceFilter === "whatsapp"
+              ? "Orders placed through your WhatsApp ordering bot."
+              : "All your orders from WhatsApp and your online storefront — in one place."
+        }
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
