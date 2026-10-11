@@ -2,7 +2,7 @@
 
 **Frontend for Dine Connect — a WhatsApp table-reservation and food-ordering receptionist for restaurants.**
 
-The Next.js app: the public landing page, the guided restaurant-onboarding wizard, the restaurant-staff portal, and the platform-admin tenant pages. It talks to the Dine Connect API (hosted separately) entirely over JSON.
+The Next.js app: the public landing page, the guided restaurant-onboarding wizard, the restaurant-staff portal. Platform-admin lives in the separate `admin-dine` app. It talks to the Dine Connect API (hosted separately) entirely over JSON.
 
 Built with Next.js 16 (App Router) / React 19 / TypeScript / Tailwind v4.
 
@@ -22,8 +22,6 @@ Open [http://localhost:3000](http://localhost:3000). The app expects the API at 
 | Route                                       | What it is                                                                        |
 | ------------------------------------------- | --------------------------------------------------------------------------------- |
 | `/`                                         | Public landing page                                                               |
-| `/admin/onboard-hospital`                   | Guided multi-step wizard for onboarding a new restaurant                          |
-| `/admin/tenants`, `/admin/edit-tenant/[id]` | Platform-admin tenant list/edit                                                   |
 | `/portal/login`                             | Restaurant-staff login                                                            |
 | `/portal/dashboard`                         | Stat tiles, weekly trend, section breakdown, recent activity                      |
 | `/portal/appointments`                      | Reservation list + cancel/reschedule/reassign-table                               |
