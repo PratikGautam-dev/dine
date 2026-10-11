@@ -5,6 +5,7 @@ import {
   Calendar,
   Crown,
   FileText,
+  Filter,
   Mail,
   MapPin,
   Plus,
@@ -29,6 +30,7 @@ import { Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { FormSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
+import { Switch } from "@/components/ui/Switch";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -146,6 +148,7 @@ export default function PortalPatientsPage() {
   }, [patients, pickerSearch]);
 
   const [addOpen, setAddOpen] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [platinumOnly, setPlatinumOnly] = useState(false);
   const [tagFilter, setTagFilter] = useState("");
   const [minPoints, setMinPoints] = useState("");
@@ -167,6 +170,9 @@ export default function PortalPatientsPage() {
       }),
     [patients, platinumOnly, tagFilter, minPoints, minSpendRupees, minOrders],
   );
+  const activeFilterCount = [platinumOnly, tagFilter, minPoints, minSpendRupees, minOrders].filter(
+    Boolean,
+  ).length;
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   // "Customer Details" panel's Edit mode -- toggled by the pencil button
@@ -354,68 +360,19 @@ export default function PortalPatientsPage() {
             </div>
             <div className="mb-space-3 flex flex-wrap items-center gap-space-2">
               <Button
-                variant={platinumOnly ? "primary" : "secondary"}
+                variant={activeFilterCount > 0 ? "primary" : "secondary"}
                 size="md"
-                onClick={() => setPlatinumOnly((v) => !v)}
-                aria-pressed={platinumOnly}
+                onClick={() => setFiltersOpen((v) => !v)}
+                aria-pressed={filtersOpen}
               >
-                Platinum only
+                <Filter size={14} />
+                Filters
+                {activeFilterCount > 0 && (
+                  <span className="ml-1 flex h-5 w-5 items-center justify-center rounded-full bg-white/25 text-[11px] font-bold tabular-nums">
+                    {activeFilterCount}
+                  </span>
+                )}
               </Button>
-              <select
-                aria-label="Filter by tag"
-                value={tagFilter}
-                onChange={(e) => setTagFilter(e.target.value)}
-                className="h-11 rounded-md border border-line bg-card px-space-3 text-[13.5px] text-ink-900"
-              >
-                <option value="">All tags</option>
-                {allTags.map((tag) => (
-                  <option key={tag} value={tag}>
-                    {tag}
-                  </option>
-                ))}
-              </select>
-              <Input
-                type="number"
-                min={0}
-                placeholder="Min points"
-                aria-label="Minimum loyalty points"
-                value={minPoints}
-                onChange={(e) => setMinPoints(e.target.value)}
-                className="w-[130px]"
-              />
-              <Input
-                type="number"
-                min={0}
-                placeholder="Min spend ₹"
-                aria-label="Minimum total spend in rupees"
-                value={minSpendRupees}
-                onChange={(e) => setMinSpendRupees(e.target.value)}
-                className="w-[140px]"
-              />
-              <Input
-                type="number"
-                min={0}
-                placeholder="Min orders"
-                aria-label="Minimum total orders"
-                value={minOrders}
-                onChange={(e) => setMinOrders(e.target.value)}
-                className="w-[130px]"
-              />
-              {(platinumOnly || tagFilter || minPoints || minSpendRupees || minOrders) && (
-                <Button
-                  variant="secondary"
-                  size="md"
-                  onClick={() => {
-                    setPlatinumOnly(false);
-                    setTagFilter("");
-                    setMinPoints("");
-                    setMinSpendRupees("");
-                    setMinOrders("");
-                  }}
-                >
-                  Clear filters
-                </Button>
-              )}
             </div>
             {selectedPatients.length > 0 && (
               <PermissionGate page="patients" action="delete">
@@ -430,6 +387,80 @@ export default function PortalPatientsPage() {
               </PermissionGate>
             )}
           </div>
+
+          {filtersOpen && (
+            <Card className="mb-space-3 p-space-4">
+              <div className="grid grid-cols-1 gap-space-4 sm:grid-cols-2 lg:grid-cols-4">
+                <Field label="Loyalty tier">
+                  <label className="flex h-11 items-center gap-space-2 rounded-md border border-line bg-card px-space-3">
+                    <Switch checked={platinumOnly} onChange={() => setPlatinumOnly((v) => !v)} size="sm" />
+                    <Crown size={14} className="text-warning" />
+                    <span className="text-[13px] text-ink-700">Platinum members only</span>
+                  </label>
+                </Field>
+                <Field label="Tag" htmlFor="customers-tag-filter">
+                  <select
+                    id="customers-tag-filter"
+                    value={tagFilter}
+                    onChange={(e) => setTagFilter(e.target.value)}
+                    className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[13.5px] text-ink-900"
+                  >
+                    <option value="">All tags</option>
+                    {allTags.map((tag) => (
+                      <option key={tag} value={tag}>
+                        {tag}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label="Min. loyalty points" htmlFor="customers-min-points">
+                  <Input
+                    id="customers-min-points"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 100"
+                    value={minPoints}
+                    onChange={(e) => setMinPoints(e.target.value)}
+                  />
+                </Field>
+                <Field label="Min. total spend (₹)" htmlFor="customers-min-spend">
+                  <Input
+                    id="customers-min-spend"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 5000"
+                    value={minSpendRupees}
+                    onChange={(e) => setMinSpendRupees(e.target.value)}
+                  />
+                </Field>
+                <Field label="Min. total orders" htmlFor="customers-min-orders">
+                  <Input
+                    id="customers-min-orders"
+                    type="number"
+                    min={0}
+                    placeholder="e.g. 5"
+                    value={minOrders}
+                    onChange={(e) => setMinOrders(e.target.value)}
+                  />
+                </Field>
+              </div>
+              {activeFilterCount > 0 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPlatinumOnly(false);
+                    setTagFilter("");
+                    setMinPoints("");
+                    setMinSpendRupees("");
+                    setMinOrders("");
+                  }}
+                  className="text-[12.5px] font-semibold text-brand-600 hover:underline"
+                >
+                  Clear all filters
+                </button>
+              )}
+            </Card>
+          )}
 
           <Card className="p-space-4">
             {!patients ? (
