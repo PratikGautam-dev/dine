@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, Search } from "lucide-react";
+import { ArrowLeft, Crown, Gift, Mail, MapPin, Medal, Receipt, Search, ShoppingBag, Star } from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -11,12 +11,21 @@ import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Input";
 import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { StatTile } from "@/components/portal/StatTile";
+import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
+import { rupees } from "@/lib/foodOrders";
 import { TYPE_LABELS } from "@/hooks/useAppointments";
 import { usePatientDetail, type Visit } from "@/hooks/usePatientDetail";
 import { createVisitHistoryColumns, STATUS_LABELS } from "./_components/visit-history-columns";
+
+const LOYALTY_ICON: Record<string, typeof Crown> = {
+  Platinum: Crown,
+  Gold: Medal,
+  Silver: Star,
+};
 
 const TYPE_TAB_ORDER = [
   "all",
@@ -47,6 +56,12 @@ export default function PatientDetailPage() {
     setAddress,
     savingDemographics,
     handleSaveDemographics,
+    email,
+    setEmail,
+    notes,
+    setNotes,
+    savingProfile,
+    handleSaveProfile,
     savingStatus,
     handleSetStatus,
     visitSearch,
@@ -88,7 +103,8 @@ export default function PatientDetailPage() {
     );
   }
 
-  const { patient, visit_history } = data;
+  const { patient, visit_history, recent_orders } = data;
+  const LoyaltyIcon = patient.loyalty_tier ? LOYALTY_ICON[patient.loyalty_tier] ?? Star : null;
 
   const columns = createVisitHistoryColumns({
     followupPanelId,
@@ -243,9 +259,23 @@ export default function PatientDetailPage() {
           {(patient.name || patient.phone).trim().charAt(0).toUpperCase()}
         </div>
         <div className="min-w-0">
-          <h1 className="text-display !text-[24px]">{patient.name || patient.phone}</h1>
+          <div className="flex items-center gap-space-2">
+            <h1 className="text-display !text-[24px]">{patient.name || patient.phone}</h1>
+            {LoyaltyIcon && (
+              <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-tint px-space-2 py-0.5 text-[11px] font-bold text-warning">
+                <LoyaltyIcon size={12} /> {patient.loyalty_tier}
+              </span>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-space-2 text-[13px] text-ink-600">
-            <span>{patient.phone}</span>
+            <span className="flex items-center gap-1">
+              <WhatsAppIcon size={13} /> {patient.phone}
+            </span>
+            {patient.email && (
+              <span className="flex items-center gap-1">
+                <Mail size={13} className="text-ink-400" /> {patient.email}
+              </span>
+            )}
             {patient.patient_display_id && (
               <span className="rounded-full bg-brand-50 px-space-2 py-0.5 font-mono text-[11.5px] font-semibold text-brand-700">
                 {patient.patient_display_id}
@@ -262,8 +292,69 @@ export default function PatientDetailPage() {
 
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
+      <div className="mb-space-5 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+        <StatTile
+          label="Loyalty points"
+          value={patient.loyalty_points}
+          deltaPct={null}
+          icon={<Gift size={20} />}
+          tone="warning"
+          hint={patient.loyalty_tier || "Not enrolled"}
+        />
+        <StatTile
+          label="Total orders"
+          value={patient.total_orders}
+          deltaPct={null}
+          icon={<ShoppingBag size={20} />}
+          tone="info"
+          hint=""
+        />
+        <StatTile
+          label="Total spend"
+          value={rupees(patient.total_spend_paise)}
+          deltaPct={null}
+          icon={<Receipt size={20} />}
+          tone="success"
+          hint=""
+        />
+        <StatTile
+          label="Last purchase"
+          value={recent_orders[0] ? formatDate(recent_orders[0].created_at) : "—"}
+          deltaPct={null}
+          icon={<ShoppingBag size={20} />}
+          tone="violet"
+          hint=""
+        />
+      </div>
+
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[1fr_320px]">
         <div className="space-y-space-4">
+          <Card className="p-space-4">
+            <h3 className="text-label mb-space-3 font-bold text-ink-900">Recent transactions</h3>
+            {recent_orders.length === 0 ? (
+              <p className="py-space-4 text-center text-[13px] text-ink-400">No orders yet.</p>
+            ) : (
+              <div className="divide-y divide-line">
+                {recent_orders.map((o) => (
+                  <div key={o.id} className="flex items-center justify-between py-space-2 text-[13px]">
+                    <div>
+                      <p className="font-semibold text-ink-900">
+                        {o.public_id ? `#${o.public_id.slice(0, 8)}` : `Order ${o.id}`}
+                      </p>
+                      <p className="text-hint">
+                        {formatDate(o.created_at)} · {o.item_count} item{o.item_count === 1 ? "" : "s"}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-ink-900">{rupees(o.total_paise)}</p>
+                      <p className="text-hint capitalize">{o.status}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </Card>
+
           <Card className="p-space-4">
             <h3 className="text-label mb-space-3 font-bold text-ink-900">Visit history</h3>
 
@@ -392,6 +483,83 @@ export default function PatientDetailPage() {
             >
               {savingStatus ? "Saving…" : "Reactivate this guest"}
             </Button>
+          )}
+        </Card>
+
+        <Card className="h-fit p-space-4">
+          <h3 className="text-label mb-space-3 font-bold text-ink-900">Customer information</h3>
+          <Field label="Email" htmlFor="email">
+            <Input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Optional"
+            />
+          </Field>
+          <Field label="Notes" htmlFor="notes">
+            <Textarea
+              id="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              placeholder="Internal notes about this guest…"
+            />
+          </Field>
+          <Button
+            size="md"
+            onClick={handleSaveProfile}
+            disabled={savingProfile}
+            className="mb-space-3 w-full"
+          >
+            {savingProfile ? "Saving…" : "Save"}
+          </Button>
+
+          {(patient.dietary_preference || patient.allergies || patient.favorite_item) && (
+            <dl className="mb-space-3 space-y-space-2 border-t border-line pt-space-3 text-[12.5px]">
+              {patient.dietary_preference && (
+                <div className="flex justify-between gap-space-3">
+                  <dt className="text-ink-600">Dietary preference</dt>
+                  <dd className="font-semibold text-ink-900">{patient.dietary_preference}</dd>
+                </div>
+              )}
+              {patient.allergies && (
+                <div className="flex justify-between gap-space-3">
+                  <dt className="text-ink-600">Allergies</dt>
+                  <dd className="font-semibold text-error">{patient.allergies}</dd>
+                </div>
+              )}
+              {patient.favorite_item && (
+                <div className="flex justify-between gap-space-3">
+                  <dt className="text-ink-600">Favorite item</dt>
+                  <dd className="font-semibold text-ink-900">{patient.favorite_item}</dd>
+                </div>
+              )}
+            </dl>
+          )}
+
+          {patient.tags.length > 0 && (
+            <div className="mb-space-3 flex flex-wrap gap-space-1 border-t border-line pt-space-3">
+              {patient.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-paper px-space-2 py-0.5 text-[11.5px] font-semibold text-ink-700"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+
+          {patient.address && (
+            <a
+              href={`https://maps.google.com/?q=${encodeURIComponent(patient.address)}`}
+              target="_blank"
+              rel="noreferrer"
+              className="flex items-center gap-space-1 border-t border-line pt-space-3 text-[12.5px] font-semibold text-brand-600 hover:underline"
+            >
+              <MapPin size={13} /> View address on map
+            </a>
           )}
         </Card>
 

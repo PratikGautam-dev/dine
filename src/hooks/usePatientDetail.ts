@@ -12,6 +12,7 @@ function visitTypeBucket(v: { appointment_type_id: string | null }) {
 
 export type Patient = {
   id: number;
+  public_id: string;
   phone: string;
   name: string | null;
   patient_display_id: string | null;
@@ -22,6 +23,30 @@ export type Patient = {
   created_at: string;
   // CareConnect architecture doc alignment (Spec.md Section 0), Section 18.
   status: "active" | "blocked" | "inactive";
+  // Customers page (migration 0044): email/dietary_preference/allergies/notes are staff-editable.
+  // loyalty_tier/loyalty_points/total_orders/total_spend_paise/favorite_item/tags are maintained
+  // caches, written by paid orders -- same shape usePatients.ts's own PatientDetail already uses
+  // for the list page's side panel; this is the dedicated full-page view of the same record.
+  email: string | null;
+  dietary_preference: string | null;
+  allergies: string | null;
+  notes: string | null;
+  favorite_item: string | null;
+  loyalty_tier: string | null;
+  loyalty_points: number;
+  total_orders: number;
+  total_spend_paise: number;
+  tags: string[];
+  loyalty_tier_override: string | null;
+};
+
+export type RecentOrder = {
+  id: number;
+  public_id: string | null;
+  created_at: string;
+  status: string;
+  item_count: number;
+  total_paise: number;
 };
 
 export type Visit = {
@@ -55,7 +80,7 @@ export type Visit = {
   followup_override_until: string | null;
 };
 
-export type DetailData = { patient: Patient; visit_history: Visit[] };
+export type DetailData = { patient: Patient; visit_history: Visit[]; recent_orders: RecentOrder[] };
 
 /** Loads + owns every mutation on the /portal/patients/[id] detail page:
  * demographics save, active/blocked status, and follow-up extend/book.
@@ -71,6 +96,13 @@ export function usePatientDetail(patientId: string, ready: boolean) {
   const [gender, setGender] = useState("");
   const [address, setAddress] = useState("");
   const [savingDemographics, setSavingDemographics] = useState(false);
+
+  // CRM profile fields (same endpoint usePatients.ts's list-page side panel
+  // already uses: POST /api/portal/patients/{id}/profile) -- editable from
+  // the dedicated detail page's Customer Information card too.
+  const [email, setEmail] = useState("");
+  const [notes, setNotes] = useState("");
+  const [savingProfile, setSavingProfile] = useState(false);
 
   const [savingStatus, setSavingStatus] = useState(false);
 
@@ -109,6 +141,8 @@ export function usePatientDetail(patientId: string, ready: boolean) {
     setDob(d.patient.date_of_birth || "");
     setGender(d.patient.gender || "");
     setAddress(d.patient.address || "");
+    setEmail(d.patient.email || "");
+    setNotes(d.patient.notes || "");
   }, [router, patientId]);
 
   useEffect(() => {
@@ -145,6 +179,31 @@ export function usePatientDetail(patientId: string, ready: boolean) {
       load();
     } else if (!result.unauthorized) {
       toast.error("Couldn't save guest details", result.error);
+    }
+  }
+
+  async function handleSaveProfile() {
+    setSavingProfile(true);
+    // The backend route overwrites all 4 profile fields on every call ("empty
+    // string clears it" contract, see update_patient_profile_fields) -- send
+    // dietary_preference/allergies back unchanged so saving email/notes here
+    // doesn't silently wipe them.
+    const result = await portalFetch(`/api/portal/patients/${data?.patient.id}/profile`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        notes,
+        dietary_preference: data?.patient.dietary_preference || "",
+        allergies: data?.patient.allergies || "",
+      }),
+    });
+    setSavingProfile(false);
+    if (result.ok) {
+      toast.success("Customer details saved");
+      load();
+    } else if (!result.unauthorized) {
+      toast.error("Couldn't save customer details", result.error);
     }
   }
 
@@ -266,6 +325,12 @@ export function usePatientDetail(patientId: string, ready: boolean) {
     setAddress,
     savingDemographics,
     handleSaveDemographics,
+    email,
+    setEmail,
+    notes,
+    setNotes,
+    savingProfile,
+    handleSaveProfile,
     savingStatus,
     handleSetStatus,
     visitSearch,

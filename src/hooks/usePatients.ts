@@ -52,6 +52,15 @@ export type CustomerMessage = {
   created_at: string;
 };
 
+export type RecentOrder = {
+  id: number;
+  public_id: string | null;
+  created_at: string;
+  status: string;
+  item_count: number;
+  total_paise: number;
+};
+
 async function fetchPatients(search: string) {
   return portalFetch(`/api/portal/patients?search=${encodeURIComponent(search)}`);
 }
@@ -81,6 +90,7 @@ export function usePatients(ready: boolean) {
   // The "Customer Details" side panel's own selection -- distinct from `selected` above (row checkboxes).
   const [activeId, setActiveId] = useState<number | null>(null);
   const [profile, setProfile] = useState<PatientDetail | null>(null);
+  const [recentOrders, setRecentOrders] = useState<RecentOrder[] | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -162,6 +172,7 @@ export function usePatients(ready: boolean) {
     async (id: number) => {
       setActiveId(id);
       setProfile(null);
+      setRecentOrders(null);
       setLedger(null);
       setMessages(null);
       setProfileLoading(true);
@@ -172,7 +183,9 @@ export function usePatients(ready: boolean) {
         else toast.error("Couldn't load customer", result.error);
         return;
       }
-      setProfile((result.data as { patient: PatientDetail }).patient);
+      const data = result.data as { patient: PatientDetail; recent_orders: RecentOrder[] };
+      setProfile(data.patient);
+      setRecentOrders(data.recent_orders);
     },
     [router],
   );
@@ -180,6 +193,7 @@ export function usePatients(ready: boolean) {
   const closeProfile = () => {
     setActiveId(null);
     setProfile(null);
+    setRecentOrders(null);
     setLedger(null);
     setMessages(null);
   };
@@ -192,10 +206,44 @@ export function usePatients(ready: boolean) {
   }) => {
     if (activeId === null) return;
     setSavingProfile(true);
+    // The backend route overwrites all 4 profile fields on every call ("empty
+    // string clears it" contract) -- merge onto the currently-loaded profile
+    // so a caller that only wants to change one field (e.g. Add Note) doesn't
+    // silently wipe the others.
     const result = await portalFetch(`/api/portal/patients/${activeId}/profile`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(fields),
+      body: JSON.stringify({
+        email: profile?.email || "",
+        dietary_preference: profile?.dietary_preference || "",
+        allergies: profile?.allergies || "",
+        notes: profile?.notes || "",
+        ...fields,
+      }),
+    });
+    setSavingProfile(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't save", result.error);
+      return;
+    }
+    const updated = (result.data as { patient: PatientDetail }).patient;
+    setProfile(updated);
+    toast.success("Saved");
+    load(search);
+  };
+
+  const saveAddress = async (address: string) => {
+    if (activeId === null) return;
+    setSavingProfile(true);
+    const result = await portalFetch(`/api/portal/patients/${activeId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        date_of_birth: profile?.date_of_birth || "",
+        gender: profile?.gender || "",
+        address,
+      }),
     });
     setSavingProfile(false);
     if (!result.ok) {
@@ -314,11 +362,13 @@ export function usePatients(ready: boolean) {
     runDelete,
     activeId,
     profile,
+    recentOrders,
     profileLoading,
     savingProfile,
     openProfile,
     closeProfile,
     saveProfileFields,
+    saveAddress,
     creating,
     createCustomer,
     savingTags,

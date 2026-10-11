@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import {
   Calendar,
   Crown,
+  FileText,
   Mail,
   MapPin,
-  Medal,
   Plus,
+  Receipt,
   Repeat,
   Search,
   Star,
@@ -24,6 +25,7 @@ import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { DataTable } from "@/components/ui/DataTable";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
+import { Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { FormSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
@@ -61,12 +63,6 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 // The list API returns at most this many guests (most recently seen first).
 const DIRECTORY_LIMIT = 200;
 
-const LOYALTY_ICON: Record<string, typeof Crown> = {
-  Platinum: Crown,
-  Gold: Medal,
-  Silver: Star,
-};
-
 export default function PortalPatientsPage() {
   const { hospital, ready } = usePortalGuard();
   const {
@@ -86,11 +82,13 @@ export default function PortalPatientsPage() {
     runDelete,
     activeId,
     profile,
+    recentOrders,
     profileLoading,
     savingProfile,
     openProfile,
     closeProfile,
     saveProfileFields,
+    saveAddress,
     creating,
     createCustomer,
     savingTags,
@@ -143,8 +141,29 @@ export default function PortalPatientsPage() {
   );
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
-  const [noteDraft, setNoteDraft] = useState("");
-  const [addingNote, setAddingNote] = useState(false);
+  // "Customer Details" panel's Edit mode -- toggled by the pencil button
+  // next to the guest's name, editing email/address/notes together (the
+  // fields the reference CRM mockup's Edit action covers).
+  const [editingProfile, setEditingProfile] = useState(false);
+  const [editEmail, setEditEmail] = useState("");
+  const [editAddress, setEditAddress] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  function startEditProfile() {
+    if (!profile) return;
+    setEditEmail(profile.email || "");
+    setEditAddress(profile.address || "");
+    setEditNotes(profile.notes || "");
+    setEditingProfile(true);
+  }
+
+  async function handleSaveProfileEdit() {
+    await Promise.all([
+      saveProfileFields({ email: editEmail, notes: editNotes }),
+      saveAddress(editAddress),
+    ]);
+    setEditingProfile(false);
+  }
 
   const columns = useMemo(
     () =>
@@ -195,14 +214,6 @@ export default function PortalPatientsPage() {
       setNewName("");
       setNewPhone("");
     }
-  }
-
-  async function handleAddNote() {
-    if (!noteDraft.trim()) return;
-    setAddingNote(true);
-    await saveProfileFields({ notes: noteDraft.trim() });
-    setAddingNote(false);
-    setNoteDraft("");
   }
 
   return (
@@ -409,7 +420,10 @@ export default function PortalPatientsPage() {
                 columns={columns}
                 data={visiblePatients}
                 getRowId={(p) => String(p.id)}
-                onRowClick={(p) => openProfile(p.id)}
+                onRowClick={(p) => {
+                  setEditingProfile(false);
+                  openProfile(p.id);
+                }}
               />
             )}
           </Card>
@@ -427,7 +441,10 @@ export default function PortalPatientsPage() {
                 <h3 className="text-[15px] font-bold text-ink-900">Customer Details</h3>
                 <button
                   type="button"
-                  onClick={closeProfile}
+                  onClick={() => {
+                    setEditingProfile(false);
+                    closeProfile();
+                  }}
                   className="rounded-md p-1 text-ink-400 hover:bg-black/4 hover:text-ink-900"
                   aria-label="Close"
                 >
@@ -439,66 +456,166 @@ export default function PortalPatientsPage() {
                 <FormSkeleton fields={3} />
               ) : (
                 <>
-                  <div className="mb-space-4 flex items-center gap-space-3">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[16px] font-bold text-brand-700">
-                      {(profile.name || profile.phone).trim().charAt(0).toUpperCase()}
-                    </span>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-space-1">
-                        <p className="truncate text-[15px] font-bold text-ink-900">
-                          {profile.name || "Not registered yet"}
-                        </p>
-                        {profile.loyalty_tier &&
-                          (() => {
-                            const Icon = LOYALTY_ICON[profile.loyalty_tier] ?? Star;
-                            return (
-                              <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-tint px-space-2 py-0.5 text-[10.5px] font-bold text-warning">
-                                <Icon size={11} /> {profile.loyalty_tier}
-                              </span>
-                            );
-                          })()}
-                      </div>
-                      <p className="text-[12px] text-ink-600">
-                        {profile.total_orders} orders ·{" "}
-                        {profile.patient_display_id || `#${profile.id}`}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="mb-space-4 space-y-space-2 text-[13px]">
-                    <p className="flex items-center gap-space-2 text-ink-700">
-                      <WhatsAppIcon size={14} /> {profile.phone}
-                    </p>
-                    {profile.email && (
-                      <p className="flex items-center gap-space-2 text-ink-700">
-                        <Mail size={14} className="text-ink-400" /> {profile.email}
-                      </p>
-                    )}
-                    {profile.address && (
-                      <p className="flex items-center gap-space-2 text-ink-700">
-                        <MapPin size={14} className="text-ink-400" /> {profile.address}
-                      </p>
-                    )}
-                  </div>
-
-                  {profile.loyalty_tier && (
-                    <div className="mb-space-4 flex items-center justify-between rounded-lg bg-paper px-space-3 py-space-3">
-                      <div>
-                        <p className="text-[11px] font-semibold text-ink-600">LOYALTY POINTS</p>
-                        <p className="text-[20px] font-bold tabular-nums text-ink-900">
-                          {profile.loyalty_points}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[11px] font-semibold text-ink-600">MEMBER SINCE</p>
-                        <p className="text-[12.5px] font-semibold text-ink-900">
-                          {formatDate(profile.created_at)}
+                  <div className="mb-space-4 flex items-start justify-between gap-space-2">
+                    <div className="flex items-center gap-space-3">
+                      <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[16px] font-bold text-brand-700">
+                        {(profile.name || profile.phone).trim().charAt(0).toUpperCase()}
+                      </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-space-1">
+                          <p className="truncate text-[15px] font-bold text-ink-900">
+                            {profile.name || "Not registered yet"}
+                          </p>
+                          {profile.loyalty_tier === "Platinum" && (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-warning-tint px-space-2 py-0.5 text-[10.5px] font-bold text-warning">
+                              VIP Customer
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[12px] text-ink-600">
+                          {profile.total_orders} orders ·{" "}
+                          {profile.patient_display_id || `#${profile.id}`}
                         </p>
                       </div>
                     </div>
-                  )}
+                    <PermissionGate page="patients" action="write">
+                      {!editingProfile && (
+                        <Button size="md" variant="secondary" onClick={startEditProfile}>
+                          Edit
+                        </Button>
+                      )}
+                    </PermissionGate>
+                  </div>
 
-                  <dl className="mb-space-4 space-y-space-2 text-[12.5px]">
+                  <div className="mb-space-4 grid grid-cols-3 gap-space-2">
+                    <div className="rounded-lg bg-warning-tint p-space-3 text-center">
+                      <Star size={16} className="mx-auto mb-1 text-warning" />
+                      <p className="text-[17px] font-bold tabular-nums text-ink-900">
+                        {profile.loyalty_points}
+                      </p>
+                      <p className="text-[10.5px] font-semibold text-ink-600">Loyalty Points</p>
+                    </div>
+                    <div className="rounded-lg bg-info-tint p-space-3 text-center">
+                      <Receipt size={16} className="mx-auto mb-1 text-info" />
+                      <p className="text-[17px] font-bold tabular-nums text-ink-900">
+                        {profile.total_orders}
+                      </p>
+                      <p className="text-[10.5px] font-semibold text-ink-600">Total Orders</p>
+                    </div>
+                    <div className="rounded-lg bg-accent-violet-tint p-space-3 text-center">
+                      <Calendar size={16} className="mx-auto mb-1 text-accent-violet" />
+                      <p className="text-[13px] font-bold text-ink-900">
+                        {formatDate(recentOrders?.[0]?.created_at ?? profile.last_visit)}
+                      </p>
+                      <p className="text-[10.5px] font-semibold text-ink-600">Last Purchase</p>
+                    </div>
+                  </div>
+
+                  <div className="mb-space-4">
+                    <h4 className="mb-space-2 text-[12px] font-bold text-ink-900">
+                      Customer Information
+                    </h4>
+                    <div className="space-y-space-2 text-[13px]">
+                      <p className="flex items-center gap-space-2 text-ink-700">
+                        <UserRound size={14} className="text-ink-400" /> {profile.name || "—"}
+                      </p>
+                      <p className="flex items-center gap-space-2 text-ink-700">
+                        <WhatsAppIcon size={14} /> {profile.phone}
+                      </p>
+
+                      {editingProfile ? (
+                        <>
+                          <div className="flex items-center gap-space-2">
+                            <Mail size={14} className="shrink-0 text-ink-400" />
+                            <Input
+                              value={editEmail}
+                              onChange={(e) => setEditEmail(e.target.value)}
+                              placeholder="Email"
+                              className="text-[12.5px]"
+                            />
+                          </div>
+                          <div className="flex items-start gap-space-2">
+                            <MapPin size={14} className="mt-2 shrink-0 text-ink-400" />
+                            <Textarea
+                              value={editAddress}
+                              onChange={(e) => setEditAddress(e.target.value)}
+                              rows={2}
+                              placeholder="Address"
+                              className="text-[12.5px]"
+                            />
+                          </div>
+                          <div>
+                            <p className="mb-space-1 flex items-center gap-space-2 text-[11px] font-semibold text-ink-600">
+                              <FileText size={12} /> Notes
+                            </p>
+                            <Textarea
+                              value={editNotes}
+                              onChange={(e) => setEditNotes(e.target.value)}
+                              rows={3}
+                              placeholder="Internal notes about this guest…"
+                              className="text-[12.5px]"
+                            />
+                          </div>
+                          <div className="flex gap-space-2 pt-space-1">
+                            <Button
+                              size="md"
+                              onClick={handleSaveProfileEdit}
+                              disabled={savingProfile}
+                            >
+                              {savingProfile ? "Saving…" : "Save"}
+                            </Button>
+                            <Button
+                              size="md"
+                              variant="secondary"
+                              onClick={() => setEditingProfile(false)}
+                              disabled={savingProfile}
+                            >
+                              Cancel
+                            </Button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          {profile.email && (
+                            <p className="flex items-center gap-space-2 text-ink-700">
+                              <Mail size={14} className="text-ink-400" /> {profile.email}
+                            </p>
+                          )}
+                          {profile.address && (
+                            <div className="flex items-start justify-between gap-space-2">
+                              <p className="flex items-start gap-space-2 text-ink-700">
+                                <MapPin size={14} className="mt-0.5 shrink-0 text-ink-400" />{" "}
+                                {profile.address}
+                              </p>
+                              <a
+                                href={`https://maps.google.com/?q=${encodeURIComponent(profile.address)}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="shrink-0 text-[11.5px] font-semibold whitespace-nowrap text-brand-600 hover:underline"
+                              >
+                                View on Map
+                              </a>
+                            </div>
+                          )}
+                          <div>
+                            <p className="mb-space-1 flex items-center gap-space-2 text-[11px] font-semibold text-ink-600">
+                              <FileText size={12} /> Notes
+                            </p>
+                            <p
+                              className={cn(
+                                "rounded-lg bg-paper p-space-3 text-[12.5px]",
+                                profile.notes ? "text-ink-700" : "text-ink-400",
+                              )}
+                            >
+                              {profile.notes || "No notes yet."}
+                            </p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </div>
+
+                  <dl className="mb-space-4 space-y-space-2 border-t border-line pt-space-3 text-[12.5px]">
                     {profile.dietary_preference && (
                       <div className="flex justify-between gap-space-3">
                         <dt className="text-ink-600">Dietary preference</dt>
@@ -518,33 +635,48 @@ export default function PortalPatientsPage() {
                       </div>
                     )}
                     <div className="flex justify-between gap-space-3">
-                      <dt className="text-ink-600">Preferred channel</dt>
-                      <dd className="flex items-center gap-1 font-semibold text-ink-900">
-                        <WhatsAppIcon size={12} /> WhatsApp
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-space-3">
                       <dt className="text-ink-600">Total spend</dt>
                       <dd className="font-semibold text-ink-900">
                         {rupees(profile.total_spend_paise)}
                       </dd>
                     </div>
-                    <div className="flex justify-between gap-space-3">
-                      <dt className="text-ink-600">Last visit</dt>
-                      <dd className="font-semibold text-ink-900">
-                        {formatDate(profile.last_visit)}
-                      </dd>
-                    </div>
                   </dl>
 
-                  {profile.notes && (
-                    <div className="mb-space-4 rounded-lg bg-paper p-space-3">
-                      <p className="mb-space-1 text-[11px] font-semibold text-ink-600">NOTES</p>
-                      <p className="text-[12.5px] text-ink-700">{profile.notes}</p>
+                  <div className="mb-space-4">
+                    <div className="mb-space-2 flex items-center justify-between">
+                      <h4 className="text-[12px] font-bold text-ink-900">Recent Transactions</h4>
+                      <Link
+                        href={`/portal/patients/${profile.public_id}`}
+                        className="text-[11.5px] font-semibold text-brand-600 hover:underline"
+                      >
+                        View All &gt;
+                      </Link>
                     </div>
-                  )}
+                    {!recentOrders || recentOrders.length === 0 ? (
+                      <p className="py-space-3 text-center text-[12.5px] text-ink-400">
+                        No orders yet.
+                      </p>
+                    ) : (
+                      <div className="divide-y divide-line">
+                        {recentOrders.slice(0, 5).map((o) => (
+                          <div
+                            key={o.id}
+                            className="flex items-center justify-between py-space-2 text-[12.5px]"
+                          >
+                            <div className="min-w-0">
+                              <p className="font-semibold text-ink-900">{formatDate(o.created_at)}</p>
+                              <p className="text-hint">
+                                {o.item_count} item{o.item_count === 1 ? "" : "s"}
+                              </p>
+                            </div>
+                            <p className="font-semibold text-ink-900">{rupees(o.total_paise)}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
 
-                  <div className="mb-space-4 grid grid-cols-2 gap-space-2">
+                  <div className="grid grid-cols-2 gap-space-2">
                     <a
                       href={`https://wa.me/${profile.phone.replace(/[^\d]/g, "")}`}
                       target="_blank"
@@ -560,30 +692,6 @@ export default function PortalPatientsPage() {
                       View History
                     </Link>
                   </div>
-
-                  <PermissionGate page="patients" action="write">
-                    <div className="border-t border-line pt-space-3">
-                      <label className="mb-space-1 block text-[11px] font-semibold text-ink-600">
-                        ADD NOTE
-                      </label>
-                      <div className="flex gap-space-2">
-                        <Input
-                          value={noteDraft}
-                          onChange={(e) => setNoteDraft(e.target.value)}
-                          placeholder="Write a note about this guest…"
-                          className="text-[12.5px]"
-                        />
-                        <Button
-                          size="md"
-                          variant="secondary"
-                          onClick={handleAddNote}
-                          disabled={addingNote || savingProfile || !noteDraft.trim()}
-                        >
-                          {addingNote ? "…" : "Save"}
-                        </Button>
-                      </div>
-                    </div>
-                  </PermissionGate>
                 </>
               )}
             </Card>
@@ -616,7 +724,10 @@ export default function PortalPatientsPage() {
                   <li key={p.id}>
                     <button
                       type="button"
-                      onClick={() => openProfile(p.id)}
+                      onClick={() => {
+                        setEditingProfile(false);
+                        openProfile(p.id);
+                      }}
                       className="flex w-full items-center gap-space-3 py-space-2 text-left hover:opacity-80"
                     >
                       <span className="w-5 text-[12px] font-semibold text-ink-400">{i + 1}</span>
