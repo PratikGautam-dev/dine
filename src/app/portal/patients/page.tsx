@@ -41,9 +41,13 @@ import { rupees } from "@/lib/foodOrders";
 import { usePatients, type Patient } from "@/hooks/usePatients";
 import { useCustomerSegments } from "@/hooks/useCustomerSegments";
 import { useCustomerAnalytics } from "@/hooks/useCustomerAnalytics";
+import { useLoyaltyProgram } from "@/hooks/useLoyaltyProgram";
+import { useCampaigns } from "@/hooks/useCampaigns";
 import { createPatientColumns } from "./_components/patients-columns";
 import { CustomerPicker } from "./_components/customer-picker";
 import { TagsPanel } from "./_components/tags-panel";
+import { TagDirectory } from "./_components/tag-directory";
+import { CampaignsPanel } from "./_components/campaigns-panel";
 import { LoyaltyPanel } from "./_components/loyalty-panel";
 import { CommunicationPanel } from "./_components/communication-panel";
 import { SegmentsPanel } from "./_components/segments-panel";
@@ -55,6 +59,7 @@ const TABS = [
   { id: "tags", label: "Tags" },
   { id: "communication", label: "Communication" },
   { id: "segments", label: "Segments" },
+  { id: "campaigns", label: "Campaigns" },
   { id: "analytics", label: "Analytics" },
 ] as const;
 type TabId = (typeof TABS)[number]["id"];
@@ -93,6 +98,9 @@ export default function PortalPatientsPage() {
     createCustomer,
     savingTags,
     saveTags,
+    tagActionLoading,
+    renameTag,
+    deleteTagEverywhere,
     savingTierOverride,
     setTierOverride,
     ledger,
@@ -103,9 +111,29 @@ export default function PortalPatientsPage() {
     loadMessages,
   } = usePatients(ready);
 
-  const { segments, creating: creatingSegment, createSegment, deletingId, deleteSegment } =
-    useCustomerSegments(ready);
+  const {
+    segments,
+    creating: creatingSegment,
+    createSegment,
+    updatingId: updatingSegmentId,
+    updateSegment,
+    deletingId,
+    deleteSegment,
+    viewingMembersId,
+    members: segmentMembers,
+    membersLoading: segmentMembersLoading,
+    loadMembers: loadSegmentMembers,
+    closeMembers: closeSegmentMembers,
+  } = useCustomerSegments(ready);
   const { analytics } = useCustomerAnalytics(ready);
+  const { program: loyaltyProgram } = useLoyaltyProgram(ready);
+  const {
+    campaigns,
+    creating: creatingCampaign,
+    createCampaign,
+    uploadingImage: uploadingCampaignImage,
+    uploadImage: uploadCampaignImage,
+  } = useCampaigns(ready);
 
   const [tab, setTab] = useState<TabId>("all");
   const [pickerSearch, setPickerSearch] = useState("");
@@ -751,6 +779,16 @@ export default function PortalPatientsPage() {
         </div>
       )}
 
+      {tab === "tags" && (
+        <TagDirectory
+          directory={directory}
+          tagActionLoading={tagActionLoading}
+          onRenameTag={renameTag}
+          onDeleteTag={deleteTagEverywhere}
+          onSelectCustomer={openProfile}
+        />
+      )}
+
       {(tab === "loyalty" || tab === "tags" || tab === "communication") && (
         <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[280px_1fr]">
           <CustomerPicker
@@ -775,9 +813,16 @@ export default function PortalPatientsPage() {
                 ledger={ledger}
                 ledgerLoading={ledgerLoading}
                 onLoadLedger={loadLedger}
+                program={loyaltyProgram}
               />
             ) : tab === "tags" ? (
-              <TagsPanel profile={profile} profileLoading={profileLoading} saving={savingTags} onSave={saveTags} />
+              <TagsPanel
+                profile={profile}
+                profileLoading={profileLoading}
+                saving={savingTags}
+                onSave={saveTags}
+                directory={directory}
+              />
             ) : (
               <CommunicationPanel
                 profile={profile}
@@ -796,8 +841,31 @@ export default function PortalPatientsPage() {
           segments={segments}
           creating={creatingSegment}
           onCreate={createSegment}
+          updatingId={updatingSegmentId}
+          onUpdate={updateSegment}
           deletingId={deletingId}
           onDelete={deleteSegment}
+          viewingMembersId={viewingMembersId}
+          members={segmentMembers}
+          membersLoading={segmentMembersLoading}
+          onViewMembers={loadSegmentMembers}
+          onCloseMembers={closeSegmentMembers}
+        />
+      )}
+
+      {tab === "campaigns" && (
+        <CampaignsPanel
+          directory={directory}
+          segments={segments}
+          segmentMembers={segmentMembers}
+          segmentMembersLoading={segmentMembersLoading}
+          onLoadSegmentMembers={loadSegmentMembers}
+          campaigns={campaigns}
+          creating={creatingCampaign}
+          onCreateCampaign={createCampaign}
+          uploadingImage={uploadingCampaignImage}
+          onUploadImage={uploadCampaignImage}
+          restaurantName={hospital?.name ?? ""}
         />
       )}
 

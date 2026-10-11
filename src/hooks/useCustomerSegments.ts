@@ -27,6 +27,17 @@ export type NewSegmentFields = {
   platinum_only?: boolean;
 };
 
+export type SegmentMember = {
+  id: number;
+  name: string | null;
+  phone: string;
+  email: string | null;
+  loyalty_tier: string | null;
+  loyalty_points: number;
+  total_orders: number;
+  total_spend_paise: number;
+};
+
 /** Customers page's Segments tab -- named, saved filters, member counts computed live by the
  * backend on every load (never stored), same "derive, don't duplicate" shape list_segments()'s
  * own docstring explains. */
@@ -36,6 +47,10 @@ export function useCustomerSegments(ready: boolean) {
   const [error, setError] = useState<string | null>(null);
   const [creating, setCreating] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [viewingMembersId, setViewingMembersId] = useState<number | null>(null);
+  const [members, setMembers] = useState<SegmentMember[] | null>(null);
+  const [membersLoading, setMembersLoading] = useState(false);
 
   const load = useCallback(async () => {
     const result = await portalFetch("/api/portal/patients/segments");
@@ -69,6 +84,43 @@ export function useCustomerSegments(ready: boolean) {
     return true;
   };
 
+  const updateSegment = async (id: number, fields: Partial<NewSegmentFields>): Promise<boolean> => {
+    setUpdatingId(id);
+    const result = await portalFetch(`/api/portal/patients/segments/${id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    setUpdatingId(null);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't save segment", result.error);
+      return false;
+    }
+    toast.success("Segment updated");
+    load();
+    return true;
+  };
+
+  const loadMembers = async (id: number) => {
+    setViewingMembersId(id);
+    setMembers(null);
+    setMembersLoading(true);
+    const result = await portalFetch(`/api/portal/patients/segments/${id}/members`);
+    setMembersLoading(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't load segment members", result.error);
+      return;
+    }
+    setMembers((result.data as { members: SegmentMember[] }).members);
+  };
+
+  const closeMembers = () => {
+    setViewingMembersId(null);
+    setMembers(null);
+  };
+
   const deleteSegment = async (id: number) => {
     setDeletingId(id);
     const result = await portalFetch(`/api/portal/patients/segments/${id}/delete`, { method: "POST" });
@@ -82,5 +134,19 @@ export function useCustomerSegments(ready: boolean) {
     setSegments((prev) => (prev ? prev.filter((s) => s.id !== id) : prev));
   };
 
-  return { segments, error, creating, createSegment, deletingId, deleteSegment };
+  return {
+    segments,
+    error,
+    creating,
+    createSegment,
+    updatingId,
+    updateSegment,
+    deletingId,
+    deleteSegment,
+    viewingMembersId,
+    members,
+    membersLoading,
+    loadMembers,
+    closeMembers,
+  };
 }

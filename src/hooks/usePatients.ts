@@ -95,6 +95,7 @@ export function usePatients(ready: boolean) {
   const [savingProfile, setSavingProfile] = useState(false);
   const [creating, setCreating] = useState(false);
   const [savingTags, setSavingTags] = useState(false);
+  const [tagActionLoading, setTagActionLoading] = useState<string | null>(null);
   const [savingTierOverride, setSavingTierOverride] = useState(false);
   const [ledger, setLedger] = useState<LoyaltyTransaction[] | null>(null);
   const [ledgerLoading, setLedgerLoading] = useState(false);
@@ -297,6 +298,48 @@ export function usePatients(ready: boolean) {
     return true;
   };
 
+  /** Tags tab's tag directory -- renames/removes a tag across every customer who has it, instead
+   * of staff editing each customer's tag list by hand one at a time. */
+  const renameTag = async (oldTag: string, newTag: string): Promise<boolean> => {
+    setTagActionLoading(oldTag);
+    const result = await portalFetch("/api/portal/patients/tags/rename", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ old_tag: oldTag, new_tag: newTag }),
+    });
+    setTagActionLoading(null);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't rename tag", result.error);
+      return false;
+    }
+    const { updated_count } = result.data as { updated_count: number };
+    toast.success(`Renamed on ${updated_count} customer${updated_count === 1 ? "" : "s"}`);
+    load(search);
+    if (activeId !== null) openProfile(activeId);
+    return true;
+  };
+
+  const deleteTagEverywhere = async (tag: string): Promise<boolean> => {
+    setTagActionLoading(tag);
+    const result = await portalFetch("/api/portal/patients/tags/delete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tag }),
+    });
+    setTagActionLoading(null);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't delete tag", result.error);
+      return false;
+    }
+    const { updated_count } = result.data as { updated_count: number };
+    toast.success(`Removed from ${updated_count} customer${updated_count === 1 ? "" : "s"}`);
+    load(search);
+    if (activeId !== null) openProfile(activeId);
+    return true;
+  };
+
   /** Loyalty tab's tier-override control -- null clears it, going back to automatic. */
   const setTierOverride = async (tierOverride: string | null): Promise<boolean> => {
     if (activeId === null) return false;
@@ -373,6 +416,9 @@ export function usePatients(ready: boolean) {
     createCustomer,
     savingTags,
     saveTags,
+    tagActionLoading,
+    renameTag,
+    deleteTagEverywhere,
     savingTierOverride,
     setTierOverride,
     ledger,

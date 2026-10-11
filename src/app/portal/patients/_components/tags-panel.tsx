@@ -9,23 +9,26 @@ import { Input } from "@/components/ui/Input";
 import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { CustomerHeader } from "./customer-header";
-import type { PatientDetail } from "@/hooks/usePatients";
+import type { Patient, PatientDetail } from "@/hooks/usePatients";
 
-const SUGGESTED_TAGS = ["VIP", "Regular", "Frequent Buyer", "New Customer"];
+const STARTER_TAGS = ["VIP", "Regular", "Frequent Buyer", "New Customer"];
 
-/** Customers page's Tags tab -- the editor for one selected customer's tag list. A real tag
- * CRUD UI, not just the free-form list patients.tags used to be before this session (set via
- * POST /api/portal/patients/{id}/tags, which dedupes/trims server-side too). */
+/** Customers page's Tags tab -- the editor for one selected customer's tag list, shown below the
+ * restaurant-wide TagDirectory. A real tag CRUD UI, not just the free-form list patients.tags
+ * used to be before this session (set via POST /api/portal/patients/{id}/tags, which
+ * dedupes/trims server-side too). */
 export function TagsPanel({
   profile,
   profileLoading,
   saving,
   onSave,
+  directory,
 }: {
   profile: PatientDetail | null;
   profileLoading: boolean;
   saving: boolean;
   onSave: (tags: string[]) => Promise<boolean>;
+  directory: Patient[] | null;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -41,7 +44,18 @@ export function TagsPanel({
   // that needs a restart to load the new /tags route and the tags field on the detail response)
   // would otherwise crash this tab outright instead of just showing an empty tag list.
   const tags = profile.tags ?? [];
-  const suggestions = SUGGESTED_TAGS.filter((s) => !tags.some((t) => t.toLowerCase() === s.toLowerCase()));
+
+  // Quick-add pulls from this restaurant's own most-used real tags (the same tag directory
+  // shown above) instead of a fixed demo list -- falling back to generic starters only while
+  // the restaurant hasn't tagged anyone yet.
+  const tagCounts = new Map<string, number>();
+  for (const p of directory ?? []) {
+    for (const tag of p.tags ?? []) tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
+  }
+  const realTags = [...tagCounts.entries()].sort((a, b) => b[1] - a[1]).map(([tag]) => tag);
+  const suggestions = (realTags.length > 0 ? realTags : STARTER_TAGS)
+    .filter((s) => !tags.some((t) => t.toLowerCase() === s.toLowerCase()))
+    .slice(0, 6);
 
   function addTagValue(tag: string) {
     const trimmed = tag.trim();
