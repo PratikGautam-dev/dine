@@ -43,8 +43,8 @@ function nextTierProgress(profile: PatientDetail, program: LoyaltyProgram) {
 }
 
 /** Customers page's Loyalty tab -- points balance, spend-to-next-tier progress, this
- * restaurant's own program rules (read-only -- editing lives on the Settings page), the staff
- * tier-override control, and the real earn/redeem ledger (loyalty_transactions). */
+ * restaurant's own program rules, the staff tier-override control, and the real earn/redeem
+ * ledger (loyalty_transactions). Program editing lives alongside this tab's customer details. */
 export function LoyaltyPanel({
   profile,
   profileLoading,

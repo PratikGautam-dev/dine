@@ -35,6 +35,7 @@ import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
+import { LoyaltySettingsDialog } from "@/components/portal/LoyaltySettingsDialog";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
@@ -44,6 +45,7 @@ import { usePatients, type Patient } from "@/hooks/usePatients";
 import { useCustomerSegments } from "@/hooks/useCustomerSegments";
 import { useCustomerAnalytics } from "@/hooks/useCustomerAnalytics";
 import { useLoyaltyProgram } from "@/hooks/useLoyaltyProgram";
+import { useLoyaltySettings } from "@/hooks/useLoyaltySettings";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { createPatientColumns } from "./_components/patients-columns";
 import { CustomerPicker } from "./_components/customer-picker";
@@ -72,6 +74,9 @@ const DIRECTORY_LIMIT = 200;
 
 export default function PortalPatientsPage() {
   const { hospital, ready } = usePortalGuard();
+  const { settings: loyaltySettings, saving: loyaltySaving, update: updateLoyaltySettings } =
+    useLoyaltySettings(ready);
+  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const {
     patients,
     directory,
@@ -867,6 +872,51 @@ export default function PortalPatientsPage() {
         </div>
       )}
 
+      {tab === "loyalty" && (
+        <Card className="mt-space-4 p-space-4">
+          <div className="flex flex-wrap items-center justify-between gap-space-3">
+            <div>
+              <h3 className="text-[15px] font-bold text-ink-900">Loyalty program settings</h3>
+              <p className="text-hint">Configure earning, redemption, and tier benefits for your customers.</p>
+            </div>
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={!loyaltySettings}
+              onClick={() => setLoyaltyDialogOpen(true)}
+            >
+              Edit settings
+            </Button>
+          </div>
+          {loyaltySettings && (
+            <div className="mt-space-4 grid grid-cols-2 gap-space-3 text-[13px] sm:grid-cols-4">
+              <div>
+                <p className="text-label mb-0.5 font-medium text-ink-600">Points</p>
+                <p className="text-ink-900">{loyaltySettings.enabled ? "On" : "Off"}</p>
+              </div>
+              <div>
+                <p className="text-label mb-0.5 font-medium text-ink-600">Earn rate</p>
+                <p className="text-ink-900">1 point per ₹{loyaltySettings.paise_per_point / 100}</p>
+              </div>
+              <div>
+                <p className="text-label mb-0.5 font-medium text-ink-600">Tier thresholds</p>
+                <p className="text-ink-900">
+                  ₹{(loyaltySettings.silver_spend_threshold_paise / 100).toLocaleString("en-IN")} /{" "}
+                  ₹{(loyaltySettings.gold_spend_threshold_paise / 100).toLocaleString("en-IN")} /{" "}
+                  ₹{(loyaltySettings.platinum_spend_threshold_paise / 100).toLocaleString("en-IN")}
+                </p>
+              </div>
+              <div>
+                <p className="text-label mb-0.5 font-medium text-ink-600">Redemption</p>
+                <p className="text-ink-900">
+                  {loyaltySettings.redeem_points} points = ₹{loyaltySettings.redeem_value_paise / 100} off
+                </p>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
+
       {tab === "segments" && (
         <SegmentsPanel
           segments={segments}
@@ -982,6 +1032,14 @@ export default function PortalPatientsPage() {
             </Button>
           </div>
         </Modal>
+      )}
+      {loyaltyDialogOpen && loyaltySettings && (
+        <LoyaltySettingsDialog
+          settings={loyaltySettings}
+          saving={loyaltySaving}
+          onSave={updateLoyaltySettings}
+          onClose={() => setLoyaltyDialogOpen(false)}
+        />
       )}
     </PortalShell>
   );

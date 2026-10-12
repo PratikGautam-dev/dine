@@ -28,7 +28,6 @@ import { FormSkeleton, ListSkeleton } from "@/components/ui/Skeleton";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { TenantSettingsDialog } from "@/components/portal/TenantSettingsDialog";
-import { LoyaltySettingsDialog } from "@/components/portal/LoyaltySettingsDialog";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
@@ -36,7 +35,6 @@ import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
 import { useBookingConfirmationSetting } from "@/hooks/useBookingConfirmationSetting";
 import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
-import { useLoyaltySettings } from "@/hooks/useLoyaltySettings";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
 
@@ -82,12 +80,6 @@ function PortalSettingsPageContent() {
     update: updateTenantSettings,
   } = useTenantSettings(ready);
   const [tenantDialogOpen, setTenantDialogOpen] = useState(false);
-  const {
-    settings: loyaltySettings,
-    saving: loyaltySaving,
-    update: updateLoyaltySettings,
-  } = useLoyaltySettings(ready);
-  const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
   const canSeeAttendanceSettings = usePermission("attendance_settings", "view");
   const { entries: auditEntries } = usePortalAuditLog(ready);
   const [tab, setTab] = useState<TabId>("general");
@@ -148,54 +140,6 @@ function PortalSettingsPageContent() {
             {tab === "general" && (
               <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[1.3fr_1fr]">
                 <div className="min-w-0 space-y-space-4">
-                  <Card className="p-space-5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h2 className="text-[15px] font-bold text-ink-900">Loyalty &amp; Tiers</h2>
-                        <p className="text-hint">
-                          Points earned per spend, and the Silver/Gold/Platinum spend thresholds.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        size="md"
-                        disabled={!loyaltySettings}
-                        onClick={() => setLoyaltyDialogOpen(true)}
-                      >
-                        Edit
-                      </Button>
-                    </div>
-                    {loyaltySettings && (
-                      <div className="mt-space-4 grid grid-cols-2 gap-space-3 text-[13px] sm:grid-cols-4">
-                        <div>
-                          <p className="text-label mb-0.5 font-medium text-ink-600">Points</p>
-                          <p className="text-ink-900">{loyaltySettings.enabled ? "On" : "Off"}</p>
-                        </div>
-                        <div>
-                          <p className="text-label mb-0.5 font-medium text-ink-600">Earn</p>
-                          <p className="text-ink-900">
-                            1 pt per ₹{loyaltySettings.paise_per_point / 100}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-label mb-0.5 font-medium text-ink-600">Tiers (₹)</p>
-                          <p className="text-ink-900">
-                            {(loyaltySettings.silver_spend_threshold_paise / 100).toLocaleString("en-IN")} /{" "}
-                            {(loyaltySettings.gold_spend_threshold_paise / 100).toLocaleString("en-IN")} /{" "}
-                            {(loyaltySettings.platinum_spend_threshold_paise / 100).toLocaleString("en-IN")}
-                          </p>
-                        </div>
-                        <div>
-                          <p className="text-label mb-0.5 font-medium text-ink-600">Redeem</p>
-                          <p className="text-ink-900">
-                            {loyaltySettings.redeem_points} pts = ₹
-                            {loyaltySettings.redeem_value_paise / 100} off
-                          </p>
-                        </div>
-                      </div>
-                    )}
-                  </Card>
                   <Card className="p-space-5">
                     <div className="flex items-center justify-between">
                       <div>
@@ -809,14 +753,6 @@ function PortalSettingsPageContent() {
             )}
           </div>
         </div>
-      )}
-      {loyaltyDialogOpen && loyaltySettings && (
-        <LoyaltySettingsDialog
-          settings={loyaltySettings}
-          saving={loyaltySaving}
-          onSave={updateLoyaltySettings}
-          onClose={() => setLoyaltyDialogOpen(false)}
-        />
       )}
       {tenantDialogOpen && tenantSettings && (
         <TenantSettingsDialog
