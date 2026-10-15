@@ -4,6 +4,7 @@ import { Suspense, useState } from "react";
 import {
   ArrowRight,
   Banknote,
+  Bot,
   CalendarClock,
   Clock,
   CreditCard,
@@ -28,6 +29,7 @@ import { FormSkeleton, ListSkeleton } from "@/components/ui/Skeleton";
 import { AppointmentTypeToggles } from "@/components/portal/AppointmentTypeToggles";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { TenantSettingsDialog } from "@/components/portal/TenantSettingsDialog";
+import { TenantLLMSettings } from "@/components/portal/TenantLLMSettings";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
@@ -35,6 +37,7 @@ import { OPERATING_DAYS, useRestaurantHours } from "@/hooks/useRestaurantHours";
 import { useBookingConfirmationSetting } from "@/hooks/useBookingConfirmationSetting";
 import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
+import { useTenantLLMConfiguration } from "@/hooks/useTenantLLMConfiguration";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
 
@@ -50,7 +53,7 @@ const PLANNED_INTEGRATIONS = [
   { name: "SMS service", blurb: "Send order & booking updates", icon: MessageSquare },
 ];
 
-type TabId = "general" | "booking" | "types" | "messaging" | "language" | "conversation" | "fees";
+type TabId = "general" | "booking" | "types" | "messaging" | "language" | "conversation" | "fees" | "ai";
 type Tab = { id: TabId; label: string; icon: typeof SettingsIcon };
 
 const TABS: Tab[] = [
@@ -61,6 +64,7 @@ const TABS: Tab[] = [
   { id: "language", label: "Language", icon: Globe },
   { id: "conversation", label: "Conversation", icon: SlidersHorizontal },
   { id: "fees", label: "Fees", icon: Banknote },
+  { id: "ai", label: "AI Model", icon: Bot },
 ];
 
 function PortalSettingsPageContent() {
@@ -82,6 +86,7 @@ function PortalSettingsPageContent() {
   const [tenantDialogOpen, setTenantDialogOpen] = useState(false);
   const canSeeAttendanceSettings = usePermission("attendance_settings", "view");
   const { entries: auditEntries } = usePortalAuditLog(ready);
+  const tenantLLM = useTenantLLMConfiguration(ready);
   const [tab, setTab] = useState<TabId>("general");
 
   const tabs = TABS.filter((t) => t.id !== "types" || canManageAppointmentTypes);
@@ -750,6 +755,15 @@ function PortalSettingsPageContent() {
                   </Button>
                 </Card>
               </form>
+            )}
+
+            {tab === "ai" && (
+              <TenantLLMSettings
+                configuration={tenantLLM.configuration}
+                loading={tenantLLM.loading}
+                onSave={tenantLLM.save}
+                onClear={tenantLLM.clear}
+              />
             )}
           </div>
         </div>
