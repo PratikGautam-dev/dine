@@ -50,6 +50,8 @@ export type CustomerMessage = {
   direction: "inbound" | "outbound";
   status: string | null;
   created_at: string;
+  // Migration 0075: only populated for messages sent/received since then -- older rows show blank.
+  body: string | null;
 };
 
 export type RecentOrder = {
@@ -101,6 +103,7 @@ export function usePatients(ready: boolean) {
   const [ledgerLoading, setLedgerLoading] = useState(false);
   const [messages, setMessages] = useState<CustomerMessage[] | null>(null);
   const [messagesLoading, setMessagesLoading] = useState(false);
+  const [sendingMessage, setSendingMessage] = useState(false);
 
   const load = useCallback(
     async (query: string) => {
@@ -388,6 +391,30 @@ export function usePatients(ready: boolean) {
     setMessages((result.data as { messages: CustomerMessage[] }).messages);
   }, [activeId, router]);
 
+  /** Communication tab's "Send message" compose box -- a real WhatsApp send, gated server-side to
+   * the last-24-hours window Meta requires for a free-form message. Returns an error string on
+   * failure (including the window-closed case) so the caller can show it inline, rather than just
+   * a toast -- same "surface it in the UI, not just a toast" treatment loyalty/tag errors get. */
+  const sendMessage = async (body: string): Promise<string | null> => {
+    if (activeId === null) return "No customer selected.";
+    setSendingMessage(true);
+    const result = await portalFetch(`/api/portal/patients/${activeId}/messages`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ body }),
+    });
+    setSendingMessage(false);
+    if (!result.ok) {
+      if (result.unauthorized) {
+        router.push("/portal/login");
+        return null;
+      }
+      return result.error;
+    }
+    await loadMessages();
+    return null;
+  };
+
   return {
     patients,
     directory,
@@ -427,5 +454,7 @@ export function usePatients(ready: boolean) {
     messages,
     messagesLoading,
     loadMessages,
+    sendingMessage,
+    sendMessage,
   };
 }

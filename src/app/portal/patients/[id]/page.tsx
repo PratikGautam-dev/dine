@@ -1,6 +1,20 @@
 "use client";
 
-import { ArrowLeft, Crown, Gift, Mail, MapPin, Medal, Receipt, Search, ShoppingBag, Star } from "lucide-react";
+import {
+  ArrowLeft,
+  Calendar,
+  Crown,
+  Gift,
+  History,
+  Mail,
+  MapPin,
+  MessageSquare,
+  Medal,
+  Receipt,
+  Search,
+  ShoppingBag,
+  Star,
+} from "lucide-react";
 import { useParams, useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -15,11 +29,32 @@ import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
-import { formatDate } from "@/lib/formatDate";
+import { formatDate, formatDateTime } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { TYPE_LABELS } from "@/hooks/useAppointments";
 import { usePatientDetail, type Visit } from "@/hooks/usePatientDetail";
+import { useCustomerActivity, type ActivityEvent } from "@/hooks/useCustomerActivity";
 import { createVisitHistoryColumns, STATUS_LABELS } from "./_components/visit-history-columns";
+
+const ACTIVITY_ICON: Record<ActivityEvent["kind"], typeof Calendar> = {
+  reservation: Calendar,
+  order: ShoppingBag,
+  feedback: MessageSquare,
+  loyalty: Gift,
+};
+
+function activityLabel(e: ActivityEvent): string {
+  switch (e.kind) {
+    case "reservation":
+      return `${e.is_table ? "Table reservation" : "Reservation"} · ${e.status}`;
+    case "order":
+      return `Order · ${rupees(e.amount_paise ?? 0)} · ${e.status}`;
+    case "feedback":
+      return `Feedback · ${e.rating} star${e.rating === 1 ? "" : "s"}`;
+    case "loyalty":
+      return `${(e.points ?? 0) >= 0 ? "Earned" : "Redeemed"} ${Math.abs(e.points ?? 0)} points`;
+  }
+}
 
 const LOYALTY_ICON: Record<string, typeof Crown> = {
   Platinum: Crown,
@@ -90,6 +125,7 @@ export default function PatientDetailPage() {
     bookingId,
     handleBookFollowupNow,
   } = usePatientDetail(patientId, ready);
+  const { activity, loading: activityLoading } = useCustomerActivity(data?.patient.id ?? null);
 
   if (!data) {
     return (
@@ -593,6 +629,37 @@ export default function PatientDetailPage() {
           >
             {savingDemographics ? "Saving…" : "Save"}
           </Button>
+        </Card>
+
+        <Card className="h-fit p-space-4">
+          <h3 className="text-label mb-space-3 font-bold text-ink-900">Activity</h3>
+          {activityLoading || !activity ? (
+            <p className="py-space-4 text-center text-[13px] text-ink-400">Loading…</p>
+          ) : activity.length === 0 ? (
+            <div className="flex flex-col items-center gap-space-2 py-space-4 text-center">
+              <History size={20} className="text-ink-300" />
+              <p className="text-[12.5px] text-ink-400">Nothing yet.</p>
+            </div>
+          ) : (
+            <ol className="space-y-space-3">
+              {activity.map((e) => {
+                const Icon = ACTIVITY_ICON[e.kind];
+                return (
+                  <li key={`${e.kind}-${e.id}`} className="flex gap-space-3">
+                    <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-600">
+                      <Icon size={12} />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-[12.5px] font-semibold text-ink-900">
+                        {activityLabel(e)}
+                      </p>
+                      <p className="text-hint">{formatDateTime(e.occurred_at)}</p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          )}
         </Card>
       </div>
     </PortalShell>

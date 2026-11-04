@@ -47,9 +47,12 @@ import { useCustomerAnalytics } from "@/hooks/useCustomerAnalytics";
 import { useLoyaltyProgram } from "@/hooks/useLoyaltyProgram";
 import { useLoyaltySettings } from "@/hooks/useLoyaltySettings";
 import { useCampaigns } from "@/hooks/useCampaigns";
+import { useCustomerNotes } from "@/hooks/useCustomerNotes";
 import { createPatientColumns } from "./_components/patients-columns";
 import { CustomerPicker } from "./_components/customer-picker";
 import { TagsPanel } from "./_components/tags-panel";
+import { NotesPanel } from "./_components/notes-panel";
+import { FollowUpsPanel } from "./_components/follow-ups-panel";
 import { TagDirectory } from "./_components/tag-directory";
 import { CampaignsPanel } from "./_components/campaigns-panel";
 import { LoyaltyPanel } from "./_components/loyalty-panel";
@@ -62,6 +65,8 @@ const TABS = [
   { id: "loyalty", label: "Loyalty" },
   { id: "tags", label: "Tags" },
   { id: "communication", label: "Communication" },
+  { id: "notes", label: "Notes" },
+  { id: "follow-ups", label: "Follow-ups" },
   { id: "segments", label: "Segments" },
   { id: "campaigns", label: "Campaigns" },
   { id: "analytics", label: "Analytics" },
@@ -116,7 +121,20 @@ export default function PortalPatientsPage() {
     messages,
     messagesLoading,
     loadMessages,
+    sendingMessage,
+    sendMessage,
   } = usePatients(ready);
+  const {
+    notes: customerNotes,
+    notesLoading: customerNotesLoading,
+    savingNote,
+    addNote,
+    setNoteDone,
+    deleteNote,
+    followUps,
+    followUpsLoading,
+    loadFollowUps,
+  } = useCustomerNotes(activeId);
 
   const {
     segments,
@@ -230,14 +248,22 @@ export default function PortalPatientsPage() {
       },
       { department_name: "4 or more", count: all.filter((p) => p.visit_count >= 4).length },
     ].filter((s) => s.count > 0);
+    const withVisits = all.filter((p) => p.visit_count >= 1).length;
+    const returning = all.filter((p) => p.visit_count >= 2).length;
+    const totalOrders = all.reduce((sum, p) => sum + (p.total_orders || 0), 0);
+    const totalSpendPaise = all.reduce((sum, p) => sum + (p.total_spend_paise || 0), 0);
     return {
       total: all.length,
-      returning: all.filter((p) => p.visit_count >= 2).length,
+      returning,
+      // Share of ever-visited guests who came back a second time, same "rate, not a raw count"
+      // shape ShopConnect's own repeat_rate_pct uses -- the raw count still shows in the tile's hint.
+      repeatRatePct: withVisits ? Math.round((returning / withVisits) * 100) : 0,
       vip: all.filter((p) => p.loyalty_tier === "Platinum").length,
       active30: all.filter((p) => p.last_visit && new Date(p.last_visit).getTime() >= cutoff30)
         .length,
       newThisWeek: all.filter((p) => p.created_at && new Date(p.created_at).getTime() >= cutoff7)
         .length,
+      avgSpendPaise: totalOrders ? Math.round(totalSpendPaise / totalOrders) : 0,
       byBookings,
       top: [...all]
         .filter((p) => p.total_spend_paise > 0)
@@ -291,7 +317,7 @@ export default function PortalPatientsPage() {
 
       {tab === "all" && directory && (
         <>
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <StatTile
               icon={<Users size={22} />}
               label="Total customers"
@@ -313,9 +339,9 @@ export default function PortalPatientsPage() {
             <StatTile
               icon={<Repeat size={22} />}
               label="Repeat guests"
-              value={summary.returning}
+              value={`${summary.repeatRatePct}%`}
               deltaPct={null}
-              hint="Booked 2 or more times"
+              hint={`${summary.returning} customer${summary.returning === 1 ? "" : "s"}`}
               tone="warning"
               filled
             />
@@ -335,6 +361,15 @@ export default function PortalPatientsPage() {
               deltaPct={null}
               hint="Joined in the last 7 days"
               tone="violet"
+              filled
+            />
+            <StatTile
+              icon={<Receipt size={22} />}
+              label="Avg. purchase value"
+              value={rupees(summary.avgSpendPaise)}
+              deltaPct={null}
+              hint="Per order"
+              tone="success"
               filled
             />
           </div>
@@ -825,7 +860,17 @@ export default function PortalPatientsPage() {
         />
       )}
 
-      {(tab === "loyalty" || tab === "tags" || tab === "communication") && (
+      {tab === "follow-ups" && (
+        <FollowUpsPanel
+          followUps={followUps}
+          loading={followUpsLoading}
+          onLoad={loadFollowUps}
+          onMarkDone={(noteId) => setNoteDone(noteId, true)}
+          onSelectCustomer={openProfile}
+        />
+      )}
+
+      {(tab === "loyalty" || tab === "tags" || tab === "communication" || tab === "notes") && (
         <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[280px_1fr]">
           <CustomerPicker
             patients={pickerPatients}
@@ -859,13 +904,26 @@ export default function PortalPatientsPage() {
                 onSave={saveTags}
                 directory={directory}
               />
-            ) : (
+            ) : tab === "communication" ? (
               <CommunicationPanel
                 profile={profile}
                 profileLoading={profileLoading}
                 messages={messages}
                 messagesLoading={messagesLoading}
                 onLoadMessages={loadMessages}
+                sendingMessage={sendingMessage}
+                onSendMessage={sendMessage}
+              />
+            ) : (
+              <NotesPanel
+                profile={profile}
+                profileLoading={profileLoading}
+                notes={customerNotes}
+                notesLoading={customerNotesLoading}
+                saving={savingNote}
+                onAddNote={addNote}
+                onSetNoteDone={setNoteDone}
+                onDeleteNote={deleteNote}
               />
             )}
           </div>
