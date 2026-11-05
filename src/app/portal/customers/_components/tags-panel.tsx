@@ -9,13 +9,13 @@ import { Input } from "@/components/ui/Input";
 import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { CustomerHeader } from "./customer-header";
-import type { Patient, PatientDetail } from "@/hooks/usePatients";
+import type { Customer, CustomerDetail } from "@/hooks/useCustomers";
 
 const STARTER_TAGS = ["VIP", "Regular", "Frequent Buyer", "New Customer"];
 
 /** Customers page's Tags tab -- the editor for one selected customer's tag list, shown below the
  * restaurant-wide TagDirectory. A real tag CRUD UI, not just the free-form list patients.tags
- * used to be before this session (set via POST /api/portal/patients/{id}/tags, which
+ * used to be before this session (set via POST /api/portal/customers/{id}/tags, which
  * dedupes/trims server-side too). */
 export function TagsPanel({
   profile,
@@ -24,11 +24,11 @@ export function TagsPanel({
   onSave,
   directory,
 }: {
-  profile: PatientDetail | null;
+  profile: CustomerDetail | null;
   profileLoading: boolean;
   saving: boolean;
   onSave: (tags: string[]) => Promise<boolean>;
-  directory: Patient[] | null;
+  directory: Customer[] | null;
 }) {
   const [draft, setDraft] = useState("");
 
@@ -89,7 +89,7 @@ export function TagsPanel({
           tags.map((tag) => (
             <Badge key={tag} tone="brand" className="gap-space-1">
               {tag}
-              <PermissionGate page="patients" action="write">
+              <PermissionGate page="customers" action="write">
                 <button
                   type="button"
                   onClick={() => removeTag(tag)}
@@ -105,7 +105,7 @@ export function TagsPanel({
         )}
       </div>
 
-      <PermissionGate page="patients" action="write">
+      <PermissionGate page="customers" action="write">
         <div className="mb-space-4 flex gap-space-2">
           <Input
             value={draft}

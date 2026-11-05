@@ -32,7 +32,7 @@ import { cn } from "@/lib/cn";
 import { formatDate, formatDateTime } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { TYPE_LABELS } from "@/hooks/useAppointments";
-import { usePatientDetail, type Visit } from "@/hooks/usePatientDetail";
+import { useCustomerDetail, type Visit } from "@/hooks/useCustomerDetail";
 import { useCustomerActivity, type ActivityEvent } from "@/hooks/useCustomerActivity";
 import { createVisitHistoryColumns, STATUS_LABELS } from "./_components/visit-history-columns";
 
@@ -124,12 +124,12 @@ export default function PatientDetailPage() {
     setBookSlotId,
     bookingId,
     handleBookFollowupNow,
-  } = usePatientDetail(patientId, ready);
+  } = useCustomerDetail(patientId, ready);
   const { activity, loading: activityLoading } = useCustomerActivity(data?.patient.id ?? null);
 
   if (!data) {
     return (
-      <PortalShell hospital={hospital} active="patients">
+      <PortalShell hospital={hospital} active="customers">
         {error ? (
           <p className="text-[13px] text-error">{error}</p>
         ) : (
@@ -281,10 +281,10 @@ export default function PatientDetailPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="patients">
+    <PortalShell hospital={hospital} active="customers">
       <button
         type="button"
-        onClick={() => router.push("/portal/patients")}
+        onClick={() => router.push("/portal/customers")}
         className="mb-space-3 flex items-center gap-space-1 text-[12.5px] font-semibold text-brand-600 hover:underline"
       >
         <ArrowLeft size={14} /> All guests

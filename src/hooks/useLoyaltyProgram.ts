@@ -16,7 +16,7 @@ export type LoyaltyProgram = {
 
 /** Read-only loyalty program rules (tier thresholds/benefits, earn/redeem rates) for the
  * Customers page's Loyalty tab -- same data useLoyaltySettings.ts reads for the Settings page's
- * edit form, but via GET /api/portal/patients/loyalty-program (authorized under "patients"/"view"
+ * edit form, but via GET /api/portal/customers/loyalty-program (authorized under "customers"/"view"
  * instead of "settings"/"view") so a role that can see customers but not Settings still sees why
  * a guest is close to (or just reached) their next tier. */
 export function useLoyaltyProgram(ready: boolean) {
@@ -25,7 +25,7 @@ export function useLoyaltyProgram(ready: boolean) {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const result = await portalFetch("/api/portal/patients/loyalty-program");
+    const result = await portalFetch("/api/portal/customers/loyalty-program");
     setLoading(false);
     if (result.ok) setProgram(result.data as LoyaltyProgram);
   }, []);

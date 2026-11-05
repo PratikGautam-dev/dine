@@ -13,11 +13,11 @@ import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { rupees } from "@/lib/foodOrders";
-import type { Patient } from "@/hooks/usePatients";
+import type { Customer } from "@/hooks/useCustomers";
 
-type TagEntry = { tag: string; members: Patient[] };
+type TagEntry = { tag: string; members: Customer[] };
 
-const MEMBER_COLUMNS: ColumnDef<Patient>[] = [
+const MEMBER_COLUMNS: ColumnDef<Customer>[] = [
   {
     id: "name",
     header: "Customer",
@@ -55,7 +55,7 @@ export function TagDirectory({
   onDeleteTag,
   onSelectCustomer,
 }: {
-  directory: Patient[] | null;
+  directory: Customer[] | null;
   tagActionLoading: string | null;
   onRenameTag: (oldTag: string, newTag: string) => Promise<boolean>;
   onDeleteTag: (tag: string) => Promise<boolean>;
@@ -67,7 +67,7 @@ export function TagDirectory({
   const [viewingTag, setViewingTag] = useState<string | null>(null);
 
   const entries = useMemo<TagEntry[]>(() => {
-    const byTag = new Map<string, Patient[]>();
+    const byTag = new Map<string, Customer[]>();
     for (const p of directory ?? []) {
       for (const tag of p.tags ?? []) {
         if (!byTag.has(tag)) byTag.set(tag, []);
@@ -180,7 +180,7 @@ export function TagDirectory({
                         <Users size={12} /> {members.length}
                       </span>
                     </button>
-                    <PermissionGate page="patients" action="write">
+                    <PermissionGate page="customers" action="write">
                       <button
                         type="button"
                         onClick={() => startRename(tag)}
@@ -191,7 +191,7 @@ export function TagDirectory({
                         <Pencil size={12} />
                       </button>
                     </PermissionGate>
-                    <PermissionGate page="patients" action="delete">
+                    <PermissionGate page="customers" action="delete">
                       <button
                         type="button"
                         onClick={() => setDeletingTag(tag)}

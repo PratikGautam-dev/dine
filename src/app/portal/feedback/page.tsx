@@ -38,7 +38,7 @@ import { cn } from "@/lib/cn";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 import { useFeedback, type FeedbackEntry } from "@/hooks/useFeedback";
-import type { PatientDetail } from "@/hooks/usePatients";
+import type { CustomerDetail } from "@/hooks/useCustomers";
 
 const AVATAR_TONES = [
   "bg-brand-50 text-brand-700",
@@ -105,7 +105,7 @@ export default function PortalFeedbackPage() {
   const { summary, entries, error } = useFeedback(ready, useBranchFilter().selectedBranchId);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FeedbackEntry | null>(null);
-  const [guest, setGuest] = useState<PatientDetail | null>(null);
+  const [guest, setGuest] = useState<CustomerDetail | null>(null);
   const [guestLoading, setGuestLoading] = useState(false);
   const [noteDraft, setNoteDraft] = useState("");
   const [savingNote, setSavingNote] = useState(false);
@@ -172,15 +172,15 @@ export default function PortalFeedbackPage() {
     setNoteDraft("");
     if (!entry.patient_id) return;
     setGuestLoading(true);
-    const result = await portalFetch(`/api/portal/patients/id/${entry.patient_id}`);
+    const result = await portalFetch(`/api/portal/customers/id/${entry.patient_id}`);
     setGuestLoading(false);
-    if (result.ok) setGuest((result.data as { patient: PatientDetail }).patient);
+    if (result.ok) setGuest((result.data as { patient: CustomerDetail }).patient);
   }
 
   async function saveNote() {
     if (!guest || !noteDraft.trim()) return;
     setSavingNote(true);
-    const result = await portalFetch(`/api/portal/patients/${guest.id}/profile`, {
+    const result = await portalFetch(`/api/portal/customers/${guest.id}/profile`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ notes: noteDraft.trim() }),
@@ -190,7 +190,7 @@ export default function PortalFeedbackPage() {
       toast.error("Couldn't save note", result.unauthorized ? "Session expired" : result.error);
       return;
     }
-    setGuest((result.data as { patient: PatientDetail }).patient);
+    setGuest((result.data as { patient: CustomerDetail }).patient);
     setNoteDraft("");
     toast.success("Note saved");
   }
@@ -599,7 +599,7 @@ export default function PortalFeedbackPage() {
                   <div className="mb-space-2 flex items-center justify-between">
                     <p className="text-[11px] font-semibold text-ink-600">INTERNAL NOTES</p>
                     <a
-                      href={`/portal/patients/${guest.public_id}`}
+                      href={`/portal/customers/${guest.public_id}`}
                       className="text-[12px] font-semibold text-brand-700 hover:underline"
                     >
                       View guest profile

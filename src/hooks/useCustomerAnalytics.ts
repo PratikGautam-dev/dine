@@ -18,7 +18,7 @@ export function useCustomerAnalytics(ready: boolean) {
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/patients/analytics");
+    const result = await portalFetch("/api/portal/customers/analytics");
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);

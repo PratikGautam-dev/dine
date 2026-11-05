@@ -1,7 +1,7 @@
 "use client";
 
 import { Crown, Medal, Star } from "lucide-react";
-import type { PatientDetail } from "@/hooks/usePatients";
+import type { CustomerDetail } from "@/hooks/useCustomers";
 
 const LOYALTY_ICON: Record<string, typeof Crown> = { Platinum: Crown, Gold: Medal, Silver: Star };
 
@@ -9,7 +9,7 @@ const LOYALTY_ICON: Record<string, typeof Crown> = { Platinum: Crown, Gold: Meda
  * uses, reused at the top of the Loyalty/Tags/Communication tabs so a customer's identity reads
  * consistently no matter which tab you're on -- those tabs previously only showed a plain
  * name/phone line, which looked thinner and less finished than this one. */
-export function CustomerHeader({ profile }: { profile: PatientDetail }) {
+export function CustomerHeader({ profile }: { profile: CustomerDetail }) {
   return (
     <div className="mb-space-4 flex items-center gap-space-3 border-b border-line pb-space-4">
       <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[15px] font-bold text-brand-700">

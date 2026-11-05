@@ -5,7 +5,7 @@ import { PermissionGate } from "@/components/portal/PermissionGate";
 import { cn } from "@/lib/cn";
 import { formatDate, formatShortDateTime } from "@/lib/formatDate";
 import { TYPE_LABELS } from "@/hooks/useAppointments";
-import type { Visit } from "@/hooks/usePatientDetail";
+import type { Visit } from "@/hooks/useCustomerDetail";
 
 const STATUS_STYLES: Record<string, string> = {
   booked: "bg-success-tint text-success",

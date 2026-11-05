@@ -6,8 +6,8 @@ import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
-import type { Patient } from "@/hooks/usePatients";
-import { PatientCellAction } from "./patients-cellaction";
+import type { Customer } from "@/hooks/useCustomers";
+import { CustomerCellAction } from "./customers-cellaction";
 
 // Real spend-based tiers (migration 0066) -- the restaurant's own thresholds, recomputed on
 // every paid order, so this map only ever renders whatever tier the row already has.
@@ -17,12 +17,12 @@ const LOYALTY_STYLES: Record<string, { icon: typeof Award; className: string }> 
   Silver: { icon: Star, className: "bg-black/[0.04] text-ink-600" },
 };
 
-type CreatePatientColumnsOptions = {
+type CreateCustomerColumnsOptions = {
   selected: Set<number>;
   toggleSelected: (id: number, checked: boolean) => void;
   toggleSelectAll: (checked: boolean) => void;
   allSelected: boolean;
-  onDelete: (patient: Patient) => void;
+  onDelete: (patient: Customer) => void;
 };
 
 // Same deterministic hash → color-cycle approach as the WhatsApp Inbox conversation list
@@ -41,19 +41,19 @@ function avatarTone(label: string): string {
   return AVATAR_TONES[hash % AVATAR_TONES.length];
 }
 
-/** Column definitions for the /portal/patients DataTable. The row itself is
- * clickable (DataTable's onRowClick, navigates to /portal/patients/[id]);
+/** Column definitions for the /portal/customers DataTable. The row itself is
+ * clickable (DataTable's onRowClick, navigates to /portal/customers/[id]);
  * the checkbox and actions-menu cells stop propagation so clicking them
  * doesn't also trigger that navigation. View Details/Delete are combined
- * into one trailing actions menu (PatientCellAction) rather than two
+ * into one trailing actions menu (CustomerCellAction) rather than two
  * separate columns. */
-export function createPatientColumns({
+export function createCustomerColumns({
   selected,
   toggleSelected,
   toggleSelectAll,
   allSelected,
   onDelete,
-}: CreatePatientColumnsOptions): ColumnDef<Patient>[] {
+}: CreateCustomerColumnsOptions): ColumnDef<Customer>[] {
   return [
     {
       id: "select",
@@ -173,7 +173,7 @@ export function createPatientColumns({
       header: "",
       cell: ({ row }) => (
         <div className="text-right">
-          <PatientCellAction patient={row.original} onDelete={onDelete} />
+          <CustomerCellAction patient={row.original} onDelete={onDelete} />
         </div>
       ),
     },

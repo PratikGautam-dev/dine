@@ -10,7 +10,7 @@ function visitTypeBucket(v: { appointment_type_id: string | null }) {
     : "other";
 }
 
-export type Patient = {
+export type Customer = {
   id: number;
   public_id: string;
   phone: string;
@@ -25,7 +25,7 @@ export type Patient = {
   status: "active" | "blocked" | "inactive";
   // Customers page (migration 0044): email/dietary_preference/allergies/notes are staff-editable.
   // loyalty_tier/loyalty_points/total_orders/total_spend_paise/favorite_item/tags are maintained
-  // caches, written by paid orders -- same shape usePatients.ts's own PatientDetail already uses
+  // caches, written by paid orders -- same shape useCustomers.ts's own CustomerDetail already uses
   // for the list page's side panel; this is the dedicated full-page view of the same record.
   email: string | null;
   dietary_preference: string | null;
@@ -80,14 +80,14 @@ export type Visit = {
   followup_override_until: string | null;
 };
 
-export type DetailData = { patient: Patient; visit_history: Visit[]; recent_orders: RecentOrder[] };
+export type DetailData = { patient: Customer; visit_history: Visit[]; recent_orders: RecentOrder[] };
 
-/** Loads + owns every mutation on the /portal/patients/[id] detail page:
+/** Loads + owns every mutation on the /portal/customers/[id] detail page:
  * demographics save, active/blocked status, and follow-up extend/book.
  * Per-visit/general notes and document upload/send-to-WhatsApp were removed
  * -- the backend patient-detail endpoint no longer returns `notes` or
  * `documents`, and the notes/documents API routes themselves are gone. */
-export function usePatientDetail(patientId: string, ready: boolean) {
+export function useCustomerDetail(patientId: string, ready: boolean) {
   const router = useRouter();
   const [data, setData] = useState<DetailData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -97,8 +97,8 @@ export function usePatientDetail(patientId: string, ready: boolean) {
   const [address, setAddress] = useState("");
   const [savingDemographics, setSavingDemographics] = useState(false);
 
-  // CRM profile fields (same endpoint usePatients.ts's list-page side panel
-  // already uses: POST /api/portal/patients/{id}/profile) -- editable from
+  // CRM profile fields (same endpoint useCustomers.ts's list-page side panel
+  // already uses: POST /api/portal/customers/{id}/profile) -- editable from
   // the dedicated detail page's Customer Information card too.
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
@@ -130,7 +130,7 @@ export function usePatientDetail(patientId: string, ready: boolean) {
   const [bookingId, setBookingId] = useState<number | null>(null);
 
   const load = useCallback(async () => {
-    const result = await portalFetch(`/api/portal/patients/by-public-id/${patientId}`);
+    const result = await portalFetch(`/api/portal/customers/by-public-id/${patientId}`);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);
@@ -149,9 +149,9 @@ export function usePatientDetail(patientId: string, ready: boolean) {
     if (ready) load();
   }, [ready, load]);
 
-  async function handleSetStatus(status: Patient["status"]) {
+  async function handleSetStatus(status: Customer["status"]) {
     setSavingStatus(true);
-    const result = await portalFetch(`/api/portal/patients/${data?.patient.id}/status`, {
+    const result = await portalFetch(`/api/portal/customers/${data?.patient.id}/status`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ status }),
@@ -168,7 +168,7 @@ export function usePatientDetail(patientId: string, ready: boolean) {
 
   async function handleSaveDemographics() {
     setSavingDemographics(true);
-    const result = await portalFetch(`/api/portal/patients/${data?.patient.id}`, {
+    const result = await portalFetch(`/api/portal/customers/${data?.patient.id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ date_of_birth: dob, gender, address }),
@@ -188,7 +188,7 @@ export function usePatientDetail(patientId: string, ready: boolean) {
     // string clears it" contract, see update_patient_profile_fields) -- send
     // dietary_preference/allergies back unchanged so saving email/notes here
     // doesn't silently wipe them.
-    const result = await portalFetch(`/api/portal/patients/${data?.patient.id}/profile`, {
+    const result = await portalFetch(`/api/portal/customers/${data?.patient.id}/profile`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

@@ -33,7 +33,7 @@ export function FollowUpsPanel({
   }, []);
 
   // Snapshotted once the list has loaded, not Date.now() called inline during render (an impure
-  // call React's purity rule flags) -- same treatment usePatientDetail.ts's own upcoming/past
+  // call React's purity rule flags) -- same treatment useCustomerDetail.ts's own upcoming/past
   // split gives "now" for a page that isn't left open for hours anyway.
   const [now, setNow] = useState<number | null>(null);
   useEffect(() => {
@@ -76,7 +76,7 @@ export function FollowUpsPanel({
                   <Badge tone={overdue ? "clay" : "warning"}>
                     {overdue ? "Overdue" : "Due"} {formatDate(f.follow_up_at)}
                   </Badge>
-                  <PermissionGate page="patients" action="write">
+                  <PermissionGate page="customers" action="write">
                     <button
                       type="button"
                       onClick={() => onMarkDone(f.id)}

@@ -11,18 +11,18 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { PermissionGate } from "@/components/portal/PermissionGate";
-import type { Patient } from "@/hooks/usePatients";
+import type { Customer } from "@/hooks/useCustomers";
 
-type PatientCellActionProps = {
-  patient: Patient;
-  onDelete: (patient: Patient) => void;
+type CustomerCellActionProps = {
+  patient: Customer;
+  onDelete: (patient: Customer) => void;
 };
 
 /** Single combined actions menu (View Details / Delete) -- replaces the two
  * separate trailing columns the hand-rolled table used to render. Stops
  * propagation on its own wrapper so opening the menu (or picking an item in
  * it) doesn't also trigger the row's own onRowClick navigation. */
-export function PatientCellAction({ patient, onDelete }: PatientCellActionProps) {
+export function CustomerCellAction({ patient, onDelete }: CustomerCellActionProps) {
   const router = useRouter();
 
   return (
@@ -37,10 +37,10 @@ export function PatientCellAction({ patient, onDelete }: PatientCellActionProps)
         <DropdownMenuContent>
           <DropdownMenuGroup>
             <DropdownMenuLabel>Actions</DropdownMenuLabel>
-            <DropdownMenuItem onClick={() => router.push(`/portal/patients/${patient.public_id}`)}>
+            <DropdownMenuItem onClick={() => router.push(`/portal/customers/${patient.public_id}`)}>
               <Eye size={14} /> View Details
             </DropdownMenuItem>
-            <PermissionGate page="patients" action="delete">
+            <PermissionGate page="customers" action="delete">
               <DropdownMenuItem variant="destructive" onClick={() => onDelete(patient)}>
                 <Trash2 size={14} /> Delete
               </DropdownMenuItem>

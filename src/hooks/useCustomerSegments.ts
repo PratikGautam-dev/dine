@@ -53,7 +53,7 @@ export function useCustomerSegments(ready: boolean) {
   const [membersLoading, setMembersLoading] = useState(false);
 
   const load = useCallback(async () => {
-    const result = await portalFetch("/api/portal/patients/segments");
+    const result = await portalFetch("/api/portal/customers/segments");
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else setError(result.error);
@@ -68,7 +68,7 @@ export function useCustomerSegments(ready: boolean) {
 
   const createSegment = async (fields: NewSegmentFields): Promise<boolean> => {
     setCreating(true);
-    const result = await portalFetch("/api/portal/patients/segments", {
+    const result = await portalFetch("/api/portal/customers/segments", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(fields),
@@ -86,7 +86,7 @@ export function useCustomerSegments(ready: boolean) {
 
   const updateSegment = async (id: number, fields: Partial<NewSegmentFields>): Promise<boolean> => {
     setUpdatingId(id);
-    const result = await portalFetch(`/api/portal/patients/segments/${id}`, {
+    const result = await portalFetch(`/api/portal/customers/segments/${id}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(fields),
@@ -106,7 +106,7 @@ export function useCustomerSegments(ready: boolean) {
     setViewingMembersId(id);
     setMembers(null);
     setMembersLoading(true);
-    const result = await portalFetch(`/api/portal/patients/segments/${id}/members`);
+    const result = await portalFetch(`/api/portal/customers/segments/${id}/members`);
     setMembersLoading(false);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
@@ -123,7 +123,7 @@ export function useCustomerSegments(ready: boolean) {
 
   const deleteSegment = async (id: number) => {
     setDeletingId(id);
-    const result = await portalFetch(`/api/portal/patients/segments/${id}/delete`, { method: "POST" });
+    const result = await portalFetch(`/api/portal/customers/segments/${id}/delete`, { method: "POST" });
     setDeletingId(null);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");

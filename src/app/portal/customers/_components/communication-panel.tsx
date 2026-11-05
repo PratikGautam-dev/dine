@@ -11,7 +11,7 @@ import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/formatDate";
 import { CustomerHeader } from "./customer-header";
-import type { CustomerMessage, PatientDetail } from "@/hooks/usePatients";
+import type { CustomerMessage, CustomerDetail } from "@/hooks/useCustomers";
 
 /** Customers page's Communication tab -- one customer's real WhatsApp send/receive history
  * (message_log, with real message text since migration 0075; older rows before that just show a
@@ -28,7 +28,7 @@ export function CommunicationPanel({
   sendingMessage,
   onSendMessage,
 }: {
-  profile: PatientDetail | null;
+  profile: CustomerDetail | null;
   profileLoading: boolean;
   messages: CustomerMessage[] | null;
   messagesLoading: boolean;
@@ -66,7 +66,7 @@ export function CommunicationPanel({
     <Card className="min-h-100 p-space-4">
       <CustomerHeader profile={profile} />
 
-      <PermissionGate page="patients" action="write">
+      <PermissionGate page="customers" action="write">
         <div className="mb-space-4 border-b border-line pb-space-4">
           <div className="flex gap-space-2">
             <Input

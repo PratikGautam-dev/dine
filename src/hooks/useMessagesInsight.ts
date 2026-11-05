@@ -57,7 +57,7 @@ export function useGuestSummary(
     if (!enabled || !phone) return;
     let cancelled = false;
     (async () => {
-      const result = await portalFetch(`/api/portal/patients?search=${encodeURIComponent(phone)}`);
+      const result = await portalFetch(`/api/portal/customers?search=${encodeURIComponent(phone)}`);
       if (cancelled) return;
       const list = result.ok ? (result.data as { patients: GuestSummary[] }).patients : [];
       setState({ phone, guest: list.find((p) => p.phone === phone) ?? null });

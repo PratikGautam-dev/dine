@@ -157,11 +157,11 @@ const NAV_ITEMS: {
     group: "Catalog",
   },
   {
-    key: "patients",
+    key: "customers",
     label: "Customers",
     icon: Users,
-    href: "/portal/patients",
-    pageKey: "patients",
+    href: "/portal/customers",
+    pageKey: "customers",
     group: "Customers",
   },
   {

@@ -20,7 +20,7 @@ export type OpenFollowUp = CustomerNote & {
 };
 
 /** Customers page's Notes tab (one customer's own notes) and Follow-ups tab (every open
- * follow-up across every customer, in one list). Kept separate from usePatients.ts, which was
+ * follow-up across every customer, in one list). Kept separate from useCustomers.ts, which was
  * already sizable, rather than growing it further. */
 export function useCustomerNotes(activeId: number | null) {
   const router = useRouter();
@@ -33,7 +33,7 @@ export function useCustomerNotes(activeId: number | null) {
   const loadNotes = useCallback(async () => {
     if (activeId === null) return;
     setNotesLoading(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/notes`);
+    const result = await portalFetch(`/api/portal/customers/${activeId}/notes`);
     setNotesLoading(false);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
@@ -51,7 +51,7 @@ export function useCustomerNotes(activeId: number | null) {
   const addNote = async (body: string, followUpAt: string | null): Promise<boolean> => {
     if (activeId === null) return false;
     setSavingNote(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/notes`, {
+    const result = await portalFetch(`/api/portal/customers/${activeId}/notes`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ body, follow_up_at: followUpAt }),
@@ -69,7 +69,7 @@ export function useCustomerNotes(activeId: number | null) {
 
   const loadFollowUps = useCallback(async () => {
     setFollowUpsLoading(true);
-    const result = await portalFetch("/api/portal/patients/follow-ups");
+    const result = await portalFetch("/api/portal/customers/follow-ups");
     setFollowUpsLoading(false);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
@@ -80,7 +80,7 @@ export function useCustomerNotes(activeId: number | null) {
   }, [router]);
 
   const setNoteDone = async (noteId: number, done: boolean) => {
-    const result = await portalFetch(`/api/portal/patients/notes/${noteId}`, {
+    const result = await portalFetch(`/api/portal/customers/notes/${noteId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ done }),
@@ -95,7 +95,7 @@ export function useCustomerNotes(activeId: number | null) {
   };
 
   const deleteNote = async (noteId: number) => {
-    const result = await portalFetch(`/api/portal/patients/notes/${noteId}`, { method: "DELETE" });
+    const result = await portalFetch(`/api/portal/customers/notes/${noteId}`, { method: "DELETE" });
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else toast.error("Couldn't delete note", result.error);

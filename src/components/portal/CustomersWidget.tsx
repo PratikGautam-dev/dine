@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Card } from "@/components/ui/Card";
 import { formatDate } from "@/lib/formatDate";
 
-type Patient = {
+type Customer = {
   id: number;
   public_id: string;
   phone: string;
@@ -11,13 +11,13 @@ type Patient = {
   visit_count: number;
 };
 
-export function PatientsWidget({ patients }: { patients: Patient[] }) {
+export function CustomersWidget({ patients }: { patients: Customer[] }) {
   return (
     <Card className="p-space-4">
       <div className="mb-space-3 flex items-center justify-between">
         <h3 className="text-label font-bold text-ink-900">Guests</h3>
         <Link
-          href="/portal/patients"
+          href="/portal/customers"
           className="text-[12.5px] font-semibold text-brand-600 hover:underline"
         >
           View all guests →
@@ -30,7 +30,7 @@ export function PatientsWidget({ patients }: { patients: Patient[] }) {
           {patients.map((p) => (
             <li key={p.id}>
               <Link
-                href={`/portal/patients/${p.public_id}`}
+                href={`/portal/customers/${p.public_id}`}
                 className="flex items-center justify-between py-space-2 hover:opacity-80"
               >
                 <div>
