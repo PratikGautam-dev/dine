@@ -1,8 +1,6 @@
 import { cn } from "@/lib/cn";
 
-/** Base shimmering placeholder block -- same animate-pulse + bg-line
- * convention the storefront order tracker already used ad hoc
- * (app/(storefront)/order/orders/[id]/page.tsx), now shared so every
+/** Base shimmering placeholder block -- animate-pulse + bg-line, shared so every
  * loading state in the app looks like one system instead of plain
  * "Loading…" text in some places and a bespoke pulse div in others. */
 export function Skeleton({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
