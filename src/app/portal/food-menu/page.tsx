@@ -210,6 +210,8 @@ export default function PortalFoodMenuPage() {
                 <div className="flex items-center gap-space-2">
                   <span className="font-semibold text-ink-900">{item.name}</span>
                   {item.is_combo && <Badge tone="violet">Combo</Badge>}
+                  {item.is_veg === true && <Badge tone="success">Veg</Badge>}
+                  {item.is_veg === false && <Badge tone="clay">Non-veg</Badge>}
                 </div>
                 {item.description && (
                   <div className="max-w-[260px] truncate text-[12px] text-ink-600">

@@ -199,6 +199,22 @@ export function MenuItemPanel({
             onChange={(e) => setForm({ ...form, image_url: e.target.value })}
           />
         </Field>
+        <Field
+          label="Veg / Non-veg"
+          htmlFor="mi-is-veg"
+          hint="Shown to guests on the storefront's veg filter. Leave unset if you're not sure yet."
+        >
+          <select
+            id="mi-is-veg"
+            value={form.is_veg}
+            onChange={(e) => setForm({ ...form, is_veg: e.target.value as MenuItemFormState["is_veg"] })}
+            className="h-10 w-full rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-900"
+          >
+            <option value="unset">Not set</option>
+            <option value="veg">Veg</option>
+            <option value="non_veg">Non-veg</option>
+          </select>
+        </Field>
         <CheckboxRow
           checked={form.is_combo}
           onChange={(checked) =>
