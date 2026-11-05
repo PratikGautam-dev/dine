@@ -23,7 +23,7 @@ export function useCustomerActivity(patientId: number | null) {
   const load = useCallback(async () => {
     if (patientId === null) return;
     setLoading(true);
-    const result = await portalFetch(`/api/portal/patients/${patientId}/activity`);
+    const result = await portalFetch(`/api/portal/customers/${patientId}/activity`);
     setLoading(false);
     if (result.ok) setActivity((result.data as { activity: ActivityEvent[] }).activity);
   }, [patientId]);

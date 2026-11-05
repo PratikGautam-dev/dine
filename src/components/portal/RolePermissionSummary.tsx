@@ -5,7 +5,7 @@ import type { Matrix } from "@/hooks/usePortalRoles";
 export const PAGE_LABEL: Record<string, string> = {
   dashboard: "Dashboard",
   appointments: "Table Bookings",
-  patients: "Customers",
+  customers: "Customers",
   tables: "Tables",
   food_menu: "Menu",
   food_orders: "Food Orders",
@@ -31,7 +31,7 @@ export const PAGE_LABEL: Record<string, string> = {
 export const ALL_PAGE_KEYS = [
   "dashboard",
   "appointments",
-  "patients",
+  "customers",
   "tables",
   "food_menu",
   "food_orders",

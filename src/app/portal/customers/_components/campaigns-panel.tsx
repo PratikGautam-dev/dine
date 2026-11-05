@@ -14,7 +14,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/formatDate";
-import type { Patient } from "@/hooks/usePatients";
+import type { Customer } from "@/hooks/useCustomers";
 import type { Campaign } from "@/hooks/useCampaigns";
 import type { CustomerSegment, SegmentMember } from "@/hooks/useCustomerSegments";
 
@@ -103,7 +103,7 @@ export function CampaignsPanel({
   onUploadImage,
   restaurantName,
 }: {
-  directory: Patient[] | null;
+  directory: Customer[] | null;
   segments: CustomerSegment[] | null;
   segmentMembers: SegmentMember[] | null;
   segmentMembersLoading: boolean;
@@ -145,7 +145,7 @@ export function CampaignsPanel({
   }
 
   const tagEntries = useMemo(() => {
-    const byTag = new Map<string, Patient[]>();
+    const byTag = new Map<string, Customer[]>();
     for (const p of directory ?? []) {
       for (const t of p.tags ?? []) {
         if (!byTag.has(t)) byTag.set(t, []);
@@ -203,7 +203,7 @@ export function CampaignsPanel({
 
   return (
     <div className="space-y-space-4">
-      <PermissionGate page="patients" action="write">
+      <PermissionGate page="customers" action="write">
         <Card className="p-space-4">
           <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">New campaign</h3>
 

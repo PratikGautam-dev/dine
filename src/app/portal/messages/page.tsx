@@ -125,7 +125,7 @@ export default function PortalMessagesPage() {
 
   // Summary tiles and tab counts cover the whole queue, whatever tab or date is showing.
   const overview = useHandoffOverview(ready, handoffs?.length);
-  const canSeeGuests = usePermission("patients", "view");
+  const canSeeGuests = usePermission("customers", "view");
   const { guest, loading: guestLoading } = useGuestSummary(selected?.phone ?? null, canSeeGuests);
   const [pendingDelete, setPendingDelete] = useState<"one" | "bulk" | null>(null);
 
@@ -538,7 +538,7 @@ export default function PortalMessagesPage() {
                 <h3 className="text-[15px] font-bold text-ink-900">Customer Details</h3>
                 {guest && (
                   <Link
-                    href={`/portal/patients/${guest.public_id}`}
+                    href={`/portal/customers/${guest.public_id}`}
                     className="text-[12px] font-semibold text-brand-700 hover:underline"
                   >
                     Edit
@@ -590,7 +590,7 @@ export default function PortalMessagesPage() {
                       {guest.patient_display_id}
                     </p>
                     <Link
-                      href={`/portal/patients/${guest.public_id}`}
+                      href={`/portal/customers/${guest.public_id}`}
                       className="inline-flex text-[13px] font-semibold text-brand-700 hover:underline"
                     >
                       Open guest profile →

@@ -134,7 +134,7 @@ export function SegmentsPanel({
       </div>
 
       <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-[340px_1fr]">
-        <PermissionGate page="patients" action="write">
+        <PermissionGate page="customers" action="write">
           <Card className="h-fit p-space-4">
             <div className="mb-space-3 flex items-center justify-between">
               <h3 className="text-[15px] font-bold text-ink-900">
@@ -223,7 +223,7 @@ export function SegmentsPanel({
                       </p>
                     </div>
                     <div className="flex items-center gap-space-1">
-                      <PermissionGate page="patients" action="write">
+                      <PermissionGate page="customers" action="write">
                         <button
                           type="button"
                           onClick={() => startEdit(s)}
@@ -233,7 +233,7 @@ export function SegmentsPanel({
                           <Pencil size={14} />
                         </button>
                       </PermissionGate>
-                      <PermissionGate page="patients" action="delete">
+                      <PermissionGate page="customers" action="delete">
                         <button
                           type="button"
                           onClick={() => onDelete(s.id)}

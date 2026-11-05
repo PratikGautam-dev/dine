@@ -41,14 +41,14 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { cn } from "@/lib/cn";
 import { formatDate } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
-import { usePatients, type Patient } from "@/hooks/usePatients";
+import { useCustomers, type Customer } from "@/hooks/useCustomers";
 import { useCustomerSegments } from "@/hooks/useCustomerSegments";
 import { useCustomerAnalytics } from "@/hooks/useCustomerAnalytics";
 import { useLoyaltyProgram } from "@/hooks/useLoyaltyProgram";
 import { useLoyaltySettings } from "@/hooks/useLoyaltySettings";
 import { useCampaigns } from "@/hooks/useCampaigns";
 import { useCustomerNotes } from "@/hooks/useCustomerNotes";
-import { createPatientColumns } from "./_components/patients-columns";
+import { createCustomerColumns } from "./_components/customers-columns";
 import { CustomerPicker } from "./_components/customer-picker";
 import { TagsPanel } from "./_components/tags-panel";
 import { NotesPanel } from "./_components/notes-panel";
@@ -123,7 +123,7 @@ export default function PortalPatientsPage() {
     loadMessages,
     sendingMessage,
     sendMessage,
-  } = usePatients(ready);
+  } = useCustomers(ready);
   const {
     notes: customerNotes,
     notesLoading: customerNotesLoading,
@@ -224,12 +224,12 @@ export default function PortalPatientsPage() {
 
   const columns = useMemo(
     () =>
-      createPatientColumns({
+      createCustomerColumns({
         selected,
         toggleSelected,
         toggleSelectAll,
         allSelected,
-        onDelete: (p: Patient) => setPendingDelete([p]),
+        onDelete: (p: Customer) => setPendingDelete([p]),
       }),
     [selected, toggleSelected, toggleSelectAll, allSelected, setPendingDelete],
   );
@@ -282,14 +282,14 @@ export default function PortalPatientsPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="patients">
+    <PortalShell hospital={hospital} active="customers">
       <div className="mb-space-2 flex flex-wrap items-start justify-between gap-space-3">
         <PageHeader
           title="Customers"
           icon={<Users size={22} />}
           description="Build stronger relationships with your guests."
         />
-        <PermissionGate page="patients" action="write">
+        <PermissionGate page="customers" action="write">
           <Button size="md" onClick={() => setAddOpen(true)}>
             <UserPlus size={15} /> Add Customer
           </Button>
@@ -415,7 +415,7 @@ export default function PortalPatientsPage() {
               </Button>
             </div>
             {selectedPatients.length > 0 && (
-              <PermissionGate page="patients" action="delete">
+              <PermissionGate page="customers" action="delete">
                 <Button
                   variant="destructive"
                   size="md"
@@ -577,7 +577,7 @@ export default function PortalPatientsPage() {
                         </p>
                       </div>
                     </div>
-                    <PermissionGate page="patients" action="write">
+                    <PermissionGate page="customers" action="write">
                       {!editingProfile && (
                         <Button size="md" variant="secondary" onClick={startEditProfile}>
                           Edit
@@ -745,7 +745,7 @@ export default function PortalPatientsPage() {
                     <div className="mb-space-2 flex items-center justify-between">
                       <h4 className="text-[12px] font-bold text-ink-900">Recent Transactions</h4>
                       <Link
-                        href={`/portal/patients/${profile.public_id}`}
+                        href={`/portal/customers/${profile.public_id}`}
                         className="text-[11.5px] font-semibold text-brand-600 hover:underline"
                       >
                         View All &gt;
@@ -785,7 +785,7 @@ export default function PortalPatientsPage() {
                       <WhatsAppIcon size={14} className="brightness-0 invert" /> Message
                     </a>
                     <Link
-                      href={`/portal/patients/${profile.public_id}`}
+                      href={`/portal/customers/${profile.public_id}`}
                       className="inline-flex items-center justify-center gap-space-1 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-900 hover:bg-paper"
                     >
                       View History

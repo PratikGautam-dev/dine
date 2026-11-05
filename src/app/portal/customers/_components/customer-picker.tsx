@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { TableSkeleton } from "@/components/ui/Skeleton";
 import { cn } from "@/lib/cn";
-import type { Patient } from "@/hooks/usePatients";
+import type { Customer } from "@/hooks/useCustomers";
 
 /** The narrow left-hand "pick a customer" list the Loyalty/Tags/Communication tabs share --
  * lighter than the All Customers tab's full DataTable, since these tabs are about one customer's
@@ -17,7 +17,7 @@ export function CustomerPicker({
   activeId,
   onSelect,
 }: {
-  patients: Patient[] | null;
+  patients: Customer[] | null;
   search: string;
   onSearchChange: (v: string) => void;
   activeId: number | null;

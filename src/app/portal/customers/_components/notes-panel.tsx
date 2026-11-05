@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
 import { formatDate, formatDateTime } from "@/lib/formatDate";
 import { CustomerHeader } from "./customer-header";
 import type { CustomerNote } from "@/hooks/useCustomerNotes";
-import type { PatientDetail } from "@/hooks/usePatients";
+import type { CustomerDetail } from "@/hooks/useCustomers";
 
 function dueBadge(followUpAt: string) {
   const due = new Date(followUpAt).getTime();
@@ -39,7 +39,7 @@ export function NotesPanel({
   onSetNoteDone,
   onDeleteNote,
 }: {
-  profile: PatientDetail | null;
+  profile: CustomerDetail | null;
   profileLoading: boolean;
   notes: CustomerNote[] | null;
   notesLoading: boolean;
@@ -72,7 +72,7 @@ export function NotesPanel({
     <Card className="min-h-100 p-space-4">
       <CustomerHeader profile={profile} />
 
-      <PermissionGate page="patients" action="write">
+      <PermissionGate page="customers" action="write">
         <div className="mb-space-4 border-b border-line pb-space-4">
           <Field label="Add a note" htmlFor="note-draft">
             <Textarea
@@ -126,7 +126,7 @@ export function NotesPanel({
                   {n.follow_up_at && !n.done_at && dueBadge(n.follow_up_at)}
                   {n.done_at && <Badge tone="neutral">Done {formatDate(n.done_at)}</Badge>}
                 </div>
-                <PermissionGate page="patients" action="write">
+                <PermissionGate page="customers" action="write">
                   <div className="flex items-center gap-space-1">
                     <button
                       type="button"

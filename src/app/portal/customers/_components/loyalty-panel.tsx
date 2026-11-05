@@ -11,7 +11,7 @@ import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/formatDate";
 import { rupees } from "@/lib/foodOrders";
 import { CustomerHeader } from "./customer-header";
-import type { LoyaltyTransaction, PatientDetail } from "@/hooks/usePatients";
+import type { LoyaltyTransaction, CustomerDetail } from "@/hooks/useCustomers";
 import type { LoyaltyProgram } from "@/hooks/useLoyaltyProgram";
 
 const TIERS = ["Silver", "Gold", "Platinum"] as const;
@@ -30,7 +30,7 @@ const TIER_THRESHOLD: Record<(typeof TIERS)[number], keyof LoyaltyProgram> = {
 /** This customer's current tier (resolved server-side into profile.loyalty_tier) plus, when
  * there's a next tier to reach, how much more spend closes the gap -- null once already
  * Platinum (or when the program has no tiers configured at all). */
-function nextTierProgress(profile: PatientDetail, program: LoyaltyProgram) {
+function nextTierProgress(profile: CustomerDetail, program: LoyaltyProgram) {
   const spend = profile.total_spend_paise;
   const currentIndex = profile.loyalty_tier ? TIERS.indexOf(profile.loyalty_tier as (typeof TIERS)[number]) : -1;
   const nextTier = TIERS[currentIndex + 1];
@@ -55,7 +55,7 @@ export function LoyaltyPanel({
   onLoadLedger,
   program,
 }: {
-  profile: PatientDetail | null;
+  profile: CustomerDetail | null;
   profileLoading: boolean;
   savingTierOverride: boolean;
   onSetTierOverride: (tier: string | null) => void;
@@ -126,7 +126,7 @@ export function LoyaltyPanel({
           </div>
         )}
 
-        <PermissionGate page="patients" action="write">
+        <PermissionGate page="customers" action="write">
           <div className="border-t border-line pt-space-3">
             <p className="mb-space-2 text-[11px] font-semibold text-ink-600">
               TIER OVERRIDE{" "}

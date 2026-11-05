@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
-export type Patient = {
+export type Customer = {
   public_id: string;
   id: number;
   phone: string;
@@ -27,7 +27,7 @@ export type Patient = {
   loyalty_tier_override: string | null;
 };
 
-export type PatientDetail = Patient & {
+export type CustomerDetail = Customer & {
   date_of_birth: string | null;
   gender: string | null;
   address: string | null;
@@ -64,11 +64,11 @@ export type RecentOrder = {
 };
 
 async function fetchPatients(search: string) {
-  return portalFetch(`/api/portal/patients?search=${encodeURIComponent(search)}`);
+  return portalFetch(`/api/portal/customers?search=${encodeURIComponent(search)}`);
 }
 
 async function deletePatients(patientIds: number[]) {
-  return portalFetch("/api/portal/patients/delete", {
+  return portalFetch("/api/portal/customers/delete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ patient_ids: patientIds }),
@@ -78,20 +78,20 @@ async function deletePatients(patientIds: number[]) {
 export type NewCustomerFields = { name: string; phone: string };
 
 /** Loads + searches the portal's patients list, and owns row selection and
- * delete (single or bulk) for the /portal/patients page. */
-export function usePatients(ready: boolean) {
+ * delete (single or bulk) for the /portal/customers page. */
+export function useCustomers(ready: boolean) {
   const router = useRouter();
-  const [patients, setPatients] = useState<Patient[] | null>(null);
+  const [patients, setPatients] = useState<Customer[] | null>(null);
   // The whole directory (no search applied): the summary tiles and charts describe everyone, not the search results.
-  const [directory, setDirectory] = useState<Patient[] | null>(null);
+  const [directory, setDirectory] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Set<number>>(new Set());
-  const [pendingDelete, setPendingDelete] = useState<Patient[] | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<Customer[] | null>(null);
   const [deleting, setDeleting] = useState(false);
   // The "Customer Details" side panel's own selection -- distinct from `selected` above (row checkboxes).
   const [activeId, setActiveId] = useState<number | null>(null);
-  const [profile, setProfile] = useState<PatientDetail | null>(null);
+  const [profile, setProfile] = useState<CustomerDetail | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[] | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
@@ -113,7 +113,7 @@ export function usePatients(ready: boolean) {
         else setError(result.error);
         return;
       }
-      const list = (result.data as { patients: Patient[] }).patients;
+      const list = (result.data as { patients: Customer[] }).patients;
       setPatients(list);
       if (!query.trim()) setDirectory(list);
     },
@@ -145,7 +145,7 @@ export function usePatients(ready: boolean) {
     setSelected(checked ? new Set((patients ?? []).map((p) => p.id)) : new Set());
   };
 
-  const runDelete = async (targets: Patient[]) => {
+  const runDelete = async (targets: Customer[]) => {
     setDeleting(true);
     const result = await deletePatients(targets.map((p) => p.id));
     setDeleting(false);
@@ -180,14 +180,14 @@ export function usePatients(ready: boolean) {
       setLedger(null);
       setMessages(null);
       setProfileLoading(true);
-      const result = await portalFetch(`/api/portal/patients/id/${id}`);
+      const result = await portalFetch(`/api/portal/customers/id/${id}`);
       setProfileLoading(false);
       if (!result.ok) {
         if (result.unauthorized) router.push("/portal/login");
         else toast.error("Couldn't load customer", result.error);
         return;
       }
-      const data = result.data as { patient: PatientDetail; recent_orders: RecentOrder[] };
+      const data = result.data as { patient: CustomerDetail; recent_orders: RecentOrder[] };
       setProfile(data.patient);
       setRecentOrders(data.recent_orders);
     },
@@ -214,7 +214,7 @@ export function usePatients(ready: boolean) {
     // string clears it" contract) -- merge onto the currently-loaded profile
     // so a caller that only wants to change one field (e.g. Add Note) doesn't
     // silently wipe the others.
-    const result = await portalFetch(`/api/portal/patients/${activeId}/profile`, {
+    const result = await portalFetch(`/api/portal/customers/${activeId}/profile`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -231,7 +231,7 @@ export function usePatients(ready: boolean) {
       else toast.error("Couldn't save", result.error);
       return;
     }
-    const updated = (result.data as { patient: PatientDetail }).patient;
+    const updated = (result.data as { patient: CustomerDetail }).patient;
     setProfile(updated);
     toast.success("Saved");
     load(search);
@@ -240,7 +240,7 @@ export function usePatients(ready: boolean) {
   const saveAddress = async (address: string) => {
     if (activeId === null) return;
     setSavingProfile(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}`, {
+    const result = await portalFetch(`/api/portal/customers/${activeId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -255,7 +255,7 @@ export function usePatients(ready: boolean) {
       else toast.error("Couldn't save", result.error);
       return;
     }
-    const updated = (result.data as { patient: PatientDetail }).patient;
+    const updated = (result.data as { patient: CustomerDetail }).patient;
     setProfile(updated);
     toast.success("Saved");
     load(search);
@@ -263,7 +263,7 @@ export function usePatients(ready: boolean) {
 
   const createCustomer = async (fields: NewCustomerFields): Promise<boolean> => {
     setCreating(true);
-    const result = await portalFetch("/api/portal/patients", {
+    const result = await portalFetch("/api/portal/customers", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(fields),
@@ -284,7 +284,7 @@ export function usePatients(ready: boolean) {
   const saveTags = async (tags: string[]): Promise<boolean> => {
     if (activeId === null) return false;
     setSavingTags(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/tags`, {
+    const result = await portalFetch(`/api/portal/customers/${activeId}/tags`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tags }),
@@ -295,7 +295,7 @@ export function usePatients(ready: boolean) {
       else toast.error("Couldn't save tags", result.error);
       return false;
     }
-    const updated = (result.data as { patient: PatientDetail }).patient;
+    const updated = (result.data as { patient: CustomerDetail }).patient;
     setProfile(updated);
     load(search);
     return true;
@@ -305,7 +305,7 @@ export function usePatients(ready: boolean) {
    * of staff editing each customer's tag list by hand one at a time. */
   const renameTag = async (oldTag: string, newTag: string): Promise<boolean> => {
     setTagActionLoading(oldTag);
-    const result = await portalFetch("/api/portal/patients/tags/rename", {
+    const result = await portalFetch("/api/portal/customers/tags/rename", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ old_tag: oldTag, new_tag: newTag }),
@@ -325,7 +325,7 @@ export function usePatients(ready: boolean) {
 
   const deleteTagEverywhere = async (tag: string): Promise<boolean> => {
     setTagActionLoading(tag);
-    const result = await portalFetch("/api/portal/patients/tags/delete", {
+    const result = await portalFetch("/api/portal/customers/tags/delete", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tag }),
@@ -347,7 +347,7 @@ export function usePatients(ready: boolean) {
   const setTierOverride = async (tierOverride: string | null): Promise<boolean> => {
     if (activeId === null) return false;
     setSavingTierOverride(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/loyalty-tier`, {
+    const result = await portalFetch(`/api/portal/customers/${activeId}/loyalty-tier`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ tier_override: tierOverride }),
@@ -358,7 +358,7 @@ export function usePatients(ready: boolean) {
       else toast.error("Couldn't update loyalty tier", result.error);
       return false;
     }
-    const updated = (result.data as { patient: PatientDetail }).patient;
+    const updated = (result.data as { patient: CustomerDetail }).patient;
     setProfile(updated);
     toast.success(tierOverride ? `Tier set to ${tierOverride}` : "Back to automatic tier");
     load(search);
@@ -368,7 +368,7 @@ export function usePatients(ready: boolean) {
   const loadLedger = useCallback(async () => {
     if (activeId === null) return;
     setLedgerLoading(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/loyalty-ledger`);
+    const result = await portalFetch(`/api/portal/customers/${activeId}/loyalty-ledger`);
     setLedgerLoading(false);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
@@ -381,7 +381,7 @@ export function usePatients(ready: boolean) {
   const loadMessages = useCallback(async () => {
     if (activeId === null) return;
     setMessagesLoading(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/messages`);
+    const result = await portalFetch(`/api/portal/customers/${activeId}/messages`);
     setMessagesLoading(false);
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
@@ -398,7 +398,7 @@ export function usePatients(ready: boolean) {
   const sendMessage = async (body: string): Promise<string | null> => {
     if (activeId === null) return "No customer selected.";
     setSendingMessage(true);
-    const result = await portalFetch(`/api/portal/patients/${activeId}/messages`, {
+    const result = await portalFetch(`/api/portal/customers/${activeId}/messages`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ body }),
