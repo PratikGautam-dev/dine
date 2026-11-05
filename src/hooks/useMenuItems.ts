@@ -25,7 +25,14 @@ export type MenuItem = {
   /** SUM(quantity) across combo_lines -- the mockup's "Items" count. null for a non-combo. */
   combo_item_count: number | null;
   combo_lines: ComboLine[];
+  /** Storefront veg/non-veg filter. null = never set by staff -- shown as "unset" everywhere,
+   * never guessed as veg or non-veg. */
+  is_veg: boolean | null;
 };
+
+/** Tri-state, not boolean -- "unset" is a real, distinct choice (never guess), not just the
+ * absence of a choice a plain checkbox would collapse it to. */
+export type VegFormValue = "unset" | "veg" | "non_veg";
 
 export type MenuItemFormState = {
   name: string;
@@ -38,6 +45,7 @@ export type MenuItemFormState = {
   image_url: string; // a public https link to a photo; "" means text-only
   is_combo: boolean;
   combo_lines: { component_item_id: string; quantity: string }[];
+  is_veg: VegFormValue;
 };
 
 export function emptyMenuItemForm(): MenuItemFormState {
@@ -52,6 +60,7 @@ export function emptyMenuItemForm(): MenuItemFormState {
     image_url: "",
     is_combo: false,
     combo_lines: [],
+    is_veg: "unset",
   };
 }
 
@@ -64,6 +73,7 @@ function formToPayload(form: MenuItemFormState, editing: boolean) {
     is_available: form.is_available,
     image_url: form.image_url.trim() || null,
     is_combo: form.is_combo,
+    is_veg: form.is_veg === "unset" ? null : form.is_veg === "veg",
     combo_lines: form.is_combo
       ? form.combo_lines
           .filter((l) => l.component_item_id)
@@ -134,6 +144,7 @@ export function useMenuItems(ready: boolean) {
         component_item_id: l.component_item_id,
         quantity: String(l.quantity),
       })),
+      is_veg: item.is_veg === null ? "unset" : item.is_veg ? "veg" : "non_veg",
     });
     setFormError(null);
     setShowForm(true);
