@@ -3,9 +3,27 @@ import axios, { isAxiosError } from "axios";
 import { requestInitToAxiosConfig } from "@/lib/apiClient";
 import type { PortalHospital } from "@/lib/portalAuth";
 
-const ACCESS_KEY = "staff_access_token";
-const REFRESH_KEY = "staff_refresh_token";
 const SESSION_KEY = "staff_session";
+
+// Staff access/refresh tokens travel as httpOnly cookies now (backend's
+// portal/routes/staff_auth.py), set by the browser itself on every
+// login/refresh/logout response -- this file never sees, stores, or
+// attaches them. SESSION_KEY below still holds the non-sensitive session
+// summary (role/permissions/hospital) in localStorage purely for display
+// (sidebar name, permission gates); leaking it to XSS doesn't grant any
+// real access the way the old raw bearer tokens did, since the actual
+// credential is now unreadable to JS.
+const CSRF_COOKIE = "csrf_token";
+
+/** Reads the readable (non-httpOnly) csrf_token cookie the backend sets
+ * alongside the httpOnly auth cookies -- echoed back as X-CSRF-Token on
+ * every mutating request (auth/csrf.py's module docstring on the backend
+ * explains the double-submit scheme this implements). */
+function getCsrfToken(): string | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE}=([^;]*)`));
+  return match ? decodeURIComponent(match[1]) : null;
+}
 
 // Lets already-mounted components (PortalSidebar, BranchProvider, anything reading
 // useStaffSession) react to a login/refresh that happens elsewhere -- the /portal layout
@@ -38,21 +56,9 @@ export type StaffSession = {
   permissions: StaffPermissions;
 };
 
-export function saveStaffSession(accessToken: string, refreshToken: string, session: StaffSession) {
-  localStorage.setItem(ACCESS_KEY, accessToken);
-  localStorage.setItem(REFRESH_KEY, refreshToken);
+export function saveStaffSession(session: StaffSession) {
   localStorage.setItem(SESSION_KEY, JSON.stringify(session));
   emitSessionChange();
-}
-
-export function getStaffAccessToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(ACCESS_KEY);
-}
-
-export function getStaffRefreshToken(): string | null {
-  if (typeof window === "undefined") return null;
-  return localStorage.getItem(REFRESH_KEY);
 }
 
 export function getStaffSession(): StaffSession | null {
@@ -66,9 +72,19 @@ export function getStaffSession(): StaffSession | null {
   }
 }
 
-export function clearStaffSession() {
-  localStorage.removeItem(ACCESS_KEY);
-  localStorage.removeItem(REFRESH_KEY);
+/** Revokes the refresh-token cookie server-side (so it can't be replayed)
+ * and clears every staff cookie via the response's Set-Cookie headers --
+ * best-effort: a network failure here still clears the local session below,
+ * same as the old client-only clear did, since the cookies' own TTLs are
+ * the fallback if this call never reaches the server. Must be awaited by
+ * the caller before relying on the cookies being gone (e.g. before
+ * redirecting to a page that would otherwise still look signed in). */
+export async function clearStaffSession() {
+  try {
+    await axios.post(`${API_BASE_URL}/api/portal/staff/logout`, undefined, { withCredentials: true });
+  } catch {
+    // best-effort -- see docstring above
+  }
   localStorage.removeItem(SESSION_KEY);
   emitSessionChange();
 }
@@ -80,16 +96,19 @@ type FetchResult =
   | { ok: false; unauthorized: true }
   | { ok: false; unauthorized: false; error: string };
 
-/** Attempts one silent refresh via /api/portal/staff/refresh, storing the
- * rotated tokens on success. Returns the new access token, or null if the
- * refresh itself failed (refresh token missing/expired/revoked). */
-async function tryRefresh(): Promise<string | null> {
-  const refreshToken = getStaffRefreshToken();
-  if (!refreshToken) return null;
+/** Attempts one silent refresh via /api/portal/staff/refresh, updating the
+ * cached session summary on success. The rotated access/refresh tokens
+ * themselves travel back as Set-Cookie headers on this same response --
+ * axios never sees their values, withCredentials: true just lets the
+ * browser apply them. Returns true on success, false if the refresh itself
+ * failed (refresh-token cookie missing/expired/revoked). */
+async function tryRefresh(): Promise<boolean> {
   try {
-    const res = await axios.post(`${API_BASE_URL}/api/portal/staff/refresh`, {
-      refresh_token: refreshToken,
-    });
+    const res = await axios.post(
+      `${API_BASE_URL}/api/portal/staff/refresh`,
+      undefined,
+      { withCredentials: true },
+    );
     const data = res.data;
     const existing = getStaffSession();
     const session: StaffSession = {
@@ -99,33 +118,39 @@ async function tryRefresh(): Promise<string | null> {
       hospital: data.staff.hospital || existing?.hospital,
       permissions: data.permissions,
     };
-    saveStaffSession(data.access_token, data.refresh_token, session);
-    return data.access_token as string;
+    saveStaffSession(session);
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
 
-/** axios wrapper for staff-authenticated requests. Unlike portalFetch
- * (24h shared-hospital token, bare "401 -> logout" is fine there), staff
- * access tokens are ~15min JWTs, so a 401 here first tries ONE silent
- * refresh before giving up and clearing the session -- otherwise routine
- * token expiry during normal use would log people out constantly. */
+/** axios wrapper for staff-authenticated requests. The access-token cookie
+ * is attached by the browser automatically (withCredentials: true); unlike
+ * portalFetch (24h shared-hospital token, bare "401 -> logout" is fine
+ * there), staff access tokens are ~15min JWTs, so a 401 here first tries
+ * ONE silent refresh before giving up and clearing the session -- otherwise
+ * routine token expiry during normal use would log people out constantly. */
 export async function staffFetch(path: string, init?: RequestInit): Promise<FetchResult> {
-  let token = getStaffAccessToken();
-  if (!token) return { ok: false, unauthorized: true };
+  if (!getStaffSession()) return { ok: false, unauthorized: true };
 
   const config = requestInitToAxiosConfig(init);
-  const request = (authToken: string) =>
+  // CSRF: only mutating requests carry a body a forged cross-site request
+  // could abuse -- a bare GET needs no header (auth/csrf.py's middleware
+  // only checks non-GET/HEAD/OPTIONS methods anyway).
+  const csrfHeaders =
+    config.method.toUpperCase() === "GET" ? {} : { "X-CSRF-Token": getCsrfToken() || "" };
+  const request = () =>
     axios.request({
       ...config,
       url: `${API_BASE_URL}${path}`,
-      headers: { ...config.headers, Authorization: `Bearer ${authToken}` },
+      headers: { ...config.headers, ...csrfHeaders },
+      withCredentials: true,
     });
 
   let res;
   try {
-    res = await request(token);
+    res = await request();
   } catch (err) {
     if (!isAxiosError(err) || !err.response) {
       return { ok: false, unauthorized: false, error: "Network error — check your connection." };
@@ -138,19 +163,19 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
       };
     }
 
-    token = await tryRefresh();
-    if (!token) {
-      clearStaffSession();
+    const refreshed = await tryRefresh();
+    if (!refreshed) {
+      await clearStaffSession();
       return { ok: false, unauthorized: true };
     }
     try {
-      res = await request(token);
+      res = await request();
     } catch (retryErr) {
       if (!isAxiosError(retryErr) || !retryErr.response) {
         return { ok: false, unauthorized: false, error: "Network error — check your connection." };
       }
       if (retryErr.response.status === 401) {
-        clearStaffSession();
+        await clearStaffSession();
         return { ok: false, unauthorized: true };
       }
       return {

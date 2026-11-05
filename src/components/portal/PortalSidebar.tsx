@@ -319,8 +319,8 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
   // then the real session an instant later.
   const session = useStaffSession();
 
-  function handleLogout() {
-    clearPortalSession();
+  async function handleLogout() {
+    await clearPortalSession();
     router.push("/");
   }
 

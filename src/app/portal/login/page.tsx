@@ -30,13 +30,17 @@ export default function PortalLoginPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: staffEmail, password: staffPassword }),
+        // Lets the browser accept the httpOnly access/refresh/csrf cookies
+        // this response's Set-Cookie headers carry -- without this, a
+        // cross-origin response's Set-Cookie is dropped entirely.
+        credentials: "include",
       });
       const data = await res.json();
       if (!res.ok) {
         setStaffError(data.error || "Incorrect email or password.");
         return;
       }
-      saveStaffSession(data.access_token, data.refresh_token, {
+      saveStaffSession({
         id: data.staff.id,
         name: data.staff.name,
         role: data.staff.role,

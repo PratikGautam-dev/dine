@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getPortalHospital, getPortalToken, type PortalHospital } from "@/lib/portalAuth";
+import { getPortalHospital, type PortalHospital } from "@/lib/portalAuth";
 
 /** Redirects to /portal/login if there's no stored token, otherwise returns
  * the cached hospital summary from login -- individual pages still handle
@@ -19,11 +19,16 @@ export function usePortalGuard() {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    if (!getPortalToken()) {
+    // The real credential is an httpOnly cookie now (unreadable to JS), so
+    // this checks for the cached session summary instead of a token -- same
+    // "is there a session" signal, staffFetch's own 401 handling is still
+    // what actually enforces auth against the backend.
+    const cached = getPortalHospital();
+    if (!cached) {
       router.push("/portal/login");
       return;
     }
-    setHospital(getPortalHospital());
+    setHospital(cached);
     setReady(true);
   }, [router]);
 

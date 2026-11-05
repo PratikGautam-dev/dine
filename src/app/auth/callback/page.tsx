@@ -41,14 +41,22 @@ function CallbackContent() {
           const res = await fetch(`${API_BASE_URL}/api/portal/staff/refresh`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
+            // One-time bootstrap exchange -- there's no refresh_token
+            // cookie yet (this IS the first login), so the one-time token
+            // this page's own URL query param carries is sent in the body
+            // as a fallback the backend's /staff/refresh route accepts
+            // specifically for this case. The cookies this response sets
+            // (via credentials: "include") are what every later refresh
+            // uses instead.
             body: JSON.stringify({ refresh_token: staffRefreshToken }),
+            credentials: "include",
           });
           if (!res.ok) {
             router.replace("/auth?error=google_sign_in_failed");
             return;
           }
           const data = await res.json();
-          saveStaffSession(data.access_token, data.refresh_token, {
+          saveStaffSession({
             id: data.staff.id,
             name: data.staff.name,
             role: data.staff.role,

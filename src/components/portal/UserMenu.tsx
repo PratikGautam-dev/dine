@@ -40,8 +40,8 @@ export function UserMenu() {
       </DropdownMenuTrigger>
       <DropdownMenuContent>
         <DropdownMenuItem
-          onClick={() => {
-            clearPortalSession();
+          onClick={async () => {
+            await clearPortalSession();
             router.push("/");
           }}
         >

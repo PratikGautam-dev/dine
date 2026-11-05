@@ -35,7 +35,7 @@ import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { rupees } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
-import { API_BASE_URL, getStaffAccessToken } from "@/lib/staffAuth";
+import { API_BASE_URL, getStaffSession } from "@/lib/staffAuth";
 import { useReports, type ReportChannel } from "@/hooks/useReports";
 
 const RANGES = [
@@ -120,15 +120,16 @@ export default function PortalReportsPage() {
   }, [data]);
 
   async function handleDownload(kind: string, label: string) {
-    const token = getStaffAccessToken();
-    if (!token) return;
+    if (!getStaffSession()) return;
     setDownloading(kind);
     const params = new URLSearchParams({ kind, days: String(days) });
     if (channel) params.set("channel", channel);
     if (selectedBranchId) params.set("branch_id", selectedBranchId);
     try {
       const res = await fetch(`${API_BASE_URL}/api/portal/reports/export?${params.toString()}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        // GET, so no CSRF header needed -- the access-token cookie is
+        // attached by the browser automatically.
+        credentials: "include",
       });
       if (!res.ok) throw new Error();
       const blob = await res.blob();
