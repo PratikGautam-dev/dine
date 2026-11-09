@@ -2,14 +2,17 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Tag } from "lucide-react";
+import { Store, Tag } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { clearSuperAdminSession, getSuperAdminAccessToken, useSuperAdminSession } from "@/lib/superAdminAuth";
 
 // Own minimal shell, distinct from PortalShell (that's the restaurant-staff /portal/* shell) --
-// a thin sidebar with just "Platform Coupons" for now, room to grow into tenants/platform-settings
-// pages later reusing this same login (plan section 6, out of scope here beyond the route tree).
-const NAV_ITEMS = [{ href: "/admin/platform-offers", label: "Platform Coupons", icon: Tag }];
+// a thin sidebar growing from just "Platform Coupons" into "Restaurants" (tenant management) now,
+// room for platform-settings pages later reusing this same login (plan section 6).
+const NAV_ITEMS = [
+  { href: "/admin/restaurants", label: "Restaurants", icon: Store },
+  { href: "/admin/platform-offers", label: "Platform Coupons", icon: Tag },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
