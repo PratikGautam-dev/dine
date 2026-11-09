@@ -82,14 +82,6 @@ export default function BranchesSettingsPage() {
     };
   }, [branches]);
 
-  if (!canView) {
-    return (
-      <PortalShell hospital={session?.hospital || null} active="branches">
-        <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>
-      </PortalShell>
-    );
-  }
-
   function openAdd() {
     setForm(emptyBranchForm());
     setFormError(null);
@@ -180,6 +172,14 @@ export default function BranchesSettingsPage() {
     ],
     [],
   );
+
+  if (!canView) {
+    return (
+      <PortalShell hospital={session?.hospital || null} active="branches">
+        <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>
+      </PortalShell>
+    );
+  }
 
   return (
     <PortalShell hospital={session?.hospital || null} active="branches">
