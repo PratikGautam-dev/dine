@@ -26,3 +26,4 @@ design-reference/
 node_modules/
 
 .next/
+*.tsbuildinfo
