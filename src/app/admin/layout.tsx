@@ -2,7 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { Store, Tag } from "lucide-react";
+import { ScrollText, Store, Tag, UserX } from "lucide-react";
 import { cn } from "@/lib/cn";
 import { clearSuperAdminSession, getSuperAdminAccessToken, useSuperAdminSession } from "@/lib/superAdminAuth";
 
@@ -12,6 +12,8 @@ import { clearSuperAdminSession, getSuperAdminAccessToken, useSuperAdminSession 
 const NAV_ITEMS = [
   { href: "/admin/restaurants", label: "Restaurants", icon: Store },
   { href: "/admin/platform-offers", label: "Platform Coupons", icon: Tag },
+  { href: "/admin/signups", label: "Stalled Signups", icon: UserX },
+  { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {

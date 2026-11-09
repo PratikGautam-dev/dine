@@ -10,9 +10,11 @@ import { CheckboxRow } from "@/components/ui/Checkbox";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { FormSkeleton } from "@/components/ui/Skeleton";
+import { FormSkeleton, TextSkeleton } from "@/components/ui/Skeleton";
+import { formatDateTime } from "@/lib/formatDate";
 import { toast } from "@/lib/toast";
 import { useAdminTenantDetail, type TenantUpdatePayload } from "@/hooks/useAdminTenants";
+import { useTenantAuditLog, type AuditLogEntry } from "@/hooks/useAdminAuditLog";
 
 // Edit-tenant form for an EXISTING restaurant -- mirrors admin/tenants_api.py's
 // TenantUpdatePayload field-for-field (see that file's update_tenant() handler
@@ -48,12 +50,17 @@ export default function AdminRestaurantDetailPage() {
   const params = useParams();
   const router = useRouter();
   const tenantId = Number(params.id);
-  const { tenant, loading, error, updateTenant } = useAdminTenantDetail(tenantId);
+  const { tenant, loading, error, updateTenant, assignOwner } = useAdminTenantDetail(tenantId);
+  const { entries: auditEntries, loading: auditLoading, error: auditError } = useTenantAuditLog(tenantId);
 
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [ownerEmail, setOwnerEmail] = useState("");
+  const [assigningOwner, setAssigningOwner] = useState(false);
+  const [ownerErrors, setOwnerErrors] = useState<string[]>([]);
 
   // Seed the editable form from the loaded tenant -- only once per load, so
   // a background reload() after a successful save doesn't clobber in-flight
@@ -159,6 +166,25 @@ export default function AdminRestaurantDetailPage() {
     setForm((f) => (f ? { ...f, access_token: "", app_secret: "", portal_password: "" } : f));
     setSuccessMessage("Changes saved.");
     toast.success("Restaurant updated");
+  }
+
+  async function handleAssignOwner(e: React.FormEvent) {
+    e.preventDefault();
+    setOwnerErrors([]);
+    if (!ownerEmail.trim()) {
+      setOwnerErrors(["A valid email address is required."]);
+      return;
+    }
+    setAssigningOwner(true);
+    const errors = await assignOwner(ownerEmail.trim());
+    setAssigningOwner(false);
+    if (errors) {
+      setOwnerErrors(errors);
+      toast.error("Couldn't assign owner", errors[0]);
+      return;
+    }
+    setOwnerEmail("");
+    toast.success("Owner assigned");
   }
 
   const tenantTypes = Object.keys(tenant.default_capabilities_by_type);
@@ -341,6 +367,30 @@ export default function AdminRestaurantDetailPage() {
               ))}
             </ul>
           )}
+
+          <div className="mt-space-4 flex flex-wrap items-end gap-space-2">
+            <Field label="Assign owner by email" htmlFor="t-owner-email" className="mb-0 flex-1 min-w-[220px]">
+              <Input
+                id="t-owner-email"
+                type="email"
+                placeholder="owner@example.com"
+                value={ownerEmail}
+                onChange={(e) => setOwnerEmail(e.target.value)}
+              />
+            </Field>
+            <Button type="button" variant="secondary" onClick={handleAssignOwner} disabled={assigningOwner}>
+              {assigningOwner ? "Assigning…" : "Assign owner"}
+            </Button>
+          </div>
+          {ownerErrors.length > 0 && (
+            <div className="mt-space-2">
+              {ownerErrors.map((err, i) => (
+                <p key={i} className="text-[12.5px] font-medium text-error">
+                  {err}
+                </p>
+              ))}
+            </div>
+          )}
         </Card>
 
         {formErrors.length > 0 && (
@@ -362,6 +412,49 @@ export default function AdminRestaurantDetailPage() {
           </Button>
         </div>
       </form>
+
+      <Card className="mt-space-4 p-space-5">
+        <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Activity Log</h3>
+        {auditError && <p className="text-[13px] text-error">{auditError}</p>}
+        {auditLoading ? (
+          <TextSkeleton />
+        ) : !auditEntries || auditEntries.length === 0 ? (
+          <p className="text-[13px] text-ink-400">No activity recorded yet.</p>
+        ) : (
+          <ul className="space-y-space-2">
+            {auditEntries.map((entry) => (
+              <AuditLogRow key={entry.id} entry={entry} />
+            ))}
+          </ul>
+        )}
+      </Card>
     </>
+  );
+}
+
+/** One audit-log row with a <details> toggle for the raw before/after JSON --
+ * an operator debugging tool, not a polished diff view, so the raw objects
+ * are good enough. */
+function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
+  const hasDetail = entry.before_value !== null || entry.after_value !== null;
+  return (
+    <li className="rounded-md border border-line p-space-3 text-[13px]">
+      <div className="flex flex-wrap items-center gap-space-2">
+        <Badge tone={entry.actor_level === "platform_admin" ? "brand" : "neutral"}>
+          {entry.actor_level === "platform_admin" ? "Platform Admin" : "Portal"}
+        </Badge>
+        <span className="font-semibold text-ink-900">{entry.action}</span>
+        <span className="text-ink-600">{entry.actor_label}</span>
+        <span className="ml-auto text-[12px] text-ink-400">{formatDateTime(entry.created_at)}</span>
+      </div>
+      {hasDetail && (
+        <details className="mt-space-2">
+          <summary className="cursor-pointer text-[12px] font-semibold text-brand-600">Show before/after</summary>
+          <pre className="mt-space-2 overflow-x-auto rounded-md bg-black/[0.04] p-space-2 text-[11.5px] text-ink-700">
+            {JSON.stringify({ before: entry.before_value, after: entry.after_value }, null, 2)}
+          </pre>
+        </details>
+      )}
+    </li>
   );
 }

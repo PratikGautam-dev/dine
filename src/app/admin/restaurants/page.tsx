@@ -2,13 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Store } from "lucide-react";
+import { CalendarCheck, Store } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { TableSkeleton } from "@/components/ui/Skeleton";
-import { useAdminTenantsList } from "@/hooks/useAdminTenants";
+import { StatTileSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
+import { StatTile } from "@/components/portal/StatTile";
+import { useAdminTenantsList, useTotalBookingsStat } from "@/hooks/useAdminTenants";
 
 // Modeled on /admin/platform-offers/page.tsx's list layout (search input +
 // Card-wrapped table) -- simpler than that page: no KPIs, no create flow
@@ -16,6 +17,7 @@ import { useAdminTenantsList } from "@/hooks/useAdminTenants";
 // browse-and-drill-into an existing tenant to edit it.
 export default function AdminRestaurantsPage() {
   const { tenants, loading, error } = useAdminTenantsList();
+  const { totalBookings, loading: bookingsLoading } = useTotalBookingsStat();
   const [search, setSearch] = useState("");
 
   const filteredTenants = useMemo(() => {
@@ -33,6 +35,21 @@ export default function AdminRestaurantsPage() {
         description="Every onboarded restaurant on the platform — click one to view or edit it."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
+
+      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:max-w-[320px]">
+        {bookingsLoading ? (
+          <StatTileSkeleton />
+        ) : (
+          <StatTile
+            icon={<CalendarCheck size={22} />}
+            label="Total bookings across the platform"
+            value={totalBookings ?? 0}
+            deltaPct={null}
+            hint="All time, every restaurant"
+            tone="brand"
+          />
+        )}
+      </div>
 
       <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
         <h3 className="text-[15px] font-bold text-ink-900">Restaurants{tenants ? ` (${tenants.length})` : ""}</h3>

@@ -141,5 +141,92 @@ export function useAdminTenantDetail(tenantId: number) {
     return null;
   }
 
-  return { tenant, loading, error, reload: load, updateTenant };
+  /** POSTs the assign-owner call; returns null on success (and refreshes
+   * `tenant` from the response), or the backend's single `error` string on
+   * a 400/404 failure -- wrapped in an array so callers can treat it the
+   * same way updateTenant's `errors: string[]` is treated. */
+  async function assignOwner(email: string): Promise<string[] | null> {
+    const result = await superAdminFetch(`/api/admin/tenants/${tenantId}/assign-owner`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }),
+    });
+    if (!result.ok) {
+      if (result.unauthorized) {
+        router.push("/admin/login");
+        return null;
+      }
+      return [result.error];
+    }
+    const data = result.data as { tenant?: TenantDetail };
+    if (data.tenant) setTenant(data.tenant);
+    return null;
+  }
+
+  return { tenant, loading, error, reload: load, updateTenant, assignOwner };
+}
+
+/** A Google-signed-in user who never finished onboarding a restaurant --
+ * admin/tenants_api.py's list_stalled_signups(). Read-only: the natural next
+ * action ("help them onboard") is out of scope for this dashboard. */
+export type StalledSignup = {
+  id: number;
+  email: string;
+  name: string | null;
+  created_at: string;
+};
+
+/** Loads /api/admin/stalled-signups. */
+export function useAdminStalledSignups() {
+  const router = useRouter();
+  const [users, setUsers] = useState<StalledSignup[] | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const result = await superAdminFetch("/api/admin/stalled-signups");
+    setLoading(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/admin/login");
+      else setError(result.error);
+      return;
+    }
+    setError(null);
+    setUsers((result.data as { users: StalledSignup[] }).users);
+  }, [router]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  return { users, loading, error, reload: load };
+}
+
+/** Loads /api/admin/stats/total-bookings -- a single platform-wide lifetime
+ * count, deliberately not bundled into useAdminTenantsList since it's an
+ * unrelated metric shown as a small tile above that list, not part of it. */
+export function useTotalBookingsStat() {
+  const router = useRouter();
+  const [totalBookings, setTotalBookings] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const result = await superAdminFetch("/api/admin/stats/total-bookings");
+      if (cancelled) return;
+      setLoading(false);
+      if (!result.ok) {
+        if (result.unauthorized) router.push("/admin/login");
+        return;
+      }
+      setTotalBookings((result.data as { total_bookings: number }).total_bookings);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  return { totalBookings, loading };
 }
