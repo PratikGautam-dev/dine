@@ -1,8 +1,8 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export type OnboardingSuccess = {
-  hospital_id: number;
-  hospital_name: string;
+  restaurant_id: number;
+  restaurant_name: string;
   whatsapp_phone_number_id: string;
   data_tier: string;
   portal_password_set: boolean;

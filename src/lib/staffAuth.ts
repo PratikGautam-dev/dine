@@ -1,7 +1,7 @@
 import { useMemo, useSyncExternalStore } from "react";
 import axios, { isAxiosError } from "axios";
 import { requestInitToAxiosConfig } from "@/lib/apiClient";
-import type { PortalHospital } from "@/lib/portalAuth";
+import type { PortalRestaurant } from "@/lib/portalAuth";
 
 const ACCESS_KEY = "staff_access_token";
 const REFRESH_KEY = "staff_refresh_token";
@@ -34,7 +34,7 @@ export type StaffSession = {
   id: number;
   name: string;
   role: StaffRole;
-  hospital: PortalHospital;
+  restaurant: PortalRestaurant;
   permissions: StaffPermissions;
 };
 
@@ -96,7 +96,7 @@ async function tryRefresh(): Promise<string | null> {
       id: data.staff.id,
       name: data.staff.name,
       role: data.staff.role,
-      hospital: data.staff.hospital || existing?.hospital,
+      restaurant: data.staff.restaurant || existing?.restaurant,
       permissions: data.permissions,
     };
     saveStaffSession(data.access_token, data.refresh_token, session);
@@ -107,7 +107,7 @@ async function tryRefresh(): Promise<string | null> {
 }
 
 /** axios wrapper for staff-authenticated requests. Unlike portalFetch
- * (24h shared-hospital token, bare "401 -> logout" is fine there), staff
+ * (24h shared-restaurant token, bare "401 -> logout" is fine there), staff
  * access tokens are ~15min JWTs, so a 401 here first tries ONE silent
  * refresh before giving up and clearing the session -- otherwise routine
  * token expiry during normal use would log people out constantly. */

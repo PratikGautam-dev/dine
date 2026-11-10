@@ -70,7 +70,7 @@ const ACTIVITY_ICON = { booking: CalendarClock, order: ChefHat, message: Message
 const ACTIVITY_TONE = { booking: "clay", order: "warning", message: "brand" } as const;
 
 export default function LiveOperationsPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const { data, error, actingId, setTableStatus, advanceOrder, markArrived } = useLiveOperations(
     ready,
     useBranchFilter().selectedBranchId,
@@ -80,7 +80,7 @@ export default function LiveOperationsPage() {
   const canWriteBookings = usePermission("appointments", "write");
 
   return (
-    <PortalShell hospital={hospital} active="live-operations">
+    <PortalShell restaurant={restaurant} active="live-operations">
       <PageHeader
         title="Live Operations"
         icon={<Radio size={22} />}

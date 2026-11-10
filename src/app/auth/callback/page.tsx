@@ -12,13 +12,13 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8
 // Section 15 / migration 0018: auth/google_oauth.py's /auth/google/callback
 // lands here with one of two query params, depending on whether this Google
 // identity already has a staff_details row (an admin created via the
-// staff-management UI, or someone who's already onboarded a hospital --
-// there's no separate 'owner' role, confirmed with the user, so "hospital
+// staff-management UI, or someone who's already onboarded a restaurant --
+// there's no separate 'owner' role, confirmed with the user, so "restaurant
 // owner" and "admin" are the same thing now):
 //   ?staff_refresh_token=... -- a real staff account. Exchanged here for a
 //     full staff session (access token, refresh token, role, permissions)
 //     via the same /api/portal/staff/refresh call any staff JWT expiry
-//     uses, then straight into the dashboard -- one identity, one hospital,
+//     uses, then straight into the dashboard -- one identity, one restaurant,
 //     so there's never a picker to show.
 //   ?token=... -- no staff account yet. Stored as the short-lived
 //     Google-identity session the onboarding wizard authenticates its
@@ -52,7 +52,7 @@ function CallbackContent() {
             id: data.staff.id,
             name: data.staff.name,
             role: data.staff.role,
-            hospital: data.staff.hospital,
+            restaurant: data.staff.restaurant,
             permissions: data.permissions,
           });
           router.push("/portal/dashboard");

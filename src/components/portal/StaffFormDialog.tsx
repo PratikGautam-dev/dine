@@ -21,7 +21,7 @@ type Props = {
   sections: Section[];
   /** Active teammates the person could report to (already excludes the person being edited). */
   managers: { id: number; name: string }[];
-  /** Hospital-created custom role_keys (Staff & Access's "Add Role") beyond the 3 built-in
+  /** Restaurant-created custom role_keys (Staff & Access's "Add Role") beyond the 3 built-in
    * ROLE_OPTIONS -- shown with a computed label (roleLabel()), no blurb. */
   customRoles?: string[];
   /** "Give portal access" on a roster-only person: pre-fills the add form (name/section) without

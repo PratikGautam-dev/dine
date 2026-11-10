@@ -91,7 +91,7 @@ const QUICK_ACTIONS = [
 ] as const;
 
 export default function PortalMessagesPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const {
     filter,
     setFilter,
@@ -160,7 +160,7 @@ export default function PortalMessagesPage() {
     h.patient_name || h.phone;
 
   return (
-    <PortalShell hospital={hospital} active="messages">
+    <PortalShell restaurant={restaurant} active="messages">
       <PageHeader
         title="WhatsApp Inbox"
         icon={<WhatsAppIcon size={22} />}

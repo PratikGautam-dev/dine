@@ -1,8 +1,8 @@
 // Compatibility layer over staffAuth.ts (docs/rbac-redis-plan.md) -- every
 // portal page/component below was written against this file's original
-// shared-hospital-password session (portal_token/portal_hospital in
+// shared-restaurant-password session (portal_token/portal_restaurant in
 // localStorage). Rather than touching every one of those call sites,
-// getPortalToken/getPortalHospital/portalFetch/clearPortalSession now just
+// getPortalToken/getPortalRestaurant/portalFetch/clearPortalSession now just
 // delegate to the staff session (staffAuth.ts) underneath -- same
 // "preserve the interface, change what's underneath" discipline the
 // backend's db/repositories/*.py already applies throughout this rework.
@@ -18,7 +18,7 @@ import {
   staffFetch,
 } from "@/lib/staffAuth";
 
-export type PortalHospital = {
+export type PortalRestaurant = {
   id: number;
   name: string;
   data_tier: string;
@@ -31,8 +31,8 @@ export function getPortalToken(): string | null {
   return getStaffAccessToken();
 }
 
-export function getPortalHospital(): PortalHospital | null {
-  return getStaffSession()?.hospital ?? null;
+export function getPortalRestaurant(): PortalRestaurant | null {
+  return getStaffSession()?.restaurant ?? null;
 }
 
 export function clearPortalSession() {

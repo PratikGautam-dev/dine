@@ -3,7 +3,7 @@ import { staffFetch } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 export type Storefront = {
-  hospital_id: number;
+  restaurant_id: number;
   name: string;
   web_ordering_enabled: boolean;
   slug: string | null;

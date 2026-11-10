@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getPortalHospital, portalFetch, type PortalHospital } from "@/lib/portalAuth";
+import { getPortalRestaurant, portalFetch, type PortalRestaurant } from "@/lib/portalAuth";
 
 export type DashboardData = {
-  hospital: PortalHospital;
+  restaurant: PortalRestaurant;
   stats: {
     today_appointments: number;
     today_appointments_delta_pct: number | null;
@@ -53,7 +53,7 @@ export function usePortalDashboard(ready: boolean, branchId: string | null = nul
   const router = useRouter();
   const [data, setData] = useState<DashboardData | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [hospital, setHospital] = useState<PortalHospital | null>(null);
+  const [restaurant, setRestaurant] = useState<PortalRestaurant | null>(null);
   const routerRef = useRef(router);
   routerRef.current = router;
   // Always the CURRENT branchId, read synchronously (not via the `load` closure's captured
@@ -78,11 +78,11 @@ export function usePortalDashboard(ready: boolean, branchId: string | null = nul
 
   useEffect(() => {
     if (!ready) return;
-    setHospital(getPortalHospital());
+    setRestaurant(getPortalRestaurant());
     void load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [ready, load]);
 
-  return { data, error, hospital };
+  return { data, error, restaurant };
 }

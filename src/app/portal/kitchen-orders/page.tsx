@@ -149,7 +149,7 @@ function OrderCard({
 /** A leaner, auto-refreshing kitchen-display view over the SAME real orders Food Orders shows --
  * no charts/history/search, just what's actively cooking, grouped by stage. */
 export default function PortalKitchenOrdersPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const { orders, error, actingId, runAction } = useFoodOrders(
     ready,
     "",
@@ -243,7 +243,7 @@ export default function PortalKitchenOrdersPage() {
 
   return (
     <div ref={containerRef} className={cn(fullscreen && "overflow-y-auto bg-paper p-space-4")}>
-      <PortalShell hospital={hospital} active="kitchen-orders">
+      <PortalShell restaurant={restaurant} active="kitchen-orders">
         <PageHeader
           title="Kitchen Orders (KDS)"
           icon={<ChefHat size={22} />}

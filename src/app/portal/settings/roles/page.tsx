@@ -98,7 +98,7 @@ export default function RolesAndPermissionsPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="roles">
+      <PortalShell restaurant={session?.restaurant || null} active="roles">
         <p className="text-[13px] text-ink-400">
           You don&apos;t have access to Roles &amp; Permissions.
         </p>
@@ -107,7 +107,7 @@ export default function RolesAndPermissionsPage() {
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="roles">
+    <PortalShell restaurant={session?.restaurant || null} active="roles">
       <PageHeader
         title="Roles & Permissions"
         description="Manage user roles, permissions and access across the portal."
@@ -120,7 +120,7 @@ export default function RolesAndPermissionsPage() {
             label="Total Roles"
             value={stats.totalRoles}
             deltaPct={null}
-            hint="Roles at this hospital"
+            hint="Roles at this restaurant"
             tone="brand"
           />
           <StatTile
@@ -155,7 +155,7 @@ export default function RolesAndPermissionsPage() {
           <div className="mb-space-3">
             <h2 className="text-[15px] font-bold text-ink-900">Role Management</h2>
             <p className="text-hint">
-              {roles.length} role{roles.length === 1 ? "" : "s"} at this hospital.
+              {roles.length} role{roles.length === 1 ? "" : "s"} at this restaurant.
             </p>
           </div>
           {!matrix ? (

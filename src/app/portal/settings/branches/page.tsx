@@ -175,14 +175,14 @@ export default function BranchesSettingsPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="branches">
+      <PortalShell restaurant={session?.restaurant || null} active="branches">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>
       </PortalShell>
     );
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="branches">
+    <PortalShell restaurant={session?.restaurant || null} active="branches">
       <PageHeader
         title="Branches"
         icon={<Store size={22} />}

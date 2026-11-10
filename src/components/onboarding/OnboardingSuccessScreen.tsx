@@ -20,8 +20,8 @@ export function OnboardingSuccessScreen({ result }: { result: OnboardingSuccess 
         </div>
         <h1 className="text-display mb-space-2">Restaurant created</h1>
         <p className="text-body mb-space-5">
-          <strong className="text-ink-900">{result.hospital_name}</strong> was created with venue ID{" "}
-          <strong className="text-ink-900">{result.hospital_id}</strong> (phone_number_id:{" "}
+          <strong className="text-ink-900">{result.restaurant_name}</strong> was created with venue ID{" "}
+          <strong className="text-ink-900">{result.restaurant_id}</strong> (phone_number_id:{" "}
           {result.whatsapp_phone_number_id}).
         </p>
 

@@ -232,7 +232,7 @@ const TRIGGER_ROWS: TriggerRow[] = [
 ];
 
 export default function PortalMessagesAutomationsPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const [tab, setTab] = useState<(typeof CATEGORY_TABS)[number]["key"]>("all");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Template>(TEMPLATES[0]);
@@ -268,7 +268,7 @@ export default function PortalMessagesAutomationsPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="settings">
+    <PortalShell restaurant={restaurant} active="settings">
       <PageHeader
         title="Messages & Automations"
         icon={<WhatsAppIcon size={22} />}

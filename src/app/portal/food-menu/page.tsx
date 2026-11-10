@@ -47,14 +47,14 @@ function availability(item: MenuItem): Exclude<AvailabilityView, "all"> {
 }
 
 export default function PortalFoodMenuPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   // Backend route guards already 403 the actual mutations for a tenant
   // lacking manage_food_ordering -- this is just a UI convenience, same
-  // "fails open while hospital hasn't loaded" shape the Tables page's own
+  // "fails open while restaurant hasn't loaded" shape the Tables page's own
   // canManageDoctors check already uses. The person's role has to allow menu changes too.
   const canWriteMenu = usePermission("food_menu", "write");
   const canManage =
-    (!hospital || hospital.admin_capabilities?.includes("manage_food_ordering")) && canWriteMenu;
+    (!restaurant || restaurant.admin_capabilities?.includes("manage_food_ordering")) && canWriteMenu;
   const {
     items,
     categories,
@@ -331,7 +331,7 @@ export default function PortalFoodMenuPage() {
   );
 
   return (
-    <PortalShell hospital={hospital} active="food-menu">
+    <PortalShell restaurant={restaurant} active="food-menu">
       <PageHeader
         title="Menu"
         icon={<Soup size={22} />}

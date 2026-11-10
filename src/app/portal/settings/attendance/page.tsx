@@ -214,7 +214,7 @@ export default function AttendanceSettingsPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="settings">
+      <PortalShell restaurant={session?.restaurant || null} active="settings">
         <p className="text-[13px] text-ink-400">
           You don&apos;t have access to attendance settings.
         </p>
@@ -223,7 +223,7 @@ export default function AttendanceSettingsPage() {
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="settings">
+    <PortalShell restaurant={session?.restaurant || null} active="settings">
       <PageHeader
         title="Attendance rules"
         description="The shift, the lateness grace, and where staff may clock in from."

@@ -104,7 +104,7 @@ const CHANNEL_ICON: Record<string, React.ReactNode> = {
 };
 
 export default function PortalReportsPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const [days, setDays] = useState(30);
   const [channel, setChannel] = useState<ReportChannel>("");
   const [downloading, setDownloading] = useState<string | null>(null);
@@ -146,7 +146,7 @@ export default function PortalReportsPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="reports">
+    <PortalShell restaurant={restaurant} active="reports">
       <PageHeader
         title="Reports"
         icon={<BarChart3 size={22} />}

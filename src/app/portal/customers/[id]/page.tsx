@@ -78,7 +78,7 @@ export default function PatientDetailPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const patientId = params.id;
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
 
   const {
     data,
@@ -129,7 +129,7 @@ export default function PatientDetailPage() {
 
   if (!data) {
     return (
-      <PortalShell hospital={hospital} active="customers">
+      <PortalShell restaurant={restaurant} active="customers">
         {error ? (
           <p className="text-[13px] text-error">{error}</p>
         ) : (
@@ -281,7 +281,7 @@ export default function PatientDetailPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="customers">
+    <PortalShell restaurant={restaurant} active="customers">
       <button
         type="button"
         onClick={() => router.push("/portal/customers")}

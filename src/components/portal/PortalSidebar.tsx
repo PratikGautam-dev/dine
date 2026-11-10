@@ -31,7 +31,7 @@ import {
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { clearPortalSession, type PortalHospital } from "@/lib/portalAuth";
+import { clearPortalSession, type PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 
 // Staff/Branches/Reports/Calendar/Departments were removed (not just hidden)
@@ -301,7 +301,7 @@ const NAV_ITEMS: {
 ];
 
 type Props = {
-  hospital: PortalHospital | null;
+  restaurant: PortalRestaurant | null;
   active: string;
   /** Mobile drawer state -- undefined/false renders the sidebar off-canvas
    * below the `lg` breakpoint (PortalShell owns the toggle); at `lg` and up
@@ -310,7 +310,7 @@ type Props = {
   onClose?: () => void;
 };
 
-export function PortalSidebar({ hospital, active, open = false, onClose }: Props) {
+export function PortalSidebar({ restaurant, active, open = false, onClose }: Props) {
   const router = useRouter();
   // Resolved once, here, via the real hook -- hasPermission below is a
   // plain function taking this value, safe to call inside .filter() (a real
@@ -349,7 +349,7 @@ export function PortalSidebar({ hospital, active, open = false, onClose }: Props
           </div>
           <div className="min-w-0 leading-tight">
             <span className="block truncate text-[15px] font-bold">
-              {hospital?.name || "Restaurant"}
+              {restaurant?.name || "Restaurant"}
             </span>
             <span className="block text-[11.5px] text-white/60">DAAP DineConnect</span>
           </div>

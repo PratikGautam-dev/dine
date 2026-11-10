@@ -18,7 +18,7 @@ const TENANT_TYPE_OPTIONS: {
   icon: typeof Building2;
 }[] = [
   {
-    value: "hospital",
+    value: "restaurant",
     label: "Restaurant",
     description: "Multiple sections and tables.",
     icon: Building2,
@@ -31,7 +31,7 @@ const TENANT_TYPE_OPTIONS: {
   },
 ];
 
-export function Step7HospitalDetails({ state, dispatch, error }: Props) {
+export function Step7RestaurantDetails({ state, dispatch, error }: Props) {
   const bookingEnabled = state.enabledFeatures.includes("book_appointment");
   const faqEnabled = state.enabledFeatures.includes("faq");
   const isClinic = state.tenantType === "clinic";
@@ -95,9 +95,9 @@ export function Step7HospitalDetails({ state, dispatch, error }: Props) {
         </div>
       </Field>
 
-      <Field label={isClinic ? "Venue name" : "Restaurant name"} htmlFor="hospital_name" required>
+      <Field label={isClinic ? "Venue name" : "Restaurant name"} htmlFor="restaurant_name" required>
         <Input
-          id="hospital_name"
+          id="restaurant_name"
           value={state.name}
           onChange={(e) => dispatch({ type: "set", field: "name", value: e.target.value })}
         />

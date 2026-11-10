@@ -26,7 +26,7 @@ import { Step0DataConnection, validateStep0 } from "./steps/Step0DataConnection"
 import { Step4AccessToken } from "./steps/Step4AccessToken";
 import { Step5PhoneSecret, validateStep5 } from "./steps/Step5PhoneSecret";
 import { Step6PatientExperience, validateStep6 } from "./steps/Step6PatientExperience";
-import { Step7HospitalDetails, validateStep7 } from "./steps/Step7HospitalDetails";
+import { Step7RestaurantDetails, validateStep7 } from "./steps/Step7RestaurantDetails";
 import { Step8Review } from "./steps/Step8Review";
 import { StepGuide } from "./steps/StepGuide";
 import { RAIL_TITLES, buildSubmissionPayload } from "./types";
@@ -308,7 +308,7 @@ export function OnboardingWizard() {
           />
         )}
         {currentStep === 7 && (
-          <Step7HospitalDetails state={state} dispatch={dispatch} error={stepError || undefined} />
+          <Step7RestaurantDetails state={state} dispatch={dispatch} error={stepError || undefined} />
         )}
         {currentStep === 8 && (
           <Step8Review

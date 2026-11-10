@@ -31,7 +31,7 @@ type DataTableProps<TData> = {
   /** Rows per page for the built-in client-side pagination (TanStack's
    * getPaginationRowModel) -- this table always paginates client-side today,
    * since every /api/portal/* list route this feeds still returns its whole
-   * hospital-scoped result set in one shot. */
+   * restaurant-scoped result set in one shot. */
   pageSize?: number;
   /** Renders an extra full-width row directly under a data row when it
    * returns true for that row -- this table's one hook for the inline

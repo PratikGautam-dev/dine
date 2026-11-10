@@ -101,7 +101,7 @@ const COMPLAINT_CATEGORY_RATIOS = [
 ];
 
 export default function PortalFeedbackPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const { summary, entries, error } = useFeedback(ready, useBranchFilter().selectedBranchId);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FeedbackEntry | null>(null);
@@ -196,7 +196,7 @@ export default function PortalFeedbackPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="feedback">
+    <PortalShell restaurant={restaurant} active="feedback">
       <PageHeader
         title="Feedback"
         icon={<MessageSquareText size={22} />}

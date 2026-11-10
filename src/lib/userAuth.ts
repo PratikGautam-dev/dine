@@ -11,7 +11,7 @@ const TOKEN_KEY = "user_token";
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
 export type AuthUser = { id: number; email: string; name: string | null };
-export type OwnedHospital = { id: number; name: string };
+export type OwnedRestaurant = { id: number; name: string };
 
 export function saveUserSession(token: string) {
   localStorage.setItem(TOKEN_KEY, token);
@@ -37,7 +37,7 @@ export function googleLoginUrl(): string {
 
 export async function fetchAuthMe(): Promise<{
   user: AuthUser;
-  owned_hospitals: OwnedHospital[];
+  owned_restaurants: OwnedRestaurant[];
 } | null> {
   const token = getUserToken();
   if (!token) return null;

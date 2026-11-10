@@ -9,7 +9,7 @@ export type AppointmentTypeRow = {
   is_allowed: boolean;
 };
 
-/** Loads + toggles this hospital's appointment-type allow-list (admin/
+/** Loads + toggles this restaurant's appointment-type allow-list (admin/
  * tenants_api.py's "Appointment types" section controls is_allowed per
  * tenant; this is where the tenant's own staff flip is_active within that
  * whitelist -- e.g. turning Daycare on after the platform admin has allowed

@@ -12,10 +12,10 @@ import { usePortalGuard } from "@/components/portal/usePortalGuard";
  * (Online/POS/WhatsApp) instead of silently dropping the third entry, same "visually present,
  * honestly non-functional" precedent the storefront port's Book-a-Table page already set. */
 export default function PortalPosChannelPage() {
-  const { hospital } = usePortalGuard();
+  const { restaurant } = usePortalGuard();
 
   return (
-    <PortalShell hospital={hospital} active="sales-pos">
+    <PortalShell restaurant={restaurant} active="sales-pos">
       <PageHeader
         title="Point of Sale"
         icon={<CreditCard size={22} />}

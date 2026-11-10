@@ -73,7 +73,7 @@ export type Visit = {
   // Follow-up validity override (migration 0024) -- only ever set/meaningful
   // for a status === "attended" visit. followup_valid_until is the fully-
   // resolved date a follow-up can still be booked against THIS visit through
-  // (normal hospital-wide window, extended by followup_override_until when
+  // (normal restaurant-wide window, extended by followup_override_until when
   // that's later); followup_override_until is the raw staff-granted date
   // (null if never granted).
   followup_valid_until: string | null;

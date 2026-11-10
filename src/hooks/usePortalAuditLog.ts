@@ -14,7 +14,7 @@ export type AuditEntry = {
   created_at: string;
 };
 
-/** Loads this hospital's own (capability-gated) activity log. */
+/** Loads this restaurant's own (capability-gated) activity log. */
 export function usePortalAuditLog(ready: boolean) {
   // undefined = not loaded yet, null = this tenant lacks manage_settings (the
   // capability that also gates the settings-update route) so the page shows

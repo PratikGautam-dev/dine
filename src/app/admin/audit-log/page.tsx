@@ -12,13 +12,13 @@ import { useAdminTenantsList } from "@/hooks/useAdminTenants";
 import { usePlatformAuditLog, type PlatformAuditLogFilters } from "@/hooks/useAdminAuditLog";
 
 // Cross-tenant "what's happening across the whole platform" view --
-// admin/tenants_api.py's get_platform_audit_log(). Optional hospital_id/
-// actor_level filters mirror the ones that route accepts; the hospital_id
+// admin/tenants_api.py's get_platform_audit_log(). Optional restaurant_id/
+// actor_level filters mirror the ones that route accepts; the restaurant_id
 // dropdown is populated from useAdminTenantsList() rather than duplicating
 // a second restaurant-name lookup here.
 export default function AdminAuditLogPage() {
   const { tenants } = useAdminTenantsList();
-  const [filters, setFilters] = useState<PlatformAuditLogFilters>({ hospitalId: null, actorLevel: null });
+  const [filters, setFilters] = useState<PlatformAuditLogFilters>({ restaurantId: null, actorLevel: null });
   const { entries, loading, error } = usePlatformAuditLog(filters);
 
   const tenantOptions = useMemo(() => tenants ?? [], [tenants]);
@@ -34,8 +34,8 @@ export default function AdminAuditLogPage() {
 
       <div className="mb-space-4 flex flex-wrap items-center gap-space-3">
         <select
-          value={filters.hospitalId ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, hospitalId: e.target.value ? Number(e.target.value) : null }))}
+          value={filters.restaurantId ?? ""}
+          onChange={(e) => setFilters((f) => ({ ...f, restaurantId: e.target.value ? Number(e.target.value) : null }))}
           className="h-11 rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
         >
           <option value="">All restaurants</option>
@@ -81,9 +81,9 @@ export default function AdminAuditLogPage() {
                 <tr key={entry.id} className="border-b border-line last:border-0">
                   <td className="px-space-3 py-space-2 whitespace-nowrap text-ink-600">{formatDateTime(entry.created_at)}</td>
                   <td className="px-space-3 py-space-2">
-                    {entry.hospital_name && entry.hospital_id ? (
-                      <Link href={`/admin/restaurants/${entry.hospital_id}`} className="font-medium text-brand-700 hover:underline">
-                        {entry.hospital_name}
+                    {entry.restaurant_name && entry.restaurant_id ? (
+                      <Link href={`/admin/restaurants/${entry.restaurant_id}`} className="font-medium text-brand-700 hover:underline">
+                        {entry.restaurant_name}
                       </Link>
                     ) : (
                       <span className="text-ink-500">Platform</span>

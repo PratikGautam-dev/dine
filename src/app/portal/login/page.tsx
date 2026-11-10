@@ -40,7 +40,7 @@ export default function PortalLoginPage() {
         id: data.staff.id,
         name: data.staff.name,
         role: data.staff.role,
-        hospital: data.staff.hospital,
+        restaurant: data.staff.restaurant,
         permissions: data.permissions,
       });
       // Every role (including doctor) lands in the same shared portal now --

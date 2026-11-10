@@ -1,6 +1,6 @@
 export type DataTier = "tier1" | "tier2" | "tier3";
 
-export type TenantType = "hospital" | "clinic";
+export type TenantType = "restaurant" | "clinic";
 
 // How guests place orders/bookings. "whatsapp" is the default -- today's
 // unchanged behavior for anyone who doesn't touch this. "website" skips the
@@ -69,7 +69,7 @@ export type WizardState = {
   turnoverMinutes: string;
   bookingIntervalMinutes: string;
   topics: TopicForm[];
-  // RBAC (docs/rbac-redis-plan.md): this hospital's first staff_users admin
+  // RBAC (docs/rbac-redis-plan.md): this restaurant's first staff_users admin
   // login -- replaces the old shared portalPassword as the real ongoing
   // login. portalPassword above is still collected/sent (still accepted
   // during the dual-path migration window) but is no longer the field
@@ -103,7 +103,7 @@ export function initialWizardState(): WizardState {
     whatsappPhoneNumberId: "",
     appSecret: "",
     enabledFeatures: ["book_appointment", "reschedule", "cancel", "view_appointments", "faq"],
-    tenantType: "hospital",
+    tenantType: "restaurant",
     name: "",
     welcomeMessageText: "",
     reminderOffsetsHours: "24",

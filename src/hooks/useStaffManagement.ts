@@ -8,7 +8,7 @@ export type StaffMember = {
   name: string;
   email: string;
   // A plain string, not the fixed StaffRole union -- Staff & Access's "Add Role" means this can
-  // be any hospital-created custom role_key, not just the 3 built-ins.
+  // be any restaurant-created custom role_key, not just the 3 built-ins.
   role: string;
   is_active: boolean;
   employee_id: string | null;
