@@ -12,7 +12,7 @@ import { cn } from "@/lib/cn";
 import { useNewBooking } from "@/hooks/useNewBooking";
 
 export default function NewBookingPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const {
     ctx,
     error,
@@ -40,7 +40,7 @@ export default function NewBookingPage() {
   const canSubmit = !!slotId && !!partySize;
 
   return (
-    <PortalShell hospital={hospital} active="appointments">
+    <PortalShell restaurant={restaurant} active="appointments">
       <PageHeader title="New reservation" />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
@@ -96,7 +96,7 @@ export default function NewBookingPage() {
                 disabled
                 className="h-11 w-full cursor-not-allowed rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-600"
               >
-                <option>Main Venue — {hospital?.name}</option>
+                <option>Main Venue — {restaurant?.name}</option>
               </select>
             </Field>
 

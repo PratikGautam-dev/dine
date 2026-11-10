@@ -26,7 +26,7 @@ import { getSuperAdminAccessToken } from "@/lib/superAdminAuth";
 import { usePlatformOffers, type NewPlatformOfferFields, type PlatformOffer } from "@/hooks/usePlatformOffers";
 
 // Modeled on /portal/offers/page.tsx's information architecture, minus the branch-chip
-// restriction UI and per-hospital analytics (trend chart / top-redeemed / customer-segments --
+// restriction UI and per-restaurant analytics (trend chart / top-redeemed / customer-segments --
 // plan section 2/7's explicit v1 scope cut) that don't generalize to a cross-tenant view.
 
 const STATUS_TONE: Record<string, "success" | "brand" | "neutral" | "clay"> = {

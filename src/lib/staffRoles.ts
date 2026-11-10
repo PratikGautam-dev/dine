@@ -35,7 +35,7 @@ export const ROLE_TONE: Record<StaffRole, "brand" | "clay" | "neutral"> = {
   doctor: "neutral",
 };
 
-// Staff & Access "Add Role": a hospital-created custom role is just another role_permissions.role
+// Staff & Access "Add Role": a restaurant-created custom role is just another role_permissions.role
 // value the backend already treats as a first-class role (portal.permissions.get_permission_matrix()
 // groups by whatever it finds, no fixed list) -- these two helpers give it a readable label/badge
 // color without needing every one of ROLE_LABEL/ROLE_TONE's call sites to know about custom roles.
@@ -59,7 +59,7 @@ export function roleTone(
   return CUSTOM_ROLE_TONES[hash % CUSTOM_ROLE_TONES.length];
 }
 
-/** A role's real blurb (ROLE_OPTIONS, the 3 built-ins) or a generic line for a hospital-created
+/** A role's real blurb (ROLE_OPTIONS, the 3 built-ins) or a generic line for a restaurant-created
  * custom role -- there's no stored description field for those, so this is the honest fallback. */
 export function roleDescription(role: string): string {
   return (
@@ -70,7 +70,7 @@ export function roleDescription(role: string): string {
 
 export const BUILT_IN_ROLES = ROLE_OPTIONS.map((r) => r.value);
 
-/** Built-in roles first (in their fixed display order), then any hospital-created custom roles
+/** Built-in roles first (in their fixed display order), then any restaurant-created custom roles
  * alphabetically -- the order the role filter dropdown, the permission matrix cards, and the Roles
  * & Permissions page all render roles in. */
 export function orderedRoles(matrix: Record<string, unknown> | null): string[] {

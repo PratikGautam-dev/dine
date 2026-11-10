@@ -27,7 +27,7 @@ function emptyForm(): RestaurantHoursForm {
 /** Minimal, functional-not-polished form backing update_restaurant_hours()
  * -- the gap this closes: get_available_table_slots() returns [] whenever
  * operating_days/operating_hours are unset, which was true for every
- * hospital except the two seeded dev/test ones (no portal UI existed to
+ * restaurant except the two seeded dev/test ones (no portal UI existed to
  * set them). Only a SINGLE operating_hours range is supported here (the
  * repository function itself takes a list) -- enough to unblock a freshly
  * onboarded restaurant, not a full multi-shift editor. */

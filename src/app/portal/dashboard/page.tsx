@@ -28,7 +28,7 @@ export default function PortalDashboardPage() {
 
 function RestaurantDashboard() {
   const { ready } = usePortalGuard();
-  const { data, error, hospital } = usePortalDashboard(ready, useBranchFilter().selectedBranchId);
+  const { data, error, restaurant } = usePortalDashboard(ready, useBranchFilter().selectedBranchId);
   const session = useStaffSession();
   const firstName = session?.name.trim().split(/\s+/)[0];
 
@@ -41,7 +41,7 @@ function RestaurantDashboard() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="dashboard">
+    <PortalShell restaurant={restaurant} active="dashboard">
       <PageHeader
         title={
           // the browser's clock decides the greeting, so the server-rendered text may differ for a moment

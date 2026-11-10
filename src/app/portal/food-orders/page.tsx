@@ -117,7 +117,7 @@ function csvCell(value: string): string {
 }
 
 export default function PortalFoodOrdersPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   // Everything is loaded once and filtered here, so every view can show its own count.
   const [days, setDays] = useState(90);
   const { orders, error, actingId, runAction } = useFoodOrders(
@@ -432,7 +432,7 @@ export default function PortalFoodOrdersPage() {
   );
 
   return (
-    <PortalShell hospital={hospital} active={activeNavKey}>
+    <PortalShell restaurant={restaurant} active={activeNavKey}>
       <PageHeader
         title={sourceFilter === "web" ? "Online Orders" : sourceFilter === "whatsapp" ? "WhatsApp Orders" : "Food Orders"}
         icon={<ClipboardList size={22} />}

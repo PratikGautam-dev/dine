@@ -418,7 +418,7 @@ export default function StaffManagementPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="staff">
+      <PortalShell restaurant={session?.restaurant || null} active="staff">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to Staff Management.</p>
       </PortalShell>
     );
@@ -430,7 +430,7 @@ export default function StaffManagementPage() {
       .map((m) => ({ id: m.id, name: m.name }));
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="staff">
+    <PortalShell restaurant={session?.restaurant || null} active="staff">
       <PageHeader
         title="Team & Access"
         icon={<Users size={22} />}

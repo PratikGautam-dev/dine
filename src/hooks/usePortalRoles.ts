@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 
 export type Action = "view" | "write" | "delete";
 export type PagePerms = Record<Action, boolean>;
-// A plain string role key, not the fixed StaffRole union -- a hospital-created custom role
+// A plain string role key, not the fixed StaffRole union -- a restaurant-created custom role
 // (Staff & Access's "Add Role") shows up here as just another key, same as the 3 built-in roles.
 export type Matrix = Record<string, Record<string, PagePerms>>;
 

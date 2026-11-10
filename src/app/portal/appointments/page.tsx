@@ -43,8 +43,8 @@ import { createAppointmentColumns } from "./_components/appointments-columns";
 const TYPE_TAB_ORDER = ["all", "new", "followup", "other"];
 
 // The quick views above the list; empty rare ones (Rescheduled) only appear once something is in them.
-// "Pending" (Table Bookings follow-up) only ever has rows when the hospital opted into
-// require_booking_confirmation -- always shown, but reads as "0" for every other hospital.
+// "Pending" (Table Bookings follow-up) only ever has rows when the restaurant opted into
+// require_booking_confirmation -- always shown, but reads as "0" for every other restaurant.
 const VIEW_TABS: { id: ViewFilter; label: string; always: boolean }[] = [
   { id: "all", label: "All", always: true },
   { id: "today", label: "Today", always: true },
@@ -57,7 +57,7 @@ const VIEW_TABS: { id: ViewFilter; label: string; always: boolean }[] = [
 ];
 
 export default function PortalAppointmentsPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const canWrite = usePermission("appointments", "write");
   const [activeId, setActiveId] = useState<number | null>(null);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
@@ -564,7 +564,7 @@ export default function PortalAppointmentsPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="appointments">
+    <PortalShell restaurant={restaurant} active="appointments">
       <PageHeader
         title="Table Bookings"
         icon={<CalendarCheck size={22} />}
@@ -800,7 +800,7 @@ export default function PortalAppointmentsPage() {
 
       {newReservationOpen && (
         <NewReservationDialog
-          hospitalName={hospital?.name}
+          restaurantName={restaurant?.name}
           onClose={() => setNewReservationOpen(false)}
           onCreated={() => {
             setNewReservationOpen(false);

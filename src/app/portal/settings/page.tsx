@@ -68,13 +68,13 @@ const TABS: Tab[] = [
 ];
 
 function PortalSettingsPageContent() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   // Backend route guards already 403 the actual mutations for a clinic
   // tenant lacking manage_appointment_types -- same UI-convenience-only
   // gating as PortalDoctorsPage's canManageDoctors. Fails open (renders the
-  // section) while hospital hasn't loaded yet.
+  // section) while restaurant hasn't loaded yet.
   const canManageAppointmentTypes =
-    !hospital || hospital.admin_capabilities?.includes("manage_appointment_types");
+    !restaurant || restaurant.admin_capabilities?.includes("manage_appointment_types");
   const { settings, setSettings, error, saving, saved, handleSave } = usePortalSettings(ready);
   const hoursForm = useRestaurantHours(ready);
   const bookingConfirmation = useBookingConfirmationSetting(ready);
@@ -92,7 +92,7 @@ function PortalSettingsPageContent() {
   const tabs = TABS.filter((t) => t.id !== "types" || canManageAppointmentTypes);
 
   return (
-    <PortalShell hospital={hospital} active="settings">
+    <PortalShell restaurant={restaurant} active="settings">
       <PageHeader
         title="Settings"
         icon={<SettingsIcon size={22} />}

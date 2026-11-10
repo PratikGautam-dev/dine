@@ -52,11 +52,11 @@ const columns: ColumnDef<AuditEntry>[] = [
 ];
 
 export default function PortalActivityLogPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const { entries } = usePortalAuditLog(ready);
 
   return (
-    <PortalShell hospital={hospital} active="settings">
+    <PortalShell restaurant={restaurant} active="settings">
       <PageHeader
         title="Activity log"
         description="Recent changes made by your staff through this portal — table/section edits, feature toggles,

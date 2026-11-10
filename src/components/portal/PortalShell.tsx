@@ -8,10 +8,10 @@ import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
-import type { PortalHospital } from "@/lib/portalAuth";
+import type { PortalRestaurant } from "@/lib/portalAuth";
 
 type Props = {
-  hospital: PortalHospital | null;
+  restaurant: PortalRestaurant | null;
   active: string;
   children: React.ReactNode;
 };
@@ -38,7 +38,7 @@ const _BRANCH_AWARE_PAGES = new Set([
  * h-screen ..."><PortalSidebar/><main>...`) directly -- centralized here so
  * the mobile drawer's open/close state has exactly one owner instead of each
  * page reinventing it. */
-export function PortalShell({ hospital, active, children }: Props) {
+export function PortalShell({ restaurant, active, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
 
@@ -52,7 +52,7 @@ export function PortalShell({ hospital, active, children }: Props) {
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
       <PortalSidebar
-        hospital={hospital}
+        restaurant={restaurant}
         active={active}
         open={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -70,7 +70,7 @@ export function PortalShell({ hospital, active, children }: Props) {
             <Menu size={20} strokeWidth={2} />
           </button>
           <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">
-            {hospital?.name || "Restaurant"}
+            {restaurant?.name || "Restaurant"}
           </span>
           <div className="ml-auto flex items-center gap-space-2">
             {_BRANCH_AWARE_PAGES.has(active) && <BranchSwitcher />}

@@ -100,7 +100,7 @@ export default function MyAttendancePage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="my-attendance">
+      <PortalShell restaurant={session?.restaurant || null} active="my-attendance">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to attendance.</p>
       </PortalShell>
     );
@@ -117,7 +117,7 @@ export default function MyAttendancePage() {
     : [];
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="my-attendance">
+    <PortalShell restaurant={session?.restaurant || null} active="my-attendance">
       <PageHeader
         title="Attendance"
         description="See your own hours, overtime, and attendance history. Clock in from Check-in / Check-out."

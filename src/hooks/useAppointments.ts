@@ -67,7 +67,7 @@ export const TYPE_LABELS: Record<string, string> = {
 
 // The quick views above the list. "today" and "upcoming" are about WHEN (and only count reservations that are
 // still on), the rest are a status each. "pending" (Table Bookings follow-up) only ever has rows when the
-// hospital opted into require_booking_confirmation -- every other hospital's count stays 0.
+// restaurant opted into require_booking_confirmation -- every other restaurant's count stays 0.
 export type ViewFilter =
   "all" | "today" | "upcoming" | "pending" | "attended" | "cancelled" | "no_show" | "rescheduled";
 

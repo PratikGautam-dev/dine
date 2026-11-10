@@ -40,7 +40,7 @@ export default function StorefrontSettingsPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="storefront">
+      <PortalShell restaurant={session?.restaurant || null} active="storefront">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>
       </PortalShell>
     );
@@ -51,7 +51,7 @@ export default function StorefrontSettingsPage() {
     : null;
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="storefront">
+    <PortalShell restaurant={session?.restaurant || null} active="storefront">
       <PageHeader
         title="Online Storefront"
         icon={<Globe size={22} />}

@@ -47,7 +47,7 @@ type CreateAppointmentColumnsOptions = {
    * shows "Seated" instead of "Confirmed", derived rather than a stored status. */
   occupiedTableIds: Set<string>;
   /** Table Bookings follow-up: confirms a still-'pending' row (only ever populated when this
-   * hospital opted into require_booking_confirmation). */
+   * restaurant opted into require_booking_confirmation). */
   onConfirm: (id: number) => void;
   cancelPanelId: number | null;
   reschedulePanelId: number | null;

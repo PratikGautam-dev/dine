@@ -117,7 +117,7 @@ export default function LeaveRequestsPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="leave-requests">
+      <PortalShell restaurant={session?.restaurant || null} active="leave-requests">
         <p className="text-[13px] text-ink-400">
           You don&apos;t have access to the leave review queue.
         </p>
@@ -137,7 +137,7 @@ export default function LeaveRequestsPage() {
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="leave-requests">
+    <PortalShell restaurant={session?.restaurant || null} active="leave-requests">
       <PageHeader
         title="Leave Requests"
         description="Approve or decline your team's leave, and set the yearly allowance."

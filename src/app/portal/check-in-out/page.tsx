@@ -251,14 +251,14 @@ export default function CheckInOutPage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="check-in-out">
+      <PortalShell restaurant={session?.restaurant || null} active="check-in-out">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to attendance.</p>
       </PortalShell>
     );
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="check-in-out">
+    <PortalShell restaurant={session?.restaurant || null} active="check-in-out">
       <PageHeader
         title="Check-in / Check-out"
         description={

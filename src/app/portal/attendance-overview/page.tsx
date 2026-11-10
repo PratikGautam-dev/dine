@@ -108,14 +108,14 @@ export default function TeamAttendancePage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="team-attendance">
+      <PortalShell restaurant={session?.restaurant || null} active="team-attendance">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to team attendance.</p>
       </PortalShell>
     );
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="team-attendance">
+    <PortalShell restaurant={session?.restaurant || null} active="team-attendance">
       <PageHeader
         title="Team Attendance"
         description="Who's in, who's late, who's off -- and the month's totals."

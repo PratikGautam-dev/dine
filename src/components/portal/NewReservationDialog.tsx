@@ -10,14 +10,14 @@ import { cn } from "@/lib/cn";
 import { useNewBooking } from "@/hooks/useNewBooking";
 
 type Props = {
-  hospitalName: string | undefined;
+  restaurantName: string | undefined;
   onClose: () => void;
   onCreated: () => void;
 };
 
 /** The "New reservation" form, moved off its own /portal/new-booking route and into a centered
  * modal opened from the Table Bookings page, matching every other "Add X" flow in the portal. */
-export function NewReservationDialog({ hospitalName, onClose, onCreated }: Props) {
+export function NewReservationDialog({ restaurantName, onClose, onCreated }: Props) {
   const {
     ctx,
     error,
@@ -99,7 +99,7 @@ export function NewReservationDialog({ hospitalName, onClose, onCreated }: Props
               disabled
               className="h-11 w-full cursor-not-allowed rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-600"
             >
-              <option>Main Venue — {hospitalName}</option>
+              <option>Main Venue — {restaurantName}</option>
             </select>
           </Field>
 

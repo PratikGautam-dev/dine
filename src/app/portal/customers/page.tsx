@@ -78,7 +78,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const DIRECTORY_LIMIT = 200;
 
 export default function PortalPatientsPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const { settings: loyaltySettings, saving: loyaltySaving, update: updateLoyaltySettings } =
     useLoyaltySettings(ready);
   const [loyaltyDialogOpen, setLoyaltyDialogOpen] = useState(false);
@@ -282,7 +282,7 @@ export default function PortalPatientsPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="customers">
+    <PortalShell restaurant={restaurant} active="customers">
       <div className="mb-space-2 flex flex-wrap items-start justify-between gap-space-3">
         <PageHeader
           title="Customers"
@@ -1004,7 +1004,7 @@ export default function PortalPatientsPage() {
           onCreateCampaign={createCampaign}
           uploadingImage={uploadingCampaignImage}
           onUploadImage={uploadCampaignImage}
-          restaurantName={hospital?.name ?? ""}
+          restaurantName={restaurant?.name ?? ""}
         />
       )}
 

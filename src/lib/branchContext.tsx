@@ -17,7 +17,7 @@ export type Branch = {
   is_default: boolean;
   is_active: boolean;
   created_at: string;
-  // Multi-branch (migration 0055) -- operational overrides, null = inherit the hospital default.
+  // Multi-branch (migration 0055) -- operational overrides, null = inherit the restaurant default.
   // service_charge_pct/delivery_radius_km are stored and shown in settings but not yet enforced
   // anywhere (no service-charge line item in order totals, no geocoding for a radius check).
   service_charge_pct: number | null;
@@ -37,7 +37,7 @@ export type Branch = {
 
 type BranchContextValue = {
   multiBranchEnabled: boolean;
-  // Every branch the hospital has -- used by admin screens (Settings > Branches, the Offers
+  // Every branch the restaurant has -- used by admin screens (Settings > Branches, the Offers
   // form's branch picker) that need to see/manage everything regardless of the caller's own
   // restriction.
   branches: Branch[];

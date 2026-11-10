@@ -123,7 +123,7 @@ function RevenueTooltip({
 }
 
 export default function PortalOffersPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   const { data, error, creating, createOffer, toggleOffer } = useOffers(ready);
   const { multiBranchEnabled, branches } = useBranchFilter();
   const [form, setForm] = useState<NewOfferFields>(emptyForm());
@@ -160,7 +160,7 @@ export default function PortalOffersPage() {
   }
 
   return (
-    <PortalShell hospital={hospital} active="offers">
+    <PortalShell restaurant={restaurant} active="offers">
       <PageHeader
         title="Offers & Coupons"
         icon={<Tag size={22} />}

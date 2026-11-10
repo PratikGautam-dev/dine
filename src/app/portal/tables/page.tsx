@@ -49,14 +49,14 @@ function statusLabel(t: RestaurantTable): string {
 }
 
 export default function PortalTablesPage() {
-  const { hospital, ready } = usePortalGuard();
+  const { restaurant, ready } = usePortalGuard();
   // Backend route guards already 403 the actual mutations for a tenant
   // lacking manage_tables -- this is just a UI convenience, same "fails
-  // open while hospital hasn't loaded" shape the Menu/Staff pages already use.
+  // open while restaurant hasn't loaded" shape the Menu/Staff pages already use.
   // ...and the person's own role must be allowed to change tables too (Front of House and Kitchen only read them).
   const canWriteTables = usePermission("tables", "write");
   const canManage =
-    (!hospital || hospital.admin_capabilities?.includes("manage_tables")) && canWriteTables;
+    (!restaurant || restaurant.admin_capabilities?.includes("manage_tables")) && canWriteTables;
   const {
     departments,
     sections,
@@ -115,7 +115,7 @@ export default function PortalTablesPage() {
   const selectedTable = tables.find((t) => t.id === selectedId) || null;
 
   return (
-    <PortalShell hospital={hospital} active="tables">
+    <PortalShell restaurant={restaurant} active="tables">
       <PageHeader
         title="Tables"
         icon={<Armchair size={22} />}

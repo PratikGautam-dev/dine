@@ -31,7 +31,7 @@ type Props = {
    * shows "Seated" instead of "Confirmed", derived rather than a stored status. */
   occupiedTableIds?: Set<string>;
   /** Table Bookings follow-up: confirms a still-'pending' row (only ever populated when this
-   * hospital opted into require_booking_confirmation). Undefined hides the Confirm button entirely. */
+   * restaurant opted into require_booking_confirmation). Undefined hides the Confirm button entirely. */
   onConfirm?: (id: number) => void;
 };
 

@@ -40,7 +40,7 @@ export default function MyLeavePage() {
 
   if (!canView) {
     return (
-      <PortalShell hospital={session?.hospital || null} active="leave">
+      <PortalShell restaurant={session?.restaurant || null} active="leave">
         <p className="text-[13px] text-ink-400">You don&apos;t have access to leave.</p>
       </PortalShell>
     );
@@ -61,7 +61,7 @@ export default function MyLeavePage() {
   }
 
   return (
-    <PortalShell hospital={session?.hospital || null} active="leave">
+    <PortalShell restaurant={session?.restaurant || null} active="leave">
       <PageHeader
         title="My Leave"
         description="Ask for time off and see where your requests stand."

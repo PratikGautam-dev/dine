@@ -10,7 +10,7 @@ import { superAdminFetch } from "@/lib/superAdminAuth";
 export type AuditLogEntry = {
   id: number;
   actor_level: "platform_admin" | "portal";
-  hospital_id: number | null;
+  restaurant_id: number | null;
   actor_label: string;
   action: string;
   entity_type: string | null;
@@ -20,10 +20,10 @@ export type AuditLogEntry = {
   created_at: string;
 };
 
-/** The platform-wide route additionally injects hospital_name (a lookup, not
+/** The platform-wide route additionally injects restaurant_name (a lookup, not
  * a join), since an id alone isn't identifying enough once entries span
  * every tenant on the platform. */
-export type PlatformAuditLogEntry = AuditLogEntry & { hospital_name: string | null };
+export type PlatformAuditLogEntry = AuditLogEntry & { restaurant_name: string | null };
 
 /** Loads /api/admin/tenants/{tenantId}/audit-log -- both audit levels for
  * ONE tenant, for the "Activity log" section at the bottom of its detail
@@ -55,12 +55,12 @@ export function useTenantAuditLog(tenantId: number) {
 }
 
 export type PlatformAuditLogFilters = {
-  hospitalId: number | null;
+  restaurantId: number | null;
   actorLevel: "platform_admin" | "portal" | null;
 };
 
 /** Loads /api/admin/audit-log -- the cross-tenant "what's happening across
- * the whole platform" view, optionally narrowed by hospital_id/actor_level
+ * the whole platform" view, optionally narrowed by restaurant_id/actor_level
  * (reloads whenever those filters change). */
 export function usePlatformAuditLog(filters: PlatformAuditLogFilters) {
   const router = useRouter();
@@ -71,7 +71,7 @@ export function usePlatformAuditLog(filters: PlatformAuditLogFilters) {
   const load = useCallback(async () => {
     setLoading(true);
     const params = new URLSearchParams();
-    if (filters.hospitalId != null) params.set("hospital_id", String(filters.hospitalId));
+    if (filters.restaurantId != null) params.set("restaurant_id", String(filters.restaurantId));
     if (filters.actorLevel) params.set("actor_level", filters.actorLevel);
     const qs = params.toString();
     const result = await superAdminFetch(`/api/admin/audit-log${qs ? `?${qs}` : ""}`);
@@ -83,7 +83,7 @@ export function usePlatformAuditLog(filters: PlatformAuditLogFilters) {
     }
     setError(null);
     setEntries((result.data as { entries: PlatformAuditLogEntry[] }).entries);
-  }, [router, filters.hospitalId, filters.actorLevel]);
+  }, [router, filters.restaurantId, filters.actorLevel]);
 
   useEffect(() => {
     load();
