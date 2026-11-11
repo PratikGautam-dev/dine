@@ -97,7 +97,15 @@ export default function StorefrontSettingsPage() {
             <Card className="p-space-5">
               <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">Storefront profile</h2>
               <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                <Field label="Store link" htmlFor="sf-slug" hint="/order/<this>">
+                <Field label="Restaurant name" htmlFor="sf-name" className="sm:col-span-2">
+                  <Input
+                    id="sf-name"
+                    value={active.name}
+                    onChange={(e) => set({ name: e.target.value })}
+                    disabled={!canWrite}
+                  />
+                </Field>
+                <Field label="Store link" htmlFor="sf-slug" hint="/<this>">
                   <Input
                     id="sf-slug"
                     value={active.storefront_slug}
@@ -265,7 +273,7 @@ export default function StorefrontSettingsPage() {
                   </div>
                   <div className="min-w-0">
                     <p className="truncate text-[13.5px] font-bold text-ink-900">
-                      {storefront?.name}
+                      {active.name || storefront?.name}
                     </p>
                     {active.city && <p className="text-[11.5px] text-ink-600">{active.city}</p>}
                   </div>

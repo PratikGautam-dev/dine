@@ -19,6 +19,7 @@ export type Storefront = {
 };
 
 export type StorefrontForm = {
+  name: string;
   web_ordering_enabled: boolean;
   storefront_slug: string;
   cuisine_tags: string;
@@ -33,6 +34,7 @@ export type StorefrontForm = {
 
 export function toForm(s: Storefront): StorefrontForm {
   return {
+    name: s.name,
     web_ordering_enabled: s.web_ordering_enabled,
     storefront_slug: s.slug ?? "",
     cuisine_tags: s.cuisines.join(", "),
@@ -74,6 +76,7 @@ export function useStorefrontSettings(ready: boolean) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        name: form.name,
         web_ordering_enabled: form.web_ordering_enabled,
         storefront_slug: form.storefront_slug,
         cuisine_tags: form.cuisine_tags,
