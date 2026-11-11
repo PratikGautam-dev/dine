@@ -51,6 +51,8 @@ export function useStorefrontSettings(ready: boolean) {
   const [storefront, setStorefront] = useState<Storefront | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const load = useCallback(async () => {
     const result = await staffFetch("/api/portal/settings/storefront");
@@ -93,5 +95,26 @@ export function useStorefrontSettings(ready: boolean) {
     return null;
   }
 
-  return { storefront, error, saving, save };
+  /** Uploads a logo/cover photo file to the same public image bucket menu-item photos already
+   * use (core/menu_image_storage.py) and returns its url -- a separate step from Save, same
+   * "upload now, reference the url when the form itself is saved" shape the Food Menu panel's
+   * own upload already established (src/hooks/useMenuItems.ts's handleImageUpload). */
+  async function uploadImage(file: File, kind: "logo" | "cover"): Promise<string | null> {
+    const setUploading = kind === "logo" ? setUploadingLogo : setUploadingCover;
+    setUploading(true);
+    const body = new FormData();
+    body.append("file", file);
+    const result = await staffFetch("/api/portal/settings/storefront/upload-image", { method: "POST", body });
+    setUploading(false);
+    if (!result.ok) {
+      toast.error(
+        "Couldn't upload photo",
+        result.unauthorized ? "Session expired — please log in again." : result.error,
+      );
+      return null;
+    }
+    return (result.data as { image_url: string }).image_url;
+  }
+
+  return { storefront, error, saving, save, uploadingLogo, uploadingCover, uploadImage };
 }

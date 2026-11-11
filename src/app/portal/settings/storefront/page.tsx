@@ -20,13 +20,21 @@ export default function StorefrontSettingsPage() {
   const session = useStaffSession();
   const canView = usePermission("settings", "view");
   const canWrite = usePermission("settings", "write");
-  const { storefront, error, saving, save } = useStorefrontSettings(canView);
+  const { storefront, error, saving, save, uploadingLogo, uploadingCover, uploadImage } = useStorefrontSettings(canView);
   const [form, setForm] = useState<StorefrontForm | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const active = form ?? (storefront ? toForm(storefront) : null);
 
   function set(patch: Partial<StorefrontForm>) {
     setForm({ ...(active as StorefrontForm), ...patch });
+  }
+
+  async function handleImageFile(e: React.ChangeEvent<HTMLInputElement>, kind: "logo" | "cover") {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    const url = await uploadImage(file, kind);
+    if (url) set(kind === "logo" ? { logo_url: url } : { cover_image_url: url });
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -136,24 +144,48 @@ export default function StorefrontSettingsPage() {
                     disabled={!canWrite}
                   />
                 </Field>
-                <Field label="Logo image URL" htmlFor="sf-logo">
+                <Field label="Logo" htmlFor="sf-logo-upload">
+                  <div className="flex items-center gap-space-2">
+                    <input
+                      id="sf-logo-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={!canWrite || uploadingLogo}
+                      onChange={(e) => handleImageFile(e, "logo")}
+                      className="text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+                    />
+                    {uploadingLogo && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
+                  </div>
                   <Input
                     id="sf-logo"
                     type="url"
                     value={active.logo_url}
                     onChange={(e) => set({ logo_url: e.target.value })}
-                    placeholder="https://…"
+                    placeholder="https://… (or upload a file above)"
                     disabled={!canWrite}
+                    className="mt-space-2"
                   />
                 </Field>
-                <Field label="Cover image URL" htmlFor="sf-cover">
+                <Field label="Cover image" htmlFor="sf-cover-upload">
+                  <div className="flex items-center gap-space-2">
+                    <input
+                      id="sf-cover-upload"
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      disabled={!canWrite || uploadingCover}
+                      onChange={(e) => handleImageFile(e, "cover")}
+                      className="text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+                    />
+                    {uploadingCover && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
+                  </div>
                   <Input
                     id="sf-cover"
                     type="url"
                     value={active.cover_image_url}
                     onChange={(e) => set({ cover_image_url: e.target.value })}
-                    placeholder="https://…"
+                    placeholder="https://… (or upload a file above)"
                     disabled={!canWrite}
+                    className="mt-space-2"
                   />
                 </Field>
                 <Field label="Minimum order (₹)" htmlFor="sf-min">
