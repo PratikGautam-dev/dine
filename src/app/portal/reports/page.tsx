@@ -36,7 +36,7 @@ import { cn } from "@/lib/cn";
 import { rupees } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
 import { API_BASE_URL, getStaffAccessToken } from "@/lib/staffAuth";
-import { useReports, type ReportChannel } from "@/hooks/useReports";
+import { useReports, useBranchComparison, type ReportChannel } from "@/hooks/useReports";
 
 const RANGES = [
   { label: "Today", days: 1 },
@@ -110,6 +110,7 @@ export default function PortalReportsPage() {
   const [downloading, setDownloading] = useState<string | null>(null);
   const { selectedBranchId } = useBranchFilter();
   const { data, error } = useReports(ready, days, channel, selectedBranchId);
+  const { rows: branchRows } = useBranchComparison(ready, days, channel);
 
   const paymentSplit = useMemo(() => {
     if (!data) return [];
@@ -243,6 +244,59 @@ export default function PortalReportsPage() {
               filled
             />
           </div>
+
+          {branchRows && branchRows.length > 1 && (
+            <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-[1.3fr_1fr]">
+              <Card className="overflow-x-auto p-space-4">
+                <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Branch Comparison</h3>
+                <table className="w-full text-[13px]">
+                  <thead>
+                    <tr className="border-b border-line text-left text-[11.5px] uppercase tracking-wide text-ink-500">
+                      <th className="py-space-2 font-semibold">Branch</th>
+                      <th className="py-space-2 text-right font-semibold">Orders</th>
+                      <th className="py-space-2 text-right font-semibold">Revenue</th>
+                      <th className="py-space-2 text-right font-semibold">Avg. order</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-line">
+                    {branchRows.map((b) => (
+                      <tr key={b.branch_id}>
+                        <td className="py-space-2 font-semibold text-ink-900">{b.name}</td>
+                        <td className="py-space-2 text-right tabular-nums text-ink-700">{b.total_orders}</td>
+                        <td className="py-space-2 text-right font-semibold tabular-nums text-ink-900">
+                          {rupees(b.revenue_paise)}
+                        </td>
+                        <td className="py-space-2 text-right tabular-nums text-ink-600">
+                          {rupees(b.average_order_value_paise)}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </Card>
+
+              <Card className="p-space-4">
+                <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Revenue Share by Branch</h3>
+                <div className="space-y-space-3">
+                  {branchRows.map((b) => {
+                    const totalRevenue = branchRows.reduce((sum, r) => sum + r.revenue_paise, 0);
+                    const pct = totalRevenue ? Math.round((b.revenue_paise / totalRevenue) * 100) : 0;
+                    return (
+                      <div key={b.branch_id}>
+                        <div className="mb-1 flex items-center justify-between text-[12.5px]">
+                          <span className="font-semibold text-ink-900">{b.name}</span>
+                          <span className="tabular-nums text-ink-600">{pct}%</span>
+                        </div>
+                        <div className="h-2 overflow-hidden rounded-full bg-black/4">
+                          <div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            </div>
+          )}
 
           <div className="mb-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-[1.4fr_1fr_1fr]">
             <Card className="p-space-4">
