@@ -95,14 +95,13 @@ function SitePreview({ src, title }: { src: string | null; title: string }) {
   const scale = size.w ? size.w / DESKTOP : 0;
 
   return (
-    <div ref={box} className="relative h-[480px] overflow-hidden rounded-md bg-paper" aria-hidden>
+    <div ref={box} className="relative h-[480px] overflow-hidden rounded-md bg-paper">
       {src && scale > 0 && (
         <iframe
           src={src}
           title={title}
-          tabIndex={-1}
           loading="lazy"
-          className="pointer-events-none absolute left-0 top-0 origin-top-left border-0 bg-white"
+          className="absolute left-0 top-0 origin-top-left border-0 bg-white"
           style={{ width: DESKTOP, height: size.h / scale, transform: `scale(${scale})` }}
         />
       )}
