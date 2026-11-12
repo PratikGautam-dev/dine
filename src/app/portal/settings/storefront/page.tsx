@@ -204,9 +204,7 @@ export default function StorefrontSettingsPage() {
     );
   }
 
-  const storeUrl = storefront?.public_url_path
-    ? `${typeof window !== "undefined" ? window.location.origin : ""}${storefront.public_url_path}`
-    : null;
+  const storeUrl = storefront?.public_url_path ? `${STOREFRONT_URL}${storefront.public_url_path}` : null;
   const previewSrc =
     storefront?.slug && previewToken
       ? `${STOREFRONT_URL}/${storefront.slug}?preview_token=${previewToken}&v=${encodeURIComponent(draft?.draft_updated_at ?? "")}`
