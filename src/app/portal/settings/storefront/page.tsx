@@ -19,9 +19,9 @@ import { toForm, useStorefrontSettings, type StorefrontForm } from "@/hooks/useS
 import { useStorefrontDraft, type DraftFields } from "@/hooks/useStorefrontDraft";
 import { useRestaurantPhotos } from "@/hooks/useRestaurantPhotos";
 
-/** Not yet set anywhere else in this app -- see docs/DEPLOYMENT.md's env var table. Falls back to
- * the local dine-storefront dev port. */
-const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL || "http://localhost:3001";
+/** See docs/DEPLOYMENT.md's env var table -- set NEXT_PUBLIC_STOREFRONT_URL in Vercel to override.
+ * Falls back to the real deployed storefront so the live preview works even before that's set. */
+const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL || "https://dine-storefront.vercel.app";
 
 /** A draft form mirrors StorefrontDraft, but with min_order_paise edited as rupees text, same
  * "paise on the wire, rupees in the input" convention useStorefrontSettings' old full form used. */
