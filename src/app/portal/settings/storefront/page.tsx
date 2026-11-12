@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { ExternalLink, Globe } from "lucide-react";
+import { ExternalLink, Globe, ImagePlus, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -15,15 +15,23 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { rupees } from "@/lib/foodOrders";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { toForm, useStorefrontSettings, type StorefrontForm } from "@/hooks/useStorefrontSettings";
+import { useRestaurantPhotos } from "@/hooks/useRestaurantPhotos";
 
 export default function StorefrontSettingsPage() {
   const session = useStaffSession();
   const canView = usePermission("settings", "view");
   const canWrite = usePermission("settings", "write");
   const { storefront, error, saving, save, uploadingLogo, uploadingCover, uploadImage } = useStorefrontSettings(canView);
+  const { photos, uploading: uploadingPhoto, removingId, addPhoto, removePhoto } = useRestaurantPhotos(canView);
   const [form, setForm] = useState<StorefrontForm | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const active = form ?? (storefront ? toForm(storefront) : null);
+
+  async function handlePhotoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (file) await addPhoto(file);
+  }
 
   function set(patch: Partial<StorefrontForm>) {
     setForm({ ...(active as StorefrontForm), ...patch });
@@ -239,6 +247,45 @@ export default function StorefrontSettingsPage() {
               </PermissionGate>
             </Card>
           </form>
+
+          <Card className="p-space-5 lg:col-span-2">
+            <h2 className="mb-1 text-[15px] font-bold text-ink-900">Photo gallery</h2>
+            <p className="text-hint mb-space-4">
+              Interior, food and ambience shots shown on your restaurant&apos;s page, alongside the logo and cover photo above.
+            </p>
+            <div className="flex flex-wrap gap-space-3">
+              {(photos ?? []).map((photo) => (
+                <div key={photo.id} className="group relative h-24 w-32 overflow-hidden rounded-md border border-line">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={photo.image_url} alt="" className="h-full w-full object-cover" />
+                  {canWrite && (
+                    <button
+                      type="button"
+                      onClick={() => removePhoto(photo.id)}
+                      disabled={removingId === photo.id}
+                      aria-label="Remove photo"
+                      className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100 disabled:opacity-100"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+              ))}
+              {canWrite && (
+                <label className="flex h-24 w-32 cursor-pointer flex-col items-center justify-center gap-space-1 rounded-md border border-dashed border-line text-ink-500 hover:border-brand-300 hover:text-brand-600">
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    className="hidden"
+                    disabled={uploadingPhoto}
+                    onChange={handlePhotoFile}
+                  />
+                  <ImagePlus size={20} />
+                  <span className="text-[12px] font-semibold">{uploadingPhoto ? "Uploading…" : "Add photo"}</span>
+                </label>
+              )}
+            </div>
+          </Card>
 
           <div>
             <Card className="overflow-hidden p-0">
