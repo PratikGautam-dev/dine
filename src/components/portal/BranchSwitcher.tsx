@@ -1,6 +1,7 @@
 "use client";
 
-import { Store } from "lucide-react";
+import { Building2 } from "lucide-react";
+import { HeaderSelect } from "@/components/portal/HeaderSelect";
 import { useBranchFilter } from "@/lib/branchContext";
 
 /** Global topbar branch switcher (multi-branch plan, Phase 3) -- rendered by PortalShell only on
@@ -25,22 +26,20 @@ export function BranchSwitcher() {
   if (!multiBranchEnabled || accessibleBranches.length === 0) return null;
   if (!isRestricted && accessibleBranches.length <= 1) return null;
 
+  const options = [
+    ...(isRestricted ? [] : [{ value: "", label: "All branches", hint: null }]),
+    ...accessibleBranches.map((b) => ({ value: b.id, label: b.name, hint: b.city })),
+  ];
+
   return (
-    <label className="hidden cursor-pointer items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-1.5 text-[13px] font-medium text-ink-700 md:flex">
-      <Store size={15} className="text-ink-400" />
-      <select
+    <div className="hidden md:block">
+      <HeaderSelect
+        icon={<Building2 />}
+        ariaLabel="Branch"
         value={selectedBranchId ?? ""}
-        onChange={(e) => setSelectedBranchId(e.target.value || null)}
-        aria-label="Branch"
-        className="cursor-pointer bg-transparent outline-none"
-      >
-        {!isRestricted && <option value="">All Branches</option>}
-        {accessibleBranches.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.name}
-          </option>
-        ))}
-      </select>
-    </label>
+        options={options}
+        onChange={(id) => setSelectedBranchId(id || null)}
+      />
+    </div>
   );
 }

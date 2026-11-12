@@ -1,6 +1,8 @@
 "use client";
 
 import { BranchProvider } from "@/lib/branchContext";
+import { QueryProvider } from "@/components/erp/QueryProvider";
+import { GlobalFilterProvider } from "@/lib/globalFilter";
 
 /** Wraps every /portal/* page -- BranchProvider has to be an ANCESTOR of each page's own
  * component (where useBranchFilter() is called to feed the page's data hooks), not just a
@@ -9,5 +11,11 @@ import { BranchProvider } from "@/lib/branchContext";
  * itself sits above PortalShell in the tree, not below it -- the switcher UI worked (it's
  * genuinely inside PortalShell), but nothing it selected ever reached the pages' own fetches. */
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  return <BranchProvider>{children}</BranchProvider>;
+  return (
+    <QueryProvider>
+      <BranchProvider>
+        <GlobalFilterProvider>{children}</GlobalFilterProvider>
+      </BranchProvider>
+    </QueryProvider>
+  );
 }

@@ -42,21 +42,26 @@ export function WeeklyTrendChart({
   data,
   title = "Reservation trend",
   unit = "reservations",
+  periodLabel,
 }: {
   data: Point[];
   title?: string;
   unit?: string;
+  /** What the chart covers, e.g. "Last month · 1 Oct – 31 Oct 2026". Defaults to the last 7 days. */
+  periodLabel?: string;
 }) {
   const total = data.reduce((sum, p) => sum + p.count, 0);
   return (
     <Card className="p-space-4">
       <div className="mb-space-3">
         <h3 className="text-[15px] font-bold text-ink-900">{title}</h3>
-        <p className="text-hint">Last 7 days · {total.toLocaleString()} in total</p>
+        <p className="text-hint">
+          {periodLabel ?? "Last 7 days"} · {total.toLocaleString()} in total
+        </p>
       </div>
       {total === 0 ? (
         <div className="flex h-[220px] items-center justify-center text-[13px] text-ink-400">
-          No {unit} in the last 7 days.
+          No {unit} {periodLabel ? "in this period" : "in the last 7 days"}.
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={220}>

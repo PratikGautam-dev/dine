@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
+import { rangeParams, type DateRange } from "@/lib/globalFilter";
 
 export type ReportsSummary = {
   kpis: {
@@ -45,6 +46,8 @@ export function useReports(
   days: number,
   channel: ReportChannel = "",
   branchId: string | null = null,
+  // the exact dates (from the header filter); without it the API uses the rolling `days`
+  range: DateRange | null = null,
 ) {
   const router = useRouter();
   const [data, setData] = useState<ReportsSummary | null>(null);
@@ -57,6 +60,7 @@ export function useReports(
     const params = new URLSearchParams({ days: String(days) });
     if (channel) params.set("channel", channel);
     if (branchId) params.set("branch_id", branchId);
+    if (range) for (const [k, v] of Object.entries(rangeParams(range))) params.set(k, v);
     const result = await portalFetch(`/api/portal/reports?${params.toString()}`);
     if (branchIdRef.current !== requestedBranchId) return;
     if (!result.ok) {
@@ -65,7 +69,7 @@ export function useReports(
       return;
     }
     setData(result.data as ReportsSummary);
-  }, [router, days, channel, branchId]);
+  }, [router, days, channel, branchId, range]);
 
   useEffect(() => {
     if (ready) load();

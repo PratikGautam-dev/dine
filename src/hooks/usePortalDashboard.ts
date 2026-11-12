@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPortalRestaurant, portalFetch, type PortalRestaurant } from "@/lib/portalAuth";
+import { rangeParams, type DateRange } from "@/lib/globalFilter";
 
 export type DashboardData = {
   restaurant: PortalRestaurant;
@@ -48,33 +49,45 @@ export type DashboardData = {
 // mount, otherwise the numbers only ever update on a manual page reload.
 const POLL_INTERVAL_MS = 20_000;
 
-/** Loads + polls the /portal/dashboard stats. */
-export function usePortalDashboard(ready: boolean, branchId: string | null = null) {
+/** Loads + polls the /portal/dashboard stats. `range` (from the header's period filter) limits every number, the
+ * trend, the by-section split and both lists to those dates; null is the original "today / last 7 days" view. */
+export function usePortalDashboard(
+  ready: boolean,
+  branchId: string | null = null,
+  range: DateRange | null = null,
+) {
   const router = useRouter();
-  const [data, setData] = useState<DashboardData | null>(null);
+  const [loaded, setLoaded] = useState<{ query: string; data: DashboardData } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [restaurant, setRestaurant] = useState<PortalRestaurant | null>(null);
   const routerRef = useRef(router);
   routerRef.current = router;
-  // Always the CURRENT branchId, read synchronously (not via the `load` closure's captured
-  // value) once a response comes back -- an unfiltered "All Branches" fetch can take longer than
-  // a filtered one (more rows to aggregate), so switching branches quickly can otherwise let the
-  // slower, now-stale request resolve AFTER the new one and silently overwrite its correct data.
-  const branchIdRef = useRef(branchId);
-  branchIdRef.current = branchId;
+
+  // Branch and period together make the request; a response is only used (and only shown) for the request
+  // that is current. An unfiltered "All Branches" fetch can take longer than a filtered one, so switching
+  // quickly can otherwise let a slower, now-stale response land after the new one and overwrite it.
+  const query = useMemo(() => {
+    const params = new URLSearchParams();
+    if (branchId) params.set("branch_id", branchId);
+    if (range) for (const [k, v] of Object.entries(rangeParams(range))) params.set(k, v);
+    const text = params.toString();
+    return text ? `?${text}` : "";
+  }, [branchId, range]);
+  const queryRef = useRef(query);
+  queryRef.current = query;
 
   const load = useCallback(async () => {
-    const requestedBranchId = branchId;
-    const query = branchId ? `?branch_id=${encodeURIComponent(branchId)}` : "";
-    const result = await portalFetch(`/api/portal/dashboard${query}`);
-    if (branchIdRef.current !== requestedBranchId) return; // a newer branch was selected meanwhile
+    const requested = query;
+    const result = await portalFetch(`/api/portal/dashboard${requested}`);
+    if (queryRef.current !== requested) return; // another branch or period was selected meanwhile
     if (!result.ok) {
       if (result.unauthorized) routerRef.current.push("/portal/login");
       else setError(result.error);
       return;
     }
-    setData(result.data as DashboardData);
-  }, [branchId]);
+    setError(null);
+    setLoaded({ query: requested, data: result.data as DashboardData });
+  }, [query]);
 
   useEffect(() => {
     if (!ready) return;
@@ -84,5 +97,7 @@ export function usePortalDashboard(ready: boolean, branchId: string | null = nul
     return () => clearInterval(interval);
   }, [ready, load]);
 
+  // while a newly chosen period is loading, show the loading state, not the previous period's numbers
+  const data = loaded && loaded.query === query ? loaded.data : null;
   return { data, error, restaurant };
 }
