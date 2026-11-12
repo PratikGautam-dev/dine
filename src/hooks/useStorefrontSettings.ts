@@ -18,37 +18,25 @@ export type Storefront = {
   public_url_path: string | null;
 };
 
+/** Just the two fields that stay immediate/live -- draft/publish (migration 0090) moved the other
+ * 9 cosmetic fields (name/cuisines/tagline/address/city/logo/cover/min order/prep time) onto
+ * useStorefrontDraft.ts instead. Toggling visibility and changing the URL are operational actions,
+ * not cosmetic previews, so they still save straight through this route unchanged. */
 export type StorefrontForm = {
-  name: string;
   web_ordering_enabled: boolean;
   storefront_slug: string;
-  cuisine_tags: string;
-  tagline: string;
-  address_line: string;
-  city: string;
-  logo_url: string;
-  cover_image_url: string;
-  min_order_rupees: string;
-  avg_prep_minutes: string;
 };
 
 export function toForm(s: Storefront): StorefrontForm {
   return {
-    name: s.name,
     web_ordering_enabled: s.web_ordering_enabled,
     storefront_slug: s.slug ?? "",
-    cuisine_tags: s.cuisines.join(", "),
-    tagline: s.tagline ?? "",
-    address_line: s.address_line ?? "",
-    city: s.city ?? "",
-    logo_url: s.logo_url ?? "",
-    cover_image_url: s.cover_image_url ?? "",
-    min_order_rupees: (s.min_order_paise / 100).toString(),
-    avg_prep_minutes: s.avg_prep_minutes.toString(),
   };
 }
 
-/** Loads + saves /portal/settings/storefront -- Web Storefront's toggle and marketplace profile. */
+/** Loads + saves /portal/settings/storefront -- Web Storefront's toggle and store link only now
+ * (see StorefrontForm's own comment); the GET response still carries every other field too, read
+ * elsewhere on the page as the live (published) values. */
 export function useStorefrontSettings(ready: boolean) {
   const [storefront, setStorefront] = useState<Storefront | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,17 +64,8 @@ export function useStorefrontSettings(ready: boolean) {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        name: form.name,
         web_ordering_enabled: form.web_ordering_enabled,
         storefront_slug: form.storefront_slug,
-        cuisine_tags: form.cuisine_tags,
-        tagline: form.tagline,
-        address_line: form.address_line,
-        city: form.city,
-        logo_url: form.logo_url,
-        cover_image_url: form.cover_image_url,
-        min_order_paise: Math.round((Number(form.min_order_rupees) || 0) * 100),
-        avg_prep_minutes: Number(form.avg_prep_minutes) || 0,
       }),
     });
     setSaving(false);
