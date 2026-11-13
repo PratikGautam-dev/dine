@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ExternalLink, Globe, ImagePlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ExternalLink, Eye, EyeOff, Globe, ImagePlus, X } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,7 +16,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { rupees } from "@/lib/foodOrders";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { toForm, useStorefrontSettings, type StorefrontForm } from "@/hooks/useStorefrontSettings";
-import { useStorefrontDraft, type DraftFields } from "@/hooks/useStorefrontDraft";
+import { useStorefrontDraft, sectionLabel, type DraftFields, type SectionKey } from "@/hooks/useStorefrontDraft";
 import { useRestaurantPhotos } from "@/hooks/useRestaurantPhotos";
 
 /** See docs/DEPLOYMENT.md's env var table -- set NEXT_PUBLIC_STOREFRONT_URL in Vercel to override.
@@ -116,7 +116,7 @@ export default function StorefrontSettingsPage() {
   const { storefront, error, saving, save, uploadingLogo, uploadingCover, uploadImage } = useStorefrontSettings(canView);
   const {
     draft, error: draftError, saving: savingDraft, publishing, discarding,
-    saveDraft, publish, discardDraft, previewToken, fetchPreviewToken, hasUnpublishedChanges,
+    saveDraft, saveSections, publish, discardDraft, previewToken, fetchPreviewToken, hasUnpublishedChanges,
   } = useStorefrontDraft(canView);
   const { photos, uploading: uploadingPhoto, removingId, addPhoto, removePhoto } = useRestaurantPhotos(canView);
 
@@ -193,6 +193,23 @@ export default function StorefrontSettingsPage() {
     setConfirmDiscard(false);
     const ok = await discardDraft();
     if (ok) setDraftForm(null);
+  }
+
+  // Sections save immediately on each click (no separate "Save" step) -- same "every click here
+  // is its own draft save" feel ShopConnect's own section reorder/toggle arrows have, distinct
+  // from the appearance form above which batches edits behind an explicit Save draft button.
+  function moveSection(index: number, direction: -1 | 1) {
+    if (!draft) return;
+    const target = index + direction;
+    if (target < 0 || target >= draft.sections.length) return;
+    const next = [...draft.sections];
+    [next[index], next[target]] = [next[target], next[index]];
+    void saveSections(next);
+  }
+
+  function toggleSection(key: SectionKey) {
+    if (!draft || key === "menu") return;
+    void saveSections(draft.sections.map((s) => (s.key === key ? { ...s, enabled: !s.enabled } : s)));
   }
 
   if (!canView) {
@@ -425,14 +442,74 @@ export default function StorefrontSettingsPage() {
             </Card>
           </form>
 
-          <Card className="p-space-5 lg:col-span-2">
-            <h2 className="mb-1 text-[15px] font-bold text-ink-900">Live preview</h2>
-            <p className="text-hint mb-space-4">
-              Your real storefront, with the saved draft above overlaid -- shoppers keep seeing the published version
-              until you Publish.
-            </p>
-            <SitePreview key={draft?.draft_updated_at ?? "initial"} src={previewSrc} title="Storefront preview" />
-          </Card>
+          <div className="grid grid-cols-1 gap-space-4 lg:col-span-2 lg:grid-cols-[260px_1fr]">
+            <Card className="p-space-4">
+              <h2 className="mb-1 text-[15px] font-bold text-ink-900">Page sections</h2>
+              <p className="text-hint mb-space-3">
+                Reorder or hide sections on your restaurant&apos;s own page. The menu can&apos;t be hidden.
+              </p>
+              <div className="space-y-space-2">
+                <div className="flex items-center gap-space-2 rounded-md border border-line bg-paper px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-500">
+                  Hero (always first)
+                </div>
+                {(draft?.sections ?? []).map((section, i) => (
+                  <div
+                    key={section.key}
+                    className="flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2"
+                  >
+                    <div className="flex flex-col">
+                      <button
+                        type="button"
+                        aria-label="Move up"
+                        disabled={!canWrite || i === 0}
+                        onClick={() => moveSection(i, -1)}
+                        className="text-ink-400 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <ArrowUp size={13} />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Move down"
+                        disabled={!canWrite || i === (draft?.sections.length ?? 0) - 1}
+                        onClick={() => moveSection(i, 1)}
+                        className="text-ink-400 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-30"
+                      >
+                        <ArrowDown size={13} />
+                      </button>
+                    </div>
+                    <span className="flex-1 text-[13px] font-semibold text-ink-900">
+                      {sectionLabel(section.key)}
+                    </span>
+                    {section.key === "menu" ? (
+                      <span className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">Always on</span>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={section.enabled ? "Hide section" : "Show section"}
+                        disabled={!canWrite}
+                        onClick={() => toggleSection(section.key)}
+                        className="text-ink-500 hover:text-ink-900 disabled:cursor-not-allowed disabled:opacity-40"
+                      >
+                        {section.enabled ? <Eye size={15} /> : <EyeOff size={15} />}
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            <Card className="p-space-5">
+              <div className="mb-1 flex items-center justify-between">
+                <h2 className="text-[15px] font-bold text-ink-900">Live preview</h2>
+                {hasUnpublishedChanges && <Badge tone="warning">Unpublished changes</Badge>}
+              </div>
+              <p className="text-hint mb-space-4">
+                Your real storefront, with the saved draft above overlaid -- shoppers keep seeing the published version
+                until you Publish.
+              </p>
+              <SitePreview key={draft?.draft_updated_at ?? "initial"} src={previewSrc} title="Storefront preview" />
+            </Card>
+          </div>
 
           <Card className="p-space-5 lg:col-span-2">
             <h2 className="mb-1 text-[15px] font-bold text-ink-900">Photo gallery</h2>

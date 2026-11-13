@@ -2,6 +2,22 @@ import { useCallback, useEffect, useState } from "react";
 import { staffFetch } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
+/** A restaurant's own page's movable sections (migration 0091) -- "menu" can be reordered among
+ * these three but its `enabled` is always true server-side even if sent false (the core function
+ * can't be hidden); the hero isn't in this list at all since it's fixed first, always on. */
+export type SectionKey = "gallery" | "menu" | "reviews";
+export type HomepageSection = { key: SectionKey; enabled: boolean };
+
+const SECTION_LABELS: Record<SectionKey, string> = {
+  gallery: "Photo gallery",
+  menu: "Menu",
+  reviews: "Reviews",
+};
+
+export function sectionLabel(key: SectionKey): string {
+  return SECTION_LABELS[key];
+}
+
 /** Just the 9 cosmetic "appearance" fields (migration 0090 backend) -- web_ordering_enabled and
  * storefront_slug stay on useStorefrontSettings' immediate/live save, and the photo gallery stays
  * on useRestaurantPhotos, both untouched by this draft/publish flow. */
@@ -16,6 +32,7 @@ export type StorefrontDraft = {
   cover_image_url: string | null;
   min_order_paise: number;
   avg_prep_minutes: number;
+  sections: HomepageSection[];
   has_unpublished_changes: boolean;
   draft_updated_at: string | null;
 };
@@ -77,6 +94,25 @@ export function useStorefrontDraft(ready: boolean) {
     return null;
   }
 
+  /** Reorder/show-hide for the movable sections -- a whole-list replace (not a field-by-field
+   * merge the way saveDraft's appearance fields work), since order only makes sense as one unit.
+   * Optimistic: updates local state immediately so the sidebar reorder feels instant, then saves;
+   * on failure, reloads from the server to correct any drift. */
+  async function saveSections(sections: HomepageSection[]): Promise<void> {
+    setDraft((prev) => (prev ? { ...prev, sections, has_unpublished_changes: true } : prev));
+    const result = await staffFetch("/api/portal/settings/storefront/draft", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sections }),
+    });
+    if (!result.ok) {
+      toast.error("Couldn't save section order", result.unauthorized ? "Session expired -- please sign in again." : result.error);
+      await load();
+      return;
+    }
+    setDraft(result.data as StorefrontDraft);
+  }
+
   async function publish(): Promise<boolean> {
     setPublishing(true);
     const result = await staffFetch("/api/portal/settings/storefront/publish", { method: "POST" });
@@ -119,6 +155,7 @@ export function useStorefrontDraft(ready: boolean) {
     publishing,
     discarding,
     saveDraft,
+    saveSections,
     publish,
     discardDraft,
     previewToken,
