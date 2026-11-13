@@ -83,7 +83,24 @@ type FetchResult =
 /** Attempts one silent refresh via /api/portal/staff/refresh, storing the
  * rotated tokens on success. Returns the new access token, or null if the
  * refresh itself failed (refresh token missing/expired/revoked). */
-async function tryRefresh(): Promise<string | null> {
+let refreshInFlight: Promise<string | null> | null = null;
+function tryRefresh(): Promise<string | null> {
+  // Refresh tokens are single-use, so two overlapping refreshes would make the second fail and log the person out:
+  // everyone who asks while one is running shares its result.
+  refreshInFlight ??= doRefresh().finally(() => {
+    refreshInFlight = null;
+  });
+  return refreshInFlight;
+}
+
+/** Re-reads the signed-in person's role, permissions and restaurant details from the server (a refresh), so changes made
+ * since they logged in -- a new page they may use, a changed role -- show up without logging out and back in. Quietly does
+ * nothing when there is no session or the network is down. */
+export async function syncStaffSession(): Promise<void> {
+  if (getStaffRefreshToken()) await tryRefresh();
+}
+
+async function doRefresh(): Promise<string | null> {
   const refreshToken = getStaffRefreshToken();
   if (!refreshToken) return null;
   try {

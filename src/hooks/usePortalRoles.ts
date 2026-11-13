@@ -36,7 +36,8 @@ export function usePortalRoles(canView: boolean) {
     if (canView) load();
   }, [canView, load]);
 
-  async function createRole(name: string): Promise<boolean> {
+  /** Adds a custom role (every page unticked). Returns its key, or null if it couldn't be added. */
+  async function createRole(name: string, quiet = false): Promise<string | null> {
     setCreatingRole(true);
     const result = await staffFetch("/api/portal/roles", {
       method: "POST",
@@ -47,11 +48,37 @@ export function usePortalRoles(canView: boolean) {
     if (!result.ok) {
       if (result.unauthorized) router.push("/portal/login");
       else toast.error("Couldn't add role", result.error);
-      return false;
+      return null;
     }
-    toast.success(`"${name}" added`, "Grant it access from the matrix below.");
+    const data = result.data as { role_key: string; permissions: Matrix };
+    if (!quiet) toast.success(`"${name}" added`);
+    setMatrix(data.permissions);
+    return data.role_key;
+  }
+
+  /** Writes a whole role's grid in one request (the role editor's Save). Returns an error message, or null on success. */
+  async function saveGrid(role: string, grid: Record<string, PagePerms>): Promise<string | null> {
+    const updates = Object.entries(grid).map(([page_key, p]) => ({
+      role,
+      page_key,
+      can_view: p.view,
+      can_write: p.write,
+      can_delete: p.delete,
+    }));
+    const result = await staffFetch("/api/portal/roles/permissions", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ updates }),
+    });
+    if (!result.ok) {
+      if (result.unauthorized) {
+        router.push("/portal/login");
+        return null;
+      }
+      return result.error;
+    }
     setMatrix((result.data as { permissions: Matrix }).permissions);
-    return true;
+    return null;
   }
 
   /** Only succeeds for a custom role with nobody currently assigned (the backend enforces this too --
@@ -125,6 +152,7 @@ export function usePortalRoles(canView: boolean) {
     handleToggle,
     creatingRole,
     createRole,
+    saveGrid,
     deletingRole,
     deleteRole,
   };

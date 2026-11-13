@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import {
+  BadgePercent,
   BarChart3,
   Tag,
   CalendarCheck,
@@ -13,7 +14,6 @@ import {
   Globe,
   LayoutDashboard,
   LogIn,
-  LogOut,
   MessageCircle,
   MessageSquareText,
   Monitor,
@@ -22,6 +22,7 @@ import {
   ClipboardList,
   FolderOpen,
   Soup,
+  LifeBuoy,
   Undo2,
   UserCheck,
   UtensilsCrossed,
@@ -34,9 +35,8 @@ import {
 } from "lucide-react";
 import { useLayoutEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
-import { clearPortalSession, type PortalRestaurant } from "@/lib/portalAuth";
+import type { PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { visibleSettingsItems } from "@/components/portal/SettingsNavMenu";
 
@@ -177,14 +177,6 @@ const NAV_ITEMS: {
     pageKey: "food_menu",
     group: "Catalog",
   },
-  {
-    key: "offers",
-    label: "Offers",
-    icon: Tag,
-    href: "/portal/offers",
-    pageKey: "offers",
-    group: "Catalog",
-  },
   // "Customers" is a parent row with its own sub-pages nested under it, like the ERP's sidebar. Its page is the
   // first child's (All Customers); the sub-pages show while any of them is the open page.
   {
@@ -228,6 +220,15 @@ const NAV_ITEMS: {
     icon: Filter,
     href: "/portal/customers/segments",
     pageKey: "customers",
+    group: "Main",
+    parent: "customers-group",
+  },
+  {
+    key: "offers",
+    label: "Offers",
+    icon: BadgePercent,
+    href: "/portal/offers",
+    pageKey: "offers",
     group: "Main",
     parent: "customers-group",
   },
@@ -313,6 +314,14 @@ const NAV_ITEMS: {
     group: "Workforce",
   },
   {
+    key: "support",
+    label: "Support",
+    icon: LifeBuoy,
+    href: "/portal/support",
+    pageKey: "support",
+    group: "Settings",
+  },
+  {
     key: "settings",
     label: "Settings",
     icon: Settings,
@@ -338,7 +347,6 @@ type Props = {
 let savedNavScroll = 0;
 
 export function PortalSidebar({ restaurant, active, open = false, onClose }: Props) {
-  const router = useRouter();
   // Resolved once, here, via the real hook -- hasPermission below is a
   // plain function taking this value, safe to call inside .filter() (a real
   // hook can't be called in a loop). null on the server and on the client's
@@ -352,9 +360,103 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
     if (navRef.current) navRef.current.scrollTop = savedNavScroll;
   }, [session]);
 
-  function handleLogout() {
-    clearPortalSession();
-    router.push("/");
+  // The sidebar's pinned footer holds Support and Settings (the "Settings" group): they stay put while the rest scrolls.
+  // Per-page-key permission check (hasPermission is a plain function here, not the usePermission
+  // hook, since it's called once per item). Fails OPEN the same way the old hardcoded "doctors"
+  // capability check did -- this is only a UI convenience, the backend's 403 is the real enforcement.
+  // Nothing until the session has loaded: before it, hasPermission fails open and would flash admin-only
+  // items at a Kitchen or Front of House login for a moment.
+  // "Settings" is a single entry: its pages live in the settings menu (SettingsNav). It shows when the person
+  // may open any of them and leads to the first one they can use (e.g. someone with only Team & Access).
+  const settingsPages = visibleSettingsItems(session);
+  const visible = session
+    ? NAV_ITEMS.filter((item) =>
+        item.key === "settings"
+          ? settingsPages.length > 0
+          : NAV_ITEMS.some((child) => child.parent === item.key)
+            ? // a parent row shows when the person may open any of its sub-pages
+              NAV_ITEMS.some(
+                (child) =>
+                  child.parent === item.key && hasPermission(session, child.pageKey, "view"),
+              )
+            : hasPermission(session, item.pageKey, "view"),
+      )
+        .map((item) =>
+          item.key === "settings" && settingsPages[0]
+            ? { ...item, href: settingsPages[0].href }
+            : item,
+        )
+        .sort((a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group))
+    : [];
+  const topLevelAll = visible.filter((item) => !item.parent);
+  const scrollItems = topLevelAll.filter((item) => item.group !== "Settings");
+  const pinnedItems = topLevelAll.filter((item) => item.group === "Settings");
+
+  function renderItems(topLevel: typeof topLevelAll, showGroupTitles: boolean) {
+    return topLevel.map(({ key, label, icon: Icon, href, group }, index) => {
+      const children = visible.filter((item) => item.parent === key);
+      const hasChildren = children.length > 0;
+      const childActive = children.some((c) => c.key === active);
+      const isActive = key === active || childActive;
+      // sub-pages are listed while the parent (or any of them) is the open page
+      const isOpen = hasChildren && isActive;
+      const startsGroup = index === 0 || topLevel[index - 1].group !== group;
+      return (
+        <div key={key}>
+          {startsGroup && showGroupTitles && (
+            <p
+              className={cn(
+                "px-space-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-white/50 uppercase",
+                index === 0 ? "pt-space-2" : "pt-space-3",
+              )}
+            >
+              {group}
+            </p>
+          )}
+          <Link
+            href={href}
+            onClick={onClose}
+            aria-current={isActive && !hasChildren ? "page" : undefined}
+            aria-expanded={hasChildren ? isOpen : undefined}
+            className={cn(
+              "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
+              isActive
+                ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]"
+                : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
+              // a parent whose sub-page is open keeps a ring, so the open section reads as one block
+              hasChildren && isActive && "ring-2 ring-white/70 ring-offset-0",
+            )}
+          >
+            <Icon size={18} strokeWidth={2} className="shrink-0" />
+            {label}
+          </Link>
+          {isOpen && (
+            <ul className="mt-1 mb-1 ml-[22px] space-y-0.5 border-l border-white/20 pl-space-3">
+              {children.map((child) => {
+                const childIsActive = child.key === active;
+                return (
+                  <li key={child.key}>
+                    <Link
+                      href={child.href}
+                      onClick={onClose}
+                      aria-current={childIsActive ? "page" : undefined}
+                      className={cn(
+                        "block rounded-md px-space-3 py-2 text-[13.5px] transition-colors duration-150",
+                        childIsActive
+                          ? "bg-white/20 font-semibold text-white"
+                          : "font-medium text-white/70 hover:bg-white/10 hover:text-white",
+                      )}
+                    >
+                      {child.label}
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      );
+    });
   }
 
   return (
@@ -384,7 +486,6 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
             <span className="block truncate text-[15px] font-bold">
               {restaurant?.name || "Restaurant"}
             </span>
-            <span className="block text-[11.5px] text-white/60">DAAP DineConnect</span>
           </div>
           <button
             type="button"
@@ -404,110 +505,16 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
           }}
           className="no-scrollbar flex-1 overflow-y-auto px-space-3"
         >
-          {(() => {
-            // Per-page-key permission check (hasPermission is a plain function here, not the usePermission
-            // hook, since it's called once per item). Fails OPEN the same way the old hardcoded "doctors"
-            // capability check did -- this is only a UI convenience, the backend's 403 is the real enforcement.
-            // Nothing until the session has loaded: before it, hasPermission fails open and would flash admin-only
-            // items at a Kitchen or Front of House login for a moment.
-            // "Settings" is a single entry: its pages live in the settings menu (SettingsNav). It shows when the person
-            // may open any of them and leads to the first one they can use (e.g. someone with only Team & Access).
-            const settingsPages = visibleSettingsItems(session);
-            const visible = session
-              ? NAV_ITEMS.filter((item) =>
-                  item.key === "settings"
-                    ? settingsPages.length > 0
-                    : hasPermission(session, item.pageKey, "view"),
-                )
-                  .map((item) =>
-                    item.key === "settings" && settingsPages[0]
-                      ? { ...item, href: settingsPages[0].href }
-                      : item,
-                  )
-                  .sort(
-                  (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
-                )
-              : [];
-            // Children are not rows of their own: they sit under their parent. A parent shows only if the
-            // person may open at least one child, which the filter above already guarantees.
-            const topLevel = visible.filter((item) => !item.parent);
-            return topLevel.map(({ key, label, icon: Icon, href, group }, index) => {
-              const children = visible.filter((item) => item.parent === key);
-              const hasChildren = children.length > 0;
-              const childActive = children.some((c) => c.key === active);
-              const isActive = key === active || childActive;
-              // sub-pages are listed while the parent (or any of them) is the open page
-              const isOpen = hasChildren && isActive;
-              const startsGroup = index === 0 || topLevel[index - 1].group !== group;
-              return (
-                <div key={key}>
-                  {startsGroup && (
-                    <p
-                      className={cn(
-                        "px-space-3 pb-1 text-[11px] font-semibold tracking-[0.08em] text-white/50 uppercase",
-                        index === 0 ? "pt-space-2" : "pt-space-3",
-                      )}
-                    >
-                      {group}
-                    </p>
-                  )}
-                  <Link
-                    href={href}
-                    onClick={onClose}
-                    aria-current={isActive && !hasChildren ? "page" : undefined}
-                    aria-expanded={hasChildren ? isOpen : undefined}
-                    className={cn(
-                      "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
-                      isActive
-                        ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]"
-                        : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
-                      // a parent whose sub-page is open keeps a ring, so the open section reads as one block
-                      hasChildren && isActive && "ring-2 ring-white/70 ring-offset-0",
-                    )}
-                  >
-                    <Icon size={18} strokeWidth={2} className="shrink-0" />
-                    {label}
-                  </Link>
-                  {isOpen && (
-                    <ul className="mt-1 mb-1 ml-[22px] space-y-0.5 border-l border-white/20 pl-space-3">
-                      {children.map((child) => {
-                        const childIsActive = child.key === active;
-                        return (
-                          <li key={child.key}>
-                            <Link
-                              href={child.href}
-                              onClick={onClose}
-                              aria-current={childIsActive ? "page" : undefined}
-                              className={cn(
-                                "block rounded-md px-space-3 py-2 text-[13.5px] transition-colors duration-150",
-                                childIsActive
-                                  ? "bg-white/20 font-semibold text-white"
-                                  : "font-medium text-white/70 hover:bg-white/10 hover:text-white",
-                              )}
-                            >
-                              {child.label}
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ul>
-                  )}
-                </div>
-              );
-            });
-          })()}
+          {renderItems(scrollItems, true)}
         </nav>
 
-        <div className="mx-space-4 mt-space-2 border-t border-white/10" />
+        {/* Pinned: Support and Settings stay in view however long the list above is */}
+        {pinnedItems.length > 0 && (
+          <div className="shrink-0 border-t border-white/10 px-space-3 pt-space-2">
+            {renderItems(pinnedItems, false)}
+          </div>
+        )}
         <div className="px-space-3 pt-space-2">
-          <button
-            type="button"
-            onClick={handleLogout}
-            className="flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] font-medium text-white/80 transition-colors duration-150 hover:bg-white/[0.08] hover:text-white"
-          >
-            <LogOut size={18} strokeWidth={2} className="shrink-0" />
-            Log out
-          </button>
           <p className="px-space-3 pt-space-2 text-[11.5px] leading-snug text-white/55">
             Better Dining. Stronger Connection.
           </p>

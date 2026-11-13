@@ -42,7 +42,7 @@ import {
   ORDER_PERIODS,
   formatRange,
   inRange,
-  usePageChannel,
+  usePageChannels,
   usePagePeriod,
 } from "@/lib/globalFilter";
 import {
@@ -121,7 +121,7 @@ export default function PortalFoodOrdersPage() {
   // Everything is loaded once and filtered here, so every view can show its own count.
   // the period and channel come from the header's global filter
   const { days, range, period, setPeriod } = usePagePeriod(ORDER_PERIODS);
-  const { channel: globalChannel, setChannel: setGlobalChannel } = usePageChannel(ORDER_CHANNELS);
+  const { channels: globalChannels, setChannels: setGlobalChannels } = usePageChannels(ORDER_CHANNELS);
   const { orders, error, actingId, runAction } = useFoodOrders(
     ready,
     "",
@@ -132,8 +132,9 @@ export default function PortalFoodOrdersPage() {
   const canWrite = usePermission("food_orders", "write");
 
   const [view, setView] = useState<OrderView>("all");
-  const sourceFilter: SourceFilter =
-    globalChannel === "web" || globalChannel === "whatsapp" ? globalChannel : "all";
+  // several channels can be ticked at once; the page is "one channel" (own heading, own nav item) only when exactly one is
+  const selectedSources = globalChannels;
+  const sourceFilter: SourceFilter = selectedSources.length === 1 ? (selectedSources[0] as SourceFilter) : "all";
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
@@ -147,7 +148,7 @@ export default function PortalFoodOrdersPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const source = new URLSearchParams(window.location.search).get("source");
-    if (source === "web" || source === "whatsapp") setGlobalChannel(source);
+    if (source === "web" || source === "whatsapp") setGlobalChannels([source]);
     // run once on arrival: the link only sets the starting channel, later header changes must stick
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -222,7 +223,7 @@ export default function PortalFoodOrdersPage() {
     return (orders || []).filter((o) => {
       if (!inRange(parseOrderTime(o.created_at), range)) return false;
       if (!matchesOrderView(o.status, view)) return false;
-      if (sourceFilter !== "all" && o.source !== sourceFilter) return false;
+      if (selectedSources.length > 0 && !selectedSources.some((c) => c === o.source)) return false;
       if (typeFilter !== "all" && o.fulfillment_type !== typeFilter) return false;
       if (!q) return true;
       return (
@@ -232,7 +233,7 @@ export default function PortalFoodOrdersPage() {
         (o.items || []).some((i) => i.item_name_snapshot.toLowerCase().includes(q))
       );
     });
-  }, [orders, range, view, sourceFilter, typeFilter, search]);
+  }, [orders, range, view, selectedSources, typeFilter, search]);
 
   function exportCsv() {
     const header = [

@@ -11,6 +11,8 @@ export type StaffMember = {
   // be any restaurant-created custom role_key, not just the 3 built-ins.
   role: string;
   is_active: boolean;
+  /** ISO time of the last password sign-in; null = never. */
+  last_login_at: string | null;
   employee_id: string | null;
   phone: string | null;
   address: string | null;
@@ -323,6 +325,48 @@ export function useStaffManagement(canView: boolean) {
     );
   }
 
+  /** Team & Access's "Add user": a login with a role and, optionally, one branch (blank = every branch). */
+  async function createPerson(f: {
+    name: string;
+    email: string;
+    phone: string;
+    password: string;
+    role: string;
+    branch_id: string;
+  }): Promise<string | null> {
+    const result = await staffFetch("/api/portal/staff", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: f.name,
+        email: f.email,
+        password: f.password,
+        role: f.role,
+        phone: nullIfBlank(f.phone),
+      }),
+    });
+    if (!result.ok) return result.unauthorized ? "Session expired -- please sign in again." : result.error;
+    if (f.branch_id) {
+      const id = (result.data as { id: number }).id;
+      const limited = await staffFetch(`/api/portal/staff/${id}/branches`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ branch_ids: [f.branch_id] }),
+      });
+      if (!limited.ok) {
+        await load();
+        return `Added, but the branch couldn't be set: ${limited.unauthorized ? "session expired" : limited.error}`;
+      }
+    }
+    toast.success("Person added");
+    await load();
+    return null;
+  }
+
+  async function changeRole(member: StaffMember, role: string): Promise<string | null> {
+    return mutate(`/api/portal/staff/${member.id}`, "PATCH", { role }, "Role updated");
+  }
+
   async function addSection(name: string): Promise<string | null> {
     const result = await staffFetch("/api/portal/departments", {
       method: "POST",
@@ -356,6 +400,8 @@ export function useStaffManagement(canView: boolean) {
     statusFilter,
     setStatusFilter,
     addStaff,
+    createPerson,
+    changeRole,
     editStaff,
     setActive,
     resetPassword,

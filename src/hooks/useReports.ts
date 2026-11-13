@@ -36,7 +36,8 @@ export type ReportsSummary = {
 // whatsapp/web (food_orders.source) and takeaway/delivery (fulfillment_type) are real order-level
 // filters; dine_in has no orders at all (a reservation isn't a FoodOrder) so it zeroes every
 // order-derived number and leaves reservation KPIs, which are never channel-scoped, untouched.
-export type ReportChannel = "" | "whatsapp" | "web" | "takeaway" | "delivery" | "dine_in";
+// Comma-joined sales channel ("whatsapp"/"web") and pickup type ("dine_in"/"takeaway"/"delivery"); see channelParam().
+export type ReportChannel = string;
 
 export type BranchComparisonRow = {
   branch_id: string;

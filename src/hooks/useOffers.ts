@@ -13,7 +13,7 @@ export type Offer = {
   valid_to: string;
   min_order_value_paise: number;
   max_redemptions: number | null;
-  fulfillment_type: "pickup" | "delivery" | null;
+  fulfillment_type: "pickup" | "delivery" | "dine_in" | null;
   is_active: boolean;
   created_at: string;
   usage_count: number;
@@ -46,7 +46,7 @@ export type NewOfferFields = {
   valid_to: string;
   min_order_value_paise: number;
   max_redemptions: number | null;
-  fulfillment_type: "pickup" | "delivery" | "";
+  fulfillment_type: "pickup" | "delivery" | "dine_in" | "";
   branch_ids: string[];
   per_customer_limit: number | null;
 };
@@ -73,7 +73,7 @@ export function useOffers(ready: boolean) {
     if (ready) load();
   }, [ready, load]);
 
-  async function createOffer(fields: NewOfferFields): Promise<boolean> {
+  async function createOffer(fields: NewOfferFields, active = true): Promise<boolean> {
     setCreating(true);
     const result = await portalFetch("/api/portal/offers", {
       method: "POST",
@@ -86,7 +86,62 @@ export function useOffers(ready: boolean) {
       else toast.error("Couldn't create offer", result.error);
       return false;
     }
-    toast.success("Offer created");
+    const created = (result.data as { offer?: { id: number } }).offer;
+    if (!active && created) {
+      // the create endpoint always makes a live offer; a draft is switched off straight after
+      await portalFetch(`/api/portal/offers/${created.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: false }),
+      });
+    }
+    toast.success(active ? "Offer created" : "Saved as draft (switched off)");
+    load();
+    return true;
+  }
+
+  /** Rewrites an offer's terms; `active` is applied afterwards when it differs from how the offer is now. */
+  async function editOffer(
+    offer: Offer,
+    fields: NewOfferFields,
+    active: boolean,
+  ): Promise<boolean> {
+    setCreating(true);
+    const result = await portalFetch(`/api/portal/offers/${offer.id}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ...fields, fulfillment_type: fields.fulfillment_type || null }),
+    });
+    if (result.ok && active !== offer.is_active) {
+      await portalFetch(`/api/portal/offers/${offer.id}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: active }),
+      });
+    }
+    setCreating(false);
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't save the offer", result.error);
+      return false;
+    }
+    toast.success("Offer saved");
+    load();
+    return true;
+  }
+
+  async function deleteOffer(offer: Offer): Promise<boolean> {
+    const result = await portalFetch(`/api/portal/offers/${offer.id}`, { method: "DELETE" });
+    if (!result.ok) {
+      if (result.unauthorized) router.push("/portal/login");
+      else toast.error("Couldn't remove the offer", result.error);
+      return false;
+    }
+    toast.success(
+      (result.data as { deactivated?: boolean }).deactivated
+        ? "Offer switched off (it has been used on orders)"
+        : "Offer removed",
+    );
     load();
     return true;
   }
@@ -122,5 +177,14 @@ export function useOffers(ready: boolean) {
     return true;
   }
 
-  return { data, error, creating, createOffer, toggleOffer, setOfferBranches };
+  return {
+    data,
+    error,
+    creating,
+    createOffer,
+    editOffer,
+    deleteOffer,
+    toggleOffer,
+    setOfferBranches,
+  };
 }

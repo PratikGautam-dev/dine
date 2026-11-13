@@ -1,278 +1,172 @@
 "use client";
 
+import { Check, Copy, Minus, Plus, ShieldCheck } from "lucide-react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import {
-  Check,
-  FileClock,
-  KeyRound,
-  Minus,
-  Plus,
-  ShieldCheck,
-  Trash2,
-  Users,
-  X,
-} from "lucide-react";
+import { PortalShell } from "@/components/portal/PortalShell";
+import { isAdministrator } from "@/components/portal/RoleEditor";
+import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
-import { DataTable } from "@/components/ui/DataTable";
-import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
-import { Modal } from "@/components/ui/Modal";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { ListSkeleton, TableSkeleton } from "@/components/ui/Skeleton";
-import { PermissionGate } from "@/components/portal/PermissionGate";
-import { PortalShell } from "@/components/portal/PortalShell";
-import { ALL_PAGE_KEYS, PAGE_LABEL } from "@/components/portal/RolePermissionSummary";
-import { createRoleColumns } from "@/components/portal/RolePermissionColumns";
-import { StatTile } from "@/components/portal/StatTile";
+import { Skeleton } from "@/components/ui/Skeleton";
 import { usePortalRoles } from "@/hooks/usePortalRoles";
 import { useStaffManagement } from "@/hooks/useStaffManagement";
+import { ROLE_PAGES } from "@/lib/rolePages";
+import { usePermission } from "@/lib/staffAuth";
+import { orderedRoles, roleDescription, roleLabel } from "@/lib/staffRoles";
 import { toast } from "@/lib/toast";
-import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import {
-  BUILT_IN_ROLES,
-  orderedRoles,
-  roleDescription,
-  roleLabel,
-  roleTone,
-} from "@/lib/staffRoles";
 
+/** Roles & Permissions: every role with who holds it, and a grid of which role can open which page. A role opens in its own editor. */
 export default function RolesAndPermissionsPage() {
-  const session = useStaffSession();
+  const { restaurant, ready } = usePortalGuard();
+  const router = useRouter();
   const canView = usePermission("roles", "view");
   const canWrite = usePermission("roles", "write");
-  const { matrix, savingCell, handleToggle, creatingRole, createRole, deletingRole, deleteRole } =
-    usePortalRoles(canView);
-  // Only the staff list -- how many real people hold each role -- not the full Staff & Access page's
-  // own filters/dialogs/etc.
+  const { matrix, error, createRole, saveGrid } = usePortalRoles(canView);
   const { staff } = useStaffManagement(canView);
+  const [q, setQ] = useState("");
+  const [copying, setCopying] = useState(false);
 
   const roles = useMemo(() => (matrix ? orderedRoles(matrix) : []), [matrix]);
+  const shown = roles.filter((r) => roleLabel(r).toLowerCase().includes(q.trim().toLowerCase()));
   const usersByRole = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const s of staff ?? []) {
-      if (s.is_active) counts.set(s.role, (counts.get(s.role) ?? 0) + 1);
-    }
+    for (const s of staff ?? []) if (s.is_active) counts.set(s.role, (counts.get(s.role) ?? 0) + 1);
     return counts;
   }, [staff]);
 
-  const stats = useMemo(() => {
-    if (!matrix) return null;
-    const totalUsers = (staff ?? []).length;
-    const activeRoles = roles.filter((r) => (usersByRole.get(r) ?? 0) > 0).length;
-    const totalPermissions = roles.reduce(
-      (sum, r) => sum + ALL_PAGE_KEYS.filter((p) => matrix[r]?.[p]?.view).length,
-      0,
-    );
-    return { totalRoles: roles.length, totalUsers, activeRoles, totalPermissions };
-  }, [matrix, roles, staff, usersByRole]);
+  if (!ready) return null;
 
-  const [expandedRole, setExpandedRole] = useState<string | null>(null);
-  const [addRoleOpen, setAddRoleOpen] = useState(false);
-  const [newRoleName, setNewRoleName] = useState("");
-  const [addRoleError, setAddRoleError] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-
-  async function handleAddRole(e: React.FormEvent) {
-    e.preventDefault();
-    setAddRoleError(null);
-    if (!newRoleName.trim()) {
-      setAddRoleError("Role name is required.");
-      return;
+  async function copy(role: string) {
+    if (!matrix) return;
+    setCopying(true);
+    try {
+      let name = `${roleLabel(role)} copy`;
+      for (let n = 2; roles.includes(name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")); n++)
+        name = `${roleLabel(role)} copy ${n}`;
+      const key = await createRole(name, true);
+      if (!key) return;
+      const problem = await saveGrid(key, matrix[role]);
+      if (problem) return toast.error("Couldn't copy the permissions", problem);
+      toast.success("Role duplicated");
+      router.push(`/portal/settings/roles/${key}`);
+    } finally {
+      setCopying(false);
     }
-    const ok = await createRole(newRoleName.trim());
-    if (ok) {
-      setNewRoleName("");
-      setAddRoleOpen(false);
-    }
-  }
-
-  async function handleDelete(role: string) {
-    setPendingDelete(null);
-    const err = await deleteRole(role);
-    if (err) toast.error("Couldn't delete role", err);
-    else toast.success(`"${roleLabel(role)}" deleted`);
-  }
-
-  if (!canView) {
-    return (
-      <PortalShell restaurant={session?.restaurant || null} active="roles">
-        <p className="text-[13px] text-ink-400">
-          You don&apos;t have access to Roles &amp; Permissions.
-        </p>
-      </PortalShell>
-    );
   }
 
   return (
-    <PortalShell restaurant={session?.restaurant || null} active="roles">
+    <PortalShell restaurant={restaurant} active="roles">
       <PageHeader
+        icon={<ShieldCheck size={20} />}
         title="Roles & Permissions"
-        description="Manage user roles, permissions and access across the portal."
+        description="A role is a set of permissions you give to many people. To change what one person can do, give them a different role on the Users page. Owner / Manager can see and do everything."
+        actions={
+          canWrite && (
+            <Button href="/portal/settings/roles/new">
+              <Plus size={16} /> Add role
+            </Button>
+          )
+        }
       />
-
-      {stats && (
-        <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
-          <StatTile
-            icon={<Users size={22} />}
-            label="Total Roles"
-            value={stats.totalRoles}
-            deltaPct={null}
-            hint="Roles at this restaurant"
-            tone="brand"
-          />
-          <StatTile
-            icon={<Users size={22} />}
-            label="Total Users"
-            value={stats.totalUsers}
-            deltaPct={null}
-            hint="Across all roles"
-            tone="info"
-          />
-          <StatTile
-            icon={<ShieldCheck size={22} />}
-            label="Active Roles"
-            value={stats.activeRoles}
-            deltaPct={null}
-            hint={`of ${stats.totalRoles} have an active user`}
-            tone="success"
-          />
-          <StatTile
-            icon={<KeyRound size={22} />}
-            label="Total Permissions"
-            value={stats.totalPermissions}
-            deltaPct={null}
-            hint="Role x module combinations"
-            tone="violet"
-          />
-        </div>
-      )}
-
-      <div className="grid grid-cols-1 gap-space-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="min-w-0 p-space-4">
-          <div className="mb-space-3">
-            <h2 className="text-[15px] font-bold text-ink-900">Role Management</h2>
-            <p className="text-hint">
-              {roles.length} role{roles.length === 1 ? "" : "s"} at this restaurant.
-            </p>
-          </div>
-          {!matrix ? (
-            <ListSkeleton rows={4} />
-          ) : (
-            <div className="divide-y divide-line">
-              {roles.map((role) => {
-                const isBuiltIn = (BUILT_IN_ROLES as readonly string[]).includes(role);
-                const userCount = usersByRole.get(role) ?? 0;
-                const columns = createRoleColumns({
-                  pageLabel: PAGE_LABEL,
-                  cellFor: (pageKey) =>
-                    matrix[role]?.[pageKey] || { view: false, write: false, delete: false },
-                  canWrite,
-                  isSaving: (pageKey, action) => savingCell === `${role}:${pageKey}:${action}`,
-                  onToggle: (pageKey, action, next) => handleToggle(role, pageKey, action, next),
-                });
-                return (
-                  <div key={role} className="py-space-3">
-                    <div className="flex flex-wrap items-center gap-space-3">
-                      <div className="min-w-[160px] flex-1">
-                        <div className="flex items-center gap-space-2">
-                          <Badge tone={roleTone(role)}>{roleLabel(role)}</Badge>
-                          {!isBuiltIn && <span className="text-[11px] text-ink-400">Custom</span>}
-                        </div>
-                        <p className="mt-1 text-[12.5px] text-ink-600">{roleDescription(role)}</p>
-                      </div>
-                      <div className="w-24 shrink-0 text-[13px] text-ink-700">
-                        {userCount} user{userCount === 1 ? "" : "s"}
-                      </div>
-                      <div className="w-20 shrink-0">
-                        <Badge tone={userCount > 0 ? "success" : "neutral"}>
-                          {userCount > 0 ? "Active" : "Unused"}
-                        </Badge>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-space-2">
-                        <Button
-                          variant="secondary"
-                          size="md"
-                          onClick={() => setExpandedRole(expandedRole === role ? null : role)}
-                        >
-                          {expandedRole === role ? "Hide Permissions" : "Edit Permissions"}
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="md"
-                          href={`/portal/settings/staff?role=${role}`}
-                        >
-                          <Users size={14} /> Manage Users
-                        </Button>
-                        {!isBuiltIn && (
-                          <PermissionGate page="roles" action="write">
+      {!canView ? (
+        <p className="text-[13px] text-ink-400">You don&apos;t have access to Roles &amp; Permissions.</p>
+      ) : (
+        <>
+          {error && <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>}
+          <Card className="mb-space-5 p-space-2">
+            <div className="p-space-2">
+              <Input placeholder="Search roles" aria-label="Search roles" value={q} onChange={(e) => setQ(e.target.value)} />
+            </div>
+            {!matrix ? (
+              <div className="flex flex-col gap-space-2 p-space-2" role="status" aria-label="Loading roles">
+                {[0, 1, 2].map((i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+            ) : (
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="bg-paper text-left text-[11px] tracking-wide text-ink-400 uppercase">
+                    <th className="p-space-3 font-semibold">Name</th>
+                    <th className="p-space-3 font-semibold">Works in</th>
+                    <th className="p-space-3 text-right font-semibold">Users</th>
+                    <th className="w-12 p-space-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {shown.map((r) => {
+                    const system = isAdministrator(r);
+                    return (
+                      <tr key={r} className={`border-t border-line ${system ? "text-ink-400" : "text-ink-900"}`}>
+                        <td className="p-space-3 font-medium">
+                          <Link href={`/portal/settings/roles/${r}`} className="hover:underline">
+                            {roleLabel(r)}
+                          </Link>
+                          <div className="text-[12px] font-normal text-ink-400">{roleDescription(r)}</div>
+                        </td>
+                        <td className="p-space-3">
+                          <Badge tone={system ? "brand" : "clay"}>{system ? "Administrator" : "Portal"}</Badge>
+                        </td>
+                        <td className="p-space-3 text-right">{usersByRole.get(r) ?? 0}</td>
+                        <td className="p-space-3 text-right">
+                          {canWrite && !system && (
                             <button
                               type="button"
-                              disabled={userCount > 0 || deletingRole === role}
-                              onClick={() => setPendingDelete(role)}
-                              title={
-                                userCount > 0
-                                  ? "Reassign its staff before deleting this role."
-                                  : "Delete this role"
-                              }
-                              className="flex h-9 w-9 items-center justify-center rounded-md text-ink-400 hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Duplicate"
+                              aria-label={`Duplicate ${roleLabel(r)}`}
+                              disabled={copying}
+                              onClick={() => copy(r)}
+                              className="rounded-md p-1 text-ink-400 hover:bg-black/[0.04] hover:text-ink-900"
                             >
-                              <Trash2 size={15} />
+                              <Copy size={15} />
                             </button>
-                          </PermissionGate>
-                        )}
-                      </div>
-                    </div>
-                    {expandedRole === role && (
-                      <div className="mt-space-3">
-                        <DataTable
-                          columns={columns}
-                          data={ALL_PAGE_KEYS}
-                          getRowId={(pageKey) => pageKey}
-                        />
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {shown.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-space-4 text-center text-ink-400">
+                        No roles match.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            )}
+          </Card>
 
-        <Card className="p-space-4">
-          <div className="mb-space-3">
-            <h2 className="text-[15px] font-bold text-ink-900">Module Access Overview</h2>
-            <p className="text-hint">
-              Whether each role can view a module (its own real view permission).
-            </p>
-          </div>
-          {!matrix ? (
-            <TableSkeleton rows={6} columns={5} />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-[12.5px]">
+          {matrix && (
+            <Card className="no-scrollbar overflow-x-auto p-space-4">
+              <h2 className="text-[15px] font-bold text-ink-900">Page access overview</h2>
+              <p className="mb-space-3 text-[12px] text-ink-400">Which roles can open each page in the portal.</p>
+              <table className="w-full min-w-[480px] text-[13px]">
                 <thead>
-                  <tr className="text-label border-b border-line text-ink-600">
-                    <th className="py-space-2 pr-space-2 font-medium">Module</th>
+                  <tr className="text-left text-[11px] tracking-wide text-ink-400 uppercase">
+                    <th className="py-space-2 font-semibold">Page</th>
                     {roles.map((r) => (
-                      <th key={r} className="px-space-1 py-space-2 text-center font-medium">
+                      <th key={r} className="py-space-2 text-center font-semibold">
                         {roleLabel(r)}
                       </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
-                  {ALL_PAGE_KEYS.filter((p) => PAGE_LABEL[p]).map((pageKey) => (
-                    <tr key={pageKey} className="border-b border-line last:border-0">
-                      <td className="py-space-2 pr-space-2 text-ink-900">{PAGE_LABEL[pageKey]}</td>
+                  {ROLE_PAGES.map((p) => (
+                    <tr key={p.key} className="border-t border-line">
+                      <td className="py-space-2 text-ink-900">{p.label}</td>
                       {roles.map((r) => (
-                        <td key={r} className="px-space-1 py-space-2 text-center">
-                          {matrix[r]?.[pageKey]?.view ? (
-                            <Check size={14} className="mx-auto text-success" />
+                        <td key={r} className="py-space-2 text-center">
+                          {isAdministrator(r) || matrix[r]?.[p.key]?.view ? (
+                            <Check size={14} className="mx-auto text-success" aria-label="Allowed" />
                           ) : (
-                            <Minus size={14} className="mx-auto text-ink-300" />
+                            <Minus size={14} className="mx-auto text-ink-300" aria-label="Not allowed" />
                           )}
                         </td>
                       ))}
@@ -280,98 +174,10 @@ export default function RolesAndPermissionsPage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </Card>
           )}
-        </Card>
-      </div>
-
-      <PermissionGate page="roles" action="write">
-        <Card className="mt-space-4 p-space-4">
-          <div className="mb-space-3">
-            <h2 className="text-[15px] font-bold text-ink-900">Quick Actions</h2>
-            <p className="text-hint">Common role and permission management tasks.</p>
-          </div>
-          <div className="flex flex-wrap gap-space-3">
-            <button
-              type="button"
-              onClick={() => setAddRoleOpen(true)}
-              className="flex flex-1 items-center justify-center gap-space-2 rounded-md border border-brand-300 px-space-4 py-space-3 text-[13.5px] font-semibold text-brand-700 hover:bg-brand-50"
-            >
-              <Plus size={16} /> Add New Role
-            </button>
-            <a
-              href="/portal/settings/activity"
-              className="flex flex-1 items-center justify-center gap-space-2 rounded-md border border-brand-300 px-space-4 py-space-3 text-[13.5px] font-semibold text-brand-700 hover:bg-brand-50"
-            >
-              <FileClock size={16} /> Audit Logs
-            </a>
-          </div>
-        </Card>
-      </PermissionGate>
-
-      {addRoleOpen && (
-        <Modal
-          onClose={() => setAddRoleOpen(false)}
-          labelledBy="add-role-title"
-          maxWidthClass="max-w-[380px]"
-        >
-          <div className="mb-space-4 flex items-center justify-between">
-            <h2 id="add-role-title" className="text-[16px] font-semibold text-ink-900">
-              Add Role
-            </h2>
-            <button
-              type="button"
-              onClick={() => setAddRoleOpen(false)}
-              className="text-ink-400 hover:text-ink-900"
-              aria-label="Close"
-            >
-              <X size={18} />
-            </button>
-          </div>
-          <form onSubmit={handleAddRole}>
-            <Field
-              label="Role name"
-              htmlFor="new-role-name"
-              required
-              hint='e.g. "Cashier" -- starts with no access; grant it what it needs from the matrix.'
-            >
-              <Input
-                id="new-role-name"
-                value={newRoleName}
-                onChange={(e) => setNewRoleName(e.target.value)}
-                placeholder="e.g. Cashier"
-                autoFocus
-              />
-            </Field>
-            {addRoleError && (
-              <p className="mb-space-3 text-[12.5px] font-medium text-error">{addRoleError}</p>
-            )}
-            <div className="flex justify-end gap-space-2">
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setAddRoleOpen(false)}
-                disabled={creatingRole}
-              >
-                Cancel
-              </Button>
-              <Button type="submit" disabled={creatingRole || !newRoleName.trim()}>
-                {creatingRole ? "Adding…" : "Add Role"}
-              </Button>
-            </div>
-          </form>
-        </Modal>
+        </>
       )}
-
-      <ConfirmDialog
-        open={pendingDelete !== null}
-        title={pendingDelete ? `Delete "${roleLabel(pendingDelete)}"?` : ""}
-        message="This role's permission grid is removed for good. Only possible while nobody currently holds it."
-        confirmLabel="Delete"
-        destructive
-        onCancel={() => setPendingDelete(null)}
-        onConfirm={() => pendingDelete && handleDelete(pendingDelete)}
-      />
     </PortalShell>
   );
 }

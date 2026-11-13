@@ -1,7 +1,6 @@
 "use client";
 
 import { createContext, useCallback, useContext, useMemo, useState } from "react";
-import type { ReportChannel } from "@/hooks/useReports";
 
 /** The header's global filter: one period and one sales channel shared by every page that opts in
  * (see FILTER_PAGES in PortalShell), so choosing "Last 7 days" on Reports is still "Last 7 days" on
@@ -20,7 +19,10 @@ export type Period =
   | "fy"
   | "custom"
   | "all";
-export type GlobalChannel = ReportChannel;
+/** How the order arrived. The filter holds a list of these (none selected = all channels). */
+export type GlobalChannel = "web" | "app" | "whatsapp" | "pos";
+/** How it is fulfilled. A list too (none = all). Within a list the choices are "any of"; the two lists combine ("and"). */
+export type GlobalPickup = "dine_in" | "takeaway" | "delivery";
 
 /** Display order in the filter panel (two columns, row by row). */
 export const PERIOD_ORDER: readonly Period[] = [
@@ -50,9 +52,12 @@ export const PERIOD_LABEL: Record<Period, string> = {
   all: "All time",
 };
 export const CHANNEL_LABEL: Record<GlobalChannel, string> = {
-  "": "All channels",
-  whatsapp: "WhatsApp",
   web: "Website",
+  app: "Daap App",
+  whatsapp: "WhatsApp",
+  pos: "POS",
+};
+export const PICKUP_LABEL: Record<GlobalPickup, string> = {
   dine_in: "Dine-in",
   takeaway: "Takeaway",
   delivery: "Delivery",
@@ -60,16 +65,10 @@ export const CHANNEL_LABEL: Record<GlobalChannel, string> = {
 
 /** What each kind of page offers in the header (PortalShell's FILTER_PAGES decides which page gets which). */
 export const REPORT_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !== "all"); // the reports API needs a bounded range
-export const REPORT_CHANNELS: readonly GlobalChannel[] = [
-  "",
-  "web",
-  "whatsapp",
-  "dine_in",
-  "takeaway",
-  "delivery",
-];
+export const REPORT_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp", "pos"];
+export const REPORT_PICKUPS: readonly GlobalPickup[] = ["dine_in", "takeaway", "delivery"];
 export const ORDER_PERIODS: readonly Period[] = PERIOD_ORDER;
-export const ORDER_CHANNELS: readonly GlobalChannel[] = ["", "web", "whatsapp"];
+export const ORDER_CHANNELS: readonly GlobalChannel[] = ["web", "whatsapp"]; // the order sources that exist today
 export const RETURN_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const FEEDBACK_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const DASHBOARD_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !== "all"); // the dashboard API needs a bounded range
@@ -169,34 +168,45 @@ export function inRange(when: Date, range: DateRange): boolean {
 
 // ------------------------------------------------------------------------------------------------- state
 const STORAGE_KEY = "dc_portal_global_filter";
-const DEFAULT_PERIOD: Period = "30d";
-const NO_CUSTOM: CustomRange = { from: "", to: "" };
+export const DEFAULT_PERIOD: Period = "30d";
+export const NO_CUSTOM: CustomRange = { from: "", to: "" };
 
-type Saved = { period: Period; channel: GlobalChannel; custom: CustomRange };
+type Saved = {
+  period: Period;
+  channels: GlobalChannel[];
+  pickups: GlobalPickup[];
+  custom: CustomRange;
+};
 
 type Value = Saved & {
   setPeriod: (p: Period) => void;
-  setChannel: (c: GlobalChannel) => void;
+  setChannels: (c: GlobalChannel[]) => void;
+  setPickups: (p: GlobalPickup[]) => void;
   /** Pick the "Custom range" period with these dates (yyyy-mm-dd). */
   setCustomRange: (from: string, to: string) => void;
 };
 
 const GlobalFilterContext = createContext<Value>({
   period: DEFAULT_PERIOD,
-  channel: "",
+  channels: [],
+  pickups: [],
   custom: NO_CUSTOM,
   setPeriod: () => {},
-  setChannel: () => {},
+  setChannels: () => {},
+  setPickups: () => {},
   setCustomRange: () => {},
 });
 
 const isPeriod = (v: unknown): v is Period => typeof v === "string" && v in PERIOD_LABEL;
+const isPickup = (v: unknown): v is GlobalPickup => typeof v === "string" && v in PICKUP_LABEL;
 const isChannel = (v: unknown): v is GlobalChannel => typeof v === "string" && v in CHANNEL_LABEL;
+const pickList = <T,>(v: unknown, ok: (x: unknown) => x is T): T[] =>
+  Array.isArray(v) ? [...new Set(v.filter(ok))] : [];
 
 /** The saved choice, read when the provider is created (not in an effect) so a page's own mount effect
  * never sees -- or writes back -- the defaults before the saved choice has been loaded. */
 function readSaved(): Saved {
-  const fallback: Saved = { period: DEFAULT_PERIOD, channel: "", custom: NO_CUSTOM };
+  const fallback: Saved = { period: DEFAULT_PERIOD, channels: [], pickups: [], custom: NO_CUSTOM };
   if (typeof window === "undefined") return fallback;
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? "{}") as Record<string, unknown>;
@@ -204,7 +214,8 @@ function readSaved(): Saved {
     return {
       // a period an older version stored may no longer exist
       period: isPeriod(saved.period) ? saved.period : fallback.period,
-      channel: isChannel(saved.channel) ? saved.channel : fallback.channel,
+      channels: pickList(saved.channels, isChannel),
+      pickups: pickList(saved.pickups, isPickup),
       custom: {
         from: typeof custom?.from === "string" ? custom.from : "",
         to: typeof custom?.to === "string" ? custom.to : "",
@@ -234,7 +245,8 @@ export function GlobalFilterProvider({ children }: { children: React.ReactNode }
     () => ({
       ...state,
       setPeriod: (period) => update({ period }),
-      setChannel: (channel) => update({ channel }),
+      setChannels: (channels) => update({ channels }),
+      setPickups: (pickups) => update({ pickups }),
       setCustomRange: (from, to) => update({ period: "custom", custom: { from, to } }),
     }),
     [state, update],
@@ -252,14 +264,6 @@ export function resolvePeriod(period: Period, allowed: readonly Period[]): Perio
   return allowed.includes(DEFAULT_PERIOD) ? DEFAULT_PERIOD : allowed[0];
 }
 
-/** The stored channel if this page offers it, otherwise "All channels". */
-export function resolveChannel(
-  channel: GlobalChannel,
-  allowed: readonly GlobalChannel[],
-): GlobalChannel {
-  return allowed.includes(channel) ? channel : "";
-}
-
 /** The period this page should actually use: its dates, how many days back that reaches (0 = all time), and a label. */
 export function usePagePeriod(allowed: readonly Period[]) {
   const { period, custom, setPeriod } = useGlobalFilter();
@@ -274,8 +278,19 @@ export function usePagePeriod(allowed: readonly Period[]) {
   };
 }
 
-/** The channel this page should actually use. */
-export function usePageChannel(allowed: readonly GlobalChannel[]) {
-  const { channel, setChannel } = useGlobalFilter();
-  return { channel: resolveChannel(channel, allowed), setChannel };
+/** The sales channels this page should actually use: the stored ones it offers (empty = all). */
+export function usePageChannels(allowed: readonly GlobalChannel[]) {
+  const { channels, setChannels } = useGlobalFilter();
+  return { channels: channels.filter((c) => allowed.includes(c)), setChannels };
+}
+
+/** The pickup types this page should actually use (empty = all). */
+export function usePagePickups(allowed: readonly GlobalPickup[]) {
+  const { pickups, setPickups } = useGlobalFilter();
+  return { pickups: pickups.filter((p) => allowed.includes(p)), setPickups };
+}
+
+/** The reports API's single `channel` param: every selected sales channel and pickup type, comma-joined. */
+export function channelParam(channels: readonly string[], pickups: readonly string[]): string {
+  return [...channels, ...pickups].join(",");
 }
