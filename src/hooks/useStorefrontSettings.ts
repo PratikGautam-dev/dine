@@ -18,10 +18,11 @@ export type Storefront = {
   public_url_path: string | null;
 };
 
-/** Just the two fields that stay immediate/live -- draft/publish (migration 0090) moved the other
- * 9 cosmetic fields (name/cuisines/tagline/address/city/logo/cover/min order/prep time) onto
- * useStorefrontDraft.ts instead. Toggling visibility and changing the URL are operational actions,
- * not cosmetic previews, so they still save straight through this route unchanged. */
+/** Just the toggle + store link -- draft/publish (migration 0090) moved the cosmetic fields
+ * (cuisines/tagline/logo/cover/announcement) onto useStorefrontDraft.ts, and name/address/city
+ * (migration 0097) moved to General settings via this same hook's saveIdentity() below. Toggling
+ * visibility and changing the URL are operational actions, not cosmetic previews, so they still
+ * save straight through this route via this form. */
 export type StorefrontForm = {
   web_ordering_enabled: boolean;
   storefront_slug: string;
@@ -77,6 +78,25 @@ export function useStorefrontSettings(ready: boolean) {
     return null;
   }
 
+  /** Restaurant name/address/city (migration 0097 cleanup) -- basic identity/location info, moved
+   * off the Storefront draft/publish pipeline onto General settings, immediate save through this
+   * same /api/portal/settings/storefront route (it already accepts these keys). Used by the
+   * General settings page's shared contact-details modal, not this page's own StorefrontForm. */
+  async function saveIdentity(fields: { name: string; address_line: string; city: string }): Promise<string | null> {
+    setSaving(true);
+    const result = await staffFetch("/api/portal/settings/storefront", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    setSaving(false);
+    if (!result.ok) {
+      return result.unauthorized ? "Session expired -- please sign in again." : result.error;
+    }
+    setStorefront(result.data as Storefront);
+    return null;
+  }
+
   /** Uploads a logo/cover photo file to the same public image bucket menu-item photos already
    * use (core/menu_image_storage.py) and returns its url -- a separate step from Save, same
    * "upload now, reference the url when the form itself is saved" shape the Food Menu panel's
@@ -98,5 +118,5 @@ export function useStorefrontSettings(ready: boolean) {
     return (result.data as { image_url: string }).image_url;
   }
 
-  return { storefront, error, saving, save, uploadingLogo, uploadingCover, uploadImage };
+  return { storefront, error, saving, save, saveIdentity, uploadingLogo, uploadingCover, uploadImage };
 }

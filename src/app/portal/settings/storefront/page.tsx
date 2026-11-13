@@ -33,34 +33,26 @@ const SECTION_CHEVRON_HREF: Record<SectionKey, string> = {
 const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL || "https://dine-storefront.vercel.app";
 
 /** A draft form mirrors StorefrontDraft -- min_order_paise/avg_prep_minutes moved to the Branches
- * settings page (migration 0096 cleanup), so this no longer carries them. */
+ * settings page (migration 0096 cleanup), name/address_line/city moved to General settings
+ * (migration 0097), so this no longer carries any of them. */
 type DraftForm = {
-  name: string;
   cuisine_tags: string;
   tagline: string;
-  address_line: string;
-  city: string;
   logo_url: string;
   cover_image_url: string;
   announcement_text: string;
 };
 
 function toDraftForm(d: {
-  name: string;
   cuisine_tags: string | null;
   tagline: string | null;
-  address_line: string | null;
-  city: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
   announcement_text: string | null;
 }): DraftForm {
   return {
-    name: d.name,
     cuisine_tags: d.cuisine_tags ?? "",
     tagline: d.tagline ?? "",
-    address_line: d.address_line ?? "",
-    city: d.city ?? "",
     logo_url: d.logo_url ?? "",
     cover_image_url: d.cover_image_url ?? "",
     announcement_text: d.announcement_text ?? "",
@@ -69,11 +61,8 @@ function toDraftForm(d: {
 
 function toDraftFields(f: DraftForm): DraftFields {
   return {
-    name: f.name,
     cuisine_tags: f.cuisine_tags,
     tagline: f.tagline,
-    address_line: f.address_line,
-    city: f.city,
     logo_url: f.logo_url,
     cover_image_url: f.cover_image_url,
     announcement_text: f.announcement_text,
@@ -306,23 +295,7 @@ export default function StorefrontSettingsPage() {
                 seeing today&apos;s live version until you do.
               </p>
               <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                <Field label="Restaurant name" htmlFor="sf-name" className="sm:col-span-2">
-                  <Input
-                    id="sf-name"
-                    value={activeDraft.name}
-                    onChange={(e) => setDraftField({ name: e.target.value })}
-                    disabled={!canWrite}
-                  />
-                </Field>
-                <Field label="City" htmlFor="sf-city">
-                  <Input
-                    id="sf-city"
-                    value={activeDraft.city}
-                    onChange={(e) => setDraftField({ city: e.target.value })}
-                    disabled={!canWrite}
-                  />
-                </Field>
-                <Field label="Cuisines" htmlFor="sf-cuisines" hint="Comma-separated">
+                <Field label="Cuisines" htmlFor="sf-cuisines" hint="Comma-separated" className="sm:col-span-2">
                   <Input
                     id="sf-cuisines"
                     value={activeDraft.cuisine_tags}
@@ -350,14 +323,6 @@ export default function StorefrontSettingsPage() {
                     value={activeDraft.announcement_text}
                     onChange={(e) => setDraftField({ announcement_text: e.target.value })}
                     placeholder="e.g. Festive menu now live!"
-                    disabled={!canWrite}
-                  />
-                </Field>
-                <Field label="Address" htmlFor="sf-address" className="sm:col-span-2">
-                  <Input
-                    id="sf-address"
-                    value={activeDraft.address_line}
-                    onChange={(e) => setDraftField({ address_line: e.target.value })}
                     disabled={!canWrite}
                   />
                 </Field>
@@ -407,9 +372,13 @@ export default function StorefrontSettingsPage() {
                 </Field>
               </div>
               <p className="text-hint mt-space-2">
-                Minimum order and average prep time are now set per-branch on the{" "}
+                Minimum order and average prep time are set per-branch on the{" "}
                 <a href="/portal/settings/branches" className="font-semibold text-brand-700 hover:underline">
                   Branches settings page
+                </a>
+                . Restaurant name and address are set on the{" "}
+                <a href="/portal/settings" className="font-semibold text-brand-700 hover:underline">
+                  General settings page
                 </a>
                 .
               </p>
@@ -458,10 +427,17 @@ export default function StorefrontSettingsPage() {
               <p className="mb-space-1 text-[11px] font-bold uppercase tracking-wide text-ink-400">Top of every page</p>
               <div className="mb-space-3 space-y-space-2">
                 <Link
+                  href="/portal/settings"
+                  className="flex items-center justify-between rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] font-semibold text-ink-900 hover:bg-paper/70"
+                >
+                  Name
+                  <ChevronRight size={15} className="text-ink-400" />
+                </Link>
+                <Link
                   href="#storefront-profile"
                   className="flex items-center justify-between rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] font-semibold text-ink-900 hover:bg-paper/70"
                 >
-                  Logo &amp; name
+                  Logo
                   <ChevronRight size={15} className="text-ink-400" />
                 </Link>
                 <Link
@@ -608,10 +584,8 @@ export default function StorefrontSettingsPage() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-[13.5px] font-bold text-ink-900">
-                      {activeDraft.name || draft?.name}
-                    </p>
-                    {activeDraft.city && <p className="text-[11.5px] text-ink-600">{activeDraft.city}</p>}
+                    <p className="truncate text-[13.5px] font-bold text-ink-900">{storefront?.name}</p>
+                    {storefront?.city && <p className="text-[11.5px] text-ink-600">{storefront.city}</p>}
                   </div>
                   <span className="ml-auto shrink-0">
                     <Badge tone={active.web_ordering_enabled ? "success" : "neutral"}>

@@ -2,21 +2,145 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Clock, ShieldCheck, Settings as SettingsIcon } from "lucide-react";
+import { ArrowRight, Clock, MapPin, ShieldCheck, Settings as SettingsIcon, Store } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
+import { Modal } from "@/components/ui/Modal";
 import { FormSkeleton, ListSkeleton } from "@/components/ui/Skeleton";
 import { SettingsPageFrame } from "@/components/portal/settings/SettingsPageFrame";
 import { TenantSettingsDialog } from "@/components/portal/TenantSettingsDialog";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { usePermission } from "@/lib/staffAuth";
 import { usePortalSettings } from "@/hooks/usePortalSettings";
 import { useRestaurantHours } from "@/hooks/useRestaurantHours";
 import { usePortalAuditLog } from "@/hooks/usePortalAuditLog";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
+import { useStorefrontSettings } from "@/hooks/useStorefrontSettings";
 import { CreditCard, Mail, MessageSquare, Printer } from "lucide-react";
+
+function DetailRow({
+  icon,
+  title,
+  text,
+  empty,
+  canWrite,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  text: string | null;
+  empty: string;
+  canWrite: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={!canWrite}
+      onClick={onClick}
+      className="flex w-full items-center gap-space-3 px-space-3 py-space-3 text-left enabled:hover:bg-paper"
+    >
+      <span className="text-ink-600">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] font-medium text-ink-900">{title}</span>
+        <span className={`block text-[13px] ${text ? "text-ink-600" : "text-ink-400"}`}>{text || empty}</span>
+      </span>
+      {canWrite && <span className="text-[12.5px] font-semibold text-brand-700">Edit</span>}
+    </button>
+  );
+}
+
+/** Restaurant name/address/city -- basic identity/location info, immediate save (not a cosmetic
+ * draft/preview thing the way Online Storefront's tagline/logo/cover are). Same "clickable row
+ * opens a shared modal with every field, any row opens the same draft" pattern
+ * ShopConnect-tenant's own Settings > General "Store contact details" card uses. */
+function RestaurantDetailsCard({ ready }: { ready: boolean }) {
+  const canWrite = usePermission("settings", "write");
+  const { storefront, saving, saveIdentity } = useStorefrontSettings(ready);
+  const [draft, setDraft] = useState<{ name: string; address_line: string; city: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  function openEdit() {
+    if (!storefront) return;
+    setError(null);
+    setDraft({
+      name: storefront.name,
+      address_line: storefront.address_line ?? "",
+      city: storefront.city ?? "",
+    });
+  }
+
+  async function save() {
+    if (!draft) return;
+    const problem = await saveIdentity(draft);
+    if (problem) {
+      setError(problem);
+      return;
+    }
+    setDraft(null);
+  }
+
+  const address = [storefront?.address_line, storefront?.city].filter(Boolean).join(", ");
+
+  return (
+    <Card className="p-space-4">
+      <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Restaurant details</h2>
+      <div className="divide-y divide-line rounded-md border border-line">
+        <DetailRow
+          icon={<Store size={16} />}
+          title="Restaurant name"
+          text={storefront?.name ?? null}
+          empty="Not set"
+          canWrite={canWrite}
+          onClick={openEdit}
+        />
+        <DetailRow
+          icon={<MapPin size={16} />}
+          title="Address"
+          text={address || null}
+          empty="Not set"
+          canWrite={canWrite}
+          onClick={openEdit}
+        />
+      </div>
+
+      {draft && (
+        <Modal onClose={() => setDraft(null)} labelledBy="restaurant-details-title" maxWidthClass="max-w-[520px]">
+          <h2 id="restaurant-details-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">
+            Restaurant details
+          </h2>
+          <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+            <Field label="Restaurant name" htmlFor="rd-name" className="sm:col-span-2">
+              <Input id="rd-name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} />
+            </Field>
+            <Field label="Address" htmlFor="rd-address" className="sm:col-span-2">
+              <Input
+                id="rd-address"
+                value={draft.address_line}
+                onChange={(e) => setDraft({ ...draft, address_line: e.target.value })}
+              />
+            </Field>
+            <Field label="City" htmlFor="rd-city">
+              <Input id="rd-city" value={draft.city} onChange={(e) => setDraft({ ...draft, city: e.target.value })} />
+            </Field>
+          </div>
+          {error && <p className="mt-space-2 text-[13px] font-medium text-error">{error}</p>}
+          <div className="mt-space-4 flex justify-end gap-space-2">
+            <Button type="button" variant="secondary" onClick={() => setDraft(null)} disabled={saving}>
+              Cancel
+            </Button>
+            <Button type="button" onClick={save} disabled={saving}>
+              {saving ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </Modal>
+      )}
+    </Card>
+  );
+}
 
 // Everything this app actually connects to today is the WhatsApp bot itself -- shown as genuinely
 // Active below. The rest (payments, a kitchen printer, email/SMS delivery) has no real integration
@@ -59,6 +183,8 @@ export default function PortalSettingsGeneralPage() {
       ) : (
       <div className="grid grid-cols-1 gap-space-4 xl:grid-cols-[1.3fr_1fr]">
         <div className="min-w-0 space-y-space-4">
+          <RestaurantDetailsCard ready={ready} />
+
           <Card className="p-space-5">
             <div className="flex items-center justify-between">
               <div>
@@ -115,15 +241,8 @@ export default function PortalSettingsGeneralPage() {
           <form onSubmit={handleSave}>
             <Card className="p-space-5">
               <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-                Restaurant Profile
+                WhatsApp Bot Messages
               </h2>
-              <Field
-                label="Restaurant name"
-                htmlFor="name"
-                hint="Contact the platform team to change this — it's tied to your Meta WhatsApp connection."
-              >
-                <Input id="name" value={settings.name} disabled />
-              </Field>
               <Field label="Welcome message text" htmlFor="welcome_message_text">
                 <Textarea
                   id="welcome_message_text"

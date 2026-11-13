@@ -22,14 +22,12 @@ export function sectionLabel(key: SectionKey): string {
  * storefront_slug stay on useStorefrontSettings' immediate/live save, and the photo gallery stays
  * on useRestaurantPhotos, both untouched by this draft/publish flow. min_order_paise/
  * avg_prep_minutes moved to the Branches settings page (migration 0096 cleanup) -- edited
- * per-branch there now, not as a restaurant-wide field here. announcement_text (migration 0097)
- * is the top-of-page banner. */
+ * per-branch there now. name/address_line/city (migration 0097) moved to General settings,
+ * immediate save via useStorefrontSettings' saveIdentity() -- not part of this draft at all
+ * anymore. announcement_text (migration 0097) is the top-of-page banner. */
 export type StorefrontDraft = {
   restaurant_id: number;
-  name: string;
   tagline: string | null;
-  address_line: string | null;
-  city: string | null;
   cuisine_tags: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
@@ -40,17 +38,7 @@ export type StorefrontDraft = {
 };
 
 export type DraftFields = Partial<
-  Pick<
-    StorefrontDraft,
-    | "name"
-    | "tagline"
-    | "address_line"
-    | "city"
-    | "cuisine_tags"
-    | "logo_url"
-    | "cover_image_url"
-    | "announcement_text"
-  >
+  Pick<StorefrontDraft, "tagline" | "cuisine_tags" | "logo_url" | "cover_image_url" | "announcement_text">
 >;
 
 /** Loads/saves the storefront's draft/publish appearance fields, plus a one-time preview token
