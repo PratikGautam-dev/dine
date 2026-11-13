@@ -128,6 +128,13 @@ export function useMenuItems(ready: boolean) {
     setShowForm(true);
   }
 
+  function openAddComboForm() {
+    setEditingId(null);
+    setForm({ ...emptyMenuItemForm(), is_combo: true });
+    setFormError(null);
+    setShowForm(true);
+  }
+
   function openEditForm(item: MenuItem) {
     setEditingId(item.id);
     setForm({
@@ -196,7 +203,10 @@ export function useMenuItems(ready: boolean) {
     setUploadingImage(true);
     const body = new FormData();
     body.append("file", file);
-    const result = await portalFetch("/api/portal/menu-items/upload-image", { method: "POST", body });
+    const result = await portalFetch("/api/portal/menu-items/upload-image", {
+      method: "POST",
+      body,
+    });
     setUploadingImage(false);
     if (!result.ok) {
       toast.error(
@@ -270,6 +280,7 @@ export function useMenuItems(ready: boolean) {
     saving,
     uploadingImage,
     openAddForm,
+    openAddComboForm,
     openEditForm,
     cancelForm,
     handleSave,

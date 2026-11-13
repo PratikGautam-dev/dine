@@ -48,38 +48,42 @@ export function StatTile({
   const showHint = Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
 
   return (
-    <Card className="flex min-h-[104px] min-w-0 items-center gap-space-3 p-space-3">
-      {icon && (
-        <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 [&>svg]:h-5 [&>svg]:w-5">
-          {icon}
-        </span>
-      )}
-      <div className="min-w-0 flex-1">
-        <p className="text-[13px] leading-snug break-words text-ink-600">{label}</p>
-        <div className="mt-0.5 flex flex-wrap items-baseline gap-x-space-2 gap-y-0.5">
-          <span className="text-[20px] leading-tight font-bold break-words text-ink-900">
-            {prefix}
-            {typeof value === "number" ? value.toLocaleString() : value}
+    // The wrapper is a size container: in a narrow cell (two columns on a phone) the icon sits above the text
+    // instead of beside it, so the label and number keep enough room.
+    <div className="@container min-w-0">
+      <Card className="flex h-full min-h-[104px] min-w-0 items-center gap-space-3 p-space-3 @max-[230px]:flex-col @max-[230px]:items-start @max-[230px]:justify-center @max-[230px]:gap-space-2">
+        {icon && (
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 [&>svg]:h-5 [&>svg]:w-5">
+            {icon}
           </span>
-          {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
-          {deltaPct !== null && (
-            <span
-              className={cn(
-                "flex items-center gap-0.5 text-[12px] font-semibold",
-                isGoodDirection && "text-success",
-                isBadDirection && "text-error",
-                deltaPct === 0 && "text-ink-400",
-              )}
-            >
-              {isUp && <TrendingUp size={13} />}
-              {isDown && <TrendingDown size={13} />}
-              {deltaPct === 0 && <Minus size={13} />}
-              {Math.abs(deltaPct)}%
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] leading-snug break-words text-ink-600">{label}</p>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-space-2 gap-y-0.5">
+            <span className="text-[20px] leading-tight font-bold break-words text-ink-900">
+              {prefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
             </span>
-          )}
+            {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
+            {deltaPct !== null && (
+              <span
+                className={cn(
+                  "flex items-center gap-0.5 text-[12px] font-semibold",
+                  isGoodDirection && "text-success",
+                  isBadDirection && "text-error",
+                  deltaPct === 0 && "text-ink-400",
+                )}
+              >
+                {isUp && <TrendingUp size={13} />}
+                {isDown && <TrendingDown size={13} />}
+                {deltaPct === 0 && <Minus size={13} />}
+                {Math.abs(deltaPct)}%
+              </span>
+            )}
+          </div>
+          {showHint && <p className="text-[12px] leading-snug break-words text-ink-400">{hint}</p>}
         </div>
-        {showHint && <p className="text-[12px] leading-snug break-words text-ink-400">{hint}</p>}
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }

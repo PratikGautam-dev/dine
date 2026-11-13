@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { FolderOpen, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -18,13 +19,23 @@ import { type MenuItem, useMenuItems } from "@/hooks/useMenuItems";
 import { rupees } from "@/lib/foodOrders";
 import { usePermission } from "@/lib/staffAuth";
 
-type Filter = "all" | "header";
+type Filter = "all" | "category" | "custom" | "header";
+
+const FILTER_LABELS: Record<Filter, string> = {
+  all: "All",
+  category: "From categories",
+  custom: "Custom",
+  header: "In header",
+};
 
 export default function CollectionsPage() {
   const { ready, restaurant } = usePortalGuard();
   const canWrite = usePermission("food_menu", "write");
   const { items } = useMenuItems(ready);
-  const { collections, save, remove, toggleHeader } = useCollections(restaurant?.id ?? null);
+  const { collections, loadError, save, remove, toggleHeader } = useCollections(
+    restaurant?.id ?? null,
+    items,
+  );
 
   const [filter, setFilter] = useState<Filter>("all");
   const [search, setSearch] = useState("");
@@ -36,7 +47,12 @@ export default function CollectionsPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (collections ?? []).filter(
-      (c) => (filter === "all" || c.show_in_header) && (!q || c.name.toLowerCase().includes(q)),
+      (c) =>
+        (filter === "all" ||
+          (filter === "header" && c.show_in_header) ||
+          (filter === "category" && c.source === "category") ||
+          (filter === "custom" && c.source !== "category")) &&
+        (!q || c.name.toLowerCase().includes(q)),
     );
   }, [collections, filter, search]);
 
@@ -58,7 +74,7 @@ export default function CollectionsPage() {
       <Card className="p-space-4">
         <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
           <div className="flex gap-space-1 rounded-md bg-black/[0.04] p-1">
-            {(["all", "header"] as const).map((f) => (
+            {(["all", "category", "custom", "header"] as const).map((f) => (
               <button
                 key={f}
                 type="button"
@@ -68,7 +84,7 @@ export default function CollectionsPage() {
                   (filter === f ? "bg-card text-ink-900 shadow-[var(--shadow-sm)]" : "text-ink-600")
                 }
               >
-                {f === "all" ? "All" : "In header"}
+                {FILTER_LABELS[f]}
               </button>
             ))}
           </div>
@@ -83,12 +99,14 @@ export default function CollectionsPage() {
           </label>
         </div>
 
-        {!collections ? (
+        {loadError ? (
+          <p className="py-space-6 text-center text-[13.5px] text-error">{loadError}</p>
+        ) : !collections ? (
           <ListSkeleton rows={4} />
         ) : visible.length === 0 ? (
           <p className="py-space-6 text-center text-[13.5px] text-ink-600">
             {collections.length === 0
-              ? "No collections yet. Create one to group your menu items."
+              ? "No collections yet. Menu categories appear here automatically; create one to group items your own way."
               : "No collections match."}
           </p>
         ) : (
@@ -100,7 +118,14 @@ export default function CollectionsPage() {
               return (
                 <li key={c.id} className="flex flex-wrap items-center gap-space-3 py-space-3">
                   <div className="min-w-0 flex-1">
-                    <p className="truncate text-[14.5px] font-semibold text-ink-900">{c.name}</p>
+                    <p className="flex items-center gap-space-2 text-[14.5px] font-semibold text-ink-900">
+                      <span className="truncate">{c.name}</span>
+                      {c.source === "category" && (
+                        <span className="shrink-0 rounded-full bg-brand-50 px-space-2 py-0.5 text-[11px] font-semibold text-brand-700">
+                          Category
+                        </span>
+                      )}
+                    </p>
                     <p className="truncate text-[12.5px] text-ink-600">
                       {live.length} {live.length === 1 ? "item" : "items"}
                       {live.length > 0 &&
@@ -116,26 +141,35 @@ export default function CollectionsPage() {
                       size="sm"
                       checked={c.show_in_header}
                       disabled={!canWrite}
-                      onChange={() => toggleHeader(c.id)}
+                      onChange={() => void toggleHeader(c.id)}
                     />
                   </label>
-                  {canWrite && (
-                    <div className="flex gap-space-1">
-                      <Button
-                        variant="ghost"
-                        aria-label={`Edit ${c.name}`}
-                        onClick={() => setEditing(c)}
-                      >
-                        <Pencil size={15} />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        aria-label={`Delete ${c.name}`}
-                        onClick={() => setPendingDelete(c)}
-                      >
-                        <Trash2 size={15} />
-                      </Button>
-                    </div>
+                  {c.source === "category" ? (
+                    <Link
+                      href="/portal/food-menu"
+                      className="text-[12.5px] font-semibold text-brand-700 hover:underline"
+                    >
+                      Manage in Menu
+                    </Link>
+                  ) : (
+                    canWrite && (
+                      <div className="flex gap-space-1">
+                        <Button
+                          variant="ghost"
+                          aria-label={`Edit ${c.name}`}
+                          onClick={() => setEditing(c)}
+                        >
+                          <Pencil size={15} />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          aria-label={`Delete ${c.name}`}
+                          onClick={() => setPendingDelete(c)}
+                        >
+                          <Trash2 size={15} />
+                        </Button>
+                      </div>
+                    )
                   )}
                 </li>
               );
@@ -143,8 +177,9 @@ export default function CollectionsPage() {
           </ul>
         )}
         <p className="mt-space-4 text-[12px] text-ink-400">
-          Collections are saved in this browser for now; they are not yet shared across devices or
-          shown on the storefront.
+          Every menu category appears here automatically; manage those in the Menu. Collections you
+          create here stay here and never show up as menu categories. Custom collections are saved
+          to your restaurant account, so every device and staff member sees the same ones.
         </p>
       </Card>
 
@@ -154,9 +189,10 @@ export default function CollectionsPage() {
           collection={editing === "new" ? null : editing}
           items={items ?? []}
           onClose={() => setEditing(null)}
-          onSave={(draft) => {
-            save(draft, editing === "new" ? undefined : editing.id);
-            setEditing(null);
+          onSave={async (draft) => {
+            const result = await save(draft, editing === "new" ? undefined : editing.id);
+            if (result.ok) setEditing(null);
+            return result.ok ? null : result.error;
           }}
         />
       )}
@@ -169,7 +205,7 @@ export default function CollectionsPage() {
         confirmLabel="Delete"
         onCancel={() => setPendingDelete(null)}
         onConfirm={() => {
-          if (pendingDelete) remove(pendingDelete.id);
+          if (pendingDelete) void remove(pendingDelete.id);
           setPendingDelete(null);
         }}
       />
@@ -186,7 +222,8 @@ function CollectionEditor({
   collection: Collection | null;
   items: MenuItem[];
   onClose: () => void;
-  onSave: (draft: CollectionDraft) => void;
+  /** Resolves to an error message to show in the form, or null when saved. */
+  onSave: (draft: CollectionDraft) => Promise<string | null>;
 }) {
   const [name, setName] = useState(collection?.name ?? "");
   const [description, setDescription] = useState(collection?.description ?? "");
@@ -194,6 +231,7 @@ function CollectionEditor({
   const [selected, setSelected] = useState<Set<string>>(new Set(collection?.item_ids ?? []));
   const [q, setQ] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const shown = items.filter((i) => i.name.toLowerCase().includes(q.trim().toLowerCase()));
 
@@ -205,18 +243,21 @@ function CollectionEditor({
     });
   }
 
-  function submit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!name.trim()) {
       setError("Give the collection a name.");
       return;
     }
-    onSave({
+    setSaving(true);
+    const failure = await onSave({
       name: name.trim(),
       description: description.trim(),
       item_ids: [...selected],
       show_in_header: showInHeader,
     });
+    setSaving(false);
+    if (failure) setError(failure);
   }
 
   return (
@@ -280,7 +321,9 @@ function CollectionEditor({
           <Button type="button" variant="secondary" onClick={onClose}>
             Cancel
           </Button>
-          <Button type="submit">Save collection</Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save collection"}
+          </Button>
         </div>
       </form>
     </Modal>

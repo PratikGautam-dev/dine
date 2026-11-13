@@ -190,7 +190,7 @@ const NAV_ITEMS: {
   // first child's (All Customers); the sub-pages show while any of them is the open page.
   {
     key: "customers-group",
-    label: "Customers",
+    label: "CRM",
     icon: Users,
     href: "/portal/customers",
     pageKey: "customers",

@@ -213,7 +213,7 @@ export default function BranchesSettingsPage() {
         />
       </Card>
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
           icon={<Store size={22} />}
           label="Total Branches"

@@ -55,6 +55,7 @@ export function MenuItemPanel({
   const categoryKnown = form.category === "" || categories.includes(form.category);
   const showNewCategory = newCategoryMode || !categoryKnown;
   const amount = Math.floor(Number(restockAmount));
+  const isCombo = form.is_combo;
 
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -74,11 +75,19 @@ export function MenuItemPanel({
 
   return (
     <>
-      <h2 id="menu-item-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">
-        {item ? "Edit item" : "Add item"}
-      </h2>
+      <div className="mb-space-4 border-b border-line pb-space-3">
+        <h2 id="menu-item-title" className="text-[18px] font-bold text-ink-900">
+          {item ? (isCombo ? "Edit combo" : "Edit item") : isCombo ? "Create combo" : "Add item"}
+        </h2>
+        <p className="text-hint mt-space-1">
+          {isCombo
+            ? "Bundle items you already sell into one deal."
+            : "Add a dish guests can order on WhatsApp."}
+        </p>
+      </div>
 
-      {(form.image_url.trim().startsWith("https://") || form.image_url.trim().startsWith("/api/")) && (
+      {(form.image_url.trim().startsWith("https://") ||
+        form.image_url.trim().startsWith("/api/")) && (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={form.image_url.trim()}
@@ -94,154 +103,186 @@ export function MenuItemPanel({
       )}
 
       <form onSubmit={onSubmit}>
-        <Field label="Name" htmlFor="mi-name" required>
-          <Input
-            id="mi-name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </Field>
-        <Field label="Description" htmlFor="mi-description">
-          <Textarea
-            id="mi-description"
-            value={form.description}
-            rows={2}
-            onChange={(e) => setForm({ ...form, description: e.target.value })}
-          />
-        </Field>
-        <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2 xl:grid-cols-1">
-          <Field label="Price (₹)" htmlFor="mi-price" required>
+        <FormSection title="Basics">
+          <Field label={isCombo ? "Combo name" : "Name"} htmlFor="mi-name" required>
             <Input
-              id="mi-price"
-              type="number"
-              min="0"
-              step="0.01"
-              value={form.price_rupees}
-              onChange={(e) => setForm({ ...form, price_rupees: e.target.value })}
+              id="mi-name"
+              placeholder={isCombo ? "e.g. Family Feast Combo" : "e.g. Butter Chicken"}
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
             />
           </Field>
-          <Field
-            label="Category"
-            htmlFor="mi-category"
-            hint="Guests see the menu grouped by category on WhatsApp."
-          >
-            <select
-              id="mi-category"
-              value={showNewCategory ? NEW_CATEGORY : form.category}
-              onChange={(e) => {
-                if (e.target.value === NEW_CATEGORY) {
-                  setNewCategoryMode(true);
-                  setForm({ ...form, category: "" });
-                } else {
-                  setNewCategoryMode(false);
-                  setForm({ ...form, category: e.target.value });
-                }
-              }}
-              className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
-            >
-              <option value="">No category</option>
-              {categories.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-              <option value={NEW_CATEGORY}>+ New category…</option>
-            </select>
-            {showNewCategory && (
-              <Input
-                id="mi-category-new"
-                className="mt-space-2"
-                placeholder="New category name, e.g. Starters"
-                aria-label="New category name"
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-              />
-            )}
-          </Field>
-        </div>
-        <Field
-          label={item ? "Stock count" : "Starting stock"}
-          htmlFor="mi-stock"
-          hint="Portions available. Leave blank for unlimited."
-        >
-          <Input
-            id="mi-stock"
-            type="number"
-            min="0"
-            value={form.stock_count}
-            onChange={(e) => setForm({ ...form, stock_count: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Photo"
-          htmlFor="mi-image-upload"
-          hint="Optional. Guests see it when they open the item on WhatsApp."
-        >
-          <div className="flex items-center gap-space-2">
-            <input
-              id="mi-image-upload"
-              type="file"
-              accept="image/jpeg,image/png,image/webp"
-              disabled={uploadingImage}
-              onChange={handleFileChange}
-              className="text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+          <Field label="Description" htmlFor="mi-description">
+            <Textarea
+              id="mi-description"
+              value={form.description}
+              rows={2}
+              placeholder={
+                isCombo
+                  ? "What makes this deal worth ordering"
+                  : "Short description guests will read"
+              }
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
             />
-            {uploadingImage && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
-          </div>
-          {imageError && <p className="mt-space-1 text-[12.5px] text-error">{imageError}</p>}
-          <Input
-            id="mi-image"
-            type="url"
-            inputMode="url"
-            placeholder="or paste a photo link"
-            className="mt-space-2"
-            value={form.image_url}
-            onChange={(e) => setForm({ ...form, image_url: e.target.value })}
-          />
-        </Field>
-        <Field
-          label="Veg / Non-veg"
-          htmlFor="mi-is-veg"
-          hint="Shown to guests on the storefront's veg filter. Leave unset if you're not sure yet."
-        >
-          <select
-            id="mi-is-veg"
-            value={form.is_veg}
-            onChange={(e) => setForm({ ...form, is_veg: e.target.value as MenuItemFormState["is_veg"] })}
-            className="h-10 w-full rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-900"
-          >
-            <option value="unset">Not set</option>
-            <option value="veg">Veg</option>
-            <option value="non_veg">Non-veg</option>
-          </select>
-        </Field>
-        <CheckboxRow
-          checked={form.is_combo}
-          onChange={(checked) =>
-            setForm({ ...form, is_combo: checked, combo_lines: checked ? form.combo_lines : [] })
-          }
-        >
-          This is a combo (bundles multiple menu items into one)
-        </CheckboxRow>
-        {form.is_combo && (
-          <ComboLinesEditor
-            lines={form.combo_lines}
-            onChange={(combo_lines) => setForm({ ...form, combo_lines })}
-          />
+          </Field>
+        </FormSection>
+
+        {isCombo && (
+          <FormSection title="What's in the combo">
+            <ComboLinesEditor
+              lines={form.combo_lines}
+              comboPricePaise={Math.round((Number(form.price_rupees) || 0) * 100)}
+              onChange={(combo_lines) => setForm({ ...form, combo_lines })}
+            />
+          </FormSection>
         )}
-        <CheckboxRow
-          checked={form.is_available}
-          onChange={(checked) => setForm({ ...form, is_available: checked })}
-        >
-          Available for ordering
-        </CheckboxRow>
-        {formError && <p className="mt-space-2 text-[13px] text-error">{formError}</p>}
-        <div className="mt-space-4 flex gap-space-2">
-          <Button type="submit" disabled={saving}>
-            {saving ? "Saving…" : "Save"}
-          </Button>
+
+        <FormSection title={isCombo ? "Price and category" : "Price, category and stock"}>
+          <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+            <Field label={isCombo ? "Combo price (₹)" : "Price (₹)"} htmlFor="mi-price" required>
+              <Input
+                id="mi-price"
+                type="number"
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+                value={form.price_rupees}
+                onChange={(e) => setForm({ ...form, price_rupees: e.target.value })}
+              />
+            </Field>
+            <Field label="Category" htmlFor="mi-category">
+              <select
+                id="mi-category"
+                value={showNewCategory ? NEW_CATEGORY : form.category}
+                onChange={(e) => {
+                  if (e.target.value === NEW_CATEGORY) {
+                    setNewCategoryMode(true);
+                    setForm({ ...form, category: "" });
+                  } else {
+                    setNewCategoryMode(false);
+                    setForm({ ...form, category: e.target.value });
+                  }
+                }}
+                className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)]"
+              >
+                <option value="">No category</option>
+                {categories.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+                <option value={NEW_CATEGORY}>+ New category…</option>
+              </select>
+              {showNewCategory && (
+                <Input
+                  id="mi-category-new"
+                  className="mt-space-2"
+                  placeholder="New category name, e.g. Starters"
+                  aria-label="New category name"
+                  value={form.category}
+                  onChange={(e) => setForm({ ...form, category: e.target.value })}
+                />
+              )}
+            </Field>
+            <Field
+              label={item ? "Stock count" : "Starting stock"}
+              htmlFor="mi-stock"
+              hint="Portions available. Blank = unlimited."
+            >
+              <Input
+                id="mi-stock"
+                type="number"
+                min="0"
+                placeholder="Unlimited"
+                value={form.stock_count}
+                onChange={(e) => setForm({ ...form, stock_count: e.target.value })}
+              />
+            </Field>
+            <Field
+              label="Veg / Non-veg"
+              htmlFor="mi-is-veg"
+              hint="Used by the storefront veg filter."
+            >
+              <select
+                id="mi-is-veg"
+                value={form.is_veg}
+                onChange={(e) =>
+                  setForm({ ...form, is_veg: e.target.value as MenuItemFormState["is_veg"] })
+                }
+                className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)]"
+              >
+                <option value="unset">Not set</option>
+                <option value="veg">Veg</option>
+                <option value="non_veg">Non-veg</option>
+              </select>
+            </Field>
+          </div>
+        </FormSection>
+
+        <FormSection title="Photo">
+          <div className="rounded-md border border-dashed border-line bg-paper p-space-3">
+            <div className="flex flex-wrap items-center gap-space-3">
+              <input
+                id="mi-image-upload"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                disabled={uploadingImage}
+                onChange={handleFileChange}
+                aria-label="Upload photo"
+                className="min-w-0 text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
+              />
+              {uploadingImage && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
+            </div>
+            {imageError && <p className="mt-space-1 text-[12.5px] text-error">{imageError}</p>}
+            <Input
+              id="mi-image"
+              type="url"
+              inputMode="url"
+              placeholder="or paste a photo link"
+              className="mt-space-2"
+              value={form.image_url}
+              onChange={(e) => setForm({ ...form, image_url: e.target.value })}
+            />
+            <p className="text-hint mt-space-2">
+              Optional. JPEG, PNG or WebP up to 5 MB. Guests see it on WhatsApp.
+            </p>
+          </div>
+        </FormSection>
+
+        <FormSection title="Options" last>
+          {(item || !isCombo) && (
+            <CheckboxRow
+              checked={form.is_combo}
+              onChange={(checked) =>
+                setForm({
+                  ...form,
+                  is_combo: checked,
+                  combo_lines: checked ? form.combo_lines : [],
+                })
+              }
+            >
+              This is a combo (bundles multiple menu items into one)
+            </CheckboxRow>
+          )}
+          <CheckboxRow
+            checked={form.is_available}
+            onChange={(checked) => setForm({ ...form, is_available: checked })}
+          >
+            Available for ordering
+          </CheckboxRow>
+        </FormSection>
+
+        {formError && (
+          <p className="mb-space-3 rounded-md bg-red-50 px-space-3 py-space-2 text-[13px] text-error">
+            {formError}
+          </p>
+        )}
+        <div className="sticky -bottom-space-5 -mx-space-5 -mb-space-5 mt-space-2 flex justify-end gap-space-2 border-t border-line bg-card px-space-5 py-space-3">
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
+          </Button>
+          <Button type="submit" disabled={saving}>
+            {saving ? "Saving…" : item ? "Save changes" : isCombo ? "Create combo" : "Add item"}
           </Button>
         </div>
       </form>
@@ -315,5 +356,24 @@ export function MenuItemPanel({
         </div>
       )}
     </>
+  );
+}
+
+function FormSection({
+  title,
+  last,
+  children,
+}: {
+  title: string;
+  last?: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className={last ? "mb-space-3" : "mb-space-4 border-b border-line pb-space-1"}>
+      <h3 className="text-label mb-space-3 font-bold uppercase tracking-wide text-ink-500">
+        {title}
+      </h3>
+      {children}
+    </section>
   );
 }

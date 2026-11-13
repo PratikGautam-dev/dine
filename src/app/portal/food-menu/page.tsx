@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CircleCheck,
@@ -36,7 +36,6 @@ import { parseOrderTime, rupees } from "@/lib/foodOrders";
 import { usePermission } from "@/lib/staffAuth";
 
 const UNCATEGORISED = "__none__";
-const COMBOS_ONLY = "__combos__";
 type AvailabilityView = "all" | "available" | "sold_out" | "out_of_stock";
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -54,7 +53,8 @@ export default function PortalFoodMenuPage() {
   // canManageDoctors check already uses. The person's role has to allow menu changes too.
   const canWriteMenu = usePermission("food_menu", "write");
   const canManage =
-    (!restaurant || restaurant.admin_capabilities?.includes("manage_food_ordering")) && canWriteMenu;
+    (!restaurant || restaurant.admin_capabilities?.includes("manage_food_ordering")) &&
+    canWriteMenu;
   const {
     items,
     categories,
@@ -69,6 +69,7 @@ export default function PortalFoodMenuPage() {
     saving,
     uploadingImage,
     openAddForm,
+    openAddComboForm,
     openEditForm,
     cancelForm,
     handleSave,
@@ -122,12 +123,8 @@ export default function PortalFoodMenuPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (items || []).filter((i) => {
-      if (categoryFilter === COMBOS_ONLY) {
-        if (!i.is_combo) return false;
-      } else {
-        const cat = (i.category || "").trim() || UNCATEGORISED;
-        if (categoryFilter !== "all" && cat !== categoryFilter) return false;
-      }
+      const cat = (i.category || "").trim() || UNCATEGORISED;
+      if (categoryFilter !== "all" && cat !== categoryFilter) return false;
       if (availabilityView !== "all" && availability(i) !== availabilityView) return false;
       return (
         !q ||
@@ -137,16 +134,6 @@ export default function PortalFoodMenuPage() {
       );
     });
   }, [items, categoryFilter, availabilityView, search]);
-
-  const combos = useMemo(() => (items || []).filter((i) => i.is_combo), [items]);
-  const listRef = useRef<HTMLDivElement>(null);
-
-  function viewAllCombos() {
-    setCategoryFilter(COMBOS_ONLY);
-    setSearch("");
-    setAvailabilityView("all");
-    listRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-  }
 
   // Most-ordered dishes over the last 30 days, from the order lines themselves (cancelled orders left out).
   const popular = useMemo(() => {
@@ -345,6 +332,9 @@ export default function PortalFoodMenuPage() {
               <Button size="md" variant="secondary" onClick={() => setShowBulkUpload(true)}>
                 <ImageUp size={14} /> Bulk upload photos
               </Button>
+              <Button size="md" onClick={openAddComboForm}>
+                <Plus size={14} /> Create combo
+              </Button>
               <Button size="md" onClick={openAddForm}>
                 <Plus size={14} /> Add item
               </Button>
@@ -361,7 +351,7 @@ export default function PortalFoodMenuPage() {
       )}
 
       {items && (
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-6">
           <StatTile
             icon={<Soup size={22} />}
             label="Menu items"
@@ -408,58 +398,6 @@ export default function PortalFoodMenuPage() {
         </div>
       )}
 
-      {combos.length > 0 && (
-        <Card className="mb-space-4 p-space-4">
-          <div className="mb-space-3 flex items-center justify-between">
-            <h3 className="flex items-center gap-space-2 text-[15px] font-bold text-ink-900">
-              <Package size={16} className="text-accent-violet" /> Combo Offers
-            </h3>
-            <button
-              type="button"
-              onClick={viewAllCombos}
-              className="text-[12.5px] font-semibold text-brand-700 hover:underline"
-            >
-              View all →
-            </button>
-          </div>
-          <table className="w-full text-left text-[13px]">
-            <thead>
-              <tr className="text-label border-b border-line text-ink-600">
-                <th className="w-8 py-space-2 font-medium">#</th>
-                <th className="py-space-2 font-medium">Combo Name</th>
-                <th className="py-space-2 font-medium">Items</th>
-                <th className="py-space-2 font-medium">Price</th>
-                <th className="py-space-2 font-medium">Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {combos.map((c, i) => (
-                <tr
-                  key={c.id}
-                  onClick={canManage ? () => openEditForm(c) : undefined}
-                  className={cn(
-                    "border-b border-line last:border-0",
-                    canManage && "cursor-pointer hover:bg-black/[0.02]",
-                  )}
-                >
-                  <td className="py-space-2 text-ink-400">{i + 1}</td>
-                  <td className="py-space-2 font-semibold text-ink-900">{c.name}</td>
-                  <td className="py-space-2 text-ink-600">{c.combo_item_count} items</td>
-                  <td className="py-space-2 font-semibold tabular-nums text-ink-900">
-                    {rupees(c.price_paise)}
-                  </td>
-                  <td className="py-space-2">
-                    <Badge tone={c.is_available ? "success" : "neutral"}>
-                      {c.is_available ? "Active" : "Inactive"}
-                    </Badge>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </Card>
-      )}
-
       {showBulkImport && (
         <BulkImportMenuItemsModal
           existingNames={(items || []).map((i) => i.name.trim().toLowerCase())}
@@ -477,7 +415,7 @@ export default function PortalFoodMenuPage() {
       )}
 
       {showForm && (
-        <Modal onClose={cancelForm} labelledBy="menu-item-title" maxWidthClass="max-w-[480px]">
+        <Modal onClose={cancelForm} labelledBy="menu-item-title" maxWidthClass="max-w-[640px]">
           <MenuItemPanel
             key={editingId ?? "new"}
             form={form}
@@ -498,7 +436,7 @@ export default function PortalFoodMenuPage() {
       )}
 
       <div className="grid grid-cols-1 items-start gap-space-4">
-        <div ref={listRef} className="min-w-0">
+        <div className="min-w-0">
           <div className="mb-space-3 flex flex-wrap gap-space-2">
             {tabs.map((t) => (
               <button

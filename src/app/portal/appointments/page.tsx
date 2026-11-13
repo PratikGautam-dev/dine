@@ -597,7 +597,7 @@ export default function PortalAppointmentsPage() {
           {/* Status-coded, solid-fill tiles on this page specifically (per direct request) -- every other
                 page keeps the default tinted-square look; these reuse the shared success/warning/info/violet/
                 brand tokens every badge on this page already draws from, not new one-off colors. */}
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
             <StatTile
               tone="success"
               filled

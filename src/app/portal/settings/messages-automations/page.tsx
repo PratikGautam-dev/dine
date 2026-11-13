@@ -277,7 +277,7 @@ export default function PortalMessagesAutomationsPage() {
   }
 
   return (
-    <PortalShell restaurant={restaurant} active="settings">
+    <PortalShell restaurant={restaurant} active="messages-automations">
       <PageHeader
         title="Messages & Automations"
         icon={<WhatsAppIcon size={22} />}
@@ -297,7 +297,7 @@ export default function PortalMessagesAutomationsPage() {
       </div>
 
       {
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
           <StatTile
             icon={<MessageCircle size={22} />}
             label="Active templates"

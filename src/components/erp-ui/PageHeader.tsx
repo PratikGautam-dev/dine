@@ -49,7 +49,7 @@ export function PageHeader({
         <div
           data-page-actions
           className={cn(
-            "mobile-page-actions flex flex-wrap items-center gap-space-2",
+            "mobile-page-actions page-header-actions flex flex-wrap items-center gap-space-2",
             actionsClassName,
           )}
         >

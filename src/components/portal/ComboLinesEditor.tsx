@@ -10,20 +10,22 @@ import { portalFetch } from "@/lib/portalAuth";
 import { rupees } from "@/lib/foodOrders";
 
 const SELECT_CLASS =
-  "h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
+  "h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900";
 
 type Line = { component_item_id: string; quantity: string };
 
 type Props = {
   lines: Line[];
   onChange: (lines: Line[]) => void;
+  /** The combo's own price, to show the saving against the sum of parts. */
+  comboPricePaise?: number;
 };
 
 /** What's inside a combo -- pick a real menu item + how many, one row per line. Loads the
  * restaurant's own non-combo items once (a combo can't contain another combo), and shows a live
  * "sum of parts" total against the selected lines so staff can see the discount they're giving
  * before they set the combo's own price. */
-export function ComboLinesEditor({ lines, onChange }: Props) {
+export function ComboLinesEditor({ lines, onChange, comboPricePaise = 0 }: Props) {
   const [candidates, setCandidates] = useState<ComboCandidate[] | null>(null);
 
   useEffect(() => {
@@ -56,9 +58,8 @@ export function ComboLinesEditor({ lines, onChange }: Props) {
 
   return (
     <Field
-      label="What's in this combo"
-      required
-      hint="Pick real menu items and how many of each -- guests see them listed on WhatsApp."
+      htmlFor="combo-lines"
+      hint="Pick real menu items and how many of each. Guests see them listed on WhatsApp."
     >
       {!candidates ? (
         <p className="text-[12.5px] text-ink-400">Loading your menu…</p>
@@ -67,7 +68,10 @@ export function ComboLinesEditor({ lines, onChange }: Props) {
           Add some regular menu items first -- a combo bundles items you already have.
         </p>
       ) : (
-        <div className="space-y-space-2">
+        <div className="space-y-space-2 rounded-md border border-line bg-paper p-space-3">
+          {lines.length === 0 && (
+            <p className="text-[12.5px] text-ink-500">No items yet. Add the first one below.</p>
+          )}
           {lines.map((line, i) => (
             <div key={i} className="flex items-center gap-space-2">
               <select
@@ -103,13 +107,20 @@ export function ComboLinesEditor({ lines, onChange }: Props) {
             </div>
           ))}
           <Button type="button" variant="secondary" size="md" onClick={addLine}>
-            <Plus size={14} /> Add item
+            <Plus size={14} /> Add item to combo
           </Button>
           {lines.length > 0 && (
-            <p className="text-[12.5px] text-ink-600">
-              Sum of parts:{" "}
-              <span className="font-semibold text-ink-900">{rupees(sumOfPartsPaise)}</span>
-            </p>
+            <div className="flex flex-wrap items-center justify-between gap-space-2 border-t border-line pt-space-2 text-[12.5px] text-ink-600">
+              <span>
+                Sum of parts:{" "}
+                <span className="font-semibold text-ink-900">{rupees(sumOfPartsPaise)}</span>
+              </span>
+              {comboPricePaise > 0 && sumOfPartsPaise > comboPricePaise && (
+                <span className="rounded-full bg-green-50 px-space-2 py-0.5 font-semibold text-green-700">
+                  Guests save {rupees(sumOfPartsPaise - comboPricePaise)}
+                </span>
+              )}
+            </div>
           )}
         </div>
       )}
