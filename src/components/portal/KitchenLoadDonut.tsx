@@ -20,7 +20,7 @@ export function KitchenLoadDonut({
   const slices: Slice[] = [
     { label: "New Orders", value: newOrders, color: "var(--success)" },
     { label: "In Preparation", value: preparing, color: "var(--warning)" },
-    { label: "Ready to Serve", value: ready, color: "var(--info)" },
+    { label: "Ready to Serve/Ready for Pickup", value: ready, color: "var(--info)" },
   ];
 
   return (

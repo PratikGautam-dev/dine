@@ -30,6 +30,12 @@ export type FoodOrder = {
   // 'whatsapp' (the column's own DB default) -- see food-orders/page.tsx's own Source column.
   source: "whatsapp" | "web";
   mock_payment_ref: string | null;
+  // Who is delivering a delivery order, set when the kitchen hands it to a delivery partner (the Kitchen Orders page's
+  // "Delivery status"). All null for takeaway orders and for a delivery that hasn't been handed over yet.
+  delivery_partner_name?: string | null;
+  delivery_partner_phone?: string | null;
+  delivery_tracking_id?: string | null;
+  dispatched_at?: string | null;
   items?: FoodOrderItem[];
 };
 
@@ -143,8 +149,37 @@ export function useFoodOrders(
     load();
   }
 
-  return { orders, error, actingId, load, runAction };
+  /** Hands a delivery order to a delivery partner (preparing -> out for delivery), or -- for an order already out
+   * for delivery -- corrects the partner's details. Returns whether it worked, so the form knows to close. */
+  async function dispatchOrder(order: FoodOrder, details: DispatchDetails): Promise<boolean> {
+    setActingId(order.id);
+    const result = await portalFetch(`/api/portal/food-orders/${order.id}/dispatch`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(details),
+    });
+    setActingId(null);
+    if (!result.ok) {
+      if (result.unauthorized) toast.error("Session expired", "Please log in again.");
+      else {
+        toast.error("Couldn't save the delivery details", result.error);
+        load();
+      }
+      return false;
+    }
+    toast.success(
+      order.status === "out_for_delivery"
+        ? "Delivery details updated"
+        : "Handed to the delivery partner",
+    );
+    load();
+    return true;
+  }
+
+  return { orders, error, actingId, load, runAction, dispatchOrder };
 }
+
+export type DispatchDetails = { partner_name: string; partner_phone: string; tracking_id: string };
 
 export type OrderStatusHistoryEntry = {
   from_status: string;

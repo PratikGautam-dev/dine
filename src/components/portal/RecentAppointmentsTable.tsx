@@ -106,7 +106,7 @@ const columns: ColumnDef<Appointment>[] = [
 
 export function RecentAppointmentsTable({ appointments }: { appointments: Appointment[] }) {
   return (
-    <Card className="p-space-4">
+    <Card className="h-full p-space-4">
       <div className="mb-space-3 flex items-center justify-between">
         <h3 className="text-[15px] font-bold text-ink-900">Recent reservations</h3>
         <Link
@@ -119,7 +119,13 @@ export function RecentAppointmentsTable({ appointments }: { appointments: Appoin
       {appointments.length === 0 ? (
         <p className="py-space-4 text-center text-[13px] text-ink-400">No reservations yet.</p>
       ) : (
-        <DataTable columns={columns} data={appointments} getRowId={(a) => String(a.id)} />
+        <DataTable
+          columns={columns}
+          data={appointments}
+          getRowId={(a) => String(a.id)}
+          containerClassName="scrollbar-visible max-h-[448px] overflow-y-auto"
+          stickyHeader
+        />
       )}
     </Card>
   );

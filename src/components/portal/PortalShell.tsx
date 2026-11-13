@@ -1,13 +1,24 @@
 "use client";
 
-import { CalendarDays, Menu } from "lucide-react";
+import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { GlobalFilter, type GlobalFilterOptions } from "@/components/portal/GlobalFilter";
 import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
 import { UserMenu } from "@/components/portal/UserMenu";
+import {
+  DASHBOARD_PERIODS,
+  FEEDBACK_PERIODS,
+  ORDER_CHANNELS,
+  ORDER_PERIODS,
+  PERIOD_ORDER,
+  REPORT_CHANNELS,
+  REPORT_PERIODS,
+  RETURN_PERIODS,
+} from "@/lib/globalFilter";
 import type { PortalRestaurant } from "@/lib/portalAuth";
 
 type Props = {
@@ -26,10 +37,28 @@ const _BRANCH_AWARE_PAGES = new Set([
   "appointments",
   "tables",
   "food-orders",
+  "sales-online",
+  "sales-whatsapp",
+  "returns",
   "kitchen-orders",
   "feedback",
   "reports",
 ]);
+
+// The pages whose data follows the header's global filter (period, and channel where the page has one).
+// They show it in place of the plain date chip. Keyed by the same `active` nav key as above.
+// Every other page shows the filter too (all periods, no channel), so it is always there; it only changes
+// what a page shows where that page is listed above.
+const DEFAULT_FILTER: GlobalFilterOptions = { periods: PERIOD_ORDER };
+const FILTER_PAGES: Record<string, GlobalFilterOptions> = {
+  reports: { periods: REPORT_PERIODS, channels: REPORT_CHANNELS },
+  "food-orders": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },
+  "sales-online": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },
+  "sales-whatsapp": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },
+  returns: { periods: RETURN_PERIODS },
+  feedback: { periods: FEEDBACK_PERIODS },
+  dashboard: { periods: DASHBOARD_PERIODS },
+};
 
 /** Shared shell for every /portal/* page: sidebar (a static column at `lg`
  * and up, an off-canvas drawer below it, behind a mobile top bar with a
@@ -74,19 +103,7 @@ export function PortalShell({ restaurant, active, children }: Props) {
           </span>
           <div className="ml-auto flex items-center gap-space-2">
             {_BRANCH_AWARE_PAGES.has(active) && <BranchSwitcher />}
-            <span
-              // the server and the browser can be on different days/timezones for a moment; the browser's wins
-              suppressHydrationWarning
-              className="mr-space-2 hidden items-center gap-space-2 rounded-md border border-line px-space-3 py-1.5 text-[13px] font-medium text-ink-600 md:flex"
-            >
-              <CalendarDays size={15} className="text-ink-400" />
-              {new Date().toLocaleDateString("en-IN", {
-                weekday: "short",
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
+            <GlobalFilter {...(FILTER_PAGES[active] ?? DEFAULT_FILTER)} />
             <NotificationBell />
             <UserMenu />
           </div>

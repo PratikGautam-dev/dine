@@ -17,7 +17,6 @@ import {
   Banknote,
   CalendarCheck,
   Download,
-  Globe,
   Repeat,
   ShoppingBag,
   Wallet,
@@ -29,30 +28,21 @@ import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
-import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { useBranchFilter } from "@/lib/branchContext";
-import { cn } from "@/lib/cn";
 import { rupees } from "@/lib/foodOrders";
 import { toast } from "@/lib/toast";
 import { API_BASE_URL, getStaffAccessToken } from "@/lib/staffAuth";
-import { useReports, useBranchComparison, type ReportChannel } from "@/hooks/useReports";
+import { useReports, useBranchComparison } from "@/hooks/useReports";
+import {
+  REPORT_CHANNELS,
+  REPORT_PERIODS,
+  formatRange,
+  rangeParams,
+  usePageChannel,
+  usePagePeriod,
+} from "@/lib/globalFilter";
 
-const RANGES = [
-  { label: "Today", days: 1 },
-  { label: "7 Days", days: 7 },
-  { label: "30 Days", days: 30 },
-];
-// "web" is real since the Web Storefront's food_orders.source column exists -- a second real
-// order channel alongside WhatsApp, not just fulfillment_type's pickup/delivery split.
-const CHANNEL_CHIPS: { label: string; value: ReportChannel }[] = [
-  { label: "All Channels", value: "" },
-  { label: "WhatsApp", value: "whatsapp" },
-  { label: "Website", value: "web" },
-  { label: "Dine-in", value: "dine_in" },
-  { label: "Takeaway", value: "takeaway" },
-  { label: "Delivery", value: "delivery" },
-];
 const DOWNLOAD_KINDS: { kind: "sales" | "orders" | "customers" | "bookings"; label: string }[] = [
   { kind: "sales", label: "Sales Report (CSV)" },
   { kind: "orders", label: "Orders Report (CSV)" },
@@ -105,11 +95,13 @@ const CHANNEL_ICON: Record<string, React.ReactNode> = {
 
 export default function PortalReportsPage() {
   const { restaurant, ready } = usePortalGuard();
-  const [days, setDays] = useState(30);
-  const [channel, setChannel] = useState<ReportChannel>("");
+  // the period and channel come from the header's global filter
+  const { days, range } = usePagePeriod(REPORT_PERIODS);
+  const periodText = formatRange(range);
+  const { channel } = usePageChannel(REPORT_CHANNELS);
   const [downloading, setDownloading] = useState<string | null>(null);
   const { selectedBranchId } = useBranchFilter();
-  const { data, error } = useReports(ready, days, channel, selectedBranchId);
+  const { data, error } = useReports(ready, days, channel, selectedBranchId, range);
   const { rows: branchRows } = useBranchComparison(ready, days, channel);
 
   const paymentSplit = useMemo(() => {
@@ -124,7 +116,7 @@ export default function PortalReportsPage() {
     const token = getStaffAccessToken();
     if (!token) return;
     setDownloading(kind);
-    const params = new URLSearchParams({ kind, days: String(days) });
+    const params = new URLSearchParams({ kind, days: String(days), ...rangeParams(range) });
     if (channel) params.set("channel", channel);
     if (selectedBranchId) params.set("branch_id", selectedBranchId);
     try {
@@ -149,53 +141,17 @@ export default function PortalReportsPage() {
   return (
     <PortalShell restaurant={restaurant} active="reports">
       <PageHeader
-        title="Reports"
+        title="Analytics"
         icon={<BarChart3 size={22} />}
         description="Insights from your WhatsApp and website orders, and table reservations."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 flex flex-wrap items-center gap-space-2">
-        {RANGES.map((r) => (
-          <button
-            key={r.label}
-            type="button"
-            onClick={() => setDays(r.days)}
-            className={cn(
-              "rounded-md px-space-3 py-2 text-[13px] font-semibold transition-colors duration-150",
-              days === r.days
-                ? "bg-brand-600 text-white"
-                : "border border-line bg-card text-ink-600 hover:bg-paper",
-            )}
-          >
-            {r.label}
-          </button>
-        ))}
-        <span className="mx-space-1 h-6 w-px bg-line" />
-        {CHANNEL_CHIPS.map((c) => (
-          <button
-            key={c.label}
-            type="button"
-            onClick={() => setChannel(c.value)}
-            className={cn(
-              "inline-flex items-center gap-1 rounded-md px-space-3 py-2 text-[13px] font-semibold transition-colors duration-150",
-              channel === c.value
-                ? "bg-brand-50 text-brand-700 ring-1 ring-brand-200"
-                : "border border-line bg-card text-ink-600 hover:bg-paper",
-            )}
-          >
-            {c.value === "whatsapp" && <WhatsAppIcon size={13} />}
-            {c.value === "web" && <Globe size={13} />}
-            {c.label}
-          </button>
-        ))}
-      </div>
-
       {!data ? (
         <DashboardSkeleton tiles={5} />
       ) : (
         <>
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
             <StatTile
               icon={<Banknote size={22} />}
               label="Total revenue"
@@ -413,7 +369,7 @@ export default function PortalReportsPage() {
                 count: Math.round(c.revenue_paise / 100),
               }))}
               title="Revenue by Channel"
-              subtitle={`Last ${days} day${days === 1 ? "" : "s"} · Dine-in revenue is estimated`}
+              subtitle={`${periodText} · Dine-in revenue is estimated`}
               unit="₹"
               emptyText="No revenue in this period."
             />
@@ -423,11 +379,11 @@ export default function PortalReportsPage() {
             <SectionDonut
               data={data.reservation_outcomes}
               title="Bookings vs No-shows"
-              subtitle={`Last ${days} day${days === 1 ? "" : "s"}`}
+              subtitle={periodText}
               unit="reservations"
               emptyText="No reservations in this period."
             />
-            <PeakHoursChart hours={data.peak_order_hours} periodLabel={`Last ${days} days`} />
+            <PeakHoursChart hours={data.peak_order_hours} periodLabel={periodText} />
             <SectionDonut
               data={paymentSplit}
               title="Payment Method Split"
@@ -441,7 +397,7 @@ export default function PortalReportsPage() {
             <Card className="p-space-4">
               <div className="mb-space-3">
                 <h3 className="text-[15px] font-bold text-ink-900">Top Selling Items</h3>
-                <p className="text-hint">By quantity, last {days} days</p>
+                <p className="text-hint">By quantity, {periodText}</p>
               </div>
               {data.top_items.length === 0 ? (
                 <div className="flex h-[160px] items-center justify-center text-[13px] text-ink-400">

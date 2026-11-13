@@ -8,6 +8,8 @@ import {
   ChefHat,
   Maximize2,
   PackageCheck,
+  PencilLine,
+  Phone,
   Printer,
   Settings2,
   ShoppingBag,
@@ -18,6 +20,7 @@ import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BoardSkeleton } from "@/components/ui/Skeleton";
 import { ChefNotesCard } from "@/components/portal/ChefNotesCard";
+import { DispatchModal } from "@/components/portal/DispatchModal";
 import { KitchenLoadDonut } from "@/components/portal/KitchenLoadDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
@@ -67,14 +70,18 @@ function OrderCard({
   busy,
   delayedAfter,
   onAction,
+  onDispatch,
 }: {
   order: FoodOrder;
   canWrite: boolean;
   busy: boolean;
   delayedAfter: number;
   onAction: (action: string) => void;
+  onDispatch: () => void;
 }) {
   const next = NEXT_ACTION_BY_STATUS[order.status];
+  // A delivery order leaves with a delivery partner: instead of just "Mark Ready", the kitchen records who is taking it
+  const handsToPartner = order.fulfillment_type === "delivery" && next?.action === "mark_ready";
   const age = minutesSince(order.created_at);
   const delayed =
     age >= delayedAfter && order.status !== "completed" && order.status !== "cancelled";
@@ -127,10 +134,10 @@ function OrderCard({
           <button
             type="button"
             disabled={busy}
-            onClick={() => onAction(next.action)}
+            onClick={() => (handsToPartner ? onDispatch() : onAction(next.action))}
             className="flex-1 rounded-md bg-brand-600 py-space-2 text-[13px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            {busy ? "…" : next.label}
+            {busy ? "…" : handsToPartner ? "Hand to delivery partner" : next.label}
           </button>
         )}
         <button
@@ -150,7 +157,7 @@ function OrderCard({
  * no charts/history/search, just what's actively cooking, grouped by stage. */
 export default function PortalKitchenOrdersPage() {
   const { restaurant, ready } = usePortalGuard();
-  const { orders, error, actingId, runAction } = useFoodOrders(
+  const { orders, error, actingId, runAction, dispatchOrder } = useFoodOrders(
     ready,
     "",
     1,
@@ -160,6 +167,8 @@ export default function PortalKitchenOrdersPage() {
   const canWrite = usePermission("food_orders", "write");
 
   const [sortDesc, setSortDesc] = useState(false);
+  // the order whose delivery partner is being entered / corrected
+  const [dispatching, setDispatching] = useState<FoodOrder | null>(null);
   const [delayedAfter, setDelayedAfter] = useState(DEFAULT_DELAYED_AFTER_MINUTES);
   const [showSettings, setShowSettings] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -187,9 +196,9 @@ export default function PortalKitchenOrdersPage() {
     return {
       newOrders: sort(all.filter((o) => o.status === "placed" || o.status === "paid")),
       preparing: sort(all.filter((o) => o.status === "accepted" || o.status === "preparing")),
-      ready: sort(
-        all.filter((o) => o.status === "ready_for_pickup" || o.status === "out_for_delivery"),
-      ),
+      ready: sort(all.filter((o) => o.status === "ready_for_pickup")),
+      // picked up by a delivery partner: tracked in the Delivery Status table, not on the kitchen board
+      delivery: sort(all.filter((o) => o.status === "out_for_delivery")),
       served: sort(
         all.filter(
           (o) => o.status === "completed" && isSameLocalDay(parseOrderTime(o.created_at), now),
@@ -237,7 +246,7 @@ export default function PortalKitchenOrdersPage() {
   }[] = [
     { key: "newOrders", label: "New Orders", icon: ChefHat },
     { key: "preparing", label: "In Preparation", icon: Timer },
-    { key: "ready", label: "Ready to Serve", icon: PackageCheck },
+    { key: "ready", label: "Ready to Serve/Ready for Pickup", icon: PackageCheck },
     { key: "served", label: "Served / Picked Up", icon: PackageCheck },
   ];
 
@@ -293,7 +302,7 @@ export default function PortalKitchenOrdersPage() {
         {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
         {orders && (
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
+          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
             <StatTile
               tone="success"
               filled
@@ -316,10 +325,19 @@ export default function PortalKitchenOrdersPage() {
               tone="info"
               filled
               icon={<PackageCheck size={22} />}
-              label="Ready to Serve"
+              label="Ready to Serve/Ready for Pickup"
               value={groups.ready.length}
               deltaPct={null}
-              hint="Pickup or delivery"
+              hint="Waiting to be collected"
+            />
+            <StatTile
+              tone="brand"
+              filled
+              icon={<Bike size={22} />}
+              label="Out for Delivery"
+              value={groups.delivery.length}
+              deltaPct={null}
+              hint="With a delivery partner"
             />
             <StatTile
               tone="brand"
@@ -363,10 +381,11 @@ export default function PortalKitchenOrdersPage() {
           <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-4">
             {columns.map(({ key, label, icon: Icon }) => (
               <div key={key}>
-                <div className="mb-space-2 flex items-center gap-2">
-                  <Icon size={16} className="text-ink-600" />
+                {/* two lines tall side by side, so a long title ("Ready to Serve/Ready for Pickup") wrapping does not push its column lower than the others */}
+                <div className="mb-space-2 flex items-start gap-2 lg:min-h-11">
+                  <Icon size={16} className="mt-0.5 shrink-0 text-ink-600" />
                   <h3 className="text-[14px] font-bold text-ink-900">{label}</h3>
-                  <span className="text-hint">{groups[key].length}</span>
+                  <span className="text-hint ml-auto shrink-0">{groups[key].length}</span>
                 </div>
                 <div className="max-h-[600px] space-y-space-3 overflow-y-auto pr-1">
                   {groups[key].length === 0 ? (
@@ -382,6 +401,7 @@ export default function PortalKitchenOrdersPage() {
                         busy={actingId === o.id}
                         delayedAfter={delayedAfter}
                         onAction={(action) => runAction(o, action)}
+                        onDispatch={() => setDispatching(o)}
                       />
                     ))
                   )}
@@ -389,6 +409,95 @@ export default function PortalKitchenOrdersPage() {
               </div>
             ))}
           </div>
+        )}
+
+        {orders && (
+          <Card className="mb-space-4 p-space-4" data-testid="delivery-status">
+            <div className="mb-space-3 flex items-center gap-space-2">
+              <Bike size={16} className="text-ink-600" />
+              <h3 className="text-[15px] font-bold text-ink-900">Delivery Status</h3>
+              <span className="text-hint">{groups.delivery.length} out for delivery</span>
+            </div>
+            {groups.delivery.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-line py-space-4 text-center text-[12.5px] text-ink-400">
+                No deliveries on the road right now.
+              </p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full min-w-[760px] text-left text-[13px]">
+                  <thead>
+                    <tr className="border-b border-line text-[11.5px] font-semibold tracking-wide text-ink-400 uppercase">
+                      <th className="py-space-2 pr-space-3">Order ID</th>
+                      <th className="py-space-2 pr-space-3">Delivery partner</th>
+                      <th className="py-space-2 pr-space-3">Partner number</th>
+                      <th className="py-space-2 pr-space-3">Customer</th>
+                      <th className="py-space-2 pr-space-3">Tracking ID</th>
+                      <th className="py-space-2 pr-space-3">Picked up</th>
+                      <th className="py-space-2 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {groups.delivery.map((o) => (
+                      <tr key={o.id} className="border-b border-line last:border-0">
+                        <td className="py-space-3 pr-space-3 font-mono text-[12.5px] font-semibold text-ink-900">
+                          {o.reference_id ?? `#${o.id}`}
+                        </td>
+                        <td className="py-space-3 pr-space-3 text-ink-900">
+                          {o.delivery_partner_name || (
+                            <span className="text-ink-400">Not assigned</span>
+                          )}
+                        </td>
+                        <td className="py-space-3 pr-space-3">
+                          {o.delivery_partner_phone ? (
+                            <a
+                              href={`tel:${o.delivery_partner_phone}`}
+                              className="inline-flex items-center gap-1 text-brand-700 hover:underline"
+                            >
+                              <Phone size={12} /> {o.delivery_partner_phone}
+                            </a>
+                          ) : (
+                            <span className="text-ink-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-space-3 pr-space-3">
+                          <div className="text-ink-900">{o.patient_name || "Guest"}</div>
+                          <div className="text-[12px] text-ink-400">{o.phone}</div>
+                        </td>
+                        <td className="py-space-3 pr-space-3 font-mono text-[12.5px] text-ink-900">
+                          {o.delivery_tracking_id || <span className="text-ink-400">—</span>}
+                        </td>
+                        <td className="py-space-3 pr-space-3 text-ink-600">
+                          {minutesSince(o.dispatched_at || o.updated_at || o.created_at)} min ago
+                        </td>
+                        <td className="py-space-3 text-right">
+                          {canWrite && (
+                            <div className="flex justify-end gap-space-2">
+                              <button
+                                type="button"
+                                onClick={() => setDispatching(o)}
+                                className="flex items-center gap-1 rounded-md border border-line px-space-3 py-1.5 text-[12.5px] font-semibold text-ink-600 hover:bg-paper"
+                              >
+                                <PencilLine size={13} />{" "}
+                                {o.delivery_partner_name ? "Edit details" : "Add partner"}
+                              </button>
+                              <button
+                                type="button"
+                                disabled={actingId === o.id}
+                                onClick={() => runAction(o, "complete")}
+                                className="rounded-md bg-brand-600 px-space-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                              >
+                                {actingId === o.id ? "…" : "Mark delivered"}
+                              </button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         )}
 
         <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-3">
@@ -432,6 +541,15 @@ export default function PortalKitchenOrdersPage() {
 
           <ChefNotesCard ready={ready} canWrite={canWrite} />
         </div>
+
+        {dispatching && (
+          <DispatchModal
+            order={dispatching}
+            busy={actingId === dispatching.id}
+            onClose={() => setDispatching(null)}
+            onSubmit={(details) => dispatchOrder(dispatching, details)}
+          />
+        )}
       </PortalShell>
     </div>
   );
