@@ -26,6 +26,7 @@ import { ListSkeleton, TextSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
+import { PageTabs } from "@/components/portal/PageTabs";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { FILTERS, useMessages } from "@/hooks/useMessages";
@@ -35,6 +36,13 @@ import { formatOrderTime, isSameLocalDay, parseOrderTime } from "@/lib/foodOrder
 import { formatDate } from "@/lib/formatDate";
 import { toast } from "@/lib/toast";
 import { usePermission } from "@/lib/staffAuth";
+
+const FILTER_ICONS: Record<string, React.ReactNode> = {
+  open: <BellRing size={16} />,
+  resolved: <CircleCheck size={16} />,
+  errored: <AlertTriangle size={16} />,
+  all: <MessageCircle size={16} />,
+};
 
 /** "12m", "3h 20m", "2d" -- how long ago something was, compact enough for the "waiting longest" tile. */
 function ageOf(iso: string): string {
@@ -168,14 +176,14 @@ export default function PortalMessagesPage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      {overview && (
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      {
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
           <StatTile
             tone="success"
             filled
             icon={<BellRing size={22} />}
             label="Open requests"
-            value={counts.tabs.open}
+            value={overview ? counts.tabs.open : "—"}
             deltaPct={null}
             hint="Waiting for a reply"
           />
@@ -184,7 +192,7 @@ export default function PortalMessagesPage() {
             filled
             icon={<MessageCircle size={22} />}
             label="Asked for a host"
-            value={counts.openAsked}
+            value={overview ? counts.openAsked : "—"}
             deltaPct={null}
             hint="Open, from guests"
           />
@@ -193,7 +201,7 @@ export default function PortalMessagesPage() {
             filled
             icon={<AlertTriangle size={22} />}
             label="Bot errors"
-            value={counts.openErrors}
+            value={overview ? counts.openErrors : "—"}
             deltaPct={null}
             upIsGood={false}
             hint="Open, need a look"
@@ -203,52 +211,37 @@ export default function PortalMessagesPage() {
             filled
             icon={<CircleCheck size={22} />}
             label="Resolved today"
-            value={counts.resolvedToday}
+            value={overview ? counts.resolvedToday : "—"}
             deltaPct={null}
             hint="Closed since midnight"
           />
-          <Card className="flex items-start gap-space-3 p-space-4">
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-md bg-warning text-white">
-              <Clock size={22} />
-            </span>
-            <div className="min-w-0">
-              <p className="text-[13px] leading-snug font-semibold text-ink-600">Waiting longest</p>
-              <p className="mt-1 text-[24px] leading-none font-bold text-ink-900">
-                {counts.oldestOpen ? ageOf(counts.oldestOpen) : "—"}
-              </p>
-              <p className="text-hint mt-1">
-                {counts.oldestOpen ? "Oldest open request" : "Nothing is waiting"}
-              </p>
-            </div>
-          </Card>
+          <StatTile
+            icon={<Clock size={22} />}
+            label="Waiting longest"
+            value={overview && counts.oldestOpen ? ageOf(counts.oldestOpen) : "—"}
+            deltaPct={null}
+            hint={!overview || counts.oldestOpen ? "Oldest open request" : "Nothing is waiting"}
+          />
         </div>
-      )}
+      }
 
-      <div className="mb-space-3 flex flex-wrap gap-space-5 border-b border-line">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            type="button"
-            onClick={() => setFilter(f.key)}
-            className={cn(
-              "-mb-px border-b-2 pb-space-2 text-[13.5px] font-semibold transition-colors duration-150",
-              filter === f.key
-                ? "border-brand-600 text-brand-600"
-                : "border-transparent text-ink-600 hover:text-ink-900",
-            )}
-          >
-            {f.label}
-            {overview && (
-              <span className="ml-space-1 tabular-nums text-ink-400">{counts.tabs[f.key]}</span>
-            )}
-          </button>
-        ))}
+      <PageTabs
+        value={filter}
+        onChange={setFilter}
+        tabs={FILTERS.map((f) => ({
+          key: f.key,
+          label: overview ? `${f.label} (${counts.tabs[f.key]})` : f.label,
+          icon: FILTER_ICONS[f.key],
+        }))}
+      />
+
+      <Card className="mb-space-3 flex flex-wrap items-center gap-space-3 p-space-3">
         <input
           type="date"
           value={dateFilter}
           onChange={(e) => setDateFilter(e.target.value)}
           aria-label="Filter by date"
-          className="h-9 rounded-md border border-line bg-card px-space-3 text-[12.5px] text-ink-900"
+          className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)] sm:w-56"
         />
         {dateFilter && (
           <button
@@ -259,7 +252,7 @@ export default function PortalMessagesPage() {
             Clear date
           </button>
         )}
-      </div>
+      </Card>
 
       {selectedIds.size > 0 && (
         <div className="mb-space-3 flex flex-wrap items-center gap-space-3 rounded-md border border-line bg-card px-space-3 py-space-2">
@@ -302,7 +295,14 @@ export default function PortalMessagesPage() {
           </p>
         </Card>
       ) : (
-        <div className="grid grid-cols-1 items-start gap-space-4 lg:grid-cols-[330px_minmax(0,1fr)] xl:grid-cols-[330px_minmax(0,1fr)_300px]">
+        <div
+          className={cn(
+            "grid grid-cols-1 items-stretch gap-space-4 lg:grid-cols-[340px_minmax(0,1fr)]",
+            // the customer-details column only exists once a conversation is picked; without this the
+            // empty third column leaves a blank strip on the right
+            selected && "xl:grid-cols-[340px_minmax(0,1fr)_300px]",
+          )}
+        >
           <Card className="max-h-[calc(100vh-220px)] overflow-y-auto p-space-2">
             <div className="flex items-center gap-space-2 border-b border-line px-space-2 pb-space-2">
               <input
@@ -317,17 +317,20 @@ export default function PortalMessagesPage() {
                 {handoffs.length} {handoffs.length === 1 ? "conversation" : "conversations"}
               </span>
             </div>
-            <ul className="space-y-space-1 pt-space-1">
+            <ul className="pt-space-1">
               {handoffs.map((h) => {
                 const isSelected = h.id === selectedId;
                 return (
-                  <li key={h.id} className="flex items-start gap-space-2">
+                  <li
+                    key={h.id}
+                    className="flex items-start gap-space-1 border-b border-line last:border-b-0"
+                  >
                     <input
                       type="checkbox"
                       aria-label={`Select conversation with ${displayName(h)}`}
                       checked={selectedIds.has(h.id)}
                       onChange={(e) => toggleSelected(h.id, e.target.checked)}
-                      className="mt-space-3 h-4 w-4 shrink-0 accent-brand-600"
+                      className="mt-[26px] ml-space-2 h-4 w-4 shrink-0 accent-brand-600"
                     />
                     <button
                       type="button"
@@ -381,18 +384,23 @@ export default function PortalMessagesPage() {
             </ul>
           </Card>
 
-          <Card className="flex min-h-[420px] flex-col p-space-5">
+          <Card className="flex min-h-[420px] flex-col self-stretch p-space-4 md:p-space-5">
             {!selected ? (
               <p className="m-auto text-[13px] text-ink-400">
                 Select a conversation to view details and reply.
               </p>
             ) : (
               <div className="flex h-full flex-col">
-                <div className="mb-space-4 flex flex-wrap items-start justify-between gap-space-3 border-b border-line pb-space-4">
-                  <div className="flex items-center gap-space-3">
-                    <Avatar label={displayName(selected)} className="h-11 w-11 text-[15px]" />
-                    <div>
-                      <p className="text-[15px] font-bold text-ink-900">{displayName(selected)}</p>
+                <div className="mb-space-4 flex flex-col gap-space-4 border-b border-line pb-space-4 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-space-3">
+                  <div className="flex min-w-0 items-center gap-space-3">
+                    <Avatar
+                      label={displayName(selected)}
+                      className="h-12 w-12 shrink-0 text-[16px] md:h-11 md:w-11 md:text-[15px]"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-[16px] font-bold text-ink-900 md:text-[15px]">
+                        {displayName(selected)}
+                      </p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-space-2">
                         {selected.patient_name && (
                           <span className="text-[12px] text-ink-600">{selected.phone}</span>
@@ -406,11 +414,12 @@ export default function PortalMessagesPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-space-2">
+                  <div className="flex flex-wrap items-center gap-space-2">
                     {selected.status === "open" ? (
                       <Button
                         variant="secondary"
                         size="md"
+                        className="min-w-fit flex-1 whitespace-nowrap max-md:px-3 md:flex-none"
                         onClick={() => handleResolve(selected.id)}
                         disabled={resolvingId === selected.id}
                       >
@@ -426,6 +435,7 @@ export default function PortalMessagesPage() {
                       <Button
                         variant="destructive"
                         size="md"
+                        className="min-w-fit flex-1 whitespace-nowrap max-md:px-3 md:flex-none"
                         onClick={() => setPendingDelete("one")}
                         disabled={deletingId === selected.id}
                       >
@@ -483,7 +493,7 @@ export default function PortalMessagesPage() {
 
                 <PermissionGate page="messages" action="write">
                   <div className="mt-auto border-t border-line pt-space-4">
-                    <div className="mb-space-3 grid grid-cols-2 gap-space-2 sm:grid-cols-3">
+                    <div className="mb-space-3 grid grid-cols-[repeat(auto-fit,minmax(125px,1fr))] gap-space-2">
                       {QUICK_ACTIONS.map(({ id, label, icon: Icon }) => (
                         <button
                           key={id}
@@ -494,7 +504,7 @@ export default function PortalMessagesPage() {
                             if (err) toast.error(`Couldn't ${label.toLowerCase()}`, err);
                             else toast.success(label, "Sent on WhatsApp.");
                           }}
-                          className="flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
+                          className="flex min-w-0 items-center justify-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-center text-[12.5px] font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
                         >
                           <Icon size={14} className="shrink-0 text-brand-600" />
                           {quickActionId === id ? "Sending…" : label}

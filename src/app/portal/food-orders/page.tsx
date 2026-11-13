@@ -38,6 +38,14 @@ import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { useBranchFilter } from "@/lib/branchContext";
 import {
+  ORDER_CHANNELS,
+  ORDER_PERIODS,
+  formatRange,
+  inRange,
+  usePageChannel,
+  usePagePeriod,
+} from "@/lib/globalFilter";
+import {
   CANCELLABLE_STATUSES,
   FoodOrder,
   NEXT_ACTION_BY_STATUS,
@@ -93,14 +101,6 @@ const KITCHEN_STATUS_LABELS: Record<string, string> = {
   cancelled: "—",
 };
 
-// How far back the list goes. 90 days is the default; "All time" is one click away.
-const PERIODS: { days: number; label: string }[] = [
-  { days: 30, label: "Last 30 days" },
-  { days: 90, label: "Last 90 days" },
-  { days: 365, label: "Last year" },
-  { days: 0, label: "All time" },
-];
-
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MAX_LINES_SHOWN = 3;
 
@@ -119,7 +119,9 @@ function csvCell(value: string): string {
 export default function PortalFoodOrdersPage() {
   const { restaurant, ready } = usePortalGuard();
   // Everything is loaded once and filtered here, so every view can show its own count.
-  const [days, setDays] = useState(90);
+  // the period and channel come from the header's global filter
+  const { days, range, period, setPeriod } = usePagePeriod(ORDER_PERIODS);
+  const { channel: globalChannel, setChannel: setGlobalChannel } = usePageChannel(ORDER_CHANNELS);
   const { orders, error, actingId, runAction } = useFoodOrders(
     ready,
     "",
@@ -130,7 +132,8 @@ export default function PortalFoodOrdersPage() {
   const canWrite = usePermission("food_orders", "write");
 
   const [view, setView] = useState<OrderView>("all");
-  const [sourceFilter, setSourceFilter] = useState<SourceFilter>("all");
+  const sourceFilter: SourceFilter =
+    globalChannel === "web" || globalChannel === "whatsapp" ? globalChannel : "all";
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
@@ -144,10 +147,16 @@ export default function PortalFoodOrdersPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const source = new URLSearchParams(window.location.search).get("source");
-    if (source === "web" || source === "whatsapp") setSourceFilter(source);
+    if (source === "web" || source === "whatsapp") setGlobalChannel(source);
+    // run once on arrival: the link only sets the starting channel, later header changes must stick
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const activeNavKey =
-    sourceFilter === "web" ? "sales-online" : sourceFilter === "whatsapp" ? "sales-whatsapp" : "food-orders";
+    sourceFilter === "web"
+      ? "sales-online"
+      : sourceFilter === "whatsapp"
+        ? "sales-whatsapp"
+        : "food-orders";
 
   const viewCounts = useMemo(() => {
     const counts: Record<OrderView, number> = {
@@ -160,11 +169,12 @@ export default function PortalFoodOrdersPage() {
       awaiting_payment: 0,
     };
     for (const o of orders || []) {
+      if (!inRange(parseOrderTime(o.created_at), range)) continue;
       for (const v of Object.keys(counts) as OrderView[])
         if (matchesOrderView(o.status, v)) counts[v] += 1;
     }
     return counts;
-  }, [orders]);
+  }, [orders, range]);
 
   // Everything below is computed from the orders themselves -- no numbers that aren't in the list.
   const stats = useMemo(() => {
@@ -210,6 +220,7 @@ export default function PortalFoodOrdersPage() {
   const visible = useMemo(() => {
     const q = search.trim().toLowerCase();
     return (orders || []).filter((o) => {
+      if (!inRange(parseOrderTime(o.created_at), range)) return false;
       if (!matchesOrderView(o.status, view)) return false;
       if (sourceFilter !== "all" && o.source !== sourceFilter) return false;
       if (typeFilter !== "all" && o.fulfillment_type !== typeFilter) return false;
@@ -221,7 +232,7 @@ export default function PortalFoodOrdersPage() {
         (o.items || []).some((i) => i.item_name_snapshot.toLowerCase().includes(q))
       );
     });
-  }, [orders, view, sourceFilter, typeFilter, search]);
+  }, [orders, range, view, sourceFilter, typeFilter, search]);
 
   function exportCsv() {
     const header = [
@@ -434,7 +445,13 @@ export default function PortalFoodOrdersPage() {
   return (
     <PortalShell restaurant={restaurant} active={activeNavKey}>
       <PageHeader
-        title={sourceFilter === "web" ? "Online Orders" : sourceFilter === "whatsapp" ? "WhatsApp Orders" : "Food Orders"}
+        title={
+          sourceFilter === "web"
+            ? "Online Orders"
+            : sourceFilter === "whatsapp"
+              ? "WhatsApp Orders"
+              : "Food Orders"
+        }
         icon={<ClipboardList size={22} />}
         description={
           sourceFilter === "web"
@@ -448,7 +465,7 @@ export default function PortalFoodOrdersPage() {
 
       {orders && (
         <>
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+          <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-6">
             <StatTile
               tone="success"
               filled
@@ -573,16 +590,6 @@ export default function PortalFoodOrdersPage() {
           />
         </div>
         <select
-          aria-label="Filter by source"
-          value={sourceFilter}
-          onChange={(e) => setSourceFilter(e.target.value as SourceFilter)}
-          className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
-        >
-          <option value="all">All sources</option>
-          <option value="whatsapp">WhatsApp only</option>
-          <option value="web">Web only</option>
-        </select>
-        <select
           aria-label="Filter by order type"
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
@@ -591,18 +598,6 @@ export default function PortalFoodOrdersPage() {
           <option value="all">Takeaway and delivery</option>
           <option value="pickup">Takeaway only</option>
           <option value="delivery">Delivery only</option>
-        </select>
-        <select
-          aria-label="Period"
-          value={days}
-          onChange={(e) => setDays(Number(e.target.value))}
-          className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
-        >
-          {PERIODS.map((p) => (
-            <option key={p.days} value={p.days}>
-              {p.label}
-            </option>
-          ))}
         </select>
         <Button variant="secondary" size="md" onClick={exportCsv} disabled={visible.length === 0}>
           <Download size={14} /> Export
@@ -621,12 +616,12 @@ export default function PortalFoodOrdersPage() {
         ) : (
           <DataTable columns={columns} data={visible} getRowId={(o) => String(o.id)} />
         )}
-        {orders && days !== 0 && (
+        {orders && period !== "all" && (
           <p className="mt-space-3 text-[12px] text-ink-400">
-            Showing orders from the last {days} days.{" "}
+            Showing orders from {formatRange(range)}.{" "}
             <button
               type="button"
-              onClick={() => setDays(0)}
+              onClick={() => setPeriod("all")}
               className="font-semibold text-brand-700 hover:underline"
             >
               Show all time

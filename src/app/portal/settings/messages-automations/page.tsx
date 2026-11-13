@@ -34,6 +34,7 @@ import {
   UserX,
   XCircle,
 } from "lucide-react";
+import { PageTabs } from "@/components/portal/PageTabs";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -79,6 +80,14 @@ function comingSoon(label: string) {
     "This page is a visual preview. See docs/Spec.md for the real build plan.",
   );
 }
+
+const CATEGORY_ICONS: Record<string, React.ReactNode> = {
+  all: <MessageCircle size={16} />,
+  booking: <CalendarClock size={16} />,
+  order: <ShoppingCart size={16} />,
+  support: <Headphones size={16} />,
+  promotions: <Megaphone size={16} />,
+};
 
 const CATEGORY_TABS = [
   { key: "all", label: "All Templates", count: 24 },
@@ -268,7 +277,7 @@ export default function PortalMessagesAutomationsPage() {
   }
 
   return (
-    <PortalShell restaurant={restaurant} active="settings">
+    <PortalShell restaurant={restaurant} active="messages-automations">
       <PageHeader
         title="Messages & Automations"
         icon={<WhatsAppIcon size={22} />}
@@ -287,76 +296,75 @@ export default function PortalMessagesAutomationsPage() {
         <strong>Performance Analytics</strong> are all real.
       </div>
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
-        <StatTile
-          icon={<MessageCircle size={22} />}
-          label="Active templates"
-          value={24}
-          deltaPct={20}
-          tone="brand"
-          filled
-        />
-        <StatTile
-          icon={<Power size={22} />}
-          label="Live automations"
-          value={(automations ?? []).filter((a) => a.is_active).length}
-          deltaPct={null}
-          hint="Real -- currently active"
-          tone="warning"
-          filled
-        />
-        <StatTile
-          icon={<Send size={22} />}
-          label="Messages sent (7d)"
-          value={analytics?.totals.sent ?? 0}
-          deltaPct={null}
-          hint="Real"
-          tone="info"
-          filled
-        />
-        <StatTile
-          icon={<CheckCircle2 size={22} />}
-          label="Send success rate"
-          value={analytics?.send_success_rate ?? 0}
-          deltaPct={null}
-          hint={
-            analytics?.send_success_rate === null ? "No sends yet" : "Real -- accepted by WhatsApp"
-          }
-          tone="success"
-          filled
-        />
-        <StatTile
-          icon={<XCircle size={22} />}
-          label="Failed sends (7d)"
-          value={analytics?.totals.failed ?? 0}
-          deltaPct={null}
-          hint="Real"
-          tone="clay"
-          filled
-          upIsGood={false}
-        />
-      </div>
+      {
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
+          <StatTile
+            icon={<MessageCircle size={22} />}
+            label="Active templates"
+            value={24}
+            deltaPct={20}
+            tone="brand"
+            filled
+          />
+          <StatTile
+            icon={<Power size={22} />}
+            label="Live automations"
+            value={automations ? automations.filter((a) => a.is_active).length : "—"}
+            deltaPct={null}
+            hint="Real -- currently active"
+            tone="warning"
+            filled
+          />
+          <StatTile
+            icon={<Send size={22} />}
+            label="Messages sent (7d)"
+            value={analytics ? analytics.totals.sent : "—"}
+            deltaPct={null}
+            hint="Real"
+            tone="info"
+            filled
+          />
+          <StatTile
+            icon={<CheckCircle2 size={22} />}
+            label="Send success rate"
+            value={analytics ? (analytics.send_success_rate ?? 0) : "—"}
+            deltaPct={null}
+            hint={
+              analytics?.send_success_rate === null
+                ? "No sends yet"
+                : "Real -- accepted by WhatsApp"
+            }
+            tone="success"
+            filled
+          />
+          <StatTile
+            icon={<XCircle size={22} />}
+            label="Failed sends (7d)"
+            value={analytics ? analytics.totals.failed : "—"}
+            deltaPct={null}
+            hint="Real"
+            tone="clay"
+            filled
+            upIsGood={false}
+          />
+        </div>
+      }
 
-      <div className="mb-space-4 flex flex-wrap items-center gap-space-2">
-        {CATEGORY_TABS.map((t) => (
-          <button
-            key={t.key}
-            type="button"
-            onClick={() => setTab(t.key)}
-            className={cn(
-              "rounded-md px-space-3 py-2 text-[13px] font-semibold transition-colors duration-150",
-              tab === t.key
-                ? "bg-brand-600 text-white"
-                : "border border-line bg-card text-ink-600 hover:bg-paper",
-            )}
-          >
-            {t.label} ({t.count})
-          </button>
-        ))}
-        <div className="relative ml-auto w-full max-w-[220px]">
+      <PageTabs
+        value={tab}
+        onChange={setTab}
+        tabs={CATEGORY_TABS.map((t) => ({
+          key: t.key,
+          label: `${t.label} (${t.count})`,
+          icon: CATEGORY_ICONS[t.key],
+        }))}
+      />
+
+      <Card className="mb-space-3 flex flex-wrap items-center gap-space-3 p-space-3">
+        <span className="relative min-w-[220px] flex-1">
           <Search
-            size={14}
-            className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400"
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400"
           />
           <Input
             placeholder="Search templates…"
@@ -364,11 +372,11 @@ export default function PortalMessagesAutomationsPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
           />
-        </div>
+        </span>
         <Button onClick={() => comingSoon("Create Template")}>
           <Plus size={15} /> Create Template
         </Button>
-      </div>
+      </Card>
 
       <div className="mb-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0">

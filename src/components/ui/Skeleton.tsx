@@ -14,13 +14,21 @@ export function TableSkeleton({ rows = 6, columns = 4 }: { rows?: number; column
     <div className="py-space-1" aria-hidden="true">
       <div className="flex gap-space-4 border-b border-line pb-space-2">
         {Array.from({ length: columns }).map((_, i) => (
-          <Skeleton key={i} className="h-3 flex-1" style={{ maxWidth: i === 0 ? "40%" : undefined }} />
+          <Skeleton
+            key={i}
+            className="h-3 flex-1"
+            style={{ maxWidth: i === 0 ? "40%" : undefined }}
+          />
         ))}
       </div>
       {Array.from({ length: rows }).map((_, r) => (
         <div key={r} className="flex gap-space-4 border-b border-line py-space-3 last:border-0">
           {Array.from({ length: columns }).map((_, c) => (
-            <Skeleton key={c} className="h-3.5 flex-1" style={{ maxWidth: c === 0 ? "40%" : undefined }} />
+            <Skeleton
+              key={c}
+              className="h-3.5 flex-1"
+              style={{ maxWidth: c === 0 ? "40%" : undefined }}
+            />
           ))}
         </div>
       ))}
@@ -67,15 +75,20 @@ export function TextSkeleton({ className }: { className?: string }) {
   return <Skeleton className={cn("h-3 w-24", className)} aria-hidden="true" />;
 }
 
-/** One StatTile-shaped card: icon block, label line, value line -- matches
- * components/ui/StatTile's own icon+label+value layout closely enough that
- * a dashboard's grid doesn't jump when the real tiles swap in. */
+/** One StatTile-shaped card: round icon on the left, label and value lines beside it -- matches components/portal/StatTile's
+ * layout so a page's grid doesn't jump when the real tiles swap in. */
 export function StatTileSkeleton() {
   return (
-    <div className="rounded-lg border border-line bg-card p-space-4" aria-hidden="true">
-      <Skeleton className="mb-space-3 h-9 w-9 rounded-md" />
-      <Skeleton className="mb-space-2 h-3 w-20" />
-      <Skeleton className="h-6 w-16" />
+    <div
+      className="flex min-h-[104px] items-center gap-space-3 rounded-lg border border-line bg-card p-space-3"
+      aria-hidden="true"
+    >
+      <Skeleton className="h-12 w-12 shrink-0 rounded-full" />
+      <div className="min-w-0 flex-1">
+        <Skeleton className="mb-space-2 h-3 w-24" />
+        <Skeleton className="mb-space-1 h-6 w-16" />
+        <Skeleton className="h-2.5 w-28" />
+      </div>
     </div>
   );
 }
@@ -86,8 +99,10 @@ export function StatTileSkeleton() {
 export function DashboardSkeleton({ tiles = 5 }: { tiles?: number }) {
   return (
     <div aria-hidden="true">
-      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        {Array.from({ length: tiles }).map((_, i) => <StatTileSkeleton key={i} />)}
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
+        {Array.from({ length: tiles }).map((_, i) => (
+          <StatTileSkeleton key={i} />
+        ))}
       </div>
       <Skeleton className="h-64 w-full rounded-lg" />
     </div>

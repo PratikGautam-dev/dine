@@ -8,7 +8,6 @@ import {
   CalendarDays,
   CalendarOff,
   ChefHat,
-  ClipboardList,
   Clock,
   CreditCard,
   Globe,
@@ -17,22 +16,29 @@ import {
   LogOut,
   MessageCircle,
   MessageSquareText,
+  Monitor,
   Radio,
   Settings,
-  ShieldCheck,
+  ClipboardList,
+  FolderOpen,
   Soup,
-  Store,
+  Undo2,
   UserCheck,
   UtensilsCrossed,
   Users,
+  Crown,
+  Filter,
+  Megaphone,
   X,
   Zap,
 } from "lucide-react";
+import { useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { clearPortalSession, type PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { visibleSettingsItems } from "@/components/portal/SettingsNav";
 
 // Staff/Branches/Reports/Calendar/Departments were removed (not just hidden)
 // -- Calendar had no backend and no near-term plan to build one; Departments
@@ -48,12 +54,14 @@ import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 // from. The `doctors` table/booking engine itself is untouched -- still real
 // infrastructure other tenant types in this fork use -- only this portal's
 // nav entry and dedicated page for it are gone.
-type NavGroup = "Home" | "Sales Channels" | "Orders" | "Catalog" | "Customers" | "Workforce" | "Settings";
-const GROUP_ORDER: NavGroup[] = [
-  "Home", "Sales Channels", "Orders", "Catalog", "Customers", "Workforce", "Settings",
-];
+type NavGroup = "Main" | "Catalog" | "Sales Channels" | "Workforce" | "Settings";
+// "Main" holds what used to be the separate Orders and Customers groups; inside it the items keep
+// the order they have in NAV_ITEMS below (the sort is stable), so the order items come first.
+const GROUP_ORDER: NavGroup[] = ["Main", "Catalog", "Sales Channels", "Workforce", "Settings"];
 
 // Grouped so a long list scans quickly; a group whose items the person can't see is hidden entirely.
+// Order inside a group is array order (the sort below is stable). Returns reuses the food_orders
+// page key and Collections reuses food_menu -- the permission model has no separate keys for them.
 const NAV_ITEMS: {
   key: string;
   label: string;
@@ -61,6 +69,9 @@ const NAV_ITEMS: {
   href: string;
   pageKey: string;
   group: NavGroup;
+  /** Key of the item this one is nested under. A child has no row of its own at the top level: it is
+   * listed under its parent, and only while the parent is open (see the renderer below). */
+  parent?: string;
 }[] = [
   {
     key: "dashboard",
@@ -68,20 +79,29 @@ const NAV_ITEMS: {
     icon: LayoutDashboard,
     href: "/portal/dashboard",
     pageKey: "dashboard",
-    group: "Home",
+    group: "Main",
   },
-  // Sales Channels: Online/WhatsApp are deep links into the SAME Food Orders page (?source=web /
-  // ?source=whatsapp), not separate pages -- that page already had a real per-order source
-  // (web/whatsapp) and a working filter for it; this just gives each channel its own sidebar
-  // entry and active-highlight instead of making staff find the dropdown themselves. Both reuse
-  // Food Orders' own food_orders pageKey (same permission, same underlying data). POS has no
-  // backend yet (no in-person order-entry flow exists anywhere in this app) -- its own page says
-  // so plainly rather than silently omitting the nav entry the mockup asked for.
   {
     key: "sales-online",
-    label: "Online",
+    label: "Website",
     icon: Globe,
     href: "/portal/food-orders?source=web",
+    pageKey: "food_orders",
+    group: "Sales Channels",
+  },
+  {
+    key: "sales-daap-website",
+    label: "Daap App",
+    icon: Monitor,
+    href: "/portal/channels/daap-website",
+    pageKey: "food_orders",
+    group: "Sales Channels",
+  },
+  {
+    key: "sales-whatsapp",
+    label: "WhatsApp",
+    icon: MessageCircle,
+    href: "/portal/food-orders?source=whatsapp",
     pageKey: "food_orders",
     group: "Sales Channels",
   },
@@ -94,22 +114,12 @@ const NAV_ITEMS: {
     group: "Sales Channels",
   },
   {
-    key: "sales-whatsapp",
-    label: "WhatsApp",
-    icon: MessageCircle,
-    href: "/portal/food-orders?source=whatsapp",
-    pageKey: "food_orders",
-    group: "Sales Channels",
-  },
-  // A read-only composite view over bookings/orders/handoffs/tables -- own page key (portal/permissions.py's
-  // PAGE_LIVE_OPERATIONS) so it can be shown/hidden per role independently of the four pages it draws from.
-  {
     key: "live-operations",
     label: "Live Operations",
     icon: Radio,
     href: "/portal/live-operations",
     pageKey: "live_operations",
-    group: "Orders",
+    group: "Main",
   },
   {
     key: "appointments",
@@ -117,7 +127,31 @@ const NAV_ITEMS: {
     icon: CalendarCheck,
     href: "/portal/appointments",
     pageKey: "appointments",
-    group: "Orders",
+    group: "Main",
+  },
+  {
+    key: "food-orders",
+    label: "Food Orders",
+    icon: ClipboardList,
+    href: "/portal/food-orders",
+    pageKey: "food_orders",
+    group: "Main",
+  },
+  {
+    key: "returns",
+    label: "Returns",
+    icon: Undo2,
+    href: "/portal/returns",
+    pageKey: "food_orders",
+    group: "Main",
+  },
+  {
+    key: "kitchen-orders",
+    label: "Kitchen Orders",
+    icon: ChefHat,
+    href: "/portal/kitchen-orders",
+    pageKey: "food_orders",
+    group: "Main",
   },
   {
     key: "tables",
@@ -126,27 +160,6 @@ const NAV_ITEMS: {
     href: "/portal/tables",
     pageKey: "tables",
     group: "Catalog",
-  },
-  // Food ordering plan, Sub-stage 4: separate pageKeys (food_menu/food_orders,
-  // portal/permissions.py) since a role reasonably might need one without
-  // the other -- same split PAGE_DOCTORS/PAGE_SCHEDULE already use.
-  {
-    key: "food-orders",
-    label: "Food Orders",
-    icon: ClipboardList,
-    href: "/portal/food-orders",
-    pageKey: "food_orders",
-    group: "Orders",
-  },
-  // Same food_orders permission as Food Orders above -- a leaner, auto-refreshing kitchen-display
-  // view over the same real orders, not a separate data domain, so it needs no new page key.
-  {
-    key: "kitchen-orders",
-    label: "Kitchen Orders",
-    icon: ChefHat,
-    href: "/portal/kitchen-orders",
-    pageKey: "food_orders",
-    group: "Orders",
   },
   {
     key: "food-menu",
@@ -157,31 +170,12 @@ const NAV_ITEMS: {
     group: "Catalog",
   },
   {
-    key: "customers",
-    label: "Customers",
-    icon: Users,
-    href: "/portal/customers",
-    pageKey: "customers",
-    group: "Customers",
-  },
-  {
-    key: "messages",
-    label: "WhatsApp Inbox",
-    icon: MessageCircle,
-    href: "/portal/messages",
-    pageKey: "messages",
-    group: "Customers",
-  },
-  // Preview-only page (docs/Spec.md's "Messages & Automations (planned — not yet built)" note) --
-  // lives under /portal/settings since nothing on it is real yet, but linked here too since a
-  // button buried in Settings' own header turned out to not be discoverable enough on its own.
-  {
-    key: "messages-automations",
-    label: "Messages & Automations",
-    icon: Zap,
-    href: "/portal/settings/messages-automations",
-    pageKey: "settings",
-    group: "Customers",
+    key: "collections",
+    label: "Collections",
+    icon: FolderOpen,
+    href: "/portal/collections",
+    pageKey: "food_menu",
+    group: "Catalog",
   },
   {
     key: "offers",
@@ -191,27 +185,93 @@ const NAV_ITEMS: {
     pageKey: "offers",
     group: "Catalog",
   },
+  // "Customers" is a parent row with its own sub-pages nested under it, like the ERP's sidebar. Its page is the
+  // first child's (All Customers); the sub-pages show while any of them is the open page.
+  {
+    key: "customers-group",
+    label: "CRM",
+    icon: Users,
+    href: "/portal/customers",
+    pageKey: "customers",
+    group: "Main",
+  },
+  {
+    key: "customers",
+    label: "All Customers",
+    icon: Users,
+    href: "/portal/customers",
+    pageKey: "customers",
+    group: "Main",
+    parent: "customers-group",
+  },
+  {
+    key: "customers-membership",
+    label: "Membership",
+    icon: Crown,
+    href: "/portal/customers/membership",
+    pageKey: "customers",
+    group: "Main",
+    parent: "customers-group",
+  },
+  {
+    key: "customers-tags",
+    label: "Tags",
+    icon: Tag,
+    href: "/portal/customers/tags",
+    pageKey: "customers",
+    group: "Main",
+    parent: "customers-group",
+  },
+  {
+    key: "customers-segments",
+    label: "Segments",
+    icon: Filter,
+    href: "/portal/customers/segments",
+    pageKey: "customers",
+    group: "Main",
+    parent: "customers-group",
+  },
+  {
+    key: "campaigns",
+    label: "Campaigns",
+    icon: Megaphone,
+    href: "/portal/campaigns",
+    pageKey: "customers",
+    group: "Main",
+    parent: "customers-group",
+  },
+  {
+    key: "messages",
+    label: "WhatsApp Inbox",
+    icon: MessageCircle,
+    href: "/portal/messages",
+    pageKey: "messages",
+    group: "Main",
+  },
+  {
+    key: "messages-automations",
+    label: "Messages & Automations",
+    icon: Zap,
+    href: "/portal/settings/messages-automations",
+    pageKey: "settings",
+    group: "Main",
+  },
+  {
+    key: "reports",
+    label: "Analytics",
+    icon: BarChart3,
+    href: "/portal/reports",
+    pageKey: "reports",
+    group: "Main",
+  },
   {
     key: "feedback",
     label: "Feedback",
     icon: MessageSquareText,
     href: "/portal/feedback",
     pageKey: "feedback",
-    group: "Customers",
+    group: "Main",
   },
-  {
-    key: "reports",
-    label: "Reports",
-    icon: BarChart3,
-    href: "/portal/reports",
-    pageKey: "reports",
-    group: "Home",
-  },
-  // Staff HR: everyone clocks in and applies for their own leave; the review queue and the team's
-  // attendance are Owner/Manager pages (permissions.py: my_leave, check_in_out, leave_requests, attendance).
-  // Attendance (history/stats) and Check-in/Check-out (the clock itself) are two pages sharing the
-  // same check_in_out permission -- split back out, matching the reference design, after an earlier
-  // pass had briefly merged them into one page.
   {
     key: "my-attendance",
     label: "Attendance",
@@ -260,44 +320,6 @@ const NAV_ITEMS: {
     pageKey: "settings",
     group: "Settings",
   },
-  // Web Storefront: a public ordering website (/order/<slug>) alongside the WhatsApp bot -- own nav
-  // row under Settings, same "linked here too, not just buried in Settings' own list" precedent
-  // messages-automations above already set.
-  {
-    key: "storefront",
-    label: "Online Storefront",
-    icon: Globe,
-    href: "/portal/settings/storefront",
-    pageKey: "settings",
-    group: "Settings",
-  },
-  // Multi-branch (migration 0053): same "own nav row under Settings" precedent storefront above sets.
-  {
-    key: "branches",
-    label: "Branches",
-    icon: Store,
-    href: "/portal/settings/branches",
-    pageKey: "settings",
-    group: "Settings",
-  },
-  {
-    key: "staff",
-    label: "Team & Access",
-    icon: Users,
-    href: "/portal/settings/staff",
-    pageKey: "staff",
-    group: "Settings",
-  },
-  // Split back out into its own page (was folded into Staff & Access for a while) -- a dedicated
-  // Role Management + Module Access Overview dashboard, not just an inline matrix.
-  {
-    key: "roles",
-    label: "Roles & Permissions",
-    icon: ShieldCheck,
-    href: "/portal/settings/roles",
-    pageKey: "roles",
-    group: "Settings",
-  },
 ];
 
 type Props = {
@@ -310,6 +332,11 @@ type Props = {
   onClose?: () => void;
 };
 
+// Every portal page mounts its own PortalShell, so the sidebar is rebuilt on each navigation and its
+// nav list would snap back to the top. A module-level value survives client-side navigation, so the
+// last scroll position is kept here and restored on mount.
+let savedNavScroll = 0;
+
 export function PortalSidebar({ restaurant, active, open = false, onClose }: Props) {
   const router = useRouter();
   // Resolved once, here, via the real hook -- hasPermission below is a
@@ -318,6 +345,12 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
   // own first render pass (same value both places -- no hydration mismatch),
   // then the real session an instant later.
   const session = useStaffSession();
+  const navRef = useRef<HTMLElement>(null);
+
+  // The nav items only render once the session has loaded, so restore after that (before paint).
+  useLayoutEffect(() => {
+    if (navRef.current) navRef.current.scrollTop = savedNavScroll;
+  }, [session]);
 
   function handleLogout() {
     clearPortalSession();
@@ -364,21 +397,48 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
         </div>
         <div className="mx-space-4 mb-space-2 border-t border-white/10" />
 
-        <nav className="scrollbar-dark flex-1 overflow-y-auto px-space-3">
+        <nav
+          ref={navRef}
+          onScroll={(e) => {
+            savedNavScroll = e.currentTarget.scrollTop;
+          }}
+          className="no-scrollbar flex-1 overflow-y-auto px-space-3"
+        >
           {(() => {
             // Per-page-key permission check (hasPermission is a plain function here, not the usePermission
             // hook, since it's called once per item). Fails OPEN the same way the old hardcoded "doctors"
             // capability check did -- this is only a UI convenience, the backend's 403 is the real enforcement.
             // Nothing until the session has loaded: before it, hasPermission fails open and would flash admin-only
             // items at a Kitchen or Front of House login for a moment.
+            // "Settings" is a single entry: its pages live in the settings menu (SettingsNav). It shows when the person
+            // may open any of them and leads to the first one they can use (e.g. someone with only Team & Access).
+            const settingsPages = visibleSettingsItems(session);
             const visible = session
-              ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")).sort(
+              ? NAV_ITEMS.filter((item) =>
+                  item.key === "settings"
+                    ? settingsPages.length > 0
+                    : hasPermission(session, item.pageKey, "view"),
+                )
+                  .map((item) =>
+                    item.key === "settings" && settingsPages[0]
+                      ? { ...item, href: settingsPages[0].href }
+                      : item,
+                  )
+                  .sort(
                   (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
                 )
               : [];
-            return visible.map(({ key, label, icon: Icon, href, group }, index) => {
-              const isActive = key === active;
-              const startsGroup = index === 0 || visible[index - 1].group !== group;
+            // Children are not rows of their own: they sit under their parent. A parent shows only if the
+            // person may open at least one child, which the filter above already guarantees.
+            const topLevel = visible.filter((item) => !item.parent);
+            return topLevel.map(({ key, label, icon: Icon, href, group }, index) => {
+              const children = visible.filter((item) => item.parent === key);
+              const hasChildren = children.length > 0;
+              const childActive = children.some((c) => c.key === active);
+              const isActive = key === active || childActive;
+              // sub-pages are listed while the parent (or any of them) is the open page
+              const isOpen = hasChildren && isActive;
+              const startsGroup = index === 0 || topLevel[index - 1].group !== group;
               return (
                 <div key={key}>
                   {startsGroup && (
@@ -394,17 +454,44 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
                   <Link
                     href={href}
                     onClick={onClose}
-                    aria-current={isActive ? "page" : undefined}
+                    aria-current={isActive && !hasChildren ? "page" : undefined}
+                    aria-expanded={hasChildren ? isOpen : undefined}
                     className={cn(
                       "flex w-full items-center gap-space-3 rounded-md px-space-3 py-2.5 text-left text-[14px] transition-colors duration-150",
                       isActive
                         ? "bg-white font-semibold text-brand-700 shadow-[var(--shadow-sm)]"
                         : "font-medium text-white/85 hover:bg-white/10 hover:text-white",
+                      // a parent whose sub-page is open keeps a ring, so the open section reads as one block
+                      hasChildren && isActive && "ring-2 ring-white/70 ring-offset-0",
                     )}
                   >
                     <Icon size={18} strokeWidth={2} className="shrink-0" />
                     {label}
                   </Link>
+                  {isOpen && (
+                    <ul className="mt-1 mb-1 ml-[22px] space-y-0.5 border-l border-white/20 pl-space-3">
+                      {children.map((child) => {
+                        const childIsActive = child.key === active;
+                        return (
+                          <li key={child.key}>
+                            <Link
+                              href={child.href}
+                              onClick={onClose}
+                              aria-current={childIsActive ? "page" : undefined}
+                              className={cn(
+                                "block rounded-md px-space-3 py-2 text-[13.5px] transition-colors duration-150",
+                                childIsActive
+                                  ? "bg-white/20 font-semibold text-white"
+                                  : "font-medium text-white/70 hover:bg-white/10 hover:text-white",
+                              )}
+                            >
+                              {child.label}
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
                 </div>
               );
             });

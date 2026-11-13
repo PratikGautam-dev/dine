@@ -25,12 +25,12 @@ const ICONS: Record<string, typeof CalendarCheck> = {
 
 export function ActivityFeed({ items }: { items: ActivityItem[] }) {
   return (
-    <Card className="p-space-4">
+    <Card className="p-space-4 lg:flex lg:h-full lg:min-h-0 lg:flex-col">
       <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Recent activity</h3>
       {items.length === 0 ? (
         <p className="py-space-4 text-center text-[13px] text-ink-400">Nothing has happened yet.</p>
       ) : (
-        <ul className="max-h-[420px] space-y-space-3 overflow-y-auto pr-space-1">
+        <ul className="max-h-[420px] space-y-space-3 overflow-y-auto pr-space-1 lg:min-h-0 lg:flex-1">
           {items.map((item, i) => {
             const Icon = ICONS[item.label] || CalendarCheck;
             return (

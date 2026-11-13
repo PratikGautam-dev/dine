@@ -5,36 +5,6 @@ import { cn } from "@/lib/cn";
 
 type Tone = "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
 
-// Icon-square background/text per tone -- brand (the default, used everywhere else) plus the app's existing
-// success/clay/warning/neutral tokens, reused here rather than one-off hex values, so a page that wants
-// per-tile color variety (status-coded tiles, e.g.) still draws from the same palette as every badge/switch.
-// "warning" (amber), not "destructive" (also red) -- a status tile sitting next to a brand-red tile needs a
-// hue that's actually distinguishable at a glance, not two reds that only differ up close.
-// "info" (blue) / "violet" -- Table Bookings' Confirmed/Walk-ins tiles, added to globals.css as shared
-// tokens (not one-off hex here) since both are reusable status colors, not page-specific.
-const TONE_CLASSES: Record<Tone, string> = {
-  brand: "bg-brand-50 text-brand-600",
-  success: "bg-success-tint text-success",
-  clay: "bg-clay-100 text-clay-700",
-  neutral: "bg-black/[0.04] text-ink-600",
-  warning: "bg-warning-tint text-warning",
-  info: "bg-info-tint text-info",
-  violet: "bg-accent-violet-tint text-accent-violet",
-};
-
-// Solid-fill variant (white icon on a solid tone background) -- an opt-in look (the `filled` prop
-// below) for a page that wants bolder tiles, e.g. Table Bookings; every other page keeps the default
-// tinted-square look above unless it explicitly asks for this one too.
-const TONE_CLASSES_FILLED: Record<Tone, string> = {
-  brand: "bg-brand-600 text-white",
-  success: "bg-success text-white",
-  clay: "bg-clay-500 text-white",
-  neutral: "bg-ink-600 text-white",
-  warning: "bg-warning text-white",
-  info: "bg-info text-white",
-  violet: "bg-accent-violet text-white",
-};
-
 type Props = {
   label: string;
   /** A plain number is comma-grouped; a string (e.g. fmtMinutes()'s "8h 20m") is shown as-is. */
@@ -42,12 +12,12 @@ type Props = {
   deltaPct: number | null;
   /** Shown before the number, e.g. "₹". */
   prefix?: string;
-  /** A lucide icon element for the tinted square, e.g. <CalendarCheck size={22} />. */
+  /** A lucide icon element, e.g. <CalendarCheck size={20} />. */
   icon?: ReactNode;
-  /** Icon-square color. Defaults to brand (the site-wide default) -- pass another tone only where a page
-   * deliberately wants per-tile color variety instead of the single-brand-color convention. */
+  /** Kept so existing callers still compile. Every tile now uses the same brand look as the All
+   * Customers cards, so the per-tile colour no longer changes anything. */
   tone?: Tone;
-  /** Solid-fill icon square (white icon) instead of the default tinted square. */
+  /** Kept for existing callers; ignored (see `tone`). */
   filled?: boolean;
   /** No-shows: an increase is bad, so up/down colors invert relative to the
    * other tiles (dataviz skill: "delta color = direction x whether up is
@@ -59,14 +29,14 @@ type Props = {
   hint?: string;
 };
 
+/** The portal's summary card, same look as the Campaigns cards: a round brand icon on the left, with the
+ * label, bold value and small hint beside it, and an optional trend badge next to the value. */
 export function StatTile({
   label,
   value,
   deltaPct,
   prefix,
   icon,
-  tone = "brand",
-  filled = false,
   upIsGood = true,
   hint = "vs last week",
 }: Props) {
@@ -78,43 +48,42 @@ export function StatTile({
   const showHint = Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
 
   return (
-    <Card className="flex items-start gap-space-3 p-space-4">
-      {icon && (
-        <span
-          className={cn(
-            "flex h-12 w-12 shrink-0 items-center justify-center rounded-md",
-            (filled ? TONE_CLASSES_FILLED : TONE_CLASSES)[tone],
-          )}
-        >
-          {icon}
-        </span>
-      )}
-      <div className="min-w-0">
-        <p className="text-[13px] leading-snug font-semibold text-ink-600">{label}</p>
-        <div className="mt-1 flex items-baseline gap-space-2">
-          <span className="text-[30px] leading-none font-bold text-ink-900">
-            {prefix}
-            {typeof value === "number" ? value.toLocaleString() : value}
+    // The wrapper is a size container: in a narrow cell (two columns on a phone) the icon sits above the text
+    // instead of beside it, so the label and number keep enough room.
+    <div className="@container min-w-0">
+      <Card className="flex h-full min-h-[104px] min-w-0 items-center gap-space-3 p-space-3 @max-[230px]:flex-col @max-[230px]:items-start @max-[230px]:justify-center @max-[230px]:gap-space-2">
+        {icon && (
+          <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700 [&>svg]:h-5 [&>svg]:w-5">
+            {icon}
           </span>
-          {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
-          {deltaPct !== null && (
-            <span
-              className={cn(
-                "flex items-center gap-0.5 text-[12.5px] font-semibold",
-                isGoodDirection && "text-success",
-                isBadDirection && "text-error",
-                deltaPct === 0 && "text-ink-400",
-              )}
-            >
-              {isUp && <TrendingUp size={13} />}
-              {isDown && <TrendingDown size={13} />}
-              {deltaPct === 0 && <Minus size={13} />}
-              {Math.abs(deltaPct)}%
+        )}
+        <div className="min-w-0 flex-1">
+          <p className="text-[13px] leading-snug break-words text-ink-600">{label}</p>
+          <div className="mt-0.5 flex flex-wrap items-baseline gap-x-space-2 gap-y-0.5">
+            <span className="text-[20px] leading-tight font-bold break-words text-ink-900">
+              {prefix}
+              {typeof value === "number" ? value.toLocaleString() : value}
             </span>
-          )}
+            {/* No delta at all when there is nothing real to compare against (no dashes, no invented trend). */}
+            {deltaPct !== null && (
+              <span
+                className={cn(
+                  "flex items-center gap-0.5 text-[12px] font-semibold",
+                  isGoodDirection && "text-success",
+                  isBadDirection && "text-error",
+                  deltaPct === 0 && "text-ink-400",
+                )}
+              >
+                {isUp && <TrendingUp size={13} />}
+                {isDown && <TrendingDown size={13} />}
+                {deltaPct === 0 && <Minus size={13} />}
+                {Math.abs(deltaPct)}%
+              </span>
+            )}
+          </div>
+          {showHint && <p className="text-[12px] leading-snug break-words text-ink-400">{hint}</p>}
         </div>
-        {showHint && <p className="text-hint mt-1">{hint}</p>}
-      </div>
-    </Card>
+      </Card>
+    </div>
   );
 }

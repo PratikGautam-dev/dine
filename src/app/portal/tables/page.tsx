@@ -139,7 +139,7 @@ export default function PortalTablesPage() {
       )}
 
       {departments && (
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
           <StatTile
             tone="success"
             filled

@@ -30,7 +30,11 @@ export function PageHeader({ title, description, icon, actions, className }: Pag
           {description && <p className="mt-0.5 text-[13.5px] text-ink-600">{description}</p>}
         </div>
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-space-2">{actions}</div>}
+      {actions && (
+        // On phones the actions take the whole row and each button stretches to fill it (buttons that
+        // don't fit side by side wrap onto the next row); from `sm` up they sit right-aligned as before.
+        <div className="page-header-actions flex flex-wrap items-center gap-space-2">{actions}</div>
+      )}
     </div>
   );
 }

@@ -458,7 +458,7 @@ export default function StaffManagementPage() {
 
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
         <StatTile
           icon={<Users size={22} />}
           label="Total team"

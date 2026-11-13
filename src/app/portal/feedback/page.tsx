@@ -37,7 +37,9 @@ import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
-import { useFeedback, type FeedbackEntry } from "@/hooks/useFeedback";
+import { useFeedback, type FeedbackEntry, type FeedbackSummary } from "@/hooks/useFeedback";
+import { parseOrderTime } from "@/lib/foodOrders";
+import { FEEDBACK_PERIODS, inRange, usePagePeriod } from "@/lib/globalFilter";
 import type { CustomerDetail } from "@/hooks/useCustomers";
 
 const AVATAR_TONES = [
@@ -102,7 +104,34 @@ const COMPLAINT_CATEGORY_RATIOS = [
 
 export default function PortalFeedbackPage() {
   const { restaurant, ready } = usePortalGuard();
-  const { summary, entries, error } = useFeedback(ready, useBranchFilter().selectedBranchId);
+  const {
+    summary: serverSummary,
+    entries: allEntries,
+    error,
+  } = useFeedback(ready, useBranchFilter().selectedBranchId);
+  // the period comes from the header's global filter
+  const { period, range } = usePagePeriod(FEEDBACK_PERIODS);
+  const entries = useMemo(
+    () => allEntries?.filter((e) => inRange(parseOrderTime(e.created_at), range)) ?? null,
+    [allEntries, range],
+  );
+  // "All time" is the server's own summary (it counts every rating); a narrower period is worked out from the
+  // ratings in range. The list the server sends is its 200 most recent, so a very old range may show fewer.
+  const summary = useMemo<FeedbackSummary | null>(() => {
+    if (!serverSummary || !entries) return null;
+    if (period === "all") return serverSummary;
+    const breakdown: Record<string, number> = {};
+    let sum = 0;
+    for (const e of entries) {
+      breakdown[String(e.rating)] = (breakdown[String(e.rating)] ?? 0) + 1;
+      sum += e.rating;
+    }
+    return {
+      total: entries.length,
+      average_rating: entries.length ? Math.round((sum / entries.length) * 10) / 10 : null,
+      breakdown,
+    };
+  }, [serverSummary, entries, period]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<FeedbackEntry | null>(null);
   const [guest, setGuest] = useState<CustomerDetail | null>(null);
@@ -158,6 +187,15 @@ export default function PortalFeedbackPage() {
       .map(([day, v]) => ({ label: formatDate(day), ...v }));
   }, [entries]);
 
+  const sentimentTotals = sentimentTrend.reduce(
+    (totals, day) => ({
+      positive: totals.positive + day.positive,
+      neutral: totals.neutral + day.neutral,
+      negative: totals.negative + day.negative,
+    }),
+    { positive: 0, neutral: 0, negative: 0 },
+  );
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) return entries ?? [];
@@ -204,21 +242,21 @@ export default function PortalFeedbackPage() {
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      {summary && (
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-5">
+      {
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-5">
           <StatTile
             icon={<Star size={22} />}
             label="Average rating"
-            value={summary.average_rating ?? 0}
+            value={summary ? (summary.average_rating ?? 0) : "—"}
             deltaPct={null}
-            hint={summary.average_rating === null ? "No ratings yet" : "Out of 5"}
+            hint={summary?.average_rating === null ? "No ratings yet" : "Out of 5"}
             tone="warning"
             filled
           />
           <StatTile
             icon={<MessageSquareText size={22} />}
             label="New reviews today"
-            value={stats.newToday}
+            value={summary ? stats.newToday : "—"}
             deltaPct={null}
             hint="Since midnight"
             tone="info"
@@ -227,7 +265,7 @@ export default function PortalFeedbackPage() {
           <StatTile
             icon={<TriangleAlert size={22} />}
             label="Needs attention"
-            value={stats.needsAttention}
+            value={summary ? stats.needsAttention : "—"}
             deltaPct={null}
             hint="1-2 star ratings"
             tone="clay"
@@ -237,7 +275,7 @@ export default function PortalFeedbackPage() {
           <StatTile
             icon={<ThumbsUp size={22} />}
             label="Positive rate"
-            value={stats.positiveRate ?? 0}
+            value={summary ? (stats.positiveRate ?? 0) : "—"}
             deltaPct={null}
             hint="4-5 star ratings"
             tone="brand"
@@ -246,17 +284,17 @@ export default function PortalFeedbackPage() {
           <StatTile
             icon={<TrendingUp size={22} />}
             label="NPS score"
-            value={stats.nps ?? 0}
+            value={summary ? (stats.nps ?? 0) : "—"}
             deltaPct={null}
-            hint={stats.nps === null ? "No ratings yet" : "5★ minus 1-2★, of total"}
+            hint={summary && stats.nps === null ? "No ratings yet" : "5★ minus 1-2★, of total"}
             tone="violet"
             filled
           />
         </div>
-      )}
+      }
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-4">
-        <Card className="h-fit p-space-4">
+      <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-3">
+        <Card className="p-space-4">
           <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Rating Breakdown</h3>
           {!summary || summary.total === 0 ? (
             <p className="py-space-4 text-center text-[13px] text-ink-400">No ratings yet.</p>
@@ -306,14 +344,42 @@ export default function PortalFeedbackPage() {
           emptyText="No feedback yet."
         />
 
-        <Card className="p-space-4">
-          <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Sentiment Trend</h3>
+        <Card className="flex h-full flex-col p-space-4">
+          <div className="mb-space-3 flex items-start justify-between gap-space-3">
+            <div>
+              <h3 className="text-[15px] font-bold text-ink-900">Sentiment Trend</h3>
+              <p className="mt-0.5 text-[12px] text-ink-600">Daily review counts</p>
+            </div>
+            <span className="shrink-0 rounded-full bg-paper px-space-2 py-0.5 text-[11px] font-medium text-ink-600">
+              By day
+            </span>
+          </div>
+          <div className="mb-space-2 grid grid-cols-3 gap-space-2">
+            {(
+              [
+                ["Positive", sentimentTotals.positive, "bg-success", "bg-success-tint"],
+                ["Neutral", sentimentTotals.neutral, "bg-warning", "bg-warning-tint"],
+                ["Negative", sentimentTotals.negative, "bg-error", "bg-error-tint"],
+              ] as const
+            ).map(([label, count, dot, tint]) => (
+              <div
+                key={label}
+                className={`flex min-w-0 items-center gap-space-2 rounded-md ${tint} px-space-2 py-space-1.5`}
+              >
+                <span className={`size-2 shrink-0 rounded-full ${dot}`} />
+                <span className="truncate text-[11px] text-ink-700">{label}</span>
+                <span className="ml-auto text-[12px] font-bold tabular-nums text-ink-900">
+                  {count}
+                </span>
+              </div>
+            ))}
+          </div>
           {sentimentTrend.length === 0 ? (
-            <div className="flex h-[200px] items-center justify-center text-[13px] text-ink-400">
+            <div className="flex min-h-[280px] flex-1 items-center justify-center rounded-md bg-paper text-[13px] text-ink-400">
               Not enough data yet.
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={320}>
               <LineChart data={sentimentTrend} margin={{ top: 4, right: 4, bottom: 0, left: -20 }}>
                 <CartesianGrid stroke="#ebe0d6" vertical={false} />
                 <XAxis
@@ -337,7 +403,8 @@ export default function PortalFeedbackPage() {
                   name="Positive"
                   stroke="#22c55e"
                   strokeWidth={2}
-                  dot={false}
+                  dot={{ r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
                 />
                 <Line
                   type="monotone"
@@ -345,7 +412,8 @@ export default function PortalFeedbackPage() {
                   name="Neutral"
                   stroke="#f59e0b"
                   strokeWidth={2}
-                  dot={false}
+                  dot={{ r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
                 />
                 <Line
                   type="monotone"
@@ -353,25 +421,15 @@ export default function PortalFeedbackPage() {
                   name="Negative"
                   stroke="#ef4444"
                   strokeWidth={2}
-                  dot={false}
+                  dot={{ r: 3, strokeWidth: 0 }}
+                  activeDot={{ r: 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
           )}
-          <div className="mt-space-2 flex items-center gap-space-3 text-[11px] text-ink-600">
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-success" /> Positive
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-warning" /> Neutral
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="h-2 w-2 rounded-full bg-error" /> Negative
-            </span>
-          </div>
         </Card>
 
-        <Card className="p-space-4">
+        <Card className="p-space-4 lg:col-span-3">
           <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
             Top Complaint Categories
           </h3>
@@ -406,25 +464,26 @@ export default function PortalFeedbackPage() {
         </Card>
       </div>
 
+      <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
+        Customer Reviews &amp; Feedback{summary ? ` (${summary.total})` : ""}
+      </h3>
+      <Card className="mb-space-3 flex flex-wrap items-center gap-space-3 p-space-3">
+        <span className="relative min-w-[220px] flex-1">
+          <Search
+            size={16}
+            className="pointer-events-none absolute top-1/2 left-3 -translate-y-1/2 text-ink-400"
+          />
+          <Input
+            placeholder="Search by customer or review…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </span>
+      </Card>
+
       <div className="grid grid-cols-1 gap-space-4 xl:grid-cols-[1fr_360px]">
         <div className="min-w-0">
-          <div className="mb-space-3 flex items-center justify-between gap-space-3">
-            <h3 className="text-[15px] font-bold text-ink-900">
-              Customer Reviews &amp; Feedback{summary ? ` (${summary.total})` : ""}
-            </h3>
-            <div className="relative w-full max-w-[260px]">
-              <Search
-                size={14}
-                className="pointer-events-none absolute left-space-3 top-1/2 -translate-y-1/2 text-ink-400"
-              />
-              <Input
-                placeholder="Search by customer or review…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
-          </div>
           <Card className="p-space-2">
             {!entries ? (
               <ListSkeleton rows={5} />
