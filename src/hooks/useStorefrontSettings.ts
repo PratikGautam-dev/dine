@@ -18,39 +18,31 @@ export type Storefront = {
   public_url_path: string | null;
 };
 
+/** Just the two fields that stay immediate/live -- draft/publish (migration 0090) moved the other
+ * 9 cosmetic fields (name/cuisines/tagline/address/city/logo/cover/min order/prep time) onto
+ * useStorefrontDraft.ts instead. Toggling visibility and changing the URL are operational actions,
+ * not cosmetic previews, so they still save straight through this route unchanged. */
 export type StorefrontForm = {
   web_ordering_enabled: boolean;
   storefront_slug: string;
-  cuisine_tags: string;
-  tagline: string;
-  address_line: string;
-  city: string;
-  logo_url: string;
-  cover_image_url: string;
-  min_order_rupees: string;
-  avg_prep_minutes: string;
 };
 
 export function toForm(s: Storefront): StorefrontForm {
   return {
     web_ordering_enabled: s.web_ordering_enabled,
     storefront_slug: s.slug ?? "",
-    cuisine_tags: s.cuisines.join(", "),
-    tagline: s.tagline ?? "",
-    address_line: s.address_line ?? "",
-    city: s.city ?? "",
-    logo_url: s.logo_url ?? "",
-    cover_image_url: s.cover_image_url ?? "",
-    min_order_rupees: (s.min_order_paise / 100).toString(),
-    avg_prep_minutes: s.avg_prep_minutes.toString(),
   };
 }
 
-/** Loads + saves /portal/settings/storefront -- Web Storefront's toggle and marketplace profile. */
+/** Loads + saves /portal/settings/storefront -- Web Storefront's toggle and store link only now
+ * (see StorefrontForm's own comment); the GET response still carries every other field too, read
+ * elsewhere on the page as the live (published) values. */
 export function useStorefrontSettings(ready: boolean) {
   const [storefront, setStorefront] = useState<Storefront | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
 
   const load = useCallback(async () => {
     const result = await staffFetch("/api/portal/settings/storefront");
@@ -74,14 +66,6 @@ export function useStorefrontSettings(ready: boolean) {
       body: JSON.stringify({
         web_ordering_enabled: form.web_ordering_enabled,
         storefront_slug: form.storefront_slug,
-        cuisine_tags: form.cuisine_tags,
-        tagline: form.tagline,
-        address_line: form.address_line,
-        city: form.city,
-        logo_url: form.logo_url,
-        cover_image_url: form.cover_image_url,
-        min_order_paise: Math.round((Number(form.min_order_rupees) || 0) * 100),
-        avg_prep_minutes: Number(form.avg_prep_minutes) || 0,
       }),
     });
     setSaving(false);
@@ -93,5 +77,26 @@ export function useStorefrontSettings(ready: boolean) {
     return null;
   }
 
-  return { storefront, error, saving, save };
+  /** Uploads a logo/cover photo file to the same public image bucket menu-item photos already
+   * use (core/menu_image_storage.py) and returns its url -- a separate step from Save, same
+   * "upload now, reference the url when the form itself is saved" shape the Food Menu panel's
+   * own upload already established (src/hooks/useMenuItems.ts's handleImageUpload). */
+  async function uploadImage(file: File, kind: "logo" | "cover"): Promise<string | null> {
+    const setUploading = kind === "logo" ? setUploadingLogo : setUploadingCover;
+    setUploading(true);
+    const body = new FormData();
+    body.append("file", file);
+    const result = await staffFetch("/api/portal/settings/storefront/upload-image", { method: "POST", body });
+    setUploading(false);
+    if (!result.ok) {
+      toast.error(
+        "Couldn't upload photo",
+        result.unauthorized ? "Session expired — please log in again." : result.error,
+      );
+      return null;
+    }
+    return (result.data as { image_url: string }).image_url;
+  }
+
+  return { storefront, error, saving, save, uploadingLogo, uploadingCover, uploadImage };
 }
