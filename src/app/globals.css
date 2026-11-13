@@ -309,3 +309,23 @@ body {
 .text-hint.is-note {
   font-style: italic;
 }
+
+/* PageHeader actions: on phones they take the whole row and each button stretches to fill it (buttons that
+   don't fit side by side wrap onto the next row). From 640px up they stay right-aligned at natural width. */
+@media (max-width: 639px) {
+  .page-header-actions {
+    width: 100%;
+  }
+  .page-header-actions > *,
+  .page-header-actions > div > * {
+    flex: 1 1 auto;
+    min-width: fit-content;
+    justify-content: center;
+  }
+  .page-header-actions > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-2);
+    width: 100%;
+  }
+}

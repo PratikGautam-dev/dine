@@ -177,7 +177,7 @@ export default function PortalMessagesPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       {
-        <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+        <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
           <StatTile
             tone="success"
             filled
@@ -384,18 +384,23 @@ export default function PortalMessagesPage() {
             </ul>
           </Card>
 
-          <Card className="flex min-h-[420px] flex-col self-stretch p-space-5">
+          <Card className="flex min-h-[420px] flex-col self-stretch p-space-4 md:p-space-5">
             {!selected ? (
               <p className="m-auto text-[13px] text-ink-400">
                 Select a conversation to view details and reply.
               </p>
             ) : (
               <div className="flex h-full flex-col">
-                <div className="mb-space-4 flex flex-wrap items-start justify-between gap-space-3 border-b border-line pb-space-4">
-                  <div className="flex items-center gap-space-3">
-                    <Avatar label={displayName(selected)} className="h-11 w-11 text-[15px]" />
-                    <div>
-                      <p className="text-[15px] font-bold text-ink-900">{displayName(selected)}</p>
+                <div className="mb-space-4 flex flex-col gap-space-4 border-b border-line pb-space-4 md:flex-row md:flex-wrap md:items-start md:justify-between md:gap-space-3">
+                  <div className="flex min-w-0 items-center gap-space-3">
+                    <Avatar
+                      label={displayName(selected)}
+                      className="h-12 w-12 shrink-0 text-[16px] md:h-11 md:w-11 md:text-[15px]"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-[16px] font-bold text-ink-900 md:text-[15px]">
+                        {displayName(selected)}
+                      </p>
                       <div className="mt-0.5 flex flex-wrap items-center gap-space-2">
                         {selected.patient_name && (
                           <span className="text-[12px] text-ink-600">{selected.phone}</span>
@@ -409,11 +414,12 @@ export default function PortalMessagesPage() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-space-2">
+                  <div className="flex flex-wrap items-center gap-space-2">
                     {selected.status === "open" ? (
                       <Button
                         variant="secondary"
                         size="md"
+                        className="min-w-fit flex-1 whitespace-nowrap max-md:px-3 md:flex-none"
                         onClick={() => handleResolve(selected.id)}
                         disabled={resolvingId === selected.id}
                       >
@@ -429,6 +435,7 @@ export default function PortalMessagesPage() {
                       <Button
                         variant="destructive"
                         size="md"
+                        className="min-w-fit flex-1 whitespace-nowrap max-md:px-3 md:flex-none"
                         onClick={() => setPendingDelete("one")}
                         disabled={deletingId === selected.id}
                       >
@@ -486,7 +493,7 @@ export default function PortalMessagesPage() {
 
                 <PermissionGate page="messages" action="write">
                   <div className="mt-auto border-t border-line pt-space-4">
-                    <div className="mb-space-3 grid grid-cols-2 gap-space-2 sm:grid-cols-3">
+                    <div className="mb-space-3 grid grid-cols-[repeat(auto-fit,minmax(125px,1fr))] gap-space-2">
                       {QUICK_ACTIONS.map(({ id, label, icon: Icon }) => (
                         <button
                           key={id}
@@ -497,7 +504,7 @@ export default function PortalMessagesPage() {
                             if (err) toast.error(`Couldn't ${label.toLowerCase()}`, err);
                             else toast.success(label, "Sent on WhatsApp.");
                           }}
-                          className="flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
+                          className="flex min-w-0 items-center justify-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-center text-[12.5px] font-semibold text-ink-700 hover:border-brand-300 hover:bg-brand-50 disabled:opacity-50"
                         >
                           <Icon size={14} className="shrink-0 text-brand-600" />
                           {quickActionId === id ? "Sending…" : label}

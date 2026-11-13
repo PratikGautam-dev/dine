@@ -19,6 +19,7 @@ import {
   Download,
   Repeat,
   ShoppingBag,
+  Users,
   Wallet,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
@@ -43,11 +44,41 @@ import {
   usePagePeriod,
 } from "@/lib/globalFilter";
 
-const DOWNLOAD_KINDS: { kind: "sales" | "orders" | "customers" | "bookings"; label: string }[] = [
-  { kind: "sales", label: "Sales Report (CSV)" },
-  { kind: "orders", label: "Orders Report (CSV)" },
-  { kind: "customers", label: "Customer Report (CSV)" },
-  { kind: "bookings", label: "Booking Report (CSV)" },
+const DOWNLOAD_KINDS: {
+  kind: "sales" | "orders" | "customers" | "bookings";
+  label: string;
+  title: string;
+  hint: string;
+  icon: typeof Download;
+}[] = [
+  {
+    kind: "sales",
+    label: "Sales Report (CSV)",
+    title: "Sales",
+    hint: "Revenue by day",
+    icon: Banknote,
+  },
+  {
+    kind: "orders",
+    label: "Orders Report (CSV)",
+    title: "Orders",
+    hint: "Every order placed",
+    icon: ShoppingBag,
+  },
+  {
+    kind: "customers",
+    label: "Customer Report (CSV)",
+    title: "Customers",
+    hint: "Guests and spend",
+    icon: Users,
+  },
+  {
+    kind: "bookings",
+    label: "Booking Report (CSV)",
+    title: "Bookings",
+    hint: "Table reservations",
+    icon: CalendarCheck,
+  },
 ];
 const BRAND = "#e21220";
 const BLUE = "#2f6fed";
@@ -151,7 +182,7 @@ export default function PortalReportsPage() {
         <DashboardSkeleton tiles={5} />
       ) : (
         <>
-          <div className="mb-space-4 grid grid-cols-1 gap-space-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+          <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
             <StatTile
               icon={<Banknote size={22} />}
               label="Total revenue"
@@ -218,7 +249,9 @@ export default function PortalReportsPage() {
                     {branchRows.map((b) => (
                       <tr key={b.branch_id}>
                         <td className="py-space-2 font-semibold text-ink-900">{b.name}</td>
-                        <td className="py-space-2 text-right tabular-nums text-ink-700">{b.total_orders}</td>
+                        <td className="py-space-2 text-right tabular-nums text-ink-700">
+                          {b.total_orders}
+                        </td>
                         <td className="py-space-2 text-right font-semibold tabular-nums text-ink-900">
                           {rupees(b.revenue_paise)}
                         </td>
@@ -232,11 +265,15 @@ export default function PortalReportsPage() {
               </Card>
 
               <Card className="p-space-4">
-                <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Revenue Share by Branch</h3>
+                <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
+                  Revenue Share by Branch
+                </h3>
                 <div className="space-y-space-3">
                   {branchRows.map((b) => {
                     const totalRevenue = branchRows.reduce((sum, r) => sum + r.revenue_paise, 0);
-                    const pct = totalRevenue ? Math.round((b.revenue_paise / totalRevenue) * 100) : 0;
+                    const pct = totalRevenue
+                      ? Math.round((b.revenue_paise / totalRevenue) * 100)
+                      : 0;
                     return (
                       <div key={b.branch_id}>
                         <div className="mb-1 flex items-center justify-between text-[12.5px]">
@@ -244,7 +281,10 @@ export default function PortalReportsPage() {
                           <span className="tabular-nums text-ink-600">{pct}%</span>
                         </div>
                         <div className="h-2 overflow-hidden rounded-full bg-black/4">
-                          <div className="h-full rounded-full bg-brand-600" style={{ width: `${pct}%` }} />
+                          <div
+                            className="h-full rounded-full bg-brand-600"
+                            style={{ width: `${pct}%` }}
+                          />
                         </div>
                       </div>
                     );
@@ -477,17 +517,38 @@ export default function PortalReportsPage() {
           </div>
 
           <Card className="p-space-4">
-            <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Download Reports</h3>
-            <div className="flex flex-wrap gap-space-2">
-              {DOWNLOAD_KINDS.map(({ kind, label }) => (
+            <div className="mb-space-3">
+              <h3 className="text-[15px] font-bold text-ink-900">Download Reports</h3>
+              <p className="mt-0.5 text-[12.5px] text-ink-600">
+                CSV files for the period, channel and branch selected above.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+              {DOWNLOAD_KINDS.map(({ kind, label, title, hint, icon: Icon }) => (
                 <button
                   key={kind}
                   type="button"
                   onClick={() => handleDownload(kind, label)}
                   disabled={downloading !== null}
-                  className="inline-flex items-center gap-space-2 rounded-md border border-line bg-card px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-700 hover:bg-paper disabled:cursor-not-allowed disabled:opacity-60"
+                  aria-label={`Download ${label}`}
+                  className="group flex min-w-0 flex-col items-start gap-space-2 rounded-lg border border-line bg-card p-space-3 text-left transition-colors hover:border-brand-300 hover:bg-brand-50 disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  <Download size={14} /> {downloading === kind ? "Generating…" : label}
+                  <span className="flex w-full items-center justify-between">
+                    <span className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-50 text-brand-700 group-hover:bg-card">
+                      <Icon size={18} />
+                    </span>
+                    <Download
+                      size={15}
+                      className="text-ink-400 group-hover:text-brand-700"
+                      aria-hidden="true"
+                    />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-[13.5px] font-semibold text-ink-900">
+                      {downloading === kind ? "Generating…" : title}
+                    </span>
+                    <span className="block text-[12px] text-ink-600">{hint}</span>
+                  </span>
                 </button>
               ))}
             </div>
