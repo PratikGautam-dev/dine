@@ -329,3 +329,25 @@ body {
     width: 100%;
   }
 }
+
+/* A denser form: shorter fields, tighter gaps and labels, so a long modal shows more at once (the offer form). */
+.form-compact .h-11 {
+  height: 2.25rem;
+}
+.form-compact .min-h-11 {
+  min-height: 2.25rem;
+}
+.form-compact .mb-space-4 {
+  margin-bottom: 0.5rem;
+}
+.form-compact .text-label {
+  font-size: 12px;
+  margin-bottom: 0.125rem;
+}
+.form-compact .text-hint {
+  font-size: 11.5px;
+  margin-top: 0.125rem;
+}
+.form-compact input:not([type="checkbox"]):not([type="radio"]) {
+  font-size: 13px;
+}

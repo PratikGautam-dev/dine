@@ -37,10 +37,13 @@ import { API_BASE_URL, getStaffAccessToken } from "@/lib/staffAuth";
 import { useReports, useBranchComparison } from "@/hooks/useReports";
 import {
   REPORT_CHANNELS,
+  REPORT_PICKUPS,
+  channelParam,
+  usePagePickups,
   REPORT_PERIODS,
   formatRange,
   rangeParams,
-  usePageChannel,
+  usePageChannels,
   usePagePeriod,
 } from "@/lib/globalFilter";
 
@@ -129,7 +132,9 @@ export default function PortalReportsPage() {
   // the period and channel come from the header's global filter
   const { days, range } = usePagePeriod(REPORT_PERIODS);
   const periodText = formatRange(range);
-  const { channel } = usePageChannel(REPORT_CHANNELS);
+  const { channels } = usePageChannels(REPORT_CHANNELS);
+  const { pickups } = usePagePickups(REPORT_PICKUPS);
+  const channel = channelParam(channels, pickups);
   const [downloading, setDownloading] = useState<string | null>(null);
   const { selectedBranchId } = useBranchFilter();
   const { data, error } = useReports(ready, days, channel, selectedBranchId, range);

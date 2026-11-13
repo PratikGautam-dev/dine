@@ -21,6 +21,8 @@ import {
 export type PortalRestaurant = {
   id: number;
   name: string;
+  /** The business ID (e.g. TNT00004), shown in the account menu. */
+  display_id?: string | null;
   data_tier: string;
   enabled_features: string[];
   tenant_type: string;

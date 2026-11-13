@@ -18,6 +18,7 @@ import {
   ORDER_PERIODS,
   PERIOD_ORDER,
   REPORT_CHANNELS,
+  REPORT_PICKUPS,
   REPORT_PERIODS,
   RETURN_PERIODS,
 } from "@/lib/globalFilter";
@@ -53,7 +54,7 @@ const _BRANCH_AWARE_PAGES = new Set([
 // what a page shows where that page is listed above.
 const DEFAULT_FILTER: GlobalFilterOptions = { periods: PERIOD_ORDER };
 const FILTER_PAGES: Record<string, GlobalFilterOptions> = {
-  reports: { periods: REPORT_PERIODS, channels: REPORT_CHANNELS },
+  reports: { periods: REPORT_PERIODS, channels: REPORT_CHANNELS, pickups: REPORT_PICKUPS },
   "food-orders": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },
   "sales-online": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },
   "sales-whatsapp": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },

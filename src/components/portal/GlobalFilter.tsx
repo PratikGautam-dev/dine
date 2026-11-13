@@ -1,14 +1,18 @@
 "use client";
 
+import { useSyncExternalStore } from "react";
 import { CalendarDays, Check, ChevronDown } from "lucide-react";
 import { Popover } from "@base-ui/react/popover";
 import {
   CHANNEL_LABEL,
+  PICKUP_LABEL,
+  type GlobalPickup,
+  DEFAULT_PERIOD,
+  NO_CUSTOM,
   PERIOD_LABEL,
   PERIOD_ORDER,
   formatRange,
   isoDay,
-  resolveChannel,
   resolvePeriod,
   resolveRange,
   useGlobalFilter,
@@ -21,6 +25,8 @@ export type GlobalFilterOptions = {
   periods: readonly Period[];
   /** Omit when the page has no sales-channel filter. */
   channels?: readonly GlobalChannel[];
+  /** Omit when the page has no pickup (dine-in / takeaway / delivery) filter. */
+  pickups?: readonly GlobalPickup[];
 };
 
 const SECTION_TITLE =
@@ -30,17 +36,29 @@ const todayIso = () => isoDay(new Date());
 /** The header's period + channel filter: one chip showing the chosen period and its dates, opening a panel to
  * change either. PortalShell shows it (in place of the plain date chip) on pages that use it; the choice is
  * shared across those pages via GlobalFilterProvider. */
-export function GlobalFilter({ periods, channels }: GlobalFilterOptions) {
+export function GlobalFilter({ periods, channels, pickups }: GlobalFilterOptions) {
   const {
-    period: stored,
-    channel: storedChannel,
-    custom,
+    period: savedPeriod,
+    channels: savedChannels,
+    pickups: savedPickups,
+    custom: savedCustom,
     setPeriod,
-    setChannel,
+    setChannels,
+    setPickups,
     setCustomRange,
   } = useGlobalFilter();
+  // The saved choice comes from localStorage, which the server can't see: show the defaults until hydrated
+  // so the server and first client render match.
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  );
+  const stored = hydrated ? savedPeriod : DEFAULT_PERIOD;
+  const chosenChannels = hydrated && channels ? savedChannels.filter((c) => channels.includes(c)) : [];
+  const chosenPickups = hydrated && pickups ? savedPickups.filter((p) => pickups.includes(p)) : [];
+  const custom = hydrated ? savedCustom : NO_CUSTOM;
   const period = resolvePeriod(stored, periods);
-  const channel = resolveChannel(storedChannel, channels ?? [""]);
   const range = resolveRange(period, custom);
   const rangeText = formatRange(range);
   const options = PERIOD_ORDER.filter((p) => periods.includes(p));
@@ -59,9 +77,9 @@ export function GlobalFilter({ periods, channels }: GlobalFilterOptions) {
           <CalendarDays size={15} className="text-ink-400" />
           <span className="font-semibold text-ink-900">{PERIOD_LABEL[period]}</span>
           <span className="text-ink-600">· {rangeText}</span>
-          {channels && channel !== "" && (
+          {[...chosenChannels.map((c) => CHANNEL_LABEL[c]), ...chosenPickups.map((p) => PICKUP_LABEL[p])].length > 0 && (
             <span className="rounded-full bg-brand-50 px-space-2 py-0.5 text-[11.5px] font-semibold text-brand-700">
-              {CHANNEL_LABEL[channel]}
+              {[...chosenChannels.map((c) => CHANNEL_LABEL[c]), ...chosenPickups.map((p) => PICKUP_LABEL[p])].join(", ")}
             </span>
           )}
           <ChevronDown
@@ -121,27 +139,26 @@ export function GlobalFilter({ periods, channels }: GlobalFilterOptions) {
                 </div>
               )}
 
-              {channels && channels.length > 1 && (
-                <>
-                  <p className={cn(SECTION_TITLE, "mt-space-4")}>Sales channel</p>
-                  <div className="flex flex-wrap gap-space-2">
-                    {channels.map((c) => (
-                      <button
-                        key={c}
-                        type="button"
-                        onClick={() => setChannel(c)}
-                        className={cn(
-                          "rounded-full border px-space-3 py-1.5 text-[13px] font-semibold transition-colors",
-                          channel === c
-                            ? "border-brand-600 bg-brand-600 text-white"
-                            : "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50",
-                        )}
-                      >
-                        {CHANNEL_LABEL[c]}
-                      </button>
-                    ))}
-                  </div>
-                </>
+              {channels && channels.length > 0 && (
+                <ChipGroup
+                  title="Sales channel"
+                  allLabel="All channels"
+                  options={channels}
+                  labels={CHANNEL_LABEL}
+                  selected={chosenChannels}
+                  onChange={setChannels}
+                />
+              )}
+
+              {pickups && pickups.length > 0 && (
+                <ChipGroup
+                  title="Pickup"
+                  allLabel="All"
+                  options={pickups}
+                  labels={PICKUP_LABEL}
+                  selected={chosenPickups}
+                  onChange={setPickups}
+                />
               )}
 
               <p className="mt-space-4 border-t border-line pt-space-3 text-[12.5px] text-ink-400">
@@ -152,5 +169,56 @@ export function GlobalFilter({ periods, channels }: GlobalFilterOptions) {
         </Popover.Portal>
       </Popover.Root>
     </div>
+  );
+}
+
+const CHIP =
+  "rounded-full border px-space-3 py-1.5 text-[13px] font-semibold transition-colors";
+const CHIP_ON = "border-brand-600 bg-brand-600 text-white";
+const CHIP_OFF = "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50";
+
+/** A multi-select group of chips: tick any number; the "all" chip is on when none are ticked and clears the rest. */
+function ChipGroup<T extends string>({
+  title,
+  allLabel,
+  options,
+  labels,
+  selected,
+  onChange,
+}: {
+  title: string;
+  allLabel: string;
+  options: readonly T[];
+  labels: Record<T, string>;
+  selected: readonly T[];
+  onChange: (next: T[]) => void;
+}) {
+  const toggle = (o: T) =>
+    onChange(selected.includes(o) ? selected.filter((x) => x !== o) : [...selected, o]);
+  return (
+    <>
+      <p className={cn(SECTION_TITLE, "mt-space-4")}>{title}</p>
+      <div className="flex flex-wrap gap-space-2">
+        <button
+          type="button"
+          aria-pressed={selected.length === 0}
+          onClick={() => onChange([])}
+          className={cn(CHIP, selected.length === 0 ? CHIP_ON : CHIP_OFF)}
+        >
+          {allLabel}
+        </button>
+        {options.map((o) => (
+          <button
+            key={o}
+            type="button"
+            aria-pressed={selected.includes(o)}
+            onClick={() => toggle(o)}
+            className={cn(CHIP, selected.includes(o) ? CHIP_ON : CHIP_OFF)}
+          >
+            {labels[o]}
+          </button>
+        ))}
+      </div>
+    </>
   );
 }

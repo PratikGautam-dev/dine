@@ -70,7 +70,7 @@ export const SETTINGS_NAV: SettingsNavItem[] = [
     pageKey: "settings",
   },
   { slug: "branches", label: "Branches", icon: MapPin, href: "/portal/settings/branches", pageKey: "settings" },
-  { slug: "staff", label: "Team and access", icon: Users, href: "/portal/settings/staff", pageKey: "staff" },
+  { slug: "staff", label: "Users", icon: Users, href: "/portal/settings/staff", pageKey: "staff" },
   {
     slug: "roles",
     label: "Roles and permissions",

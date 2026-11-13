@@ -207,6 +207,19 @@ export async function erpSend<T = unknown>(
   return orThrow(await erp<T>(path, method, body, headers));
 }
 
+/** A multipart write (files included) for a mutation's mutationFn: the response, or throws an ErpError. The browser sets the multipart boundary itself. */
+export async function erpSendForm<T = unknown>(path: string, form: FormData): Promise<T> {
+  const result = await staffFetch(path, { method: "POST", body: form });
+  if (!result.ok) {
+    return orThrow<T>(
+      result.unauthorized
+        ? { data: null, error: "Session expired — please sign in again.", unauthorized: true }
+        : { data: null, error: result.error, unauthorized: false },
+    );
+  }
+  return result.data as T;
+}
+
 /** Load-on-mount (and on reload / path change) GET. Redirects to sign-in if the session has ended.
  * Removed from main in favour of the TanStack Query hooks in src/hooks; kept here only for the CRM screens that still call it. */
 export function useErpQuery<T>(path: string | null) {

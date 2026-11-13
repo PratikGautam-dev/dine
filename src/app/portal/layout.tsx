@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { syncStaffSession } from "@/lib/staffAuth";
 import { BranchProvider } from "@/lib/branchContext";
 import { QueryProvider } from "@/components/erp/QueryProvider";
 import { GlobalFilterProvider } from "@/lib/globalFilter";
@@ -11,6 +13,10 @@ import { GlobalFilterProvider } from "@/lib/globalFilter";
  * itself sits above PortalShell in the tree, not below it -- the switcher UI worked (it's
  * genuinely inside PortalShell), but nothing it selected ever reached the pages' own fetches. */
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
+  // once per page load: pick up permission / role / business-detail changes made since the last login
+  useEffect(() => {
+    void syncStaffSession();
+  }, []);
   return (
     <QueryProvider>
       <BranchProvider>

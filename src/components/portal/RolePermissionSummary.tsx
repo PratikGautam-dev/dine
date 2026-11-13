@@ -25,6 +25,7 @@ export const PAGE_LABEL: Record<string, string> = {
   automations: "Messages & Automations",
   live_operations: "Live Operations",
   reports: "Reports",
+  support: "Support",
 };
 
 // Kept in step with backend/portal/permissions.py's ALL_PAGES -- the pages a restaurant actually has.
@@ -50,6 +51,7 @@ export const ALL_PAGE_KEYS = [
   "leave_requests",
   "attendance",
   "attendance_settings",
+  "support",
 ];
 
 /** The pages a role can change and the pages it can only look at, from the live permission matrix. */

@@ -24,8 +24,8 @@ export function TenantLLMSettings({ configuration, loading, onSave, onClear }: P
 
   useEffect(() => {
     if (!configuration) return;
-    setModelName(configuration.model_name);
-    setBaseUrl(configuration.base_url);
+    setModelName(configuration.model_name ?? "");
+    setBaseUrl(configuration.base_url ?? "");
     setApiKey("");
   }, [configuration]);
 
