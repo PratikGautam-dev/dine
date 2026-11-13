@@ -42,6 +42,7 @@ type DraftForm = {
   city: string;
   logo_url: string;
   cover_image_url: string;
+  announcement_text: string;
 };
 
 function toDraftForm(d: {
@@ -52,6 +53,7 @@ function toDraftForm(d: {
   city: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
+  announcement_text: string | null;
 }): DraftForm {
   return {
     name: d.name,
@@ -61,6 +63,7 @@ function toDraftForm(d: {
     city: d.city ?? "",
     logo_url: d.logo_url ?? "",
     cover_image_url: d.cover_image_url ?? "",
+    announcement_text: d.announcement_text ?? "",
   };
 }
 
@@ -73,6 +76,7 @@ function toDraftFields(f: DraftForm): DraftFields {
     city: f.city,
     logo_url: f.logo_url,
     cover_image_url: f.cover_image_url,
+    announcement_text: f.announcement_text,
   };
 }
 
@@ -335,6 +339,20 @@ export default function StorefrontSettingsPage() {
                     disabled={!canWrite}
                   />
                 </Field>
+                <Field
+                  label="Announcement bar"
+                  htmlFor="sf-announcement"
+                  hint="A thin banner at the top of your page -- leave blank to hide it"
+                  className="sm:col-span-2"
+                >
+                  <Input
+                    id="sf-announcement"
+                    value={activeDraft.announcement_text}
+                    onChange={(e) => setDraftField({ announcement_text: e.target.value })}
+                    placeholder="e.g. Festive menu now live!"
+                    disabled={!canWrite}
+                  />
+                </Field>
                 <Field label="Address" htmlFor="sf-address" className="sm:col-span-2">
                   <Input
                     id="sf-address"
@@ -438,13 +456,22 @@ export default function StorefrontSettingsPage() {
               </p>
 
               <p className="mb-space-1 text-[11px] font-bold uppercase tracking-wide text-ink-400">Top of every page</p>
-              <Link
-                href="#storefront-profile"
-                className="mb-space-3 flex items-center justify-between rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] font-semibold text-ink-900 hover:bg-paper/70"
-              >
-                Hero
-                <ChevronRight size={15} className="text-ink-400" />
-              </Link>
+              <div className="mb-space-3 space-y-space-2">
+                <Link
+                  href="#storefront-profile"
+                  className="flex items-center justify-between rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] font-semibold text-ink-900 hover:bg-paper/70"
+                >
+                  Logo &amp; name
+                  <ChevronRight size={15} className="text-ink-400" />
+                </Link>
+                <Link
+                  href="#storefront-profile"
+                  className="flex items-center justify-between rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] font-semibold text-ink-900 hover:bg-paper/70"
+                >
+                  Announcement bar
+                  <ChevronRight size={15} className="text-ink-400" />
+                </Link>
+              </div>
 
               <p className="mb-space-1 text-[11px] font-bold uppercase tracking-wide text-ink-400">Your page</p>
               <div className="space-y-space-2">
