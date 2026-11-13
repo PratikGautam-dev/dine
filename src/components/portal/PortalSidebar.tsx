@@ -38,7 +38,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { clearPortalSession, type PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
-import { visibleSettingsItems } from "@/components/portal/SettingsNav";
+import { visibleSettingsItems } from "@/components/portal/SettingsNavMenu";
 
 // Staff/Branches/Reports/Calendar/Departments were removed (not just hidden)
 // -- Calendar had no backend and no near-term plan to build one; Departments

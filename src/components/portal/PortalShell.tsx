@@ -8,7 +8,7 @@ import { GlobalFilter, type GlobalFilterOptions } from "@/components/portal/Glob
 import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
-import { SettingsMenu, SettingsNav } from "@/components/portal/SettingsNav";
+import { SettingsMenu, SettingsNav } from "@/components/portal/SettingsNavMenu";
 import { isSettingsPath } from "@/components/portal/settingsNav";
 import { UserMenu } from "@/components/portal/UserMenu";
 import {

@@ -18,9 +18,11 @@ export function sectionLabel(key: SectionKey): string {
   return SECTION_LABELS[key];
 }
 
-/** Just the 9 cosmetic "appearance" fields (migration 0090 backend) -- web_ordering_enabled and
+/** Just the 7 cosmetic "appearance" fields (migration 0090 backend) -- web_ordering_enabled and
  * storefront_slug stay on useStorefrontSettings' immediate/live save, and the photo gallery stays
- * on useRestaurantPhotos, both untouched by this draft/publish flow. */
+ * on useRestaurantPhotos, both untouched by this draft/publish flow. min_order_paise/
+ * avg_prep_minutes moved to the Branches settings page (migration 0096 cleanup) -- edited
+ * per-branch there now, not as a restaurant-wide field here. */
 export type StorefrontDraft = {
   restaurant_id: number;
   name: string;
@@ -30,8 +32,6 @@ export type StorefrontDraft = {
   cuisine_tags: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
-  min_order_paise: number;
-  avg_prep_minutes: number;
   sections: HomepageSection[];
   has_unpublished_changes: boolean;
   draft_updated_at: string | null;
@@ -40,15 +40,7 @@ export type StorefrontDraft = {
 export type DraftFields = Partial<
   Pick<
     StorefrontDraft,
-    | "name"
-    | "tagline"
-    | "address_line"
-    | "city"
-    | "cuisine_tags"
-    | "logo_url"
-    | "cover_image_url"
-    | "min_order_paise"
-    | "avg_prep_minutes"
+    "name" | "tagline" | "address_line" | "city" | "cuisine_tags" | "logo_url" | "cover_image_url"
   >
 >;
 

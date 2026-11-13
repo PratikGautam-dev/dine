@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ExternalLink, Eye, EyeOff, Globe, ImagePlus, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, ExternalLink, Eye, EyeOff, Globe, ImagePlus, X } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -13,18 +14,26 @@ import { Switch } from "@/components/ui/Switch";
 import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
-import { rupees } from "@/lib/foodOrders";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { toForm, useStorefrontSettings, type StorefrontForm } from "@/hooks/useStorefrontSettings";
 import { useStorefrontDraft, sectionLabel, type DraftFields, type SectionKey } from "@/hooks/useStorefrontDraft";
 import { useRestaurantPhotos } from "@/hooks/useRestaurantPhotos";
 
+/** Where each section's chevron goes -- gallery scrolls to this same page's Photo gallery card,
+ * menu/reviews link out to where that content actually lives (no on/off/reorder fields of their
+ * own to show inline, unlike ShopConnect's schema-driven sections). */
+const SECTION_CHEVRON_HREF: Record<SectionKey, string> = {
+  gallery: "#photo-gallery",
+  menu: "/portal/food-menu",
+  reviews: "/portal/feedback",
+};
+
 /** See docs/DEPLOYMENT.md's env var table -- set NEXT_PUBLIC_STOREFRONT_URL in Vercel to override.
  * Falls back to the real deployed storefront so the live preview works even before that's set. */
 const STOREFRONT_URL = process.env.NEXT_PUBLIC_STOREFRONT_URL || "https://dine-storefront.vercel.app";
 
-/** A draft form mirrors StorefrontDraft, but with min_order_paise edited as rupees text, same
- * "paise on the wire, rupees in the input" convention useStorefrontSettings' old full form used. */
+/** A draft form mirrors StorefrontDraft -- min_order_paise/avg_prep_minutes moved to the Branches
+ * settings page (migration 0096 cleanup), so this no longer carries them. */
 type DraftForm = {
   name: string;
   cuisine_tags: string;
@@ -33,8 +42,6 @@ type DraftForm = {
   city: string;
   logo_url: string;
   cover_image_url: string;
-  min_order_rupees: string;
-  avg_prep_minutes: string;
 };
 
 function toDraftForm(d: {
@@ -45,8 +52,6 @@ function toDraftForm(d: {
   city: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
-  min_order_paise: number;
-  avg_prep_minutes: number;
 }): DraftForm {
   return {
     name: d.name,
@@ -56,8 +61,6 @@ function toDraftForm(d: {
     city: d.city ?? "",
     logo_url: d.logo_url ?? "",
     cover_image_url: d.cover_image_url ?? "",
-    min_order_rupees: (d.min_order_paise / 100).toString(),
-    avg_prep_minutes: d.avg_prep_minutes.toString(),
   };
 }
 
@@ -70,8 +73,6 @@ function toDraftFields(f: DraftForm): DraftFields {
     city: f.city,
     logo_url: f.logo_url,
     cover_image_url: f.cover_image_url,
-    min_order_paise: Math.round((Number(f.min_order_rupees) || 0) * 100),
-    avg_prep_minutes: Number(f.avg_prep_minutes) || 0,
   };
 }
 
@@ -291,7 +292,7 @@ export default function StorefrontSettingsPage() {
           </form>
 
           <form onSubmit={handleDraftSubmit} className="lg:col-span-2">
-            <Card className="p-space-5">
+            <Card id="storefront-profile" className="scroll-mt-24 p-space-5">
               <div className="mb-space-4 flex items-center justify-between">
                 <h2 className="text-[15px] font-bold text-ink-900">Storefront profile</h2>
                 {hasUnpublishedChanges && <Badge tone="warning">Unpublished changes</Badge>}
@@ -386,27 +387,14 @@ export default function StorefrontSettingsPage() {
                     className="mt-space-2"
                   />
                 </Field>
-                <Field label="Minimum order (₹)" htmlFor="sf-min">
-                  <Input
-                    id="sf-min"
-                    type="number"
-                    min="0"
-                    value={activeDraft.min_order_rupees}
-                    onChange={(e) => setDraftField({ min_order_rupees: e.target.value })}
-                    disabled={!canWrite}
-                  />
-                </Field>
-                <Field label="Average prep time (min)" htmlFor="sf-prep">
-                  <Input
-                    id="sf-prep"
-                    type="number"
-                    min="0"
-                    value={activeDraft.avg_prep_minutes}
-                    onChange={(e) => setDraftField({ avg_prep_minutes: e.target.value })}
-                    disabled={!canWrite}
-                  />
-                </Field>
               </div>
+              <p className="text-hint mt-space-2">
+                Minimum order and average prep time are now set per-branch on the{" "}
+                <a href="/portal/settings/branches" className="font-semibold text-brand-700 hover:underline">
+                  Branches settings page
+                </a>
+                .
+              </p>
               {draftFormError && <p className="mt-space-2 text-[13px] font-medium text-error">{draftFormError}</p>}
               <PermissionGate page="settings" action="write">
                 <div className="mt-space-4 flex flex-wrap gap-space-2">
@@ -448,10 +436,18 @@ export default function StorefrontSettingsPage() {
               <p className="text-hint mb-space-3">
                 Reorder or hide sections on your restaurant&apos;s own page. The menu can&apos;t be hidden.
               </p>
+
+              <p className="mb-space-1 text-[11px] font-bold uppercase tracking-wide text-ink-400">Top of every page</p>
+              <Link
+                href="#storefront-profile"
+                className="mb-space-3 flex items-center justify-between rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] font-semibold text-ink-900 hover:bg-paper/70"
+              >
+                Hero
+                <ChevronRight size={15} className="text-ink-400" />
+              </Link>
+
+              <p className="mb-space-1 text-[11px] font-bold uppercase tracking-wide text-ink-400">Your page</p>
               <div className="space-y-space-2">
-                <div className="flex items-center gap-space-2 rounded-md border border-line bg-paper px-space-3 py-space-2 text-[12.5px] font-semibold text-ink-500">
-                  Hero (always first)
-                </div>
                 {(draft?.sections ?? []).map((section, i) => (
                   <div
                     key={section.key}
@@ -493,6 +489,9 @@ export default function StorefrontSettingsPage() {
                         {section.enabled ? <Eye size={15} /> : <EyeOff size={15} />}
                       </button>
                     )}
+                    <Link href={SECTION_CHEVRON_HREF[section.key]} aria-label={`Manage ${sectionLabel(section.key)}`}>
+                      <ChevronRight size={15} className="text-ink-400 hover:text-ink-900" />
+                    </Link>
                   </div>
                 ))}
               </div>
@@ -511,7 +510,7 @@ export default function StorefrontSettingsPage() {
             </Card>
           </div>
 
-          <Card className="p-space-5 lg:col-span-2">
+          <Card id="photo-gallery" className="scroll-mt-24 p-space-5 lg:col-span-2">
             <h2 className="mb-1 text-[15px] font-bold text-ink-900">Photo gallery</h2>
             <p className="text-hint mb-space-4">
               Interior, food and ambience shots shown on your restaurant&apos;s page, alongside the logo and cover photo above.
@@ -607,10 +606,6 @@ export default function StorefrontSettingsPage() {
                       ))}
                   </p>
                 )}
-                <p className="text-[11.5px] text-ink-600">
-                  Min. order {rupees(Math.round((Number(activeDraft.min_order_rupees) || 0) * 100))} · ~
-                  {activeDraft.avg_prep_minutes || 0} min
-                </p>
               </div>
             </Card>
             <p className="text-hint mt-space-2">

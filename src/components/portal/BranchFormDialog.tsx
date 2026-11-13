@@ -139,7 +139,7 @@ export function BranchFormDialog({
           <Field
             label="Minimum order (₹)"
             htmlFor="br-min-order"
-            hint="Leave blank to use the restaurant's own minimum"
+            hint="Leave blank to use the restaurant's own minimum -- the default branch's value is what shows on the marketplace card"
           >
             <Input
               id="br-min-order"
@@ -194,7 +194,7 @@ export function BranchFormDialog({
           <Field
             label="Avg. prep time (min)"
             htmlFor="br-prep-time"
-            hint="Stored for reference -- not yet shown to guests"
+            hint="Leave blank to use the restaurant's own estimate -- feeds each order's ETA and the marketplace card"
             className="sm:col-span-2"
           >
             <Input
