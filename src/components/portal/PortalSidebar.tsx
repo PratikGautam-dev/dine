@@ -19,12 +19,10 @@ import {
   Monitor,
   Radio,
   Settings,
-  ShieldCheck,
   ClipboardList,
   FolderOpen,
   Soup,
   Undo2,
-  Store,
   UserCheck,
   UtensilsCrossed,
   Users,
@@ -40,6 +38,7 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/cn";
 import { clearPortalSession, type PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
+import { visibleSettingsItems } from "@/components/portal/SettingsNav";
 
 // Staff/Branches/Reports/Calendar/Departments were removed (not just hidden)
 // -- Calendar had no backend and no near-term plan to build one; Departments
@@ -321,38 +320,6 @@ const NAV_ITEMS: {
     pageKey: "settings",
     group: "Settings",
   },
-  {
-    key: "storefront",
-    label: "Online Storefront",
-    icon: Globe,
-    href: "/portal/settings/storefront",
-    pageKey: "settings",
-    group: "Settings",
-  },
-  {
-    key: "branches",
-    label: "Branches",
-    icon: Store,
-    href: "/portal/settings/branches",
-    pageKey: "settings",
-    group: "Settings",
-  },
-  {
-    key: "staff",
-    label: "Team & Access",
-    icon: Users,
-    href: "/portal/settings/staff",
-    pageKey: "staff",
-    group: "Settings",
-  },
-  {
-    key: "roles",
-    label: "Roles & Permissions",
-    icon: ShieldCheck,
-    href: "/portal/settings/roles",
-    pageKey: "roles",
-    group: "Settings",
-  },
 ];
 
 type Props = {
@@ -443,8 +410,21 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
             // capability check did -- this is only a UI convenience, the backend's 403 is the real enforcement.
             // Nothing until the session has loaded: before it, hasPermission fails open and would flash admin-only
             // items at a Kitchen or Front of House login for a moment.
+            // "Settings" is a single entry: its pages live in the settings menu (SettingsNav). It shows when the person
+            // may open any of them and leads to the first one they can use (e.g. someone with only Team & Access).
+            const settingsPages = visibleSettingsItems(session);
             const visible = session
-              ? NAV_ITEMS.filter((item) => hasPermission(session, item.pageKey, "view")).sort(
+              ? NAV_ITEMS.filter((item) =>
+                  item.key === "settings"
+                    ? settingsPages.length > 0
+                    : hasPermission(session, item.pageKey, "view"),
+                )
+                  .map((item) =>
+                    item.key === "settings" && settingsPages[0]
+                      ? { ...item, href: settingsPages[0].href }
+                      : item,
+                  )
+                  .sort(
                   (a, b) => GROUP_ORDER.indexOf(a.group) - GROUP_ORDER.indexOf(b.group),
                 )
               : [];

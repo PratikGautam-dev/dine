@@ -8,6 +8,8 @@ import { GlobalFilter, type GlobalFilterOptions } from "@/components/portal/Glob
 import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
 import { PortalSidebar } from "@/components/portal/PortalSidebar";
+import { SettingsMenu, SettingsNav } from "@/components/portal/SettingsNav";
+import { isSettingsPath } from "@/components/portal/settingsNav";
 import { UserMenu } from "@/components/portal/UserMenu";
 import {
   DASHBOARD_PERIODS,
@@ -70,6 +72,9 @@ const FILTER_PAGES: Record<string, GlobalFilterOptions> = {
 export function PortalShell({ restaurant, active, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  // Settings is its own mode: the main sidebar is replaced by the settings menu (a fixed column on wide
+  // screens, a drawer from the header button below `lg`), and only the page beside it scrolls.
+  const inSettings = isSettingsPath(pathname);
 
   // A nav Link tap already calls onClose directly, but this also covers
   // back/forward navigation and any other route change that isn't a click
@@ -80,24 +85,30 @@ export function PortalShell({ restaurant, active, children }: Props) {
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
-      <PortalSidebar
-        restaurant={restaurant}
-        active={active}
-        open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-      />
+      {!inSettings && (
+        <PortalSidebar
+          restaurant={restaurant}
+          active={active}
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
+      )}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <NewOrderAlert />
         <header className="flex h-16 shrink-0 items-center gap-space-3 border-b border-line bg-card px-space-4">
-          <button
-            type="button"
-            onClick={() => setSidebarOpen(true)}
-            aria-label="Open menu"
-            className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden"
-          >
-            <Menu size={20} strokeWidth={2} />
-          </button>
+          {inSettings ? (
+            <SettingsMenu />
+          ) : (
+            <button
+              type="button"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open menu"
+              className="-ml-space-2 flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-ink-600 hover:bg-paper lg:hidden"
+            >
+              <Menu size={20} strokeWidth={2} />
+            </button>
+          )}
           <span className="truncate text-[14px] font-bold text-ink-900 lg:hidden">
             {restaurant?.name || "Restaurant"}
           </span>
@@ -109,8 +120,25 @@ export function PortalShell({ restaurant, active, children }: Props) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6">
-          {children}
+        <main
+          className={
+            inSettings
+              ? "flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6 lg:flex lg:flex-col lg:overflow-hidden lg:p-0"
+              : "flex-1 overflow-y-auto p-space-3 xs:p-space-4 sm:p-space-6"
+          }
+        >
+          {inSettings ? (
+            <div className="flex flex-col gap-space-4 lg:min-h-0 lg:flex-1 lg:flex-row lg:gap-0">
+              <div className="hidden lg:flex lg:shrink-0">
+                <SettingsNav />
+              </div>
+              <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:p-space-6">
+                <div className="mx-auto max-w-[1040px]">{children}</div>
+              </div>
+            </div>
+          ) : (
+            children
+          )}
         </main>
       </div>
     </div>
