@@ -17,17 +17,9 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import {
-  ChannelBadge,
-  OrderStatusBadge,
-  PaymentStatusBadge,
-} from "@/components/erp/StatusBadges";
-import {
-  Avatar,
-  ComposeModal,
-  MessageList,
-  SegmentBadge,
-} from "@/components/crm/shared";
+import { ChannelBadge, OrderStatusBadge, PaymentStatusBadge } from "@/components/erp/StatusBadges";
+import { Avatar, ComposeModal, MessageList, SegmentBadge } from "@/components/crm/shared";
+import { ConsentManagement } from "@/components/crm/ConsentManagement";
 import { Badge } from "@/components/erp-ui/Badge";
 import { Button } from "@/components/erp-ui/Button";
 import { Card } from "@/components/erp-ui/Card";
@@ -58,21 +50,16 @@ import {
 import { toast } from "@/lib/toast";
 import { formatPhone } from "@/lib/erp/phone";
 
-type Tab = "overview" | "orders" | "communication" | "notes";
+type Tab = "overview" | "orders" | "communication" | "notes" | "consent";
 const TABS: { key: Tab; label: string }[] = [
   { key: "overview", label: "Overview" },
   { key: "orders", label: "Purchase History" },
   { key: "communication", label: "Communication" },
   { key: "notes", label: "Notes" },
+  { key: "consent", label: "Consent Management" },
 ];
 
-function Fact({
-  icon,
-  children,
-}: {
-  icon: React.ReactNode;
-  children: React.ReactNode;
-}) {
+function Fact({ icon, children }: { icon: React.ReactNode; children: React.ReactNode }) {
   return (
     <li className="flex items-start gap-space-2 text-[13.5px] text-ink-900">
       <span className="mt-0.5 text-ink-400">{icon}</span>
@@ -116,22 +103,14 @@ export function CustomerProfile({
   showOpenLink?: boolean;
 }) {
   const router = useRouter();
-  const profile = useErpQuery<CrmProfile>(
-    `/api/v1/crm/customers/${customerId}`,
-  );
-  const credit = useErpQuery<StoreCredit>(
-    `/api/v1/customers/${customerId}/store-credit`,
-  );
+  const profile = useErpQuery<CrmProfile>(`/api/v1/crm/customers/${customerId}`);
+  const credit = useErpQuery<StoreCredit>(`/api/v1/customers/${customerId}/store-credit`);
   const [tab, setTab] = useState<Tab>("overview");
   const orders = useErpQuery<Order[]>(
-    tab === "orders"
-      ? `/api/v1/orders?customer_id=${customerId}&limit=100`
-      : null,
+    tab === "orders" ? `/api/v1/orders?customer_id=${customerId}&limit=100` : null,
   );
   const messages = useErpQuery<CrmMessage[]>(
-    tab === "communication"
-      ? `/api/v1/crm/messages?customer_id=${customerId}`
-      : null,
+    tab === "communication" ? `/api/v1/crm/messages?customer_id=${customerId}` : null,
   );
   const notes = useErpQuery<CrmNote[]>(
     tab === "notes" ? `/api/v1/crm/customers/${customerId}/notes` : null,
@@ -163,18 +142,13 @@ export function CustomerProfile({
   const known = useErpQuery<{ tag: string; customers: number }[]>(
     editing ? "/api/v1/crm/tags" : null,
   );
-  const plans = useErpQuery<{ settings: CrmSettings }>(
-    editing ? "/api/v1/crm/segments" : null,
-  );
+  const plans = useErpQuery<{ settings: CrmSettings }>(editing ? "/api/v1/crm/segments" : null);
   const [adjust, setAdjust] = useState({ delta: "", reason: "" });
   const [noteBody, setNoteBody] = useState("");
   const [followUp, setFollowUp] = useState("");
 
   const c = profile.data;
-  if (profile.error)
-    return (
-      <p className="text-[13.5px] font-medium text-error">{profile.error}</p>
-    );
+  if (profile.error) return <p className="text-[13.5px] font-medium text-error">{profile.error}</p>;
   if (!c) return <SkeletonLines rows={4} />;
 
   const changed = () => {
@@ -184,29 +158,22 @@ export function CustomerProfile({
   async function saveAnniversary() {
     if (!anniv.day || !anniv.label.trim() || annivBusy) return;
     setAnnivBusy(true);
-    const res = await erp(
-      `/api/v1/crm/customers/${customerId}/special-days`,
-      "POST",
-      { label: anniv.label.trim(), day: anniv.day },
-    );
+    const res = await erp(`/api/v1/crm/customers/${customerId}/special-days`, "POST", {
+      label: anniv.label.trim(),
+      day: anniv.day,
+    });
     setAnnivBusy(false);
-    if (res.error)
-      return toast.error("Couldn't save the anniversary", res.error);
+    if (res.error) return toast.error("Couldn't save the anniversary", res.error);
     setAddingAnniv(false);
     setAnniv({ day: "", label: "" });
     changed();
   }
   async function removeAnniversary(id: string) {
-    const res = await erp(
-      `/api/v1/crm/customers/${customerId}/special-days/${id}`,
-      "DELETE",
-    );
-    if (res.error)
-      return toast.error("Couldn't remove the anniversary", res.error);
+    const res = await erp(`/api/v1/crm/customers/${customerId}/special-days/${id}`, "DELETE");
+    if (res.error) return toast.error("Couldn't remove the anniversary", res.error);
     changed();
   }
-  const defaultAddress =
-    c.addresses.find((a) => a.is_default) ?? c.addresses[0];
+  const defaultAddress = c.addresses.find((a) => a.is_default) ?? c.addresses[0];
 
   function openEdit() {
     if (!c) return;
@@ -246,9 +213,7 @@ export function CustomerProfile({
     setBlocking(false);
     if (res.error)
       return toast.error(
-        blocked
-          ? "Couldn't unblock the customer"
-          : "Couldn't block the customer",
+        blocked ? "Couldn't unblock the customer" : "Couldn't block the customer",
         res.error,
       );
     toast.success(blocked ? "Customer unblocked" : "Customer blocked");
@@ -305,12 +270,8 @@ export function CustomerProfile({
         ? [...tags, tagDraft.split(/\s+/).filter(Boolean).join(" ")]
         : tags;
       const lower = (l: string[]) => l.map((t) => t.toLowerCase());
-      const add = finalTags.filter(
-        (t) => !lower(c.tags).includes(t.toLowerCase()),
-      );
-      const remove = c.tags.filter(
-        (t) => !lower(finalTags).includes(t.toLowerCase()),
-      );
+      const add = finalTags.filter((t) => !lower(c.tags).includes(t.toLowerCase()));
+      const remove = c.tags.filter((t) => !lower(finalTags).includes(t.toLowerCase()));
       if (add.length || remove.length) {
         const t = await erp("/api/v1/crm/tags", "POST", {
           customer_ids: [customerId],
@@ -337,16 +298,11 @@ export function CustomerProfile({
           }
           const delta = target - c.loyalty.points;
           if (ok && delta > 0) {
-            const bonus = await erp(
-              `/api/v1/crm/customers/${customerId}/loyalty`,
-              "POST",
-              {
-                delta,
-                reason: `Tier set to ${TIER_LABEL[tier]} when the customer was edited`,
-              },
-            );
-            if (bonus.error)
-              missed.push(`${TIER_LABEL[tier]} tier (${bonus.error})`);
+            const bonus = await erp(`/api/v1/crm/customers/${customerId}/loyalty`, "POST", {
+              delta,
+              reason: `Tier set to ${TIER_LABEL[tier]} when the customer was edited`,
+            });
+            if (bonus.error) missed.push(`${TIER_LABEL[tier]} tier (${bonus.error})`);
           }
         }
       }
@@ -354,10 +310,7 @@ export function CustomerProfile({
     setBusy(false);
     if (b.error) return toast.error("Couldn't save the customer", b.error);
     if (missed.length)
-      toast.error(
-        "Saved, but not everything",
-        `Couldn't update ${missed.join("; ")}.`,
-      );
+      toast.error("Saved, but not everything", `Couldn't update ${missed.join("; ")}.`);
     else toast.success("Customer updated");
     setEditing(false);
     changed();
@@ -382,11 +335,10 @@ export function CustomerProfile({
         "Use a positive number to add or a negative one to take away.",
       );
     setBusy(true);
-    const res = await erp(
-      `/api/v1/crm/customers/${customerId}/loyalty`,
-      "POST",
-      { delta, reason: adjust.reason.trim() },
-    );
+    const res = await erp(`/api/v1/crm/customers/${customerId}/loyalty`, "POST", {
+      delta,
+      reason: adjust.reason.trim(),
+    });
     setBusy(false);
     if (res.error) return toast.error("Couldn't adjust points", res.error);
     toast.success("Loyalty points updated");
@@ -435,16 +387,11 @@ export function CustomerProfile({
             <SegmentBadge segment={c.segment} />
             {c.status === "blocked" && <Badge tone="error">Blocked</Badge>}
           </h2>
-          <p className="text-[12px] text-ink-400">
-            Customer ID: {c.customer_code ?? "—"}
-          </p>
+          <p className="text-[12px] text-ink-400">Customer ID: {c.customer_code ?? "—"}</p>
         </div>
         <div className="mobile-page-actions flex gap-space-2 max-md:!flex-nowrap max-md:[&>*]:!w-auto max-md:[&>*]:!flex-1 max-md:[&>*]:!px-space-2">
           {showOpenLink && (
-            <Button
-              variant="ghost"
-              onClick={() => router.push(`/portal/customers/${c.id}`)}
-            >
+            <Button variant="ghost" onClick={() => router.push(`/portal/customers/${c.id}`)}>
               Open
             </Button>
           )}
@@ -465,17 +412,13 @@ export function CustomerProfile({
       </div>
       {c.status === "blocked" && (
         <p className="mb-space-3 rounded-md bg-error-tint px-space-3 py-space-2 text-[13px] text-ink-900">
-          This customer is blocked: they can&apos;t sign in to the website,
-          place orders there or on WhatsApp, or receive messages and campaigns.
+          This customer is blocked: they can&apos;t sign in to the website, place orders there or on
+          WhatsApp, or receive messages and campaigns.
         </p>
       )}
       <ConfirmDialog
         open={blocking}
-        title={
-          c.status === "blocked"
-            ? "Unblock this customer?"
-            : "Block this customer?"
-        }
+        title={c.status === "blocked" ? "Unblock this customer?" : "Block this customer?"}
         message={
           c.status === "blocked"
             ? `${c.name || "This customer"} will be able to sign in, order on the website and WhatsApp, and get messages again.`
@@ -494,9 +437,7 @@ export function CustomerProfile({
         <div className="space-y-space-4">
           <ul className="space-y-space-2">
             <Fact icon={<HugeiconsIcon icon={Call02Icon} size={16} />}>
-              {formatPhone(c.phone) || (
-                <span className="text-ink-400">No phone</span>
-              )}
+              {formatPhone(c.phone) || <span className="text-ink-400">No phone</span>}
             </Fact>
             <Fact icon={<HugeiconsIcon icon={Mail01Icon} size={16} />}>
               {c.email ?? <span className="text-ink-400">No email</span>}
@@ -525,16 +466,13 @@ export function CustomerProfile({
             </Fact>
             <Fact icon={<HugeiconsIcon icon={Calendar03Icon} size={16} />}>
               {c.special_days.length > 0 ? (
-                c.special_days
-                  .map((d) => `${d.label} ${formatDate(d.day)}`)
-                  .join(" · ")
+                c.special_days.map((d) => `${d.label} ${formatDate(d.day)}`).join(" · ")
               ) : (
                 <span className="text-ink-400">No anniversaries</span>
               )}
             </Fact>
             <Fact icon={<HugeiconsIcon icon={Calendar03Icon} size={16} />}>
-              Joined {formatDate(c.created_at)} · Last purchase{" "}
-              {formatDate(c.last_order_at)}
+              Joined {formatDate(c.created_at)} · Last purchase {formatDate(c.last_order_at)}
             </Fact>
           </ul>
 
@@ -571,15 +509,13 @@ export function CustomerProfile({
           )}
           {!c.membership_eligible && (
             <p className="text-[12px] text-ink-600">
-              The customer must become a member (Customers &gt; Membership) before
-              earning or redeeming loyalty points.
+              The customer must become a member (Customers &gt; Membership) before earning or
+              redeeming loyalty points.
             </p>
           )}
 
           <div>
-            <h3 className="mb-space-2 text-[13px] font-bold text-ink-900">
-              Customer tags
-            </h3>
+            <h3 className="mb-space-2 text-[13px] font-bold text-ink-900">Customer tags</h3>
             <div className="flex flex-wrap items-center gap-space-2">
               {c.tags.length === 0 && (
                 <span className="text-[13px] text-ink-400">No tags yet.</span>
@@ -625,9 +561,7 @@ export function CustomerProfile({
               <SegmentBadge segment={c.segment} />
             </dd>
             <dt className="text-ink-600">Date of birth</dt>
-            <dd className="col-span-2">
-              {c.birthday ? formatDate(c.birthday) : "—"}
-            </dd>
+            <dd className="col-span-2">{c.birthday ? formatDate(c.birthday) : "—"}</dd>
             <dt className="text-ink-600">Anniversaries</dt>
             <dd className="col-span-2">
               {c.special_days.length === 0 && !(canEdit && addingAnniv) && "—"}
@@ -666,18 +600,14 @@ export function CustomerProfile({
                     maxLength={60}
                     placeholder="Of what? e.g. Wedding"
                     value={anniv.label}
-                    onChange={(e) =>
-                      setAnniv({ ...anniv, label: e.target.value })
-                    }
+                    onChange={(e) => setAnniv({ ...anniv, label: e.target.value })}
                   />
                   <Input
                     type="date"
                     aria-label="Anniversary date"
                     className="!w-36 shrink-0 !h-8 !rounded-md !px-space-2 !text-[13px]"
                     value={anniv.day}
-                    onChange={(e) =>
-                      setAnniv({ ...anniv, day: e.target.value })
-                    }
+                    onChange={(e) => setAnniv({ ...anniv, day: e.target.value })}
                   />
                   <Button
                     type="submit"
@@ -709,16 +639,10 @@ export function CustomerProfile({
             <dt className="text-ink-600">Gender</dt>
             <dd className="col-span-2 capitalize">{c.gender ?? "—"}</dd>
             <dt className="text-ink-600">Preferences</dt>
-            <dd className="col-span-2 whitespace-pre-wrap">
-              {c.preferences ?? "—"}
-            </dd>
+            <dd className="col-span-2 whitespace-pre-wrap">{c.preferences ?? "—"}</dd>
             <dt className="text-ink-600">WhatsApp</dt>
             <dd className="col-span-2">
-              {c.whatsapp_opt_in ? (
-                <Badge tone="success">Opted in</Badge>
-              ) : (
-                "Not opted in"
-              )}
+              {c.whatsapp_opt_in ? <Badge tone="success">Opted in</Badge> : "Not opted in"}
             </dd>
             <dt className="text-ink-600">Internal note</dt>
             <dd className="col-span-2 whitespace-pre-wrap">{c.notes ?? "—"}</dd>
@@ -726,23 +650,15 @@ export function CustomerProfile({
 
           {c.addresses.length > 1 && (
             <div>
-              <h3 className="mb-space-2 text-[13px] font-bold text-ink-900">
-                All addresses
-              </h3>
+              <h3 className="mb-space-2 text-[13px] font-bold text-ink-900">All addresses</h3>
               <div className="grid gap-space-2 md:grid-cols-2">
                 {c.addresses.map((a) => (
-                  <div
-                    key={a.id}
-                    className="rounded-md border border-line p-space-2 text-[13px]"
-                  >
+                  <div key={a.id} className="rounded-md border border-line p-space-2 text-[13px]">
                     <p className="font-semibold text-ink-900">
-                      {a.label ?? "Address"}{" "}
-                      {a.is_default && <Badge tone="brand">Default</Badge>}
+                      {a.label ?? "Address"} {a.is_default && <Badge tone="brand">Default</Badge>}
                     </p>
                     <p className="text-ink-600">
-                      {[a.line1, a.line2, a.city, a.state, a.pincode]
-                        .filter(Boolean)
-                        .join(", ")}
+                      {[a.line1, a.line2, a.city, a.state, a.pincode].filter(Boolean).join(", ")}
                     </p>
                   </div>
                 ))}
@@ -767,18 +683,12 @@ export function CustomerProfile({
                   className="flex w-full flex-wrap items-center justify-between gap-space-2 py-space-2 text-left text-[13.5px] hover:bg-black/[0.02]"
                 >
                   <span className="flex items-center gap-space-2">
-                    <span className="font-semibold text-ink-900">
-                      {o.order_number}
-                    </span>
+                    <span className="font-semibold text-ink-900">{o.order_number}</span>
                     <ChannelBadge channel={o.channel} />
                   </span>
                   <span className="flex flex-wrap items-center gap-space-2">
-                    <span className="text-ink-600">
-                      {formatDateTime(o.placed_at)}
-                    </span>
-                    <span className="font-medium">
-                      {formatMoney(o.total_minor, o.currency)}
-                    </span>
+                    <span className="text-ink-600">{formatDateTime(o.placed_at)}</span>
+                    <span className="font-medium">{formatMoney(o.total_minor, o.currency)}</span>
                     <PaymentStatusBadge status={o.payment_status} />
                     <OrderStatusBadge status={o.status} />
                   </span>
@@ -792,10 +702,7 @@ export function CustomerProfile({
       {tab === "communication" && (
         <div>
           {canEdit && (
-            <Button
-              className="mobile-page-action mb-space-3"
-              onClick={() => setComposing(true)}
-            >
+            <Button className="mobile-page-action mb-space-3" onClick={() => setComposing(true)}>
               <HugeiconsIcon icon={Message01Icon} size={15} /> New message
             </Button>
           )}
@@ -808,6 +715,16 @@ export function CustomerProfile({
             />
           )}
         </div>
+      )}
+
+      {tab === "consent" && (
+        <ConsentManagement
+          customerId={customerId}
+          consents={c.consents}
+          canEdit={canEdit}
+          hasPhone={Boolean(c.phone)}
+          onChanged={changed}
+        />
       )}
 
       {tab === "notes" && (
@@ -823,10 +740,7 @@ export function CustomerProfile({
                 aria-label="Note"
               />
               <div className="flex flex-wrap items-center gap-space-2">
-                <label
-                  className="text-[12.5px] text-ink-600"
-                  htmlFor="followup"
-                >
+                <label className="text-[12.5px] text-ink-600" htmlFor="followup">
                   Follow up on
                 </label>
                 <Input
@@ -852,17 +766,8 @@ export function CustomerProfile({
           )}
           <ul className="space-y-space-2">
             {(notes.data ?? []).map((n) => (
-              <li
-                key={n.id}
-                className="rounded-md border border-line p-space-3 text-[13.5px]"
-              >
-                <p
-                  className={
-                    n.done_at ? "text-ink-400 line-through" : "text-ink-900"
-                  }
-                >
-                  {n.body}
-                </p>
+              <li key={n.id} className="rounded-md border border-line p-space-3 text-[13.5px]">
+                <p className={n.done_at ? "text-ink-400 line-through" : "text-ink-900"}>{n.body}</p>
                 <p className="mt-1 flex flex-wrap items-center gap-space-2 text-[12px] text-ink-400">
                   {n.author ?? "Staff"} · {formatDateTime(n.created_at)}
                   {n.follow_up_at && (
@@ -930,12 +835,7 @@ export function CustomerProfile({
           />
         </Field>
         <Field label="Phone" htmlFor="e_phone">
-          <Input
-            id="e_phone"
-            value={c.phone ? formatPhone(c.phone) : ""}
-            disabled
-            readOnly
-          />
+          <Input id="e_phone" value={c.phone ? formatPhone(c.phone) : ""} disabled readOnly />
         </Field>
         <Field label="Email" htmlFor="e_email">
           <Input
@@ -999,21 +899,14 @@ export function CustomerProfile({
               : "A member's tier follows their loyalty points. Choosing a higher tier adds the points it needs."
           }
         >
-          <Select
-            id="e_tier"
-            value={tier}
-            onValueChange={(v) => setTier(v as "" | BenefitTier)}
-          >
-            {c.segment === "not_member" && (
-              <option value="">Not a member</option>
-            )}
+          <Select id="e_tier" value={tier} onValueChange={(v) => setTier(v as "" | BenefitTier)}>
+            {c.segment === "not_member" && <option value="">Not a member</option>}
             {BENEFIT_TIERS.filter(
               (t) =>
                 c.segment === "not_member" ||
                 c.segment === "inactive" ||
                 c.segment === t ||
-                BENEFIT_TIERS.indexOf(t) >
-                  BENEFIT_TIERS.indexOf(c.segment as BenefitTier),
+                BENEFIT_TIERS.indexOf(t) > BENEFIT_TIERS.indexOf(c.segment as BenefitTier),
             ).map((t) => (
               <option key={t} value={t}>
                 {TIER_LABEL[t]}
@@ -1028,10 +921,7 @@ export function CustomerProfile({
           hint={tagError ? undefined : "Press Enter or comma after each tag."}
         >
           {tags.length > 0 && (
-            <ul
-              className="mb-space-2 flex flex-wrap gap-space-1"
-              aria-label="Tags"
-            >
+            <ul className="mb-space-2 flex flex-wrap gap-space-1" aria-label="Tags">
               {tags.map((t) => (
                 <li key={t}>
                   <Badge tone="clay" className="normal-case">
@@ -1068,10 +958,7 @@ export function CustomerProfile({
           />
           <datalist id="e_tag_suggestions">
             {(known.data ?? [])
-              .filter(
-                (k) =>
-                  !tags.some((t) => t.toLowerCase() === k.tag.toLowerCase()),
-              )
+              .filter((k) => !tags.some((t) => t.toLowerCase() === k.tag.toLowerCase()))
               .map((k) => (
                 <option key={k.tag} value={k.tag} />
               ))}
@@ -1107,10 +994,7 @@ export function CustomerProfile({
             <Button variant="ghost" onClick={() => setAdjusting(false)}>
               Cancel
             </Button>
-            <Button
-              disabled={busy || !adjust.delta || !adjust.reason.trim()}
-              onClick={saveAdjust}
-            >
+            <Button disabled={busy || !adjust.delta || !adjust.reason.trim()} onClick={saveAdjust}>
               Save
             </Button>
           </>
