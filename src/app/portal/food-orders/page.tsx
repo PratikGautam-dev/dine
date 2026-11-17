@@ -149,15 +149,14 @@ export default function PortalFoodOrdersPage() {
     if (typeof window === "undefined") return;
     const source = new URLSearchParams(window.location.search).get("source");
     if (source === "web" || source === "whatsapp") setGlobalChannels([source]);
+    // the sidebar's plain "Food Orders" link is ?source=all: the channel filter is remembered, so without this
+    // it would reopen on whichever channel was last picked (WhatsApp) and highlight that sidebar row instead
+    else if (source === "all") setGlobalChannels([]);
     // run once on arrival: the link only sets the starting channel, later header changes must stick
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const activeNavKey =
-    sourceFilter === "web"
-      ? "sales-online"
-      : sourceFilter === "whatsapp"
-        ? "sales-whatsapp"
-        : "food-orders";
+  // Website and WhatsApp in the sidebar are now their channel pages; their orders are this page with the channel filter on.
+  const activeNavKey = "food-orders";
 
   const viewCounts = useMemo(() => {
     const counts: Record<OrderView, number> = {

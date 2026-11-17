@@ -8,8 +8,6 @@ import {
   ChefHat,
   Maximize2,
   PackageCheck,
-  PencilLine,
-  Phone,
   Printer,
   Settings2,
   ShoppingBag,
@@ -197,7 +195,7 @@ export default function PortalKitchenOrdersPage() {
       newOrders: sort(all.filter((o) => o.status === "placed" || o.status === "paid")),
       preparing: sort(all.filter((o) => o.status === "accepted" || o.status === "preparing")),
       ready: sort(all.filter((o) => o.status === "ready_for_pickup")),
-      // picked up by a delivery partner: tracked in the Delivery Status table, not on the kitchen board
+      // picked up by a delivery partner: tracked on the Delivery Tracking page, not on the kitchen board
       delivery: sort(all.filter((o) => o.status === "out_for_delivery")),
       served: sort(
         all.filter(
@@ -409,95 +407,6 @@ export default function PortalKitchenOrdersPage() {
               </div>
             ))}
           </div>
-        )}
-
-        {orders && (
-          <Card className="mb-space-4 p-space-4" data-testid="delivery-status">
-            <div className="mb-space-3 flex items-center gap-space-2">
-              <Bike size={16} className="text-ink-600" />
-              <h3 className="text-[15px] font-bold text-ink-900">Delivery Status</h3>
-              <span className="text-hint">{groups.delivery.length} out for delivery</span>
-            </div>
-            {groups.delivery.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-line py-space-4 text-center text-[12.5px] text-ink-400">
-                No deliveries on the road right now.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[760px] text-left text-[13px]">
-                  <thead>
-                    <tr className="border-b border-line text-[11.5px] font-semibold tracking-wide text-ink-400 uppercase">
-                      <th className="py-space-2 pr-space-3">Order ID</th>
-                      <th className="py-space-2 pr-space-3">Delivery partner</th>
-                      <th className="py-space-2 pr-space-3">Partner number</th>
-                      <th className="py-space-2 pr-space-3">Customer</th>
-                      <th className="py-space-2 pr-space-3">Tracking ID</th>
-                      <th className="py-space-2 pr-space-3">Picked up</th>
-                      <th className="py-space-2 text-right">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {groups.delivery.map((o) => (
-                      <tr key={o.id} className="border-b border-line last:border-0">
-                        <td className="py-space-3 pr-space-3 font-mono text-[12.5px] font-semibold text-ink-900">
-                          {o.reference_id ?? `#${o.id}`}
-                        </td>
-                        <td className="py-space-3 pr-space-3 text-ink-900">
-                          {o.delivery_partner_name || (
-                            <span className="text-ink-400">Not assigned</span>
-                          )}
-                        </td>
-                        <td className="py-space-3 pr-space-3">
-                          {o.delivery_partner_phone ? (
-                            <a
-                              href={`tel:${o.delivery_partner_phone}`}
-                              className="inline-flex items-center gap-1 text-brand-700 hover:underline"
-                            >
-                              <Phone size={12} /> {o.delivery_partner_phone}
-                            </a>
-                          ) : (
-                            <span className="text-ink-400">—</span>
-                          )}
-                        </td>
-                        <td className="py-space-3 pr-space-3">
-                          <div className="text-ink-900">{o.patient_name || "Guest"}</div>
-                          <div className="text-[12px] text-ink-400">{o.phone}</div>
-                        </td>
-                        <td className="py-space-3 pr-space-3 font-mono text-[12.5px] text-ink-900">
-                          {o.delivery_tracking_id || <span className="text-ink-400">—</span>}
-                        </td>
-                        <td className="py-space-3 pr-space-3 text-ink-600">
-                          {minutesSince(o.dispatched_at || o.updated_at || o.created_at)} min ago
-                        </td>
-                        <td className="py-space-3 text-right">
-                          {canWrite && (
-                            <div className="flex justify-end gap-space-2">
-                              <button
-                                type="button"
-                                onClick={() => setDispatching(o)}
-                                className="flex items-center gap-1 rounded-md border border-line px-space-3 py-1.5 text-[12.5px] font-semibold text-ink-600 hover:bg-paper"
-                              >
-                                <PencilLine size={13} />{" "}
-                                {o.delivery_partner_name ? "Edit details" : "Add partner"}
-                              </button>
-                              <button
-                                type="button"
-                                disabled={actingId === o.id}
-                                onClick={() => runAction(o, "complete")}
-                                className="rounded-md bg-brand-600 px-space-3 py-1.5 text-[12.5px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-                              >
-                                {actingId === o.id ? "…" : "Mark delivered"}
-                              </button>
-                            </div>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </Card>
         )}
 
         <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-3">
