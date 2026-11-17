@@ -191,13 +191,13 @@ export default function PortalOffersPage() {
     <PortalShell restaurant={restaurant} active="offers">
       <PageHeader
         icon={<HugeiconsIcon icon={Tag01Icon} size={20} />}
-        title="Discounts"
+        title="Offers/Discounts"
         description="Manage and configure discounts for food orders, customers, and campaigns."
         actionsClassName="w-full justify-end md:w-auto"
         actions={
           <PermissionGate page="offers" action="write">
             <Button onClick={() => setEditing("new")}>
-              <HugeiconsIcon icon={Add01Icon} size={16} /> Add Discount
+              <HugeiconsIcon icon={Add01Icon} size={16} /> Add Offer/Discount
             </Button>
           </PermissionGate>
         }

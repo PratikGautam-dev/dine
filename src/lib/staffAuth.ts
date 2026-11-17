@@ -128,6 +128,17 @@ async function doRefresh(): Promise<string | null> {
  * access tokens are ~15min JWTs, so a 401 here first tries ONE silent
  * refresh before giving up and clearing the session -- otherwise routine
  * token expiry during normal use would log people out constantly. */
+/** The message to show for a failed response: the API's own `error` (Dine's shape), else FastAPI's `detail`, else what the status means
+ * (so a missing endpoint reads "Not found (404)" instead of a vague "Something went wrong."). */
+function responseErrorMessage(res: { status: number; data?: unknown }): string {
+  const data = (res.data ?? {}) as { error?: unknown; detail?: unknown };
+  if (typeof data.error === "string" && data.error) return data.error;
+  if (typeof data.detail === "string" && data.detail) return res.status === 404 ? `Not found (404): ${data.detail}` : data.detail;
+  if (res.status === 404) return "Not found (404): the server doesn't have this endpoint — it may be running an older build.";
+  if (res.status >= 500) return `Server error (${res.status}). Try again in a moment.`;
+  return "Something went wrong.";
+}
+
 export async function staffFetch(path: string, init?: RequestInit): Promise<FetchResult> {
   let token = getStaffAccessToken();
   if (!token) return { ok: false, unauthorized: true };
@@ -151,7 +162,7 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
       return {
         ok: false,
         unauthorized: false,
-        error: err.response.data?.error || "Something went wrong.",
+        error: responseErrorMessage(err.response),
       };
     }
 
@@ -173,7 +184,7 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
       return {
         ok: false,
         unauthorized: false,
-        error: retryErr.response.data?.error || "Something went wrong.",
+        error: responseErrorMessage(retryErr.response),
       };
     }
   }

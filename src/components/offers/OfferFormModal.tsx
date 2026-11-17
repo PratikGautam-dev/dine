@@ -59,11 +59,12 @@ const KIND_META: Record<DiscountKind, { icon: typeof Tag01Icon; hint: string }> 
   fixed_price: { icon: Tag01Icon, hint: "Special price" },
 };
 
-type Channel = "pos" | "online" | "whatsapp";
+type Channel = "pos" | "online" | "whatsapp" | "daap_app";
 const CHANNEL_LABEL: Record<Channel, string> = {
   pos: "POS",
   online: "Website",
   whatsapp: "WhatsApp",
+  daap_app: "Daap App",
 };
 const SCOPE_LABEL = {
   "": "All orders",
@@ -150,7 +151,7 @@ const EMPTY: Form = {
   code: "",
   name: "",
   description: "",
-  channels: ["pos", "online", "whatsapp"],
+  channels: ["pos", "online", "whatsapp", "daap_app"],
   kind: "percent",
   value: "",
   buyQty: "",
@@ -409,7 +410,7 @@ export function OfferFormModal({
       month: "short",
       year: "numeric",
     });
-  const allChannels = (["pos", "online", "whatsapp"] as Channel[]).every((c) =>
+  const allChannels = (["pos", "online", "whatsapp", "daap_app"] as Channel[]).every((c) =>
     form.channels.includes(c),
   );
   const toggleChannel = (c: Channel, on: boolean) =>
@@ -489,7 +490,7 @@ export function OfferFormModal({
     <Modal
       open={open}
       onClose={onClose}
-      title={editing ? "Edit Discount / Offer" : "New Discount / Offer"}
+      title={editing ? "Edit Offer / Discount" : "New Offer / Discount"}
       description="Create a discount or offer that can be used in POS, website or campaigns."
       width="xl"
       compact
@@ -682,6 +683,7 @@ export function OfferFormModal({
                     ["pos", "POS (in-store)"],
                     ["online", "Website (E-commerce)"],
                     ["whatsapp", "WhatsApp"],
+                    ["daap_app", "Daap App"],
                   ] as const
                 ).map(([c, label]) => (
                   <label key={c} className="flex items-center gap-space-2">
@@ -698,7 +700,10 @@ export function OfferFormModal({
                     type="checkbox"
                     checked={allChannels}
                     onChange={(e) =>
-                      set("channels", e.target.checked ? ["pos", "online", "whatsapp"] : [])
+                      set(
+                        "channels",
+                        e.target.checked ? ["pos", "online", "whatsapp", "daap_app"] : [],
+                      )
                     }
                   />
                   All

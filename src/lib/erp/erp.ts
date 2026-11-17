@@ -16,17 +16,17 @@ export const CHANNELS: Record<
   online: {
     label: "Website",
     slug: "online",
-    blurb: "Orders placed on the merchant's website.",
+    blurb: "Orders placed on your restaurant's website.",
   },
   pos: {
     label: "POS",
     slug: "pos",
-    blurb: "Counter sales billed at a branch.",
+    blurb: "Counter sales billed on a till.",
   },
   whatsapp: {
     label: "WhatsApp",
     slug: "whatsapp",
-    blurb: "Orders captured in WhatsApp conversations.",
+    blurb: "Orders and chats over WhatsApp.",
   },
 };
 
