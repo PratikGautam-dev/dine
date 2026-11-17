@@ -1,7 +1,6 @@
 import type { Channel, CustomerAddress } from "@/lib/erp/erp";
 
-export type Segment =
-  "regular" | "silver" | "gold" | "platinum" | "inactive" | "not_member";
+export type Segment = "regular" | "silver" | "gold" | "platinum" | "inactive" | "not_member";
 export type MessageChannel = "whatsapp" | "sms" | "email";
 
 export const SEGMENT_META: Record<
@@ -77,7 +76,17 @@ export type CrmCustomer = {
   loyalty_points: number;
 };
 
+export type ConsentType = "dpdp" | "privacy_policy" | "marketing";
+export type ConsentSource = "storefront" | "whatsapp" | "pos" | "staff";
+/** One decision on file; `null` for a type the customer was never asked. */
+export type ConsentDecision = {
+  status: "agreed" | "disagreed";
+  source: ConsentSource;
+  decided_at: string;
+} | null;
+
 export type CrmProfile = CrmCustomer & {
+  consents: Record<ConsentType, ConsentDecision>;
   notes: string | null;
   gstin: string | null;
   birthday: string | null;
@@ -138,8 +147,7 @@ export type CrmMessage = {
 export type CampaignChannel = MessageChannel | "pos" | "website";
 export type CampaignObjective =
   "sales" | "retention" | "loyalty" | "launch" | "reactivation" | "awareness";
-export type CampaignType =
-  "discount" | "loyalty" | "message" | "launch" | "event";
+export type CampaignType = "discount" | "loyalty" | "message" | "launch" | "event";
 export type CampaignAudience = {
   /** Any of these memberships (none = every membership). */
   segments?: Segment[];
@@ -322,8 +330,7 @@ export type FollowUpType =
   | "payment_reminder";
 export type FollowUpChannel = "call" | "whatsapp" | "email" | "in_store";
 export type FollowUpPriority = "low" | "medium" | "high";
-export type FollowUpStatus =
-  "scheduled" | "in_progress" | "completed" | "overdue" | "missed";
+export type FollowUpStatus = "scheduled" | "in_progress" | "completed" | "overdue" | "missed";
 export type FollowUp = {
   id: string;
   customer_id: string;
