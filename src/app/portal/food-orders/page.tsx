@@ -48,7 +48,7 @@ import {
 import {
   CANCELLABLE_STATUSES,
   FoodOrder,
-  NEXT_ACTION_BY_STATUS,
+  nextActionFor,
   NOTIFIABLE_STATUSES,
   STATUS_LABELS,
   useFoodOrders,
@@ -62,6 +62,7 @@ import {
   rupees,
   type OrderView,
 } from "@/lib/foodOrders";
+import { DispatchModal } from "@/components/portal/DispatchModal";
 import { usePermission } from "@/lib/staffAuth";
 
 const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
@@ -121,8 +122,9 @@ export default function PortalFoodOrdersPage() {
   // Everything is loaded once and filtered here, so every view can show its own count.
   // the period and channel come from the header's global filter
   const { days, range, period, setPeriod } = usePagePeriod(ORDER_PERIODS);
-  const { channels: globalChannels, setChannels: setGlobalChannels } = usePageChannels(ORDER_CHANNELS);
-  const { orders, error, actingId, runAction } = useFoodOrders(
+  const { channels: globalChannels, setChannels: setGlobalChannels } =
+    usePageChannels(ORDER_CHANNELS);
+  const { orders, error, actingId, runAction, dispatchOrder } = useFoodOrders(
     ready,
     "",
     days,
@@ -134,10 +136,13 @@ export default function PortalFoodOrdersPage() {
   const [view, setView] = useState<OrderView>("all");
   // several channels can be ticked at once; the page is "one channel" (own heading, own nav item) only when exactly one is
   const selectedSources = globalChannels;
-  const sourceFilter: SourceFilter = selectedSources.length === 1 ? (selectedSources[0] as SourceFilter) : "all";
+  const sourceFilter: SourceFilter =
+    selectedSources.length === 1 ? (selectedSources[0] as SourceFilter) : "all";
   const [typeFilter, setTypeFilter] = useState<TypeFilter>("all");
   const [search, setSearch] = useState("");
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
+  // the delivery order being handed to DAAP Delivery (the rider form)
+  const [dispatching, setDispatching] = useState<FoodOrder | null>(null);
   const [detailOrderId, setDetailOrderId] = useState<number | null>(null);
 
   // Sidebar's Sales Channels group (Online/WhatsApp) deep-links here with ?source=web|whatsapp
@@ -395,12 +400,20 @@ export default function PortalFoodOrdersPage() {
         header: "",
         cell: ({ row }) => {
           const order = row.original;
-          const next = NEXT_ACTION_BY_STATUS[order.status];
+          const next = nextActionFor(order);
           const busy = actingId === order.id;
           return (
             <div className="flex items-center justify-end gap-space-2 whitespace-nowrap">
               {canWrite && next && (
-                <Button size="md" disabled={busy} onClick={() => runAction(order, next.action)}>
+                <Button
+                  size="md"
+                  disabled={busy}
+                  onClick={() =>
+                    next.action === "dispatch"
+                      ? setDispatching(order)
+                      : runAction(order, next.action)
+                  }
+                >
                   {busy ? "…" : next.label}
                 </Button>
               )}
@@ -439,7 +452,7 @@ export default function PortalFoodOrdersPage() {
         },
       },
     ],
-    [actingId, canWrite, runAction],
+    [actingId, canWrite, runAction, setDispatching],
   );
 
   return (
@@ -647,6 +660,15 @@ export default function PortalFoodOrdersPage() {
           setPendingCancel(null);
         }}
       />
+
+      {dispatching && (
+        <DispatchModal
+          order={dispatching}
+          busy={actingId === dispatching.id}
+          onClose={() => setDispatching(null)}
+          onSubmit={(details) => dispatchOrder(dispatching, details)}
+        />
+      )}
 
       {detailOrderId !== null && (
         <OrderDetailDrawer orderId={detailOrderId} onClose={() => setDetailOrderId(null)} />
