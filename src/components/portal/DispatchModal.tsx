@@ -8,7 +8,8 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import type { DispatchDetails, FoodOrder } from "@/hooks/useFoodOrders";
 
-/** Who is taking this delivery order: the form behind the Kitchen page's "Hand to delivery partner" (an order being
+/** Who is taking this delivery order. Every delivery goes with DAAP Delivery (whatever channel the order came from), so the form only
+ * records the DAAP rider: the form behind the Kitchen page's "Hand to DAAP Delivery" (an order being
  * prepared) and "Edit details" (an order already out for delivery, to correct or fill in the partner). The same rules
  * the server enforces are checked here first, so a typo is caught before the round trip. */
 export function DispatchModal({
@@ -32,8 +33,7 @@ export function DispatchModal({
     e.preventDefault();
     const found: typeof errors = {};
     const cleanName = name.trim().replace(/\s+/g, " ");
-    if (cleanName.length < 2 || cleanName.length > 80)
-      found.name = "Enter the delivery partner's name.";
+    if (cleanName.length < 2 || cleanName.length > 80) found.name = "Enter the rider's name.";
     if (!/^\+?\d{7,15}$/.test(phone.replace(/[\s().-]/g, "")))
       found.phone = "Enter a valid phone number (7 to 15 digits).";
     if (tracking.trim().length > 64) found.tracking = "At most 64 characters.";
@@ -56,14 +56,15 @@ export function DispatchModal({
           </span>
           <div className="min-w-0">
             <h2 id="dispatch-title" className="text-[17px] font-bold text-ink-900">
-              {editing ? "Delivery details" : "Hand to delivery partner"}
+              {editing ? "Delivery details" : "Hand to DAAP Delivery"}
             </h2>
             <p className="truncate text-[13px] text-ink-600">
-              {order.reference_id ?? `#${order.id}`} · {order.patient_name || order.phone}
+              {order.reference_id ?? `#${order.id}`} · {order.patient_name || order.phone} ·
+              delivered by DAAP Delivery
             </p>
           </div>
         </div>
-        <Field label="Delivery partner name" htmlFor="dp-name" required error={errors.name}>
+        <Field label="Rider name" htmlFor="dp-name" required error={errors.name}>
           <Input
             id="dp-name"
             value={name}
@@ -73,7 +74,7 @@ export function DispatchModal({
             placeholder="e.g. Ravi Kumar"
           />
         </Field>
-        <Field label="Partner phone number" htmlFor="dp-phone" required error={errors.phone}>
+        <Field label="Rider phone number" htmlFor="dp-phone" required error={errors.phone}>
           <Input
             id="dp-phone"
             type="tel"
@@ -94,7 +95,7 @@ export function DispatchModal({
             value={tracking}
             onChange={(e) => setTracking(e.target.value)}
             invalid={!!errors.tracking}
-            placeholder="From the delivery partner's app"
+            placeholder="From the DAAP Delivery app"
           />
         </Field>
         <div className="flex justify-end gap-space-2">
