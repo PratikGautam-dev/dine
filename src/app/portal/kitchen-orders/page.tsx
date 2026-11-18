@@ -135,7 +135,7 @@ function OrderCard({
             onClick={() => (handsToPartner ? onDispatch() : onAction(next.action))}
             className="flex-1 rounded-md bg-brand-600 py-space-2 text-[13px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            {busy ? "…" : handsToPartner ? "Hand to delivery partner" : next.label}
+            {busy ? "…" : handsToPartner ? "Hand to DAAP Delivery" : next.label}
           </button>
         )}
         <button
@@ -335,7 +335,7 @@ export default function PortalKitchenOrdersPage() {
               label="Out for Delivery"
               value={groups.delivery.length}
               deltaPct={null}
-              hint="With a delivery partner"
+              hint="With DAAP Delivery"
             />
             <StatTile
               tone="brand"
