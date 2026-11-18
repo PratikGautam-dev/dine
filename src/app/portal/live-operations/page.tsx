@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
@@ -20,7 +21,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
-import { NEXT_ACTION_BY_STATUS, STATUS_LABELS as ORDER_STATUS_LABELS } from "@/hooks/useFoodOrders";
+import { nextActionFor, STATUS_LABELS as ORDER_STATUS_LABELS } from "@/hooks/useFoodOrders";
 import { type LiveTable, useLiveOperations } from "@/hooks/useLiveOperations";
 import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
@@ -213,7 +214,7 @@ export default function LiveOperationsPage() {
                   </p>
                 )}
                 {data.orders_queue.map((o) => {
-                  const next = NEXT_ACTION_BY_STATUS[o.status];
+                  const next = nextActionFor(o);
                   const FulfillmentIcon = o.fulfillment_type === "delivery" ? Bike : ShoppingBag;
                   return (
                     <div
@@ -233,7 +234,15 @@ export default function LiveOperationsPage() {
                           {ORDER_STATUS_LABELS[o.status] ?? o.status}
                         </div>
                       </div>
-                      {canWriteOrders && next && (
+                      {canWriteOrders && next?.action === "dispatch" && (
+                        <Link
+                          href="/portal/kitchen-orders"
+                          className="shrink-0 rounded-md bg-brand-600 px-space-3 py-1 text-[12px] font-semibold text-white hover:bg-brand-700"
+                        >
+                          {next.label}
+                        </Link>
+                      )}
+                      {canWriteOrders && next && next.action !== "dispatch" && (
                         <button
                           type="button"
                           disabled={actingId === `order-${o.id}`}

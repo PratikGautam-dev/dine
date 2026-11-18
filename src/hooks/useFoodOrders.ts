@@ -53,6 +53,18 @@ export const NEXT_ACTION_BY_STATUS: Record<string, { action: string; label: stri
     out_for_delivery: { action: "complete", label: "Complete" },
   };
 
+/** The next button for an order. A delivery order that is ready is not "completed": it is handed to DAAP Delivery first (action "dispatch",
+ * which opens the rider form), and only completed once it is out for delivery. */
+export function nextActionFor(order: {
+  status: string;
+  fulfillment_type: string | null;
+}): { action: string; label: string } | undefined {
+  if (order.fulfillment_type === "delivery" && order.status === "ready_for_pickup") {
+    return { action: "dispatch", label: "Hand to DAAP Delivery" };
+  }
+  return NEXT_ACTION_BY_STATUS[order.status];
+}
+
 export const CANCELLABLE_STATUSES = new Set(["placed", "paid", "accepted", "preparing"]);
 
 // Mirrors backend/portal/routes/food_ordering.py's own _STATUS_NOTIFICATION_TEXT keys -- the

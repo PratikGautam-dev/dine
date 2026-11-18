@@ -24,7 +24,7 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
-import { NEXT_ACTION_BY_STATUS, type FoodOrder, useFoodOrders } from "@/hooks/useFoodOrders";
+import { nextActionFor, type FoodOrder, useFoodOrders } from "@/hooks/useFoodOrders";
 import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { isSameLocalDay, parseOrderTime, rupees } from "@/lib/foodOrders";
@@ -77,9 +77,9 @@ function OrderCard({
   onAction: (action: string) => void;
   onDispatch: () => void;
 }) {
-  const next = NEXT_ACTION_BY_STATUS[order.status];
-  // A delivery order leaves with a delivery partner: instead of just "Mark Ready", the kitchen records who is taking it
-  const handsToPartner = order.fulfillment_type === "delivery" && next?.action === "mark_ready";
+  const next = nextActionFor(order);
+  // A ready delivery order is handed to DAAP Delivery (the kitchen records the rider) instead of being completed
+  const handsToPartner = next?.action === "dispatch";
   const age = minutesSince(order.created_at);
   const delayed =
     age >= delayedAfter && order.status !== "completed" && order.status !== "cancelled";
