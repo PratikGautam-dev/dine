@@ -8,7 +8,7 @@ import { Modal } from "@/components/ui/Modal";
 import type { MenuItem } from "@/hooks/useMenuItems";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
-import { cn } from "@/lib/cn";
+import { Select } from "@/components/erp-ui/Select";
 
 /** filename (no extension, no separators, lowercase) -> for best-guess matching against item
  * names normalised the same way. Deliberately simple (no fuzzy/Levenshtein library) -- staff
@@ -115,7 +115,9 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
     // backend with a burst of simultaneous multipart uploads from a single click.
     for (const row of rows) {
       if (!row.itemId || row.status === "done") continue;
-      setRows((prev) => prev.map((r) => (r.key === row.key ? { ...r, status: "uploading", error: null } : r)));
+      setRows((prev) =>
+        prev.map((r) => (r.key === row.key ? { ...r, status: "uploading", error: null } : r)),
+      );
       const body = new FormData();
       body.append("file", row.file);
       const uploadResult = await portalFetch("/api/portal/menu-items/upload-image", {
@@ -126,7 +128,11 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
         setRows((prev) =>
           prev.map((r) =>
             r.key === row.key
-              ? { ...r, status: "error", error: uploadResult.unauthorized ? "Session expired" : uploadResult.error }
+              ? {
+                  ...r,
+                  status: "error",
+                  error: uploadResult.unauthorized ? "Session expired" : uploadResult.error,
+                }
               : r,
           ),
         );
@@ -142,7 +148,11 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
         setRows((prev) =>
           prev.map((r) =>
             r.key === row.key
-              ? { ...r, status: "error", error: assignResult.unauthorized ? "Session expired" : assignResult.error }
+              ? {
+                  ...r,
+                  status: "error",
+                  error: assignResult.unauthorized ? "Session expired" : assignResult.error,
+                }
               : r,
           ),
         );
@@ -159,15 +169,19 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
   }
 
   return (
-    <Modal onClose={running ? () => {} : onClose} labelledBy="bulk-photo-upload-title" maxWidthClass="max-w-[720px]">
+    <Modal
+      onClose={running ? () => {} : onClose}
+      labelledBy="bulk-photo-upload-title"
+      maxWidthClass="max-w-[720px]"
+    >
       <div className="mb-space-4 flex items-start justify-between gap-space-3">
         <div>
           <h2 id="bulk-photo-upload-title" className="text-[16px] font-bold text-ink-900">
             Bulk upload photos
           </h2>
           <p className="text-hint mt-1">
-            Pick several dish photos at once. We&apos;ll guess which item each one belongs to from its
-            filename — review and fix the guess before anything is saved.
+            Pick several dish photos at once. We&apos;ll guess which item each one belongs to from
+            its filename — review and fix the guess before anything is saved.
           </p>
         </div>
         {!running && (
@@ -236,15 +250,11 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
                   <div className="truncate text-[12.5px] font-semibold text-ink-900">
                     {row.file.name}
                   </div>
-                  <select
-                    aria-label={`Menu item for ${row.file.name}`}
+                  <Select
                     value={row.itemId ?? ""}
+                    onValueChange={(v) => setRowItem(row.key, v)}
                     disabled={running || row.status === "done"}
-                    onChange={(e) => setRowItem(row.key, e.target.value)}
-                    className={cn(
-                      "mt-1 h-8 w-full max-w-[280px] rounded-md border bg-card px-space-2 text-[12.5px] text-ink-900 outline-none focus:border-brand-400",
-                      row.itemId ? "border-line" : "border-warning",
-                    )}
+                    aria-label={`Menu item for ${row.file.name}`}
                   >
                     <option value="">Select item…</option>
                     {nonComboItems.map((i) => (
@@ -252,7 +262,7 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
                         {i.name}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                   {row.status === "error" && (
                     <div className="mt-1 flex items-center gap-space-1 text-[11.5px] text-destructive">
                       <TriangleAlert size={12} /> {row.error}
@@ -264,7 +274,9 @@ export function BulkPhotoUploadModal({ items, onClose, onUploaded }: Props) {
                     <Loader2 size={18} className="animate-spin text-brand-600" />
                   )}
                   {row.status === "done" && <Badge tone="success">Saved</Badge>}
-                  {row.status === "pending" && !row.itemId && <Badge tone="warning">No match</Badge>}
+                  {row.status === "pending" && !row.itemId && (
+                    <Badge tone="warning">No match</Badge>
+                  )}
                   {row.status !== "uploading" && row.status !== "done" && (
                     <button
                       type="button"

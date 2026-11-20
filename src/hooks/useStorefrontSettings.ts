@@ -13,6 +13,11 @@ export type Storefront = {
   city: string | null;
   logo_url: string | null;
   cover_image_url: string | null;
+  /** Store contact details (migration 0105): phone is E.164, state a GST state name. */
+  email: string | null;
+  phone: string | null;
+  pincode: string | null;
+  state: string | null;
   min_order_paise: number;
   avg_prep_minutes: number;
   public_url_path: string | null;
@@ -82,7 +87,7 @@ export function useStorefrontSettings(ready: boolean) {
    * off the Storefront draft/publish pipeline onto General settings, immediate save through this
    * same /api/portal/settings/storefront route (it already accepts these keys). Used by the
    * General settings page's shared contact-details modal, not this page's own StorefrontForm. */
-  async function saveIdentity(fields: { name: string; address_line: string; city: string }): Promise<string | null> {
+  async function saveIdentity(fields: Partial<Record<"name" | "address_line" | "city" | "email" | "phone" | "pincode" | "state", string>>): Promise<string | null> {
     setSaving(true);
     const result = await staffFetch("/api/portal/settings/storefront", {
       method: "POST",

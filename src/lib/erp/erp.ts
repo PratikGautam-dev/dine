@@ -21,7 +21,7 @@ export const CHANNELS: Record<
   pos: {
     label: "POS",
     slug: "pos",
-    blurb: "Counter sales billed on a till.",
+    blurb: "Counter sales billed at a branch.",
   },
   whatsapp: {
     label: "WhatsApp",

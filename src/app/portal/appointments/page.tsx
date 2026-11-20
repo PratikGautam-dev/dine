@@ -30,12 +30,16 @@ import { StatTile } from "@/components/portal/StatTile";
 import { TodayScheduleCard } from "@/components/portal/TodayScheduleCard";
 import { WaitlistQueueCard } from "@/components/portal/WaitlistQueueCard";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
+import { Select } from "@/components/erp-ui/Select";
+import { Modal } from "@/components/ui/Modal";
+import { SlotCalendar } from "@/components/portal/SlotCalendar";
 import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import {
   TYPE_LABELS,
   type Appointment,
   type ViewFilter,
+  rescheduleMessageFor,
   useAppointments,
 } from "@/hooks/useAppointments";
 import { createAppointmentColumns } from "./_components/appointments-columns";
@@ -75,6 +79,8 @@ export default function PortalAppointmentsPage() {
     setViewFilter,
     searchQuery,
     setSearchQuery,
+    sourceFilter,
+    setSourceFilter,
     typeFilter,
     setTypeFilter,
     cancellingId,
@@ -103,7 +109,6 @@ export default function PortalAppointmentsPage() {
     rSlotsForDate,
     rTableSlots,
     rTableDates,
-    rTableSlotsForDate,
     openReschedulePanel,
     closeReschedulePanel,
     handleReschedule,
@@ -192,7 +197,7 @@ export default function PortalAppointmentsPage() {
   function renderRowDetail(a: Appointment) {
     if (reschedulePanelId === a.id && a.table_id) {
       return (
-        <div className="rounded-lg border border-line bg-paper p-space-3">
+        <div className="space-y-space-1">
           <p className="mb-space-2 text-[12.5px] text-ink-600">
             New date and time for {a.party_size ? `a party of ${a.party_size}` : "this reservation"}{" "}
             — a table is assigned automatically.
@@ -204,57 +209,23 @@ export default function PortalAppointmentsPage() {
               No tables are available for this party size.
             </p>
           ) : (
-            <>
-              <div className="mb-space-2">
-                <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">
-                  Date
-                </label>
-                <div className="flex flex-wrap gap-space-2">
-                  {rTableDates.map((d) => (
-                    <button
-                      type="button"
-                      key={d}
-                      onClick={() => {
-                        setRDate(d);
-                        setRSlotId("");
-                      }}
-                      className={cn(
-                        "rounded-md border px-space-2 py-space-1 text-[12px] font-semibold",
-                        rDate === d
-                          ? "border-brand-600 bg-brand-600 text-white"
-                          : "border-line bg-card text-ink-600",
-                      )}
-                    >
-                      {d}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {rDate && (
-                <div className="mb-space-3">
-                  <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">
-                    Time
-                  </label>
-                  <div className="flex flex-wrap gap-space-2">
-                    {rTableSlotsForDate.map((s) => (
-                      <button
-                        type="button"
-                        key={s.id}
-                        onClick={() => setRSlotId(s.id)}
-                        className={cn(
-                          "rounded-md border px-space-2 py-space-1 text-[12px] font-semibold",
-                          rSlotId === s.id
-                            ? "border-brand-600 bg-brand-600 text-white"
-                            : "border-line bg-card text-ink-600",
-                        )}
-                      >
-                        {s.time}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </>
+            <div className="mb-space-3">
+              <SlotCalendar
+                slots={rTableSlots}
+                value={rSlotId}
+                onChange={(slot) => {
+                  if (!slot) {
+                    setRSlotId("");
+                    return;
+                  }
+                  setRDate(slot.date);
+                  setRSlotId(slot.id);
+                  // put the new date and time in the message, unless the staff member has written their own
+                  if (/^Your reservation has been rescheduled/.test(rescheduleMessage))
+                    setRescheduleMessage(rescheduleMessageFor(slot.date, slot.time));
+                }}
+              />
+            </div>
           )}
 
           <label
@@ -281,7 +252,15 @@ export default function PortalAppointmentsPage() {
             </div>
           )}
 
-          <div className="flex gap-space-2">
+          <div className="flex justify-end gap-space-2">
+            <Button
+              size="md"
+              variant="secondary"
+              onClick={closeReschedulePanel}
+              disabled={reschedulingId === a.id}
+            >
+              Dismiss
+            </Button>
             <Button
               size="md"
               onClick={() => handleReschedule(a.id)}
@@ -290,14 +269,6 @@ export default function PortalAppointmentsPage() {
               <CalendarClock size={13} />{" "}
               {reschedulingId === a.id ? "Rescheduling…" : "Send & reschedule"}
             </Button>
-            <Button
-              size="md"
-              variant="secondary"
-              onClick={closeReschedulePanel}
-              disabled={reschedulingId === a.id}
-            >
-              <X size={13} /> Dismiss
-            </Button>
           </div>
         </div>
       );
@@ -305,21 +276,21 @@ export default function PortalAppointmentsPage() {
 
     if (reschedulePanelId === a.id) {
       return (
-        <div className="rounded-lg border border-line bg-paper p-space-3">
+        <div className="space-y-space-1">
           <div className="mb-space-3 grid grid-cols-1 gap-x-space-3 gap-y-space-2 md:grid-cols-2">
             <div>
               <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">
                 Section
               </label>
-              <select
+              <Select
                 value={rDepartmentId}
-                onChange={(e) => {
-                  setRDepartmentId(e.target.value);
+                onValueChange={(v) => {
+                  setRDepartmentId(v);
                   setRDoctorId("");
                   setRDate("");
                   setRSlotId("");
                 }}
-                className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                className="w-full !h-10"
               >
                 <option value="">Choose…</option>
                 {(rescheduleCtx?.departments || []).map((d) => (
@@ -327,21 +298,21 @@ export default function PortalAppointmentsPage() {
                     {d.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             <div>
               <label className="mb-space-1 block text-[12px] font-semibold text-ink-600">
                 Staff member
               </label>
-              <select
+              <Select
                 value={rDoctorId}
-                onChange={(e) => {
-                  setRDoctorId(e.target.value);
+                onValueChange={(v) => {
+                  setRDoctorId(v);
                   setRDate("");
                   setRSlotId("");
                 }}
+                className="w-full !h-10"
                 disabled={!rDepartmentId}
-                className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900 disabled:cursor-not-allowed disabled:bg-paper"
               >
                 <option value="">Choose…</option>
                 {rDoctors.map((d) => (
@@ -349,7 +320,7 @@ export default function PortalAppointmentsPage() {
                     {d.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
           </div>
 
@@ -438,7 +409,15 @@ export default function PortalAppointmentsPage() {
             </div>
           )}
 
-          <div className="flex gap-space-2">
+          <div className="flex justify-end gap-space-2">
+            <Button
+              size="md"
+              variant="secondary"
+              onClick={closeReschedulePanel}
+              disabled={reschedulingId === a.id}
+            >
+              Dismiss
+            </Button>
             <Button
               size="md"
               onClick={() => handleReschedule(a.id)}
@@ -446,14 +425,6 @@ export default function PortalAppointmentsPage() {
             >
               <CalendarClock size={13} />{" "}
               {reschedulingId === a.id ? "Rescheduling…" : "Send & reschedule"}
-            </Button>
-            <Button
-              size="md"
-              variant="secondary"
-              onClick={closeReschedulePanel}
-              disabled={reschedulingId === a.id}
-            >
-              <X size={13} /> Dismiss
             </Button>
           </div>
         </div>
@@ -513,10 +484,10 @@ export default function PortalAppointmentsPage() {
           {!reassignTables ? (
             <p className="mb-space-2 text-[12.5px] text-ink-400">Loading tables…</p>
           ) : (
-            <select
+            <Select
               value={reassignTableId}
-              onChange={(e) => setReassignTableId(e.target.value)}
-              className="mb-space-2 h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+              onValueChange={(v) => setReassignTableId(v)}
+              className="mb-space-2 w-full !h-10"
             >
               <option value="">Choose…</option>
               {tablesForDepartment
@@ -526,7 +497,7 @@ export default function PortalAppointmentsPage() {
                     {t.name} (seats {t.capacity})
                   </option>
                 ))}
-            </select>
+            </Select>
           )}
 
           {reassignErrors.length > 0 && (
@@ -696,7 +667,7 @@ export default function PortalAppointmentsPage() {
                       : "border-line bg-card text-ink-600 hover:border-ink-400",
                   )}
                 >
-                  {id === "all" ? "Any type" : id === "other" ? "Other" : TYPE_LABELS[id]}
+                  {id === "all" ? "Any type" : id === "other" ? "Earlier" : TYPE_LABELS[id]}
                   <span className="ml-space-1 tabular-nums opacity-70">{typeCounts[id] || 0}</span>
                 </button>
               ))}
@@ -717,6 +688,18 @@ export default function PortalAppointmentsPage() {
                 className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
               />
             </div>
+            <Select
+              value={sourceFilter}
+              onValueChange={setSourceFilter}
+              className="!w-[150px]"
+              aria-label="Filter by source"
+            >
+              <option value="all">All Sources</option>
+              <option value="whatsapp">WhatsApp</option>
+              <option value="web">Website</option>
+              <option value="app">App</option>
+              <option value="staff">Walk-in</option>
+            </Select>
           </div>
 
           <Card className="p-space-4">
@@ -735,9 +718,7 @@ export default function PortalAppointmentsPage() {
                 columns={columns}
                 data={filteredAppointments || []}
                 getRowId={(a) => String(a.id)}
-                isRowExpanded={(a) =>
-                  reschedulePanelId === a.id || cancelPanelId === a.id || reassignPanelId === a.id
-                }
+                isRowExpanded={(a) => cancelPanelId === a.id || reassignPanelId === a.id}
                 renderRowDetail={renderRowDetail}
                 onRowClick={(a) => setActiveId(a.id)}
                 rowClassName={(a) => (a.id === activeId ? "bg-brand-50" : "")}
@@ -774,6 +755,27 @@ export default function PortalAppointmentsPage() {
           <WaitlistQueueCard ready={ready} canWrite={canWrite} />
         </div>
       </div>
+
+      {reschedulePanelId !== null &&
+        (() => {
+          const target = (appointments || []).find((x) => x.id === reschedulePanelId);
+          if (!target) return null;
+          return (
+            <Modal
+              onClose={closeReschedulePanel}
+              labelledBy="reschedule-title"
+              maxWidthClass="max-w-[680px]"
+            >
+              <h2 id="reschedule-title" className="text-[17px] font-bold text-ink-900">
+                Reschedule reservation
+              </h2>
+              <p className="mb-space-4 text-[13px] text-ink-600">
+                {target.reference_id ?? `#${target.id}`} · {target.patient_name || target.phone}
+              </p>
+              {renderRowDetail(target)}
+            </Modal>
+          );
+        })()}
 
       <ConfirmDialog
         open={pendingDelete !== null}

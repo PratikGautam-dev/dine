@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  Add01Icon,
-  Delete02Icon,
-  UserGroupIcon,
-} from "@hugeicons/core-free-icons";
+import { Add01Icon, Delete02Icon, UserGroupIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useState } from "react";
 import { Input } from "@/components/erp-ui/Input";
@@ -46,11 +42,7 @@ export function Multi({
             key={o.value}
             type="button"
             aria-pressed={on}
-            onClick={() =>
-              onChange(
-                on ? value.filter((v) => v !== o.value) : [...value, o.value],
-              )
-            }
+            onClick={() => onChange(on ? value.filter((v) => v !== o.value) : [...value, o.value])}
             className={cn(
               "rounded-md border px-2.5 py-1 text-[12.5px] font-medium",
               on
@@ -87,17 +79,10 @@ function PeriodSelect({
       : WINDOW_PRESETS;
   return (
     <Select
-      value={
-        value
-          ? value.kind === "between"
-            ? "between"
-            : String(value.days)
-          : "all"
-      }
+      value={value ? (value.kind === "between" ? "between" : String(value.days)) : "all"}
       onValueChange={(v) => {
         if (v === "all") onChange(undefined);
-        else if (v === "between")
-          onChange({ kind: "between", start: "", end: today() });
+        else if (v === "between") onChange({ kind: "between", start: "", end: today() });
         else onChange({ kind: "days", days: Number(v) });
       }}
       className="!w-auto min-w-[140px] max-w-[220px] flex-[1_1_170px] !rounded-md"
@@ -162,9 +147,7 @@ export function Row({
 }) {
   const meta = FIELD_META[c.field];
   const [money, setMoney] = useState(
-    meta.input === "money" && typeof c.value === "number"
-      ? fromMinor(c.value)
-      : "",
+    meta.input === "money" && typeof c.value === "number" ? fromMinor(c.value) : "",
   );
   return (
     // Wraps by the width this row actually gets (it sits in a column beside a side panel, so screen breakpoints don't tell): controls drop to a
@@ -175,8 +158,7 @@ export function Row({
           value={c.field}
           onValueChange={(f) => {
             const next = defaultCondition(f as ConditionField);
-            if (FIELD_META[next.field].input === "money")
-              setMoney(fromMinor(next.value as number));
+            if (FIELD_META[next.field].input === "money") setMoney(fromMinor(next.value as number));
             onChange(next);
           }}
           className="!w-auto min-w-[140px] max-w-[220px] flex-[1_1_170px] !rounded-md"
@@ -191,9 +173,7 @@ export function Row({
         {OP_LABEL[c.op] !== "" && (
           <Select
             value={c.op}
-            onValueChange={(op) =>
-              onChange({ ...c, op: op as Condition["op"] })
-            }
+            onValueChange={(op) => onChange({ ...c, op: op as Condition["op"] })}
             className="!w-auto min-w-[130px] max-w-[190px] flex-[1_1_150px] !rounded-md"
             aria-label="Comparison"
           >
@@ -237,9 +217,7 @@ export function Row({
                 });
               }}
             />
-            {meta.unit && (
-              <span className="text-[13px] text-ink-600">{meta.unit}</span>
-            )}
+            {meta.unit && <span className="text-[13px] text-ink-600">{meta.unit}</span>}
           </span>
         )}
         {meta.input === "tiers" && (
@@ -276,10 +254,7 @@ export function Row({
           />
         )}
         {meta.windowed && (
-          <PeriodSelect
-            value={c.window}
-            onChange={(window) => onChange({ ...c, window })}
-          />
+          <PeriodSelect value={c.window} onChange={(window) => onChange({ ...c, window })} />
         )}
         {meta.input === "customer_type" && (
           <Select
@@ -314,10 +289,7 @@ export function Row({
           />
         )}
         {c.window?.kind === "between" && (
-          <DateRange
-            value={c.window}
-            onChange={(window) => onChange({ ...c, window })}
-          />
+          <DateRange value={c.window} onChange={(window) => onChange({ ...c, window })} />
         )}
         {onRemove && (
           <button
@@ -354,16 +326,12 @@ export function ConditionBuilder({
   membersOnly?: boolean;
   showPreview?: boolean;
 }) {
-  const fields = (Object.keys(FIELD_META) as ConditionField[]).filter(
-    (f) => !exclude.includes(f),
-  );
+  const fields = (Object.keys(FIELD_META) as ConditionField[]).filter((f) => !exclude.includes(f));
   const [keys, setKeys] = useState(() => conditions.map((_, i) => i));
   const [next, setNext] = useState(conditions.length);
   const ready = conditions.length > 0 && conditions.every(conditionReady);
   const body = useDebounced(
-    ready
-      ? JSON.stringify({ conditions, match, members_only: membersOnly })
-      : "",
+    ready ? JSON.stringify({ conditions, match, members_only: membersOnly }) : "",
     400,
   );
   const [preview, setPreview] = useState<Preview | null>(null);
@@ -372,11 +340,7 @@ export function ConditionBuilder({
   useEffect(() => {
     if (!showPreview || !body) return;
     let live = true;
-    void erp<Preview>(
-      "/api/v1/crm/rules/preview",
-      "POST",
-      JSON.parse(body),
-    ).then((res) => {
+    void erp<Preview>("/api/v1/crm/rules/preview", "POST", JSON.parse(body)).then((res) => {
       if (!live) return;
       setPreview(res.data ?? null);
       setPreviewError(res.error ?? null);
@@ -449,19 +413,13 @@ export function ConditionBuilder({
           </span>
           <div className="min-w-0">
             {!ready ? (
-              <p className="text-[13px] text-ink-600">
-                Fill in the conditions to see who matches.
-              </p>
+              <p className="text-[13px] text-ink-600">Fill in the conditions to see who matches.</p>
             ) : previewError ? (
-              <p className="text-[13px] font-medium text-error">
-                {previewError}
-              </p>
+              <p className="text-[13px] font-medium text-error">{previewError}</p>
             ) : (
               <>
                 <p className="text-[13px] text-ink-600">
-                  {membersOnly
-                    ? "Members matching now"
-                    : "Customers matching now"}
+                  {membersOnly ? "Members matching now" : "Customers matching now"}
                 </p>
                 <p className="text-[20px] font-bold leading-tight text-ink-900">
                   {preview ? preview.matched.toLocaleString("en-IN") : "…"}

@@ -19,10 +19,7 @@ import {
 } from "@/lib/support";
 import { toast } from "@/lib/toast";
 import { Counter } from "./Counter";
-
-const selectStyle =
-  "h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)] " +
-  "focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100";
+import { Select } from "@/components/erp-ui/Select";
 
 /** The "Raise a ticket" form: what's wrong, how urgent, a reference, and up to three screenshots. */
 export function RaiseTicketModal({ onClose }: { onClose: () => void }) {
@@ -60,7 +57,14 @@ export function RaiseTicketModal({ onClose }: { onClose: () => void }) {
     if (!question.trim()) return setError("Describe the problem.");
     setError("");
     raise.mutate(
-      { subject: subject.trim(), question: question.trim(), priority, category_id: category, problem_reference: reference, files },
+      {
+        subject: subject.trim(),
+        question: question.trim(),
+        priority,
+        category_id: category,
+        problem_reference: reference,
+        files,
+      },
       {
         onSuccess: (t) => {
           toast.success("Ticket raised", `${t.ticket_number} is with our team`);
@@ -82,28 +86,27 @@ export function RaiseTicketModal({ onClose }: { onClose: () => void }) {
       </p>
       <div className="grid gap-x-space-3 sm:grid-cols-2">
         <Field label="Category" htmlFor="st-cat">
-          <select id="st-cat" value={category} onChange={(e) => setCategory(e.target.value)} className={selectStyle}>
+          <Select value={category} onValueChange={(v) => setCategory(v)} id="st-cat">
             <option value="">Select a category</option>
             {(cats.data ?? []).map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="Priority" htmlFor="st-prio">
-          <select
-            id="st-prio"
+          <Select
             value={priority}
-            onChange={(e) => setPriority(e.target.value as SupportPriority)}
-            className={selectStyle}
+            onValueChange={(v) => setPriority(v as SupportPriority)}
+            id="st-prio"
           >
             {PRIORITIES.map((p) => (
               <option key={p} value={p}>
                 {PRIORITY_LABEL[p]}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       </div>
       <Field label="Subject" htmlFor="st-subject" required>
@@ -132,12 +135,23 @@ export function RaiseTicketModal({ onClose }: { onClose: () => void }) {
         htmlFor="st-ref"
         hint="For example an order number, so we can find it quickly."
       >
-        <Input id="st-ref" maxLength={120} value={reference} onChange={(e) => setReference(e.target.value)} />
+        <Input
+          id="st-ref"
+          maxLength={120}
+          value={reference}
+          onChange={(e) => setReference(e.target.value)}
+        />
       </Field>
-      <Field label={`Screenshots (${files.length} of ${MAX_FILES})`} hint="JPEG, PNG or WebP, up to 2 MB each.">
+      <Field
+        label={`Screenshots (${files.length} of ${MAX_FILES})`}
+        hint="JPEG, PNG or WebP, up to 2 MB each."
+      >
         <div className="flex flex-wrap items-center gap-space-2">
           {previews.map((src, i) => (
-            <div key={src} className="relative h-20 w-20 overflow-hidden rounded-md border border-line">
+            <div
+              key={src}
+              className="relative h-20 w-20 overflow-hidden rounded-md border border-line"
+            >
               {/* eslint-disable-next-line @next/next/no-img-element -- a local preview of the chosen file */}
               <img src={src} alt={files[i].name} className="h-full w-full object-cover" />
               <button

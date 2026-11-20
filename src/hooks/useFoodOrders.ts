@@ -28,8 +28,13 @@ export type FoodOrder = {
   updated_at: string;
   // Web Storefront: which front door this order came through. Every order predates 'web' as
   // 'whatsapp' (the column's own DB default) -- see food-orders/page.tsx's own Source column.
-  source: "whatsapp" | "web";
+  source: "whatsapp" | "web" | "app";
   mock_payment_ref: string | null;
+  // The latest payment on the order and how much of it has been refunded (the Returns page's queue). payment_status is null when the order has
+  // no payment record at all (an "at restaurant" order).
+  payment_status?: "pending" | "paid" | "failed" | null;
+  paid_paise?: number;
+  refunded_paise?: number;
   // Who is delivering a delivery order, set when the kitchen hands it to a delivery partner (the Kitchen Orders page's
   // "Delivery status"). All null for takeaway orders and for a delivery that hasn't been handed over yet.
   delivery_partner_name?: string | null;
@@ -53,6 +58,16 @@ export const NEXT_ACTION_BY_STATUS: Record<string, { action: string; label: stri
     out_for_delivery: { action: "complete", label: "Complete" },
   };
 
+/** The status as shown to staff. A delivery order that is "ready" is waiting for the DAAP Delivery rider, not for the guest to collect it. */
+export function orderStatusLabel(order: {
+  status: string;
+  fulfillment_type: string | null;
+}): string {
+  if (order.fulfillment_type === "delivery" && order.status === "ready_for_pickup")
+    return "Awaiting rider";
+  return STATUS_LABELS[order.status] ?? order.status;
+}
+
 /** The next button for an order. A delivery order that is ready is not "completed": it is handed to DAAP Delivery first (action "dispatch",
  * which opens the rider form), and only completed once it is out for delivery. */
 export function nextActionFor(order: {
@@ -64,6 +79,19 @@ export function nextActionFor(order: {
   }
   return NEXT_ACTION_BY_STATUS[order.status];
 }
+
+// Badge colour per order status, shared by Food Orders and Live Operations.
+export const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
+  pending_payment: "neutral",
+  placed: "clay",
+  paid: "clay",
+  accepted: "clay",
+  preparing: "brand",
+  ready_for_pickup: "brand",
+  out_for_delivery: "brand",
+  completed: "success",
+  cancelled: "neutral",
+};
 
 export const CANCELLABLE_STATUSES = new Set(["placed", "paid", "accepted", "preparing"]);
 

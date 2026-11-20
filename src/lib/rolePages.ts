@@ -24,7 +24,7 @@ export const ROLE_PAGES: RolePage[] = [
   { key: "staff", label: "Users", group: "Settings", covers: "People who can sign in" },
   { key: "roles", label: "Roles & Permissions", group: "Settings", covers: "What each role may do" },
   { key: "support", label: "Support", group: "Settings", covers: "Tickets to the DAAP team" },
-  { key: "doctors", label: "Team roster", group: "Settings", covers: "The roster of people and sections" },
+  { key: "doctors", label: "Team roster", group: "Settings", covers: "The roster of people" },
 ];
 
 export const GROUP_ORDER = ["Main", "Catalog", "Workforce", "Settings"];

@@ -56,9 +56,7 @@ type Result = {
 function resultText(r: Result, verb: "added" | "removed") {
   const n = verb === "added" ? r.added : r.removed;
   const base = `Tag ${verb} for ${n} customer${n === 1 ? "" : "s"}`;
-  return r.skipped
-    ? `${base}; ${r.skipped} skipped (the tag doesn't apply to them)`
-    : base;
+  return r.skipped ? `${base}; ${r.skipped} skipped (the tag doesn't apply to them)` : base;
 }
 
 /** Customers > Tags > Customer Tagging: everyone carrying a tag, filtered and paged on the server, tagged in bulk or one at a time. */
@@ -206,12 +204,8 @@ export function CustomerTaggingView({
         header: "Phone / Email",
         cell: ({ row }) => (
           <span>
-            <span className="block text-ink-900">
-              {row.original.phone ?? "—"}
-            </span>
-            <span className="block text-[12px] text-ink-600">
-              {row.original.email ?? ""}
-            </span>
+            <span className="block text-ink-900">{row.original.phone ?? "—"}</span>
+            <span className="block text-[12px] text-ink-600">{row.original.email ?? ""}</span>
           </span>
         ),
       },
@@ -250,9 +244,7 @@ export function CustomerTaggingView({
         cell: ({ row }) => (
           <span className="flex items-center gap-1 text-ink-600">
             <HugeiconsIcon
-              icon={
-                row.original.tag_source === "manual" ? UserIcon : Settings02Icon
-              }
+              icon={row.original.tag_source === "manual" ? UserIcon : Settings02Icon}
               size={14}
             />
             {SOURCE_LABEL[row.original.tag_source]}
@@ -264,9 +256,7 @@ export function CustomerTaggingView({
         cell: ({ row }) =>
           row.original.last_order_at ? (
             <span>
-              <span className="block text-ink-900">
-                {formatDate(row.original.last_order_at)}
-              </span>
+              <span className="block text-ink-900">{formatDate(row.original.last_order_at)}</span>
               {row.original.last_order_minor !== null && (
                 <span className="block text-[12px] text-ink-600">
                   {formatMoney(row.original.last_order_minor, currency)}
@@ -302,9 +292,7 @@ export function CustomerTaggingView({
               </DropdownMenuTrigger>
               <DropdownMenuContent>
                 <DropdownMenuItem
-                  onClick={() =>
-                    router.push(`/portal/customers/${row.original.id}`)
-                  }
+                  onClick={() => router.push(`/portal/customers/${row.original.id}`)}
                 >
                   Open customer
                 </DropdownMenuItem>
@@ -330,9 +318,7 @@ export function CustomerTaggingView({
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatCard
           label="Tagged Customers"
-          value={
-            summary ? summary.tagged_customers.toLocaleString("en-IN") : "—"
-          }
+          value={summary ? summary.tagged_customers.toLocaleString("en-IN") : "—"}
           hint={
             summary
               ? `${summary.tagged_this_month.toLocaleString("en-IN")} new this month`
@@ -348,9 +334,7 @@ export function CustomerTaggingView({
         />
         <StatCard
           label="Manually Tagged"
-          value={
-            summary ? summary.manually_tagged.toLocaleString("en-IN") : "—"
-          }
+          value={summary ? summary.manually_tagged.toLocaleString("en-IN") : "—"}
           icon={<HugeiconsIcon icon={UserIcon} size={20} />}
         />
         <StatCard
@@ -429,9 +413,7 @@ export function CustomerTaggingView({
 
       {canEdit && selected.size > 0 && (
         <Card className="mb-space-3 flex flex-wrap items-center gap-space-2 border-brand-200 bg-brand-50 p-space-3">
-          <span className="text-[13.5px] font-semibold text-ink-900">
-            {selected.size} selected
-          </span>
+          <span className="text-[13.5px] font-semibold text-ink-900">{selected.size} selected</span>
           <Select
             value={bulkTag}
             onValueChange={setBulkTag}
@@ -448,11 +430,7 @@ export function CustomerTaggingView({
           <Button disabled={busy || !bulkTag} onClick={() => bulk("added")}>
             Add tag
           </Button>
-          <Button
-            variant="secondary"
-            disabled={busy || !bulkTag}
-            onClick={() => bulk("removed")}
-          >
+          <Button variant="secondary" disabled={busy || !bulkTag} onClick={() => bulk("removed")}>
             Remove tag
           </Button>
           <Button variant="ghost" onClick={() => setSelected(new Set())}>
@@ -461,11 +439,7 @@ export function CustomerTaggingView({
         </Card>
       )}
 
-      {list.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {list.error}
-        </p>
-      )}
+      {list.error && <p className="mb-space-3 text-[13px] font-medium text-error">{list.error}</p>}
       <Card className="mb-space-4 p-space-2">
         <div className="whitespace-nowrap">
           <DataTable
@@ -475,28 +449,15 @@ export function CustomerTaggingView({
             loading={list.loading}
             paginate={false}
             onRowClick={(c) => router.push(`/portal/customers/${c.id}`)}
-            emptyMessage={
-              list.loading ? "Loading customers…" : "No tagged customers match."
-            }
+            emptyMessage={list.loading ? "Loading customers…" : "No tagged customers match."}
           />
         </div>
-        <Pager
-          page={page}
-          pageSize={PAGE}
-          total={total}
-          noun="customers"
-          onPage={setPage}
-        />
+        <Pager page={page} pageSize={PAGE} total={total} noun="customers" onPage={setPage} />
       </Card>
 
       <Card className="p-space-4">
         <h2 className="flex items-center gap-space-2 text-[16px] font-bold text-ink-900">
-          <HugeiconsIcon
-            icon={BarChartIcon}
-            size={18}
-            className="text-brand-700"
-          />{" "}
-          Tagging Summary
+          <HugeiconsIcon icon={BarChartIcon} size={18} className="text-brand-700" /> Tagging Summary
         </h2>
         <p className="mb-space-3 text-[13px] text-ink-600">
           Tagged customers by membership tier, and the most used tags.
@@ -506,38 +467,26 @@ export function CustomerTaggingView({
             {TIERS.map((t) => {
               const n = summary?.by_tier[t] ?? 0;
               return (
-                <div
-                  key={t}
-                  className="rounded-lg border border-line p-space-3"
-                >
+                <div key={t} className="rounded-lg border border-line p-space-3">
                   <p className="text-[12.5px] text-ink-600">{TIER_LABEL[t]}</p>
-                  <p className="text-[20px] font-bold text-ink-900">
-                    {n.toLocaleString("en-IN")}
-                  </p>
+                  <p className="text-[20px] font-bold text-ink-900">{n.toLocaleString("en-IN")}</p>
                   <p className="text-[12px] text-ink-600">
-                    {tierTotal ? Math.round((100 * n) / tierTotal) : 0}% of
-                    members tagged
+                    {tierTotal ? Math.round((100 * n) / tierTotal) : 0}% of members tagged
                   </p>
                 </div>
               );
             })}
             {(summary?.by_tier.not_member ?? 0) > 0 && (
               <p className="col-span-full text-[12.5px] text-ink-600">
-                Plus{" "}
-                {(summary?.by_tier.not_member ?? 0).toLocaleString("en-IN")}{" "}
-                tagged customers who are{" "}
-                {SEGMENT_META.not_member.label.toLowerCase()}.
+                Plus {(summary?.by_tier.not_member ?? 0).toLocaleString("en-IN")} tagged customers
+                who are {SEGMENT_META.not_member.label.toLowerCase()}.
               </p>
             )}
           </div>
           <div>
-            <p className="mb-space-2 text-[13px] font-semibold text-ink-900">
-              Top used tags
-            </p>
+            <p className="mb-space-2 text-[13px] font-semibold text-ink-900">Top used tags</p>
             {(summary?.top_tags ?? []).length === 0 && (
-              <p className="text-[13px] text-ink-400">
-                No tagged customers yet.
-              </p>
+              <p className="text-[13px] text-ink-400">No tagged customers yet.</p>
             )}
             <ul className="grid gap-x-space-4 gap-y-1 sm:grid-cols-2">
               {(summary?.top_tags ?? []).map((t) => (
@@ -547,10 +496,7 @@ export function CustomerTaggingView({
                 >
                   <span className="flex min-w-0 items-center gap-space-2">
                     <span
-                      className={cn(
-                        "h-2.5 w-2.5 shrink-0 rounded-full",
-                        TAG_COLOR[t.color].swatch,
-                      )}
+                      className={cn("h-2.5 w-2.5 shrink-0 rounded-full", TAG_COLOR[t.color].swatch)}
                     />
                     <span className="truncate text-ink-900">{t.name}</span>
                   </span>
@@ -576,9 +522,7 @@ export function CustomerTaggingView({
             const r = await tagging([editing.id], add, remove);
             if (!r) return;
             toast.success(
-              r.skipped
-                ? `Tags saved; ${r.skipped} didn't apply to this customer`
-                : "Tags saved",
+              r.skipped ? `Tags saved; ${r.skipped} didn't apply to this customer` : "Tags saved",
             );
             setEditing(null);
             refresh();
@@ -603,10 +547,7 @@ function EditTagsModal({
   onClose: () => void;
   onSave: (add: string[], remove: string[]) => void;
 }) {
-  const had = useMemo(
-    () => new Set(customer?.tags.map((t) => t.id) ?? []),
-    [customer],
-  );
+  const had = useMemo(() => new Set(customer?.tags.map((t) => t.id) ?? []), [customer]);
   const [chosen, setChosen] = useState<Set<string>>(() => new Set(had));
   const shown = tags.filter((t) => t.status === "active" || had.has(t.id));
   return (
@@ -661,9 +602,7 @@ function EditTagsModal({
           </label>
         ))}
         {shown.length === 0 && (
-          <p className="text-[13px] text-ink-400">
-            No active tags. Add one in All Tags first.
-          </p>
+          <p className="text-[13px] text-ink-400">No active tags. Add one in All Tags first.</p>
         )}
       </div>
     </Modal>

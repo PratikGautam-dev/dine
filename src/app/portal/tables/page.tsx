@@ -30,6 +30,7 @@ import { type RestaurantTable, useRestaurantTables } from "@/hooks/useRestaurant
 import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { usePermission } from "@/lib/staffAuth";
+import { Select } from "@/components/erp-ui/Select";
 
 type StatusView = "all" | "free" | "occupied" | "needs_cleaning" | "blocked";
 
@@ -231,18 +232,18 @@ export default function PortalTablesPage() {
                 />
               </Field>
               <Field label="Section" htmlFor="t-department">
-                <select
-                  id="t-department"
+                <Select
                   value={form.department_id}
-                  onChange={(e) => setForm({ ...form, department_id: e.target.value })}
-                  className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                  onValueChange={(v) => setForm({ ...form, department_id: v })}
+                  className="w-full !h-10"
+                  id="t-department"
                 >
                   {(departments ?? []).map((d) => (
                     <option key={d.id} value={d.id}>
                       {d.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </Field>
               <Field label="Capacity" htmlFor="t-capacity" required>
                 <Input
@@ -254,15 +255,15 @@ export default function PortalTablesPage() {
                 />
               </Field>
               <Field label="Shape on floor map" htmlFor="t-shape">
-                <select
-                  id="t-shape"
+                <Select
                   value={form.shape}
-                  onChange={(e) => setForm({ ...form, shape: e.target.value as "rect" | "round" })}
-                  className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                  onValueChange={(v) => setForm({ ...form, shape: v as "rect" | "round" })}
+                  className="w-full !h-10"
+                  id="t-shape"
                 >
                   <option value="rect">Square / rectangular</option>
                   <option value="round">Round</option>
-                </select>
+                </Select>
               </Field>
             </div>
             <Field
@@ -311,11 +312,11 @@ export default function PortalTablesPage() {
         <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
           <h3 className="text-[15px] font-bold text-ink-900">All Tables ({tables.length})</h3>
           <div className="flex flex-wrap items-center gap-space-2">
-            <select
-              aria-label="Filter by zone"
+            <Select
               value={sectionFilter}
-              onChange={(e) => setSectionFilter(e.target.value)}
-              className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+              onValueChange={(v) => setSectionFilter(v)}
+              className="!h-10"
+              aria-label="Filter by zone"
             >
               <option value="all">All Zones</option>
               {sections.map((s) => (
@@ -323,19 +324,19 @@ export default function PortalTablesPage() {
                   {s.name}
                 </option>
               ))}
-            </select>
-            <select
-              aria-label="Filter by status"
+            </Select>
+            <Select
               value={statusView}
-              onChange={(e) => setStatusView(e.target.value as StatusView)}
-              className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+              onValueChange={(v) => setStatusView(v as StatusView)}
+              className="!h-10"
+              aria-label="Filter by status"
             >
               <option value="all">All Status</option>
               <option value="free">Available</option>
               <option value="occupied">Occupied</option>
               <option value="needs_cleaning">Needs cleaning</option>
               <option value="blocked">Blocked</option>
-            </select>
+            </Select>
             <div className="relative">
               <Search
                 size={14}

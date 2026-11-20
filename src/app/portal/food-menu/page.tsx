@@ -34,6 +34,7 @@ import { type MenuItem, useMenuItems } from "@/hooks/useMenuItems";
 import { cn } from "@/lib/cn";
 import { parseOrderTime, rupees } from "@/lib/foodOrders";
 import { usePermission } from "@/lib/staffAuth";
+import { Select } from "@/components/erp-ui/Select";
 
 const UNCATEGORISED = "__none__";
 type AvailabilityView = "all" | "available" | "sold_out" | "out_of_stock";
@@ -477,17 +478,17 @@ export default function PortalFoodMenuPage() {
                 className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
               />
             </div>
-            <select
-              aria-label="Filter by availability"
+            <Select
               value={availabilityView}
-              onChange={(e) => setAvailabilityView(e.target.value as AvailabilityView)}
-              className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+              onValueChange={(v) => setAvailabilityView(v as AvailabilityView)}
+              className="!h-10"
+              aria-label="Filter by availability"
             >
               <option value="all">All items</option>
               <option value="available">Available</option>
               <option value="sold_out">Sold out</option>
               <option value="out_of_stock">Out of stock</option>
-            </select>
+            </Select>
           </div>
 
           <Card className="p-space-4">

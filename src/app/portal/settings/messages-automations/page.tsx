@@ -55,6 +55,7 @@ import {
   useMessageAnalytics,
   type NewAutomationFields,
 } from "@/hooks/useAutomations";
+import { Select } from "@/components/erp-ui/Select";
 
 // ---------------------------------------------------------------------------------------------
 // Template Library/Template Preview and most of Trigger & Event Mapping below are still a
@@ -658,20 +659,18 @@ export default function PortalMessagesAutomationsPage() {
                   />
                 </Field>
                 <Field label="Trigger" htmlFor="auto-trigger" required>
-                  <select
-                    id="auto-trigger"
+                  <Select
                     value={newAutomation.trigger_event}
-                    onChange={(e) =>
-                      setNewAutomation({ ...newAutomation, trigger_event: e.target.value })
-                    }
-                    className="h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+                    onValueChange={(v) => setNewAutomation({ ...newAutomation, trigger_event: v })}
+                    className="w-full !h-10"
+                    id="auto-trigger"
                   >
                     {(triggerEvents.length ? triggerEvents : ["feedback_received"]).map((ev) => (
                       <option key={ev} value={ev}>
                         {TRIGGER_EVENT_LABEL[ev] ?? ev}
                       </option>
                     ))}
-                  </select>
+                  </Select>
                 </Field>
                 <Field
                   label="Message"

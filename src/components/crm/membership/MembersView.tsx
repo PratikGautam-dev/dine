@@ -40,14 +40,7 @@ import { Modal } from "@/components/erp-ui/Modal";
 import { Pager } from "@/components/erp-ui/Pager";
 import { Select } from "@/components/erp-ui/Select";
 import { Tabs } from "@/components/erp-ui/Tabs";
-import {
-  erp,
-  formatDateTime,
-  formatMoney,
-  qs,
-  useErpQuery,
-  type Customer,
-} from "@/lib/erp/erp";
+import { erp, formatDateTime, formatMoney, qs, useErpQuery, type Customer } from "@/lib/erp/erp";
 import {
   SOURCE_LABEL,
   TIER_LABEL,
@@ -133,20 +126,9 @@ export function MembersView({
     onChanged();
   };
 
-  async function act(
-    m: Member,
-    path: string,
-    method: "POST" | "PUT",
-    body: unknown,
-    done: string,
-  ) {
-    const res = await erp(
-      `/api/v1/crm/membership/members/${m.id}/${path}`,
-      method,
-      body,
-    );
-    if (res.error)
-      return toast.error("Couldn't update the membership", res.error);
+  async function act(m: Member, path: string, method: "POST" | "PUT", body: unknown, done: string) {
+    const res = await erp(`/api/v1/crm/membership/members/${m.id}/${path}`, method, body);
+    if (res.error) return toast.error("Couldn't update the membership", res.error);
     toast.success(done);
     reload();
   }
@@ -159,8 +141,7 @@ export function MembersView({
       source: assignSource,
     });
     setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't assign the membership", res.error);
+    if (res.error) return toast.error("Couldn't assign the membership", res.error);
     toast.success("Membership assigned");
     setAssigning(false);
     setCustomer(null);
@@ -174,9 +155,7 @@ export function MembersView({
         cell: ({ row }) => (
           <span className="flex items-center gap-space-2">
             <Avatar name={row.original.name} size={34} />
-            <span className="font-semibold text-ink-900">
-              {row.original.name || "Unnamed"}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.name || "Unnamed"}</span>
           </span>
         ),
       },
@@ -184,12 +163,8 @@ export function MembersView({
         header: "Contact",
         cell: ({ row }) => (
           <span>
-            <span className="block text-ink-900">
-              {row.original.phone ?? "—"}
-            </span>
-            <span className="block text-[12px] text-ink-600">
-              {row.original.email ?? ""}
-            </span>
+            <span className="block text-ink-900">{row.original.phone ?? "—"}</span>
+            <span className="block text-[12px] text-ink-600">{row.original.email ?? ""}</span>
           </span>
         ),
       },
@@ -221,8 +196,7 @@ export function MembersView({
       },
       {
         header: "Eligible spend",
-        cell: ({ row }) =>
-          formatMoney(row.original.loyalty_spend_minor, currency),
+        cell: ({ row }) => formatMoney(row.original.loyalty_spend_minor, currency),
       },
       {
         header: "Status",
@@ -254,13 +228,7 @@ export function MembersView({
                 <DropdownMenuItem
                   onClick={(e) => {
                     e.stopPropagation();
-                    void act(
-                      row.original,
-                      "renew",
-                      "POST",
-                      undefined,
-                      "Membership renewed",
-                    );
+                    void act(row.original, "renew", "POST", undefined, "Membership renewed");
                   }}
                 >
                   Renew
@@ -275,9 +243,7 @@ export function MembersView({
                       "pause",
                       "PUT",
                       { paused: !row.original.paused },
-                      row.original.paused
-                        ? "Membership resumed"
-                        : "Membership paused",
+                      row.original.paused ? "Membership resumed" : "Membership paused",
                     );
                   }}
                 >
@@ -300,9 +266,7 @@ export function MembersView({
         cell: ({ row }) => (
           <span className="flex items-center gap-space-2">
             <Avatar name={row.original.customer_name} size={34} />
-            <span className="font-semibold text-ink-900">
-              {row.original.customer_name}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.customer_name}</span>
           </span>
         ),
       },
@@ -361,12 +325,7 @@ export function MembersView({
         />
       </div>
 
-      <Tabs
-        tabs={SUB_TABS}
-        value={sub}
-        onChange={setSub}
-        className="!mb-space-3"
-      />
+      <Tabs tabs={SUB_TABS} value={sub} onChange={setSub} className="!mb-space-3" />
 
       {listing && (
         <Card className="mb-space-3 flex flex-wrap items-center gap-space-2 p-space-3">
@@ -426,11 +385,7 @@ export function MembersView({
           </Select>
         </Card>
       )}
-      {list.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {list.error}
-        </p>
-      )}
+      {list.error && <p className="mb-space-3 text-[13px] font-medium text-error">{list.error}</p>}
 
       <Card className="p-space-2">
         {listing && (
@@ -443,9 +398,7 @@ export function MembersView({
                 onRowClick={(m) => router.push(`/portal/customers/${m.id}`)}
                 loading={list.loading}
                 paginate={false}
-                emptyMessage={
-                  list.loading ? "Loading members…" : "No members match."
-                }
+                emptyMessage={list.loading ? "Loading members…" : "No members match."}
               />
             </div>
             <Pager
@@ -483,27 +436,19 @@ export function MembersView({
             <HugeiconsIcon icon={CrownIcon} size={20} />
           </span>
           <div>
-            <h3 className="text-[16px] font-bold text-ink-900">
-              Membership Tier Distribution
-            </h3>
+            <h3 className="text-[16px] font-bold text-ink-900">Membership Tier Distribution</h3>
             <p className="text-[12.5px] text-ink-600">
-              Overview of member distribution and key metrics for each
-              membership plan.
+              Overview of member distribution and key metrics for each membership plan.
             </p>
           </div>
         </div>
         <div className="grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
           {(list.data?.tier_summary ?? []).map((t) => (
-            <div
-              key={t.tier}
-              className="rounded-lg border border-line p-space-3"
-            >
+            <div key={t.tier} className="rounded-lg border border-line p-space-3">
               <div className="mb-space-2 flex items-center gap-space-3">
                 <TierCrown tier={t.tier} size={40} />
                 <div>
-                  <p className="text-[13px] font-semibold text-ink-900">
-                    {TIER_LABEL[t.tier]}
-                  </p>
+                  <p className="text-[13px] font-semibold text-ink-900">{TIER_LABEL[t.tier]}</p>
                   <p className="text-[18px] font-bold leading-tight text-ink-900">
                     {t.members.toLocaleString("en-IN")}{" "}
                     <span className="text-[14px] font-semibold">members</span>
@@ -512,9 +457,7 @@ export function MembersView({
               </div>
               <ul className="space-y-1">
                 <CheckLine>{t.share_pct}% of total members</CheckLine>
-                <CheckLine>
-                  {formatMoney(t.avg_spend_minor, currency)} average spend
-                </CheckLine>
+                <CheckLine>{formatMoney(t.avg_spend_minor, currency)} average spend</CheckLine>
                 {t.renewal_rate_pct !== null && (
                   <CheckLine>{t.renewal_rate_pct}% renewal rate</CheckLine>
                 )}
@@ -541,11 +484,7 @@ export function MembersView({
         }
       >
         <Field label="Customer" htmlFor="a_customer" required>
-          <CustomerSelect
-            id="a_customer"
-            value={customer}
-            onChange={setCustomer}
-          />
+          <CustomerSelect id="a_customer" value={customer} onChange={setCustomer} />
         </Field>
         <Field label="Source" htmlFor="a_source">
           <Select

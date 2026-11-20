@@ -1,5 +1,6 @@
 "use client";
 
+import { useApplyBranding } from "@/hooks/useBranding";
 import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
@@ -68,6 +69,7 @@ const FILTER_PAGES: Record<string, GlobalFilterOptions> = {
  * the mobile drawer's open/close state has exactly one owner instead of each
  * page reinventing it. */
 export function PortalShell({ restaurant, active, children }: Props) {
+  const branding = useApplyBranding();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   // Settings is its own mode: the main sidebar is replaced by the settings menu (a fixed column on wide
@@ -87,6 +89,7 @@ export function PortalShell({ restaurant, active, children }: Props) {
         <PortalSidebar
           restaurant={restaurant}
           active={active}
+          logoUrl={branding?.logo_url}
           open={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
         />

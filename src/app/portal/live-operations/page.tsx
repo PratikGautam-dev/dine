@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { ReactNode } from "react";
 import {
   AlertTriangle,
@@ -15,13 +14,14 @@ import {
   UserRound,
   UtensilsCrossed,
 } from "lucide-react";
+import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
-import { nextActionFor, STATUS_LABELS as ORDER_STATUS_LABELS } from "@/hooks/useFoodOrders";
+import { nextActionFor, orderStatusLabel, STATUS_TONE } from "@/hooks/useFoodOrders";
 import { type LiveTable, useLiveOperations } from "@/hooks/useLiveOperations";
 import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
@@ -230,28 +230,23 @@ export default function LiveOperationsPage() {
                           {o.patient_name || o.phone} · {o.item_count} item
                           {o.item_count === 1 ? "" : "s"} · {rupees(o.total_paise)}
                         </div>
-                        <div className="text-[11.5px] text-ink-400">
-                          {ORDER_STATUS_LABELS[o.status] ?? o.status}
-                        </div>
                       </div>
-                      {canWriteOrders && next?.action === "dispatch" && (
-                        <Link
-                          href="/portal/kitchen-orders"
-                          className="shrink-0 rounded-md bg-brand-600 px-space-3 py-1 text-[12px] font-semibold text-white hover:bg-brand-700"
-                        >
-                          {next.label}
-                        </Link>
-                      )}
-                      {canWriteOrders && next && next.action !== "dispatch" && (
-                        <button
-                          type="button"
-                          disabled={actingId === `order-${o.id}`}
-                          onClick={() => advanceOrder(o.id, next.action)}
-                          className="shrink-0 rounded-md bg-brand-600 px-space-3 py-1 text-[12px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
-                        >
-                          {actingId === `order-${o.id}` ? "…" : next.label}
-                        </button>
-                      )}
+                      <div className="flex shrink-0 flex-col items-end gap-1">
+                        {/* Live Operations only accepts; preparing, ready and hand-over happen on the Kitchen Orders page. */}
+                        {canWriteOrders && next?.action === "accept" && (
+                          <button
+                            type="button"
+                            disabled={actingId === `order-${o.id}`}
+                            onClick={() => advanceOrder(o.id, next.action)}
+                            className="shrink-0 rounded-md bg-brand-600 px-space-3 py-1 text-[12px] font-semibold text-white hover:bg-brand-700 disabled:opacity-50"
+                          >
+                            {actingId === `order-${o.id}` ? "…" : next.label}
+                          </button>
+                        )}
+                        <Badge tone={STATUS_TONE[o.status] ?? "neutral"}>
+                          {orderStatusLabel(o)}
+                        </Badge>
+                      </div>
                     </div>
                   );
                 })}

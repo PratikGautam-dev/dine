@@ -10,6 +10,16 @@ export type Branch = {
   address_line: string | null;
   city: string | null;
   phone: string | null;
+  // Contact details (migration 0108): state is a GST state name, pincode 6 digits.
+  email: string | null;
+  state: string | null;
+  pincode: string | null;
+  // Tax, receipt and weekly schedule (migration 0109). opening_hours is the branch's own weekly schedule, null = it follows the
+  // older operating_days / operating_hours or the restaurant-wide hours.
+  gst_registration_id: string | null;
+  receipt_header: string | null;
+  receipt_footer: string | null;
+  opening_hours: { day: string; open: string; close: string }[] | null;
   operating_days: string | null;
   operating_hours: string | null;
   turnover_minutes: number | null;

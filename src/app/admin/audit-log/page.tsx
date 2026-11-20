@@ -10,6 +10,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { formatDateTime } from "@/lib/formatDate";
 import { useAdminTenantsList } from "@/hooks/useAdminTenants";
 import { usePlatformAuditLog, type PlatformAuditLogFilters } from "@/hooks/useAdminAuditLog";
+import { Select } from "@/components/erp-ui/Select";
 
 // Cross-tenant "what's happening across the whole platform" view --
 // admin/tenants_api.py's get_platform_audit_log(). Optional restaurant_id/
@@ -18,7 +19,10 @@ import { usePlatformAuditLog, type PlatformAuditLogFilters } from "@/hooks/useAd
 // a second restaurant-name lookup here.
 export default function AdminAuditLogPage() {
   const { tenants } = useAdminTenantsList();
-  const [filters, setFilters] = useState<PlatformAuditLogFilters>({ restaurantId: null, actorLevel: null });
+  const [filters, setFilters] = useState<PlatformAuditLogFilters>({
+    restaurantId: null,
+    actorLevel: null,
+  });
   const { entries, loading, error } = usePlatformAuditLog(filters);
 
   const tenantOptions = useMemo(() => tenants ?? [], [tenants]);
@@ -33,10 +37,9 @@ export default function AdminAuditLogPage() {
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 flex flex-wrap items-center gap-space-3">
-        <select
+        <Select
           value={filters.restaurantId ?? ""}
-          onChange={(e) => setFilters((f) => ({ ...f, restaurantId: e.target.value ? Number(e.target.value) : null }))}
-          className="h-11 rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+          onValueChange={(v) => setFilters((f) => ({ ...f, restaurantId: v ? Number(v) : null }))}
         >
           <option value="">All restaurants</option>
           {tenantOptions.map((t) => (
@@ -44,28 +47,29 @@ export default function AdminAuditLogPage() {
               {t.name}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           value={filters.actorLevel ?? ""}
-          onChange={(e) =>
+          onValueChange={(v) =>
             setFilters((f) => ({
               ...f,
-              actorLevel: (e.target.value || null) as PlatformAuditLogFilters["actorLevel"],
+              actorLevel: (v || null) as PlatformAuditLogFilters["actorLevel"],
             }))
           }
-          className="h-11 rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
         >
           <option value="">All actors</option>
           <option value="platform_admin">Platform Admin</option>
           <option value="portal">Portal</option>
-        </select>
+        </Select>
       </div>
 
       <Card className="overflow-x-auto p-space-2">
         {loading ? (
           <TableSkeleton rows={8} columns={4} />
         ) : !entries || entries.length === 0 ? (
-          <p className="p-space-4 text-center text-[13px] text-ink-400">No activity recorded yet.</p>
+          <p className="p-space-4 text-center text-[13px] text-ink-400">
+            No activity recorded yet.
+          </p>
         ) : (
           <table className="w-full text-left text-[13px]">
             <thead>
@@ -79,10 +83,15 @@ export default function AdminAuditLogPage() {
             <tbody>
               {entries.map((entry) => (
                 <tr key={entry.id} className="border-b border-line last:border-0">
-                  <td className="px-space-3 py-space-2 whitespace-nowrap text-ink-600">{formatDateTime(entry.created_at)}</td>
+                  <td className="px-space-3 py-space-2 whitespace-nowrap text-ink-600">
+                    {formatDateTime(entry.created_at)}
+                  </td>
                   <td className="px-space-3 py-space-2">
                     {entry.restaurant_name && entry.restaurant_id ? (
-                      <Link href={`/admin/restaurants/${entry.restaurant_id}`} className="font-medium text-brand-700 hover:underline">
+                      <Link
+                        href={`/admin/restaurants/${entry.restaurant_id}`}
+                        className="font-medium text-brand-700 hover:underline"
+                      >
                         {entry.restaurant_name}
                       </Link>
                     ) : (
@@ -97,7 +106,9 @@ export default function AdminAuditLogPage() {
                       <span className="text-ink-700">{entry.actor_label}</span>
                     </div>
                   </td>
-                  <td className="px-space-3 py-space-2 font-semibold text-ink-900">{entry.action}</td>
+                  <td className="px-space-3 py-space-2 font-semibold text-ink-900">
+                    {entry.action}
+                  </td>
                 </tr>
               ))}
             </tbody>

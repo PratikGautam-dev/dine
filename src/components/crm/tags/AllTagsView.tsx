@@ -50,9 +50,7 @@ export function AllTagsView({
   const [search, setSearch] = useState("");
   const q = useDebounced(search.trim());
   const [status, setStatus] = useState("");
-  const tags = useErpQuery<CustomerTag[]>(
-    `/api/v1/crm/tags${qs({ q, status })}`,
-  );
+  const tags = useErpQuery<CustomerTag[]>(`/api/v1/crm/tags${qs({ q, status })}`);
   const [deleting, setDeleting] = useState<CustomerTag | null>(null);
   const [busy, setBusy] = useState(false);
   const rows = tags.data ?? [];
@@ -77,9 +75,7 @@ export function AllTagsView({
         cell: ({ row }) => (
           <span className="flex items-center gap-space-3">
             <TagTile color={row.original.color} icon={row.original.icon} />
-            <span className="font-semibold text-ink-900">
-              {row.original.name}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.name}</span>
           </span>
         ),
       },
@@ -110,9 +106,7 @@ export function AllTagsView({
       {
         header: "Created on",
         cell: ({ row }) => (
-          <span className="text-ink-600">
-            {formatDate(row.original.created_at)}
-          </span>
+          <span className="text-ink-600">{formatDate(row.original.created_at)}</span>
         ),
       },
       {
@@ -145,9 +139,7 @@ export function AllTagsView({
                   View customers
                 </DropdownMenuItem>
                 {canConfigure && (
-                  <DropdownMenuItem onClick={() => onEdit(row.original)}>
-                    Edit tag
-                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onEdit(row.original)}>Edit tag</DropdownMenuItem>
                 )}
                 {canConfigure && row.original.kind !== "system" && (
                   <DropdownMenuItem onClick={() => setDeleting(row.original)}>
@@ -174,14 +166,8 @@ export function AllTagsView({
         />
         <StatCard
           label="Tagged Customers"
-          value={
-            summary ? summary.tagged_customers.toLocaleString("en-IN") : "—"
-          }
-          delta={
-            summary
-              ? pct(summary.tagged_this_month, summary.tagged_last_month)
-              : undefined
-          }
+          value={summary ? summary.tagged_customers.toLocaleString("en-IN") : "—"}
+          delta={summary ? pct(summary.tagged_this_month, summary.tagged_last_month) : undefined}
           hint={
             summary
               ? `${summary.tagged_this_month.toLocaleString("en-IN")} new this month`
@@ -192,20 +178,12 @@ export function AllTagsView({
         <StatCard
           label="Most Used Tag"
           value={top ? top.name : "—"}
-          hint={
-            top
-              ? `${top.customers.toLocaleString("en-IN")} customers`
-              : undefined
-          }
+          hint={top ? `${top.customers.toLocaleString("en-IN")} customers` : undefined}
           icon={<HugeiconsIcon icon={UserIcon} size={20} />}
         />
         <StatCard
           label="Tags Created"
-          value={
-            summary
-              ? summary.tags_created_this_month.toLocaleString("en-IN")
-              : "—"
-          }
+          value={summary ? summary.tags_created_this_month.toLocaleString("en-IN") : "—"}
           hint="this month"
           icon={<HugeiconsIcon icon={PlusSignIcon} size={20} />}
         />
@@ -237,11 +215,7 @@ export function AllTagsView({
           <option value="inactive">Inactive</option>
         </Select>
       </Card>
-      {tags.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {tags.error}
-        </p>
-      )}
+      {tags.error && <p className="mb-space-3 text-[13px] font-medium text-error">{tags.error}</p>}
       <Card className="p-space-2">
         <div className="whitespace-nowrap">
           <DataTable

@@ -1,5 +1,6 @@
 "use client";
 
+import { SlotCalendar } from "@/components/portal/SlotCalendar";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Field } from "@/components/ui/Field";
@@ -8,8 +9,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
-import { cn } from "@/lib/cn";
 import { useNewBooking } from "@/hooks/useNewBooking";
+import { Select } from "@/components/erp-ui/Select";
 
 export default function NewBookingPage() {
   const { restaurant, ready } = usePortalGuard();
@@ -91,13 +92,9 @@ export default function NewBookingPage() {
               htmlFor="branch"
               hint="Single-location restaurant — nothing to choose yet."
             >
-              <select
-                id="branch"
-                disabled
-                className="h-11 w-full cursor-not-allowed rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-600"
-              >
+              <Select className="w-full" disabled id="branch">
                 <option>Main Venue — {restaurant?.name}</option>
-              </select>
+              </Select>
             </Field>
 
             <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-2">
@@ -112,11 +109,11 @@ export default function NewBookingPage() {
                 />
               </Field>
               <Field label="Section preference (optional)" htmlFor="department">
-                <select
-                  id="department"
+                <Select
                   value={departmentId}
-                  onChange={(e) => setDepartmentId(e.target.value)}
-                  className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+                  onValueChange={(v) => setDepartmentId(v)}
+                  className="w-full"
+                  id="department"
                 >
                   <option value="">No preference</option>
                   {ctx.departments.map((d) => (
@@ -124,7 +121,7 @@ export default function NewBookingPage() {
                       {d.name}
                     </option>
                   ))}
-                </select>
+                </Select>
               </Field>
             </div>
 
@@ -145,23 +142,11 @@ export default function NewBookingPage() {
                     No tables available for this party size.
                   </p>
                 ) : (
-                  <div className="flex flex-wrap gap-space-2">
-                    {tableSlots.map((s) => (
-                      <button
-                        type="button"
-                        key={s.id}
-                        onClick={() => setSlotId(s.id)}
-                        className={cn(
-                          "rounded-md border px-space-3 py-space-2 text-[12.5px] font-semibold",
-                          slotId === s.id
-                            ? "border-brand-600 bg-brand-600 text-white"
-                            : "border-line bg-card text-ink-600",
-                        )}
-                      >
-                        {s.label}
-                      </button>
-                    ))}
-                  </div>
+                  <SlotCalendar
+                    slots={tableSlots}
+                    value={slotId}
+                    onChange={(slot) => setSlotId(slot?.id ?? "")}
+                  />
                 )}
               </Field>
             )}

@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
-import { type FoodOrder, STATUS_LABELS, useFoodOrderDetail } from "@/hooks/useFoodOrders";
+import { type FoodOrder, orderStatusLabel, useFoodOrderDetail } from "@/hooks/useFoodOrders";
 import { cn } from "@/lib/cn";
 import { parseOrderTime, rupees } from "@/lib/foodOrders";
 
@@ -82,7 +82,7 @@ export function StatusPill({ status }: { status: string }) {
       ) : (
         <Clock size={11} />
       )}
-      {STATUS_LABELS[status] ?? status}
+      {orderStatusLabel({ status, fulfillment_type: "delivery" })}
     </span>
   );
 }

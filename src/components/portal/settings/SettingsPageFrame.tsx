@@ -14,6 +14,7 @@ export function SettingsPageFrame({
   description,
   icon,
   actions,
+  maxWidthClass,
   children,
 }: {
   restaurant: PortalRestaurant | null;
@@ -21,12 +22,16 @@ export function SettingsPageFrame({
   description: string;
   icon: ReactNode;
   actions?: ReactNode;
+  /** Narrows the header + content column (e.g. "max-w-[880px]"); omitted = the settings layout's full width. */
+  maxWidthClass?: string;
   children: ReactNode;
 }) {
   return (
     <PortalShell restaurant={restaurant} active="settings">
-      <PageHeader title={title} description={description} icon={icon} actions={actions} />
-      {children}
+      <div className={maxWidthClass ? `mx-auto ${maxWidthClass}` : undefined}>
+        <PageHeader title={title} description={description} icon={icon} actions={actions} />
+        {children}
+      </div>
     </PortalShell>
   );
 }

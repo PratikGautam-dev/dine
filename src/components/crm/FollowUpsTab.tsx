@@ -117,18 +117,13 @@ function Kpi({
     <Card className="min-w-0 p-space-3">
       <div className="mb-space-2 flex items-center gap-space-2">
         <span
-          className={cn(
-            "flex h-9 w-9 shrink-0 items-center justify-center rounded-full",
-            tone,
-          )}
+          className={cn("flex h-9 w-9 shrink-0 items-center justify-center rounded-full", tone)}
         >
           <HugeiconsIcon icon={icon} size={18} />
         </span>
         <p className="text-[12.5px] text-ink-600">{label}</p>
       </div>
-      <p className="text-[24px] font-bold leading-tight text-ink-900">
-        {value}
-      </p>
+      <p className="text-[24px] font-bold leading-tight text-ink-900">{value}</p>
       {hint && <p className="mt-0.5 text-[11.5px] text-ink-400">{hint}</p>}
     </Card>
   );
@@ -168,8 +163,7 @@ export function FollowUpsTab({
 
   async function remove(n: FollowUp) {
     const res = await erp(`/api/v1/crm/notes/${n.id}`, "DELETE");
-    if (res.error)
-      return toast.error("Couldn't delete the follow-up", res.error);
+    if (res.error) return toast.error("Couldn't delete the follow-up", res.error);
     board.reload();
     onChanged();
   }
@@ -194,12 +188,7 @@ export function FollowUpsTab({
       <div className="grid grid-cols-2 gap-space-3 md:grid-cols-3 xl:grid-cols-6">
         <Kpi label="Total Follow-ups" value={k.total} icon={PhoneCheckIcon} />
         <Kpi label="Due Today" value={k.due_today} icon={Calendar03Icon} />
-        <Kpi
-          label="Upcoming"
-          value={k.upcoming}
-          hint="next 7 days"
-          icon={Calendar03Icon}
-        />
+        <Kpi label="Upcoming" value={k.upcoming} hint="next 7 days" icon={Calendar03Icon} />
         <Kpi
           label="Completed"
           value={k.completed}
@@ -207,12 +196,7 @@ export function FollowUpsTab({
           icon={CheckmarkCircle02Icon}
           tone="bg-emerald-50 text-emerald-700"
         />
-        <Kpi
-          label="Overdue"
-          value={k.overdue}
-          icon={Alert02Icon}
-          tone="bg-red-50 text-red-700"
-        />
+        <Kpi label="Overdue" value={k.overdue} icon={Alert02Icon} tone="bg-red-50 text-red-700" />
         <Kpi
           label="Follow-up Conversion"
           value={`${k.conversion_rate}%`}
@@ -351,25 +335,19 @@ export function FollowUpsTab({
             {
               header: "Assigned To",
               cell: ({ row: { original: n } }) => (
-                <span className="whitespace-nowrap">
-                  {n.assigned_name ?? "—"}
-                </span>
+                <span className="whitespace-nowrap">{n.assigned_name ?? "—"}</span>
               ),
             },
             {
               header: "Last Contact",
               cell: ({ row: { original: n } }) => (
-                <span className="whitespace-nowrap">
-                  {when(n.last_contact_at)}
-                </span>
+                <span className="whitespace-nowrap">{when(n.last_contact_at)}</span>
               ),
             },
             {
               header: "Next Follow-up",
               cell: ({ row: { original: n } }) => (
-                <span className="whitespace-nowrap">
-                  {when(n.follow_up_at)}
-                </span>
+                <span className="whitespace-nowrap">{when(n.follow_up_at)}</span>
               ),
             },
             {
@@ -418,10 +396,7 @@ export function FollowUpsTab({
                       <DropdownMenuItem onClick={() => setEditing(n)}>
                         Edit follow-up
                       </DropdownMenuItem>
-                      <DropdownMenuItem
-                        variant="destructive"
-                        onClick={() => remove(n)}
-                      >
+                      <DropdownMenuItem variant="destructive" onClick={() => remove(n)}>
                         Delete
                       </DropdownMenuItem>
                     </DropdownMenuContent>
@@ -459,9 +434,7 @@ export function FollowUpsTab({
             </button>
           </div>
           {d.today.length === 0 ? (
-            <p className="py-space-4 text-center text-[13px] text-ink-400">
-              Nothing due today.
-            </p>
+            <p className="py-space-4 text-center text-[13px] text-ink-400">Nothing due today.</p>
           ) : (
             <ul className="max-h-[260px] divide-y divide-line overflow-y-auto">
               {d.today.map((n) => {
@@ -492,9 +465,7 @@ export function FollowUpsTab({
                     <span className="min-w-[120px] flex-[2_1_130px] truncate text-ink-900">
                       {n.purpose}
                     </span>
-                    <span className="whitespace-nowrap">
-                      {timeOnly(n.follow_up_at)}
-                    </span>
+                    <span className="whitespace-nowrap">{timeOnly(n.follow_up_at)}</span>
                     <Chip className={FOLLOW_UP_PRIORITY[n.priority].chip}>
                       {FOLLOW_UP_PRIORITY[n.priority].label}
                     </Chip>
@@ -510,9 +481,7 @@ export function FollowUpsTab({
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-brand-50 text-brand-700">
               <HugeiconsIcon icon={ChartBarLineIcon} size={18} />
             </span>
-            <h2 className="flex-1 text-[15px] font-bold text-ink-900">
-              Follow-up Performance
-            </h2>
+            <h2 className="flex-1 text-[15px] font-bold text-ink-900">Follow-up Performance</h2>
             <Select
               value={perf}
               onValueChange={setPerf}
@@ -550,18 +519,11 @@ export function FollowUpsTab({
             </div>
             <div className="h-[190px] min-w-[240px] flex-1">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart
-                  data={points}
-                  margin={{ top: 8, right: 12, left: -18, bottom: 0 }}
-                >
+                <AreaChart data={points} margin={{ top: 8, right: 12, left: -18, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fuFill" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor="#4a5d45" stopOpacity={0.3} />
-                      <stop
-                        offset="100%"
-                        stopColor="#4a5d45"
-                        stopOpacity={0.02}
-                      />
+                      <stop offset="100%" stopColor="#4a5d45" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.08)" />

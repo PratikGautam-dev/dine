@@ -64,7 +64,7 @@ const CHANNEL_LABEL: Record<Channel, string> = {
   pos: "POS",
   online: "Website",
   whatsapp: "WhatsApp",
-  daap_app: "Daap App",
+  daap_app: "App",
 };
 const SCOPE_LABEL = {
   "": "All orders",
@@ -218,7 +218,7 @@ export function OfferFormModal({
   const [productQ, setProductQ] = useState("");
   const branches = useBranches();
 
-  const needsMenu = open && (form.scopes.category || form.scopes.product);
+  const needsMenu = open && (form.scopes.category || form.scopes.collection || form.scopes.product);
   useEffect(() => {
     if (!needsMenu || menuLoaded) return;
     portalFetch("/api/portal/menu-items").then((r) => {
@@ -258,9 +258,13 @@ export function OfferFormModal({
   const groupHasScope = (group: "product" | "customer") =>
     SCOPES.some((s) => s.group === group && form.scopes[s.key]);
 
-  const categoryNames = Array.from(
+  // Combos are bundles, not menu categories: they are offered under "Specific collections" instead.
+  const isCombo = (c: string) => /^combos?$/i.test(c.trim());
+  const allCategoryNames = Array.from(
     new Set(menu.map((m) => m.category).filter((c): c is string => !!c)),
   );
+  const categoryNames = allCategoryNames.filter((c) => !isCombo(c));
+  const comboCollections = allCategoryNames.filter(isCombo);
 
   const scopeControl = (key: Scope, hint: string) => {
     if (!form.scopes[key])
@@ -284,9 +288,10 @@ export function OfferFormModal({
       case "collection":
         return (
           <CheckList
-            items={[]}
+            items={comboCollections.map((c) => ({ id: c, label: c }))}
             selected={form.collectionIds}
             onChange={(ids) => set("collectionIds", ids)}
+            loading={menuLoading}
             empty="No collections yet."
             placeholder={hint}
           />
@@ -683,7 +688,7 @@ export function OfferFormModal({
                     ["pos", "POS (in-store)"],
                     ["online", "Website (E-commerce)"],
                     ["whatsapp", "WhatsApp"],
-                    ["daap_app", "Daap App"],
+                    ["daap_app", "App"],
                   ] as const
                 ).map(([c, label]) => (
                   <label key={c} className="flex items-center gap-space-2">

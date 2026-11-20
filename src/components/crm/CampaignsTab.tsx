@@ -46,15 +46,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/erp-ui/dropdown-menu";
-import {
-  DateTimeField,
-  isoToLocalInput,
-  localInputToIso,
-} from "@/components/erp-ui/DateTimeField";
-import {
-  CustomerMultiSelect,
-  type PickedCustomer,
-} from "@/components/erp/CustomerMultiSelect";
+import { DateTimeField, isoToLocalInput, localInputToIso } from "@/components/erp-ui/DateTimeField";
+import { CustomerMultiSelect, type PickedCustomer } from "@/components/erp/CustomerMultiSelect";
 import { Field } from "@/components/erp-ui/Field";
 import { OptionCard, Section, generateCode } from "@/components/erp-ui/FormSection";
 import { Input } from "@/components/erp-ui/Input";
@@ -108,9 +101,10 @@ const CHANNELS: { key: CampaignChannel; label: string; icon: ReactNode }[] = [
     icon: <HugeiconsIcon icon={Globe02Icon} size={22} />,
   },
 ];
-const CHANNEL_LABEL = Object.fromEntries(
-  CHANNELS.map((c) => [c.key, c.label]),
-) as Record<CampaignChannel, string>;
+const CHANNEL_LABEL = Object.fromEntries(CHANNELS.map((c) => [c.key, c.label])) as Record<
+  CampaignChannel,
+  string
+>;
 
 const TYPES: {
   key: CampaignType;
@@ -256,14 +250,9 @@ const EMPTY: Form = {
 /** A trigger in words: "7 days before a birthday". */
 function triggerLabel(t: Campaign["trigger"]) {
   if (!t) return "";
-  if (t.type === "new_arrival")
-    return "When a product is added to New Arrivals";
+  if (t.type === "new_arrival") return "When a product is added to New Arrivals";
   const what =
-    t.type === "birthday"
-      ? "birthday"
-      : t.label
-        ? `${t.label} anniversary`
-        : "anniversary";
+    t.type === "birthday" ? "birthday" : t.label ? `${t.label} anniversary` : "anniversary";
   const n = t.days_before ?? 0;
   const sends = t.sends ?? 1;
   const base =
@@ -271,9 +260,7 @@ function triggerLabel(t: Campaign["trigger"]) {
       ? `On the customer's ${what}`
       : `${n} day${n === 1 ? "" : "s"} before a customer's ${what}`;
   const gap = t.interval_days ?? 3;
-  return sends > 1
-    ? `${base}, ${sends} times, ${gap} day${gap === 1 ? "" : "s"} apart`
-    : base;
+  return sends > 1 ? `${base}, ${sends} times, ${gap} day${gap === 1 ? "" : "s"} apart` : base;
 }
 
 const audienceOf = (f: Form): CampaignAudience =>
@@ -283,9 +270,7 @@ const audienceOf = (f: Form): CampaignAudience =>
         ...(f.segments.length ? { segments: f.segments as Segment[] } : {}),
         ...(f.segmentId ? { segment_id: f.segmentId } : {}),
         ...(f.tag ? { tag: f.tag } : {}),
-        ...(f.customerType
-          ? { customer_type: f.customerType as "individual" | "business" }
-          : {}),
+        ...(f.customerType ? { customer_type: f.customerType as "individual" | "business" } : {}),
         ...(f.onlyNew ? { only_new: true } : {}),
         ...(f.city ? { city: f.city } : {}),
         ...(f.purchase
@@ -293,27 +278,16 @@ const audienceOf = (f: Form): CampaignAudience =>
               purchase: f.purchase as NonNullable<CampaignAudience["purchase"]>,
             }
           : {}),
-        ...(f.gender
-          ? { gender: f.gender as NonNullable<CampaignAudience["gender"]> }
-          : {}),
-        ...(f.since
-          ? { since: f.since as NonNullable<CampaignAudience["since"]> }
-          : {}),
+        ...(f.gender ? { gender: f.gender as NonNullable<CampaignAudience["gender"]> } : {}),
+        ...(f.since ? { since: f.since as NonNullable<CampaignAudience["since"]> } : {}),
       };
 
 function audienceLabel(a: Campaign["audience"]) {
   const customers = a.customer_ids?.length ?? (a.customer_id ? 1 : 0);
-  if (customers)
-    return customers === 1 ? "Individual customer" : `${customers} customers`;
-  const segments = a.segments?.length
-    ? a.segments
-    : a.segment
-      ? [a.segment]
-      : [];
+  if (customers) return customers === 1 ? "Individual customer" : `${customers} customers`;
+  const segments = a.segments?.length ? a.segments : a.segment ? [a.segment] : [];
   const parts = [
-    segments.length
-      ? segments.map((s) => SEGMENT_META[s].label).join(", ")
-      : null,
+    segments.length ? segments.map((s) => SEGMENT_META[s].label).join(", ") : null,
     a.segment_id ? "saved segment" : null,
     a.tag ? `tag: ${a.tag}` : null,
     a.customer_type ? `${a.customer_type} customers` : null,
@@ -342,13 +316,7 @@ const shortDate = (v: string) =>
     year: "numeric",
   });
 
-export function CampaignsTab({
-  canEdit,
-  onChanged,
-}: {
-  canEdit: boolean;
-  onChanged: () => void;
-}) {
+export function CampaignsTab({ canEdit, onChanged }: { canEdit: boolean; onChanged: () => void }) {
   const [tab, setTab] = useState<"all" | "automated">("all");
   const [stageFilter, setStageFilter] = useState("");
   const [search, setSearch] = useState("");
@@ -359,12 +327,9 @@ export function CampaignsTab({
   const campaigns = useErpQuery<Campaign[]>("/api/v1/crm/campaigns");
   // Sending reaches real customers: its own permission (drafting needs customers write).
   const canSend = hasGrant(useStaffSession(), "customers:send_campaigns");
-  const tags =
-    useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");
+  const tags = useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");
   const discounts = useErpQuery<Discount[]>("/api/v1/discounts");
-  const savedSegments = useErpQuery<SavedSegment[]>(
-    "/api/v1/crm/customer-segments",
-  );
+  const savedSegments = useErpQuery<SavedSegment[]>("/api/v1/crm/customer-segments");
   const options = useErpQuery<{
     cities: string[];
     anniversary_labels?: string[];
@@ -391,8 +356,7 @@ export function CampaignsTab({
   );
   const logCounts = useMemo(() => {
     const rows = log.data ?? [];
-    const is = (...st: string[]) =>
-      rows.filter((m) => st.includes(m.status)).length;
+    const is = (...st: string[]) => rows.filter((m) => st.includes(m.status)).length;
     return {
       total: rows.length,
       delivered: is("delivered", "read"),
@@ -405,8 +369,7 @@ export function CampaignsTab({
     reachable: number;
   } | null>(null);
   const whatsapp = form.channels.includes("whatsapp");
-  const primary: CampaignChannel =
-    form.channels.find((c) => MESSAGING.includes(c)) ?? "whatsapp";
+  const primary: CampaignChannel = form.channels.find((c) => MESSAGING.includes(c)) ?? "whatsapp";
 
   // a campaign that is going out: refresh until it's done, so the counts move on their own
   const { reload: reloadCampaigns } = campaigns;
@@ -427,11 +390,10 @@ export function CampaignsTab({
     const wanted: CampaignAudience = JSON.parse(audienceKey)[0];
     if (wanted.customer_ids && wanted.customer_ids.length === 0) return; // nobody chosen yet: nothing to ask the server
     let cancelled = false;
-    erp<{ total: number; reachable: number }>(
-      "/api/v1/crm/audience-preview",
-      "POST",
-      { channel: primary, audience: wanted },
-    ).then((r) => {
+    erp<{ total: number; reachable: number }>("/api/v1/crm/audience-preview", "POST", {
+      channel: primary,
+      audience: wanted,
+    }).then((r) => {
       if (!cancelled) setAudience(r.data);
     });
     return () => {
@@ -479,11 +441,7 @@ export function CampaignsTab({
     setAudience(null);
     setEditing(copy ? "new" : k);
     // the chosen customers are saved as ids: look their names up so they can be shown (and removed) here
-    const ids = a.customer_ids?.length
-      ? a.customer_ids
-      : a.customer_id
-        ? [a.customer_id]
-        : [];
+    const ids = a.customer_ids?.length ? a.customer_ids : a.customer_id ? [a.customer_id] : [];
     if (ids.length)
       void loadPicked(ids).then((customers) =>
         setForm((f) => (f.individuals ? { ...f, customers } : f)),
@@ -512,12 +470,7 @@ export function CampaignsTab({
         "Pick at least one customer, or set Customer type to All customers.",
       );
     if (!text.trim()) return fail("Write the message");
-    if (
-      !form.trigger &&
-      form.startsAt &&
-      form.endsAt &&
-      form.endsAt <= form.startsAt
-    )
+    if (!form.trigger && form.startsAt && form.endsAt && form.endsAt <= form.startsAt)
       return fail("Check the schedule", "The end must be after the start.");
     const days = Number(form.daysBefore);
     if (
@@ -527,10 +480,7 @@ export function CampaignsTab({
       return fail("Check the trigger", "Days before must be from 0 to 60.");
     const sends = Number(form.sends);
     const gap = Number(form.intervalDays);
-    if (
-      (form.trigger === "birthday" || form.trigger === "anniversary") &&
-      sends > 1
-    ) {
+    if ((form.trigger === "birthday" || form.trigger === "anniversary") && sends > 1) {
       if (!(Number.isInteger(gap) && gap >= 1 && gap <= 14))
         return fail("Check the trigger", "Days between sends must be 1 to 14.");
       if (days - (sends - 1) * gap < 0)
@@ -539,11 +489,7 @@ export function CampaignsTab({
           "The last send would fall after the day itself. Use more days before, fewer sends or a shorter interval.",
         );
     }
-    if (
-      discountRequired &&
-      form.discountMode === "existing" &&
-      !form.discountId
-    )
+    if (discountRequired && form.discountMode === "existing" && !form.discountId)
       return fail("Select a discount");
 
     setBusy(true);
@@ -555,9 +501,7 @@ export function CampaignsTab({
         setBusy(false);
         return fail(
           "Check the discount value",
-          percent
-            ? "A percentage must be between 0 and 100."
-            : "Enter an amount above zero.",
+          percent ? "A percentage must be between 0 and 100." : "Enter an amount above zero.",
         );
       }
       const made = await erp<Discount>("/api/v1/discounts", "POST", {
@@ -565,9 +509,7 @@ export function CampaignsTab({
         code: form.newCode.trim() || generateCode(),
         kind: form.newKind,
         value,
-        min_order_minor: form.newMinOrder.trim()
-          ? (toMinor(form.newMinOrder) ?? 0)
-          : 0,
+        min_order_minor: form.newMinOrder.trim() ? (toMinor(form.newMinOrder) ?? 0) : 0,
         starts_at: localInputToIso(form.startsAt),
         ends_at: localInputToIso(form.endsAt),
       });
@@ -597,9 +539,7 @@ export function CampaignsTab({
         ? {
             type: form.trigger,
             ...(form.trigger === "new_arrival" ? {} : { days_before: days }),
-            ...(form.trigger !== "new_arrival" && sends > 1
-              ? { sends, interval_days: gap }
-              : {}),
+            ...(form.trigger !== "new_arrival" && sends > 1 ? { sends, interval_days: gap } : {}),
             ...(form.trigger === "anniversary" && form.anniversaryLabel
               ? { label: form.anniversaryLabel }
               : {}),
@@ -609,14 +549,9 @@ export function CampaignsTab({
     const res =
       editing === "new"
         ? await erp<Campaign>("/api/v1/crm/campaigns", "POST", body)
-        : await erp<Campaign>(
-            `/api/v1/crm/campaigns/${(editing as Campaign).id}`,
-            "PUT",
-            body,
-          );
+        : await erp<Campaign>(`/api/v1/crm/campaigns/${(editing as Campaign).id}`, "PUT", body);
     setBusy(false);
-    if (res.error || !res.data)
-      return fail("Couldn't save the campaign", res.error ?? undefined);
+    if (res.error || !res.data) return fail("Couldn't save the campaign", res.error ?? undefined);
     campaigns.reload();
     return res.data;
   }
@@ -635,28 +570,17 @@ export function CampaignsTab({
   async function saveDetails() {
     if (!detailing) return;
     if (!details.name.trim()) return toast.error("Name the campaign");
-    if (
-      details.startsAt &&
-      details.endsAt &&
-      details.endsAt <= details.startsAt
-    )
-      return toast.error(
-        "Check the schedule",
-        "The end must be after the start.",
-      );
+    if (details.startsAt && details.endsAt && details.endsAt <= details.startsAt)
+      return toast.error("Check the schedule", "The end must be after the start.");
     setBusy(true);
-    const res = await erp<Campaign>(
-      `/api/v1/crm/campaigns/${detailing.id}/details`,
-      "PATCH",
-      {
-        name: details.name.trim(),
-        description: details.description.trim() || null,
-        objective: details.objective,
-        discount_id: details.discountId || null,
-        starts_at: localInputToIso(details.startsAt),
-        ends_at: localInputToIso(details.endsAt),
-      },
-    );
+    const res = await erp<Campaign>(`/api/v1/crm/campaigns/${detailing.id}/details`, "PATCH", {
+      name: details.name.trim(),
+      description: details.description.trim() || null,
+      objective: details.objective,
+      discount_id: details.discountId || null,
+      starts_at: localInputToIso(details.startsAt),
+      ends_at: localInputToIso(details.endsAt),
+    });
     setBusy(false);
     if (res.error || !res.data)
       return toast.error("Couldn't save the campaign", res.error ?? undefined);
@@ -685,13 +609,10 @@ export function CampaignsTab({
     setSending(k);
   }
   async function setAutomation(k: Campaign, active: boolean) {
-    const res = await erp<Campaign>(
-      `/api/v1/crm/campaigns/${k.id}/automation`,
-      "PATCH",
-      { active },
-    );
-    if (res.error)
-      return toast.error("Couldn't update the campaign", res.error);
+    const res = await erp<Campaign>(`/api/v1/crm/campaigns/${k.id}/automation`, "PATCH", {
+      active,
+    });
+    if (res.error) return toast.error("Couldn't update the campaign", res.error);
     toast.success(active ? "Automation resumed" : "Automation paused");
     campaigns.reload();
   }
@@ -704,10 +625,7 @@ export function CampaignsTab({
       .replaceAll("{{name}}", "Priya")
       .replaceAll("{{code}}", picked?.code ?? "CODE")
       .replaceAll("{{discount}}", picked ? discountOffer(picked) : "your offer")
-      .replaceAll(
-        "{{expiry_date}}",
-        form.endsAt ? shortDate(form.endsAt) : "the end date",
-      )
+      .replaceAll("{{expiry_date}}", form.endsAt ? shortDate(form.endsAt) : "the end date")
       .replaceAll("{{store_name}}", "our store")
       .replaceAll("{{occasion}}", "Wedding")
       .replaceAll("{{occasion_date}}", "15 Feb")
@@ -716,10 +634,7 @@ export function CampaignsTab({
   async function send() {
     if (!sending) return;
     setBusy(true);
-    const res = await erp<Campaign>(
-      `/api/v1/crm/campaigns/${sending.id}/send`,
-      "POST",
-    );
+    const res = await erp<Campaign>(`/api/v1/crm/campaigns/${sending.id}/send`, "POST");
     setBusy(false);
     setSending(null);
     if (res.error) return toast.error("Couldn't send the campaign", res.error);
@@ -755,15 +670,9 @@ export function CampaignsTab({
         header: "Campaign Name",
         cell: ({ row }) => (
           <span className="flex items-center gap-space-2">
-            <HugeiconsIcon
-              icon={Megaphone01Icon}
-              size={16}
-              className="shrink-0 text-brand-700"
-            />
+            <HugeiconsIcon icon={Megaphone01Icon} size={16} className="shrink-0 text-brand-700" />
             <span className="min-w-0">
-              <span className="block font-semibold text-ink-900">
-                {row.original.name}
-              </span>
+              <span className="block font-semibold text-ink-900">{row.original.name}</span>
               {row.original.description && (
                 <span className="block max-w-[260px] truncate text-[12px] text-ink-600">
                   {row.original.description}
@@ -777,8 +686,7 @@ export function CampaignsTab({
         header: "Type",
         cell: ({ row }) => (
           <span className="rounded-md bg-ink-50 px-space-2 py-0.5 text-[12px] font-medium text-ink-800">
-            {TYPE_SHORT[row.original.campaign_type] ??
-              row.original.campaign_type}
+            {TYPE_SHORT[row.original.campaign_type] ?? row.original.campaign_type}
           </span>
         ),
       },
@@ -801,17 +709,13 @@ export function CampaignsTab({
       },
       {
         header: "Offer / Discount",
-        cell: ({ row }) =>
-          row.original.discount_code ?? <span className="text-ink-400">—</span>,
+        cell: ({ row }) => row.original.discount_code ?? <span className="text-ink-400">—</span>,
       },
       {
         header: "Schedule / Trigger",
         cell: ({ row }) => {
           const k = row.original;
-          if (k.trigger)
-            return (
-              <span className="text-ink-700">{triggerLabel(k.trigger)}</span>
-            );
+          if (k.trigger) return <span className="text-ink-700">{triggerLabel(k.trigger)}</span>;
           const from = k.starts_at ?? k.sent_at;
           return from ? (
             <span className="text-ink-700">
@@ -838,10 +742,7 @@ export function CampaignsTab({
               {row.original.automation_active ? "Active" : "Paused"}
             </span>
           ) : (
-            <StagePill
-              stage={stageOf(row.original)}
-              sending={row.original.status === "sending"}
-            />
+            <StagePill stage={stageOf(row.original)} sending={row.original.status === "sending"} />
           ),
       },
       {
@@ -852,8 +753,7 @@ export function CampaignsTab({
           const k = row.original;
           return (
             <span className="flex items-center justify-start gap-space-1">
-              {(k.status !== "draft" ||
-                (k.trigger && k.recipient_count > 0)) && (
+              {(k.status !== "draft" || (k.trigger && k.recipient_count > 0)) && (
                 <button
                   type="button"
                   aria-label={`View messages for ${k.name}`}
@@ -864,10 +764,9 @@ export function CampaignsTab({
                   <HugeiconsIcon icon={ViewIcon} size={16} />
                 </button>
               )}
-              {k.status === "draft" &&
-                !(k.trigger && k.recipient_count > 0) && (
-                  <span aria-hidden className="h-8 w-8 shrink-0" />
-                )}
+              {k.status === "draft" && !(k.trigger && k.recipient_count > 0) && (
+                <span aria-hidden className="h-8 w-8 shrink-0" />
+              )}
               {canEdit && (
                 <DropdownMenu>
                   <DropdownMenuTrigger
@@ -879,33 +778,21 @@ export function CampaignsTab({
                   <DropdownMenuContent>
                     <DropdownMenuItem
                       disabled={k.status === "sending"}
-                      onClick={() =>
-                        k.status === "draft" ? openEdit(k) : openDetails(k)
-                      }
+                      onClick={() => (k.status === "draft" ? openEdit(k) : openDetails(k))}
                     >
                       Edit
                     </DropdownMenuItem>
-                    <DropdownMenuItem onClick={() => openEdit(k, true)}>
-                      Copy
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(k, true)}>Copy</DropdownMenuItem>
                     {k.status === "draft" && canSend && !k.trigger && (
-                      <DropdownMenuItem onClick={() => setSending(k)}>
-                        Send
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setSending(k)}>Send</DropdownMenuItem>
                     )}
                     {k.trigger && canSend && (
-                      <DropdownMenuItem
-                        onClick={() =>
-                          void setAutomation(k, !k.automation_active)
-                        }
-                      >
+                      <DropdownMenuItem onClick={() => void setAutomation(k, !k.automation_active)}>
                         {k.automation_active ? "Pause" : "Resume"}
                       </DropdownMenuItem>
                     )}
                     {k.status === "draft" && (
-                      <DropdownMenuItem onClick={() => setDeleting(k)}>
-                        Delete
-                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={() => setDeleting(k)}>Delete</DropdownMenuItem>
                     )}
                   </DropdownMenuContent>
                 </DropdownMenu>
@@ -926,8 +813,7 @@ export function CampaignsTab({
     (k) =>
       (tab === "all" || !!k.trigger) &&
       (!stageFilter || stageOf(k) === stageFilter) &&
-      (!channelFilter ||
-        channelsOf(k).includes(channelFilter as CampaignChannel)) &&
+      (!channelFilter || channelsOf(k).includes(channelFilter as CampaignChannel)) &&
       (!typeFilter || k.campaign_type === typeFilter) &&
       (!cutoff || Date.parse(k.created_at) >= cutoff) &&
       `${k.name} ${k.description ?? ""} ${k.discount_code ?? ""}`
@@ -994,9 +880,7 @@ export function CampaignsTab({
         ))}
       </div>
       {campaigns.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {campaigns.error}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{campaigns.error}</p>
       )}
       {
         <>
@@ -1140,21 +1024,13 @@ export function CampaignsTab({
               Cancel
             </Button>
             {!form.trigger && (
-              <Button
-                variant="ghost"
-                disabled={busy || !form.name.trim()}
-                onClick={saveDraft}
-              >
+              <Button variant="ghost" disabled={busy || !form.name.trim()} onClick={saveDraft}>
                 Save as draft
               </Button>
             )}
             <Button
               disabled={busy || !form.name.trim() || !canSend}
-              title={
-                canSend
-                  ? undefined
-                  : "Your role can save drafts but not send campaigns."
-              }
+              title={canSend ? undefined : "Your role can save drafts but not send campaigns."}
               onClick={launch}
             >
               {form.trigger ? "Save automation" : "Launch campaign"}
@@ -1176,9 +1052,7 @@ export function CampaignsTab({
                 <Select
                   id="k_objective"
                   value={form.objective}
-                  onValueChange={(v) =>
-                    setForm({ ...form, objective: v as CampaignObjective })
-                  }
+                  onValueChange={(v) => setForm({ ...form, objective: v as CampaignObjective })}
                 >
                   {OBJECTIVES.map(([key, label]) => (
                     <option key={key} value={key}>
@@ -1194,9 +1068,7 @@ export function CampaignsTab({
                 rows={2}
                 maxLength={500}
                 value={form.description}
-                onChange={(e) =>
-                  setForm({ ...form, description: e.target.value })
-                }
+                onChange={(e) => setForm({ ...form, description: e.target.value })}
                 className="w-full resize-y rounded-md border border-line bg-card px-space-3 py-2 text-[13px] leading-5 text-ink-900 shadow-[var(--shadow-sm)] focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100"
               />
             </Field>
@@ -1245,9 +1117,7 @@ export function CampaignsTab({
                       <option value="">None</option>
                       {(savedSegments.data ?? [])
                         .filter(
-                          (s) =>
-                            (s.status === "active" && s.marketing) ||
-                            s.id === form.segmentId,
+                          (s) => (s.status === "active" && s.marketing) || s.id === form.segmentId,
                         )
                         .map((s) => (
                           <option key={s.id} value={s.id}>
@@ -1289,9 +1159,7 @@ export function CampaignsTab({
                   <Field label="Customer type" htmlFor="k_type">
                     <Select
                       id="k_type"
-                      value={
-                        form.individuals ? "individuals" : form.customerType
-                      }
+                      value={form.individuals ? "individuals" : form.customerType}
                       onValueChange={(v) =>
                         v === "individuals"
                           ? setForm({ ...form, individuals: true })
@@ -1309,9 +1177,7 @@ export function CampaignsTab({
                         <option value="business">Business accounts</option>
                       )}
                       {form.customerType === "individual" && (
-                        <option value="individual">
-                          Individuals (non-business)
-                        </option>
+                        <option value="individual">Individuals (non-business)</option>
                       )}
                     </Select>
                   </Field>
@@ -1320,9 +1186,7 @@ export function CampaignsTab({
                       <input
                         type="checkbox"
                         checked={form.onlyNew}
-                        onChange={(e) =>
-                          setForm({ ...form, onlyNew: e.target.checked })
-                        }
+                        onChange={(e) => setForm({ ...form, onlyNew: e.target.checked })}
                       />
                       Only new customers
                     </label>
@@ -1346,8 +1210,7 @@ export function CampaignsTab({
               {!form.individuals && (
                 <>
                   <p className="mt-space-2 mb-space-1 text-[13px] font-semibold text-ink-900">
-                    Additional filters{" "}
-                    <span className="font-normal text-ink-600">(optional)</span>
+                    Additional filters <span className="font-normal text-ink-600">(optional)</span>
                   </p>
                   <div className="grid gap-space-2 md:grid-cols-4">
                     <Field label="City / Location" htmlFor="k_city">
@@ -1373,9 +1236,7 @@ export function CampaignsTab({
                         <option value="">Any</option>
                         <option value="bought">Has bought before</option>
                         <option value="never">Never bought</option>
-                        <option value="repeat">
-                          Repeat buyers (2+ orders)
-                        </option>
+                        <option value="repeat">Repeat buyers (2+ orders)</option>
                         <option value="recent">Ordered in last 90 days</option>
                       </Select>
                     </Field>
@@ -1413,8 +1274,7 @@ export function CampaignsTab({
               </span>
               <span>
                 <b>
-                  Estimated audience:{" "}
-                  {estimate ? estimate.total.toLocaleString("en-IN") : "…"}{" "}
+                  Estimated audience: {estimate ? estimate.total.toLocaleString("en-IN") : "…"}{" "}
                   customers
                 </b>{" "}
                 (based on current filters)
@@ -1457,14 +1317,10 @@ export function CampaignsTab({
                       <Select
                         id="k_disc"
                         value={form.discountId}
-                        onValueChange={(v) =>
-                          setForm({ ...form, discountId: v })
-                        }
+                        onValueChange={(v) => setForm({ ...form, discountId: v })}
                       >
                         <option value="">
-                          {discountRequired
-                            ? "Choose a discount"
-                            : "No discount"}
+                          {discountRequired ? "Choose a discount" : "No discount"}
                         </option>
                         {withCode.map((d) => (
                           <option key={d.id} value={d.id}>
@@ -1488,9 +1344,7 @@ export function CampaignsTab({
                       <HugeiconsIcon icon={Tag01Icon} size={18} />
                     </span>
                     <div className="min-w-0 text-[13px] text-ink-600">
-                      <p className="text-[14px] font-bold text-ink-900">
-                        Discount summary
-                      </p>
+                      <p className="text-[14px] font-bold text-ink-900">Discount summary</p>
                       <p>{discountSummary(picked)}</p>
                     </div>
                   </div>
@@ -1498,41 +1352,27 @@ export function CampaignsTab({
               </>
             ) : (
               <div className="mt-space-2 grid gap-space-2 md:grid-cols-5">
-                <Field
-                  label="Discount name"
-                  htmlFor="k_nd_name"
-                  className="md:col-span-2"
-                >
+                <Field label="Discount name" htmlFor="k_nd_name" className="md:col-span-2">
                   <Input
                     id="k_nd_name"
                     placeholder={form.name || "Defaults to the campaign name"}
                     value={form.newName}
-                    onChange={(e) =>
-                      setForm({ ...form, newName: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, newName: e.target.value })}
                   />
                 </Field>
-                <Field
-                  label="Coupon code"
-                  htmlFor="k_nd_code"
-                  className="md:col-span-2"
-                >
+                <Field label="Coupon code" htmlFor="k_nd_code" className="md:col-span-2">
                   <div className="flex gap-space-2">
                     <Input
                       id="k_nd_code"
                       className="uppercase"
                       value={form.newCode}
-                      onChange={(e) =>
-                        setForm({ ...form, newCode: e.target.value })
-                      }
+                      onChange={(e) => setForm({ ...form, newCode: e.target.value })}
                     />
                     <Button
                       variant="ghost"
                       type="button"
                       className="shrink-0 border border-line"
-                      onClick={() =>
-                        setForm({ ...form, newCode: generateCode() })
-                      }
+                      onClick={() => setForm({ ...form, newCode: generateCode() })}
                     >
                       Generate
                     </Button>
@@ -1542,18 +1382,14 @@ export function CampaignsTab({
                   <Select
                     id="k_nd_kind"
                     value={form.newKind}
-                    onValueChange={(v) =>
-                      setForm({ ...form, newKind: v as "percent" | "flat" })
-                    }
+                    onValueChange={(v) => setForm({ ...form, newKind: v as "percent" | "flat" })}
                   >
                     <option value="percent">Percentage off</option>
                     <option value="flat">Flat amount off</option>
                   </Select>
                 </Field>
                 <Field
-                  label={
-                    form.newKind === "percent" ? "Percentage (%)" : "Amount (₹)"
-                  }
+                  label={form.newKind === "percent" ? "Percentage (%)" : "Amount (₹)"}
                   htmlFor="k_nd_value"
                   required
                 >
@@ -1561,9 +1397,7 @@ export function CampaignsTab({
                     id="k_nd_value"
                     inputMode="decimal"
                     value={form.newValue}
-                    onChange={(e) =>
-                      setForm({ ...form, newValue: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, newValue: e.target.value })}
                   />
                 </Field>
                 <Field label="Minimum order (₹)" htmlFor="k_nd_min">
@@ -1571,14 +1405,12 @@ export function CampaignsTab({
                     id="k_nd_min"
                     inputMode="decimal"
                     value={form.newMinOrder}
-                    onChange={(e) =>
-                      setForm({ ...form, newMinOrder: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, newMinOrder: e.target.value })}
                   />
                 </Field>
                 <p className="text-[12px] text-ink-600 md:col-span-3 md:self-end md:pb-space-2">
-                  Valid for the campaign&apos;s schedule below. Fine-tune it
-                  later on the Discounts page.
+                  Valid for the campaign&apos;s schedule below. Fine-tune it later on the Discounts
+                  page.
                 </p>
               </div>
             )}
@@ -1587,10 +1419,7 @@ export function CampaignsTab({
           <Section n={5} title="Channels & Message">
             <div className="flex flex-wrap items-center justify-between gap-x-space-4 gap-y-space-2 rounded-md border border-line px-space-3 py-space-2">
               {CHANNELS.map((c) => (
-                <label
-                  key={c.key}
-                  className="flex items-center gap-space-2 text-[13px]"
-                >
+                <label key={c.key} className="flex items-center gap-space-2 text-[13px]">
                   <input
                     type="checkbox"
                     checked={form.channels.includes(c.key)}
@@ -1616,17 +1445,14 @@ export function CampaignsTab({
                     rows={3}
                     className={TEXTAREA_CLASS}
                     value={form.message}
-                    onChange={(e) =>
-                      setForm({ ...form, message: e.target.value })
-                    }
+                    onChange={(e) => setForm({ ...form, message: e.target.value })}
                   />
                 </Field>
                 {whatsapp && (
                   <p className="mt-space-1 text-[12.5px] text-ink-600">
-                    WhatsApp sends this as a plain message to customers who
-                    wrote to you in the last 24 hours (WhatsApp&apos;s rule
-                    for messages that are not templates). Others are shown as
-                    not delivered.
+                    WhatsApp sends this as a plain message to customers who wrote to you in the last
+                    24 hours (WhatsApp&apos;s rule for messages that are not templates). Others are
+                    shown as not delivered.
                   </p>
                 )}
                 <Button
@@ -1649,9 +1475,7 @@ export function CampaignsTab({
                 )}
               </div>
               <div>
-                <p className="mb-space-1 text-[13px] font-semibold text-ink-900">
-                  Personalization
-                </p>
+                <p className="mb-space-1 text-[13px] font-semibold text-ink-900">Personalization</p>
                 <div className="flex flex-wrap gap-space-2">
                   {TOKENS.map((t) => (
                     <button
@@ -1665,9 +1489,7 @@ export function CampaignsTab({
                   ))}
                 </div>
                 <p className="mt-space-2 text-[12px] text-ink-600">
-                  Click a tag to add it to the message
-                  . Each customer sees
-                  their own details.
+                  Click a tag to add it to the message . Each customer sees their own details.
                 </p>
               </div>
             </div>
@@ -1681,21 +1503,17 @@ export function CampaignsTab({
                     <Select
                       id="k_trigger"
                       value={form.trigger}
-                      onValueChange={(v) =>
-                        setForm({ ...form, trigger: v as Form["trigger"] })
-                      }
+                      onValueChange={(v) => setForm({ ...form, trigger: v as Form["trigger"] })}
                     >
                       <option value="birthday">
                         Automatically: a customer&apos;s birthday is coming up
                       </option>
                       <option value="anniversary">
-                        Automatically: a customer&apos;s anniversary is coming
-                        up
+                        Automatically: a customer&apos;s anniversary is coming up
                       </option>
                     </Select>
                   </Field>
-                  {(form.trigger === "birthday" ||
-                    form.trigger === "anniversary") && (
+                  {(form.trigger === "birthday" || form.trigger === "anniversary") && (
                     <Field
                       label="Days before"
                       htmlFor="k_days_before"
@@ -1715,8 +1533,7 @@ export function CampaignsTab({
                       />
                     </Field>
                   )}
-                  {(form.trigger === "birthday" ||
-                    form.trigger === "anniversary") && (
+                  {(form.trigger === "birthday" || form.trigger === "anniversary") && (
                     <>
                       <Field
                         label="Send"
@@ -1735,11 +1552,7 @@ export function CampaignsTab({
                         </Select>
                       </Field>
                       {form.sends !== "1" && (
-                        <Field
-                          label="Days between sends"
-                          htmlFor="k_interval"
-                          className="mb-0"
-                        >
+                        <Field label="Days between sends" htmlFor="k_interval" className="mb-0">
                           <Input
                             id="k_interval"
                             inputMode="numeric"
@@ -1765,9 +1578,7 @@ export function CampaignsTab({
                       <Select
                         id="k_anniv_label"
                         value={form.anniversaryLabel}
-                        onValueChange={(v) =>
-                          setForm({ ...form, anniversaryLabel: v })
-                        }
+                        onValueChange={(v) => setForm({ ...form, anniversaryLabel: v })}
                       >
                         <option value="">Any anniversary</option>
                         {(options.data?.anniversary_labels ?? []).map((l) => (
@@ -1796,8 +1607,8 @@ export function CampaignsTab({
                   {form.trigger !== "new_arrival" && form.sends !== "1"
                     ? "on each of those dates"
                     : "once"}{" "}
-                  for each occasion, and only if they are in the audience above.
-                  You can pause it any time.
+                  for each occasion, and only if they are in the audience above. You can pause it
+                  any time.
                 </p>
               </div>
             </Section>
@@ -1833,10 +1644,8 @@ export function CampaignsTab({
                 </p>
                 <p>
                   {TYPES.find((t) => t.key === form.type)?.label} • Audience:{" "}
-                  {estimate ? estimate.total.toLocaleString("en-IN") : "…"}{" "}
-                  customers • Channels:{" "}
-                  {form.channels.map((c) => CHANNEL_LABEL[c]).join(", ") ||
-                    "none"}
+                  {estimate ? estimate.total.toLocaleString("en-IN") : "…"} customers • Channels:{" "}
+                  {form.channels.map((c) => CHANNEL_LABEL[c]).join(", ") || "none"}
                   {form.discountMode === "existing" && picked
                     ? ` • Discount: ${picked.code} (${discountOffer(picked)})`
                     : form.discountMode === "new"
@@ -1892,10 +1701,7 @@ export function CampaignsTab({
             <Button variant="ghost" onClick={() => setDetailing(null)}>
               Cancel
             </Button>
-            <Button
-              disabled={busy || !details.name.trim()}
-              onClick={saveDetails}
-            >
+            <Button disabled={busy || !details.name.trim()} onClick={saveDetails}>
               Save changes
             </Button>
           </>
@@ -1907,18 +1713,14 @@ export function CampaignsTab({
               <Input
                 id="d_name"
                 value={details.name}
-                onChange={(e) =>
-                  setDetails({ ...details, name: e.target.value })
-                }
+                onChange={(e) => setDetails({ ...details, name: e.target.value })}
               />
             </Field>
             <Field label="Objective" htmlFor="d_objective" required>
               <Select
                 id="d_objective"
                 value={details.objective}
-                onValueChange={(v) =>
-                  setDetails({ ...details, objective: v as CampaignObjective })
-                }
+                onValueChange={(v) => setDetails({ ...details, objective: v as CampaignObjective })}
               >
                 {OBJECTIVES.map(([key, label]) => (
                   <option key={key} value={key}>
@@ -1934,9 +1736,7 @@ export function CampaignsTab({
               rows={2}
               className={`${TEXTAREA_CLASS} max-md:!min-h-0 max-md:!h-14`}
               value={details.description}
-              onChange={(e) =>
-                setDetails({ ...details, description: e.target.value })
-              }
+              onChange={(e) => setDetails({ ...details, description: e.target.value })}
             />
           </Field>
           <Field label="Offer / discount" htmlFor="d_disc">
@@ -1988,11 +1788,7 @@ export function CampaignsTab({
               ["Messages", logCounts.total, "text-ink-900"],
               ["Delivered", logCounts.delivered, "text-ink-900"],
               ["Read", logCounts.read, "text-brand-700"],
-              [
-                "Failed",
-                logCounts.failed,
-                logCounts.failed ? "text-red-600" : "text-ink-900",
-              ],
+              ["Failed", logCounts.failed, logCounts.failed ? "text-red-600" : "text-ink-900"],
             ] as const
           ).map(([label, value, tone]) => (
             <div

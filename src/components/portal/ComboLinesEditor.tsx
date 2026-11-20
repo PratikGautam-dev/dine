@@ -8,9 +8,7 @@ import { Input } from "@/components/ui/Input";
 import type { ComboCandidate } from "@/hooks/useMenuItems";
 import { portalFetch } from "@/lib/portalAuth";
 import { rupees } from "@/lib/foodOrders";
-
-const SELECT_CLASS =
-  "h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900";
+import { Select } from "@/components/erp-ui/Select";
 
 type Line = { component_item_id: string; quantity: string };
 
@@ -74,11 +72,10 @@ export function ComboLinesEditor({ lines, onChange, comboPricePaise = 0 }: Props
           )}
           {lines.map((line, i) => (
             <div key={i} className="flex items-center gap-space-2">
-              <select
-                aria-label={`Combo item ${i + 1}`}
-                className={SELECT_CLASS}
+              <Select
                 value={line.component_item_id}
-                onChange={(e) => updateLine(i, { component_item_id: e.target.value })}
+                onValueChange={(v) => updateLine(i, { component_item_id: v })}
+                aria-label={`Combo item ${i + 1}`}
               >
                 <option value="">Choose an item…</option>
                 {candidates.map((c) => (
@@ -86,7 +83,7 @@ export function ComboLinesEditor({ lines, onChange, comboPricePaise = 0 }: Props
                     {c.name} — {rupees(c.price_paise)}
                   </option>
                 ))}
-              </select>
+              </Select>
               <Input
                 type="number"
                 min="1"

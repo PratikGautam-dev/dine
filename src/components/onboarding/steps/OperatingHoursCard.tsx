@@ -3,6 +3,7 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { WEEKDAYS, WizardState } from "../types";
 import type { WizardDispatch } from "../useWizardState";
+import { Select } from "@/components/erp-ui/Select";
 
 type Props = { state: WizardState; dispatch: WizardDispatch };
 
@@ -61,36 +62,34 @@ export function OperatingHoursCard({ state, dispatch }: Props) {
           htmlFor="turnover"
           hint="Minutes a table stays reserved once seated."
         >
-          <select
-            id="turnover"
+          <Select
             value={state.turnoverMinutes}
-            onChange={(e) =>
-              dispatch({ type: "set", field: "turnoverMinutes", value: e.target.value })
-            }
-            className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+            onValueChange={(v) => dispatch({ type: "set", field: "turnoverMinutes", value: v })}
+            className="w-full"
+            id="turnover"
           >
             {TURNOVER_OPTIONS.map((m) => (
               <option key={m} value={m}>
                 {m} minutes
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field label="A new seating time starts every" htmlFor="interval">
-          <select
-            id="interval"
+          <Select
             value={state.bookingIntervalMinutes}
-            onChange={(e) =>
-              dispatch({ type: "set", field: "bookingIntervalMinutes", value: e.target.value })
+            onValueChange={(v) =>
+              dispatch({ type: "set", field: "bookingIntervalMinutes", value: v })
             }
-            className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+            className="w-full"
+            id="interval"
           >
             {INTERVAL_OPTIONS.map((m) => (
               <option key={m} value={m}>
                 {m} minutes
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       </div>
     </div>

@@ -107,8 +107,7 @@ export function TagRulesView({
 
   async function runNow(r: CrmRule) {
     const res = await erp<RuleRun>(`/api/v1/crm/rules/tag/${r.id}/run`, "POST");
-    if (res.error || !res.data)
-      return toast.error("Couldn't run the rule", res.error ?? undefined);
+    if (res.error || !res.data) return toast.error("Couldn't run the rule", res.error ?? undefined);
     toast.success(
       "Rule ran",
       `${res.data.matched} matched · ${res.data.added} tagged · ${res.data.removed} untagged`,
@@ -142,9 +141,7 @@ export function TagRulesView({
     if (res.error) return toast.error("Couldn't delete the rule", res.error);
     toast.success(
       "Rule deleted",
-      res.data?.tags_removed
-        ? `The tag came off ${res.data.tags_removed} customers.`
-        : undefined,
+      res.data?.tags_removed ? `The tag came off ${res.data.tags_removed} customers.` : undefined,
     );
     setRemoving(null);
     changed();
@@ -157,14 +154,9 @@ export function TagRulesView({
         cell: ({ row }) => (
           <span className="flex items-center gap-space-3">
             {row.original.tag_color && row.original.tag_icon && (
-              <TagTile
-                color={row.original.tag_color}
-                icon={row.original.tag_icon}
-              />
+              <TagTile color={row.original.tag_color} icon={row.original.tag_icon} />
             )}
-            <span className="font-semibold text-ink-900">
-              {row.original.name}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.name}</span>
           </span>
         ),
       },
@@ -173,26 +165,16 @@ export function TagRulesView({
         cell: ({ row }) => (
           <span
             className="block max-w-[320px] truncate text-ink-600"
-            title={describeConditions(
-              row.original.conditions,
-              row.original.match,
-              tagNames,
-            )}
+            title={describeConditions(row.original.conditions, row.original.match, tagNames)}
           >
-            {describeConditions(
-              row.original.conditions,
-              row.original.match,
-              tagNames,
-            )}
+            {describeConditions(row.original.conditions, row.original.match, tagNames)}
           </span>
         ),
       },
       {
         header: "Resulting tag",
         cell: ({ row }) =>
-          row.original.tag_name &&
-          row.original.tag_color &&
-          row.original.tag_icon ? (
+          row.original.tag_name && row.original.tag_color && row.original.tag_icon ? (
             <TagChip
               name={row.original.tag_name}
               color={row.original.tag_color}
@@ -204,17 +186,13 @@ export function TagRulesView({
       },
       {
         header: "Rule type",
-        cell: ({ row }) => (
-          <span className="text-ink-600">{row.original.rule_type}</span>
-        ),
+        cell: ({ row }) => <span className="text-ink-600">{row.original.rule_type}</span>,
       },
       {
         header: "Last run",
         cell: ({ row }) => (
           <span className="text-ink-600">
-            {row.original.last_run_at
-              ? formatDate(row.original.last_run_at)
-              : "Not yet"}
+            {row.original.last_run_at ? formatDate(row.original.last_run_at) : "Not yet"}
             {row.original.last_run_at && (
               <span className="block text-[12px]">
                 {row.original.matched_count.toLocaleString("en-IN")} matched
@@ -260,15 +238,11 @@ export function TagRulesView({
                       </DropdownMenuItem>
                     )}
                     {row.original.status === "active" ? (
-                      <DropdownMenuItem
-                        onClick={() => setRuleStatus(row.original, "paused")}
-                      >
+                      <DropdownMenuItem onClick={() => setRuleStatus(row.original, "paused")}>
                         Pause
                       </DropdownMenuItem>
                     ) : (
-                      <DropdownMenuItem
-                        onClick={() => setRuleStatus(row.original, "active")}
-                      >
+                      <DropdownMenuItem onClick={() => setRuleStatus(row.original, "active")}>
                         Activate
                       </DropdownMenuItem>
                     )}
@@ -359,11 +333,7 @@ export function TagRulesView({
           <option value="draft">Draft</option>
         </Select>
       </Card>
-      {data.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {data.error}
-        </p>
-      )}
+      {data.error && <p className="mb-space-3 text-[13px] font-medium text-error">{data.error}</p>}
       <Card className="mb-space-4 p-space-2">
         <div className="whitespace-nowrap">
           <DataTable
@@ -372,28 +342,19 @@ export function TagRulesView({
             getRowId={(r) => r.id}
             loading={data.loading}
             paginate={false}
-            emptyMessage={
-              data.loading
-                ? "Loading rules…"
-                : "No tag rules yet. Build one below."
-            }
+            emptyMessage={data.loading ? "Loading rules…" : "No tag rules yet. Build one below."}
           />
         </div>
         <p className="px-space-3 py-space-3 text-[12.5px] text-ink-600">
-          Showing {rows.length ? `1–${rows.length}` : "0"} of{" "}
-          {data.data?.items.length ?? 0} rules
+          Showing {rows.length ? `1–${rows.length}` : "0"} of {data.data?.items.length ?? 0} rules
         </p>
       </Card>
 
       {canConfigure && (
         <Card className="p-space-4">
           <h2 className="flex items-center gap-space-2 text-[16px] font-bold text-ink-900">
-            <HugeiconsIcon
-              icon={Settings02Icon}
-              size={18}
-              className="text-brand-700"
-            />{" "}
-            Rule Builder
+            <HugeiconsIcon icon={Settings02Icon} size={18} className="text-brand-700" /> Rule
+            Builder
           </h2>
           <p className="mb-space-3 text-[13px] text-ink-600">
             Build a rule and see how many customers it would tag.
@@ -407,9 +368,7 @@ export function TagRulesView({
                 conditions={quick.conditions}
                 match={quick.match}
                 tags={tags}
-                onChange={(conditions, match) =>
-                  setQuick({ ...quick, conditions, match })
-                }
+                onChange={(conditions, match) => setQuick({ ...quick, conditions, match })}
               />
             </div>
             <HugeiconsIcon
@@ -457,12 +416,7 @@ export function TagRulesView({
         <RuleModal
           scope="tag"
           rule={editing}
-          start={
-            start ??
-            (creating && creating.tag_id
-              ? { tag_id: creating.tag_id }
-              : undefined)
-          }
+          start={start ?? (creating && creating.tag_id ? { tag_id: creating.tag_id } : undefined)}
           tags={tags}
           onClose={() => {
             setEditing(null);

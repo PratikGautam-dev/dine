@@ -6,6 +6,25 @@ import { toast } from "@/lib/toast";
 const DEFAULT_CANCEL_MESSAGE = "Your reservation has been cancelled.";
 const DEFAULT_RESCHEDULE_MESSAGE = "Your reservation has been rescheduled.";
 
+/** The reschedule message once a new slot is picked: "Your reservation has been rescheduled to Wed, 25 Nov 2026 at 12:00 PM." (date is YYYY-MM-DD, time is 24h HH:MM). */
+export function rescheduleMessageFor(date: string, time: string): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const [hh, mm] = time.split(":").map(Number);
+  if (!y || !m || !d || Number.isNaN(hh) || Number.isNaN(mm)) return DEFAULT_RESCHEDULE_MESSAGE;
+  const day = new Date(y, m - 1, d).toLocaleDateString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+  const clock = new Date(y, m - 1, d, hh, mm).toLocaleTimeString("en-IN", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+  return `Your reservation has been rescheduled to ${day} at ${clock.toUpperCase()}.`;
+}
+
 export type Appointment = {
   id: number;
   phone: string;
@@ -97,8 +116,17 @@ export function matchesView(a: Appointment, view: ViewFilter, now: Date): boolea
   }
 }
 
-function typeBucket(a: Appointment) {
-  return a.appointment_type_id && a.appointment_type_id in TYPE_LABELS
+const NEW_RESERVATION_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+/** The type chips above the list. "new" (New Reservation) is every reservation MADE in the last 24 hours, whatever date it is for; the rest
+ * fall into their own type (follow-up, procedure) or "other" (earlier reservations). */
+function typeBucket(a: Appointment, nowMs: number = Date.now()) {
+  const madeAt = a.created_at ? new Date(a.created_at).getTime() : NaN;
+  if (!Number.isNaN(madeAt) && nowMs - madeAt >= 0 && nowMs - madeAt <= NEW_RESERVATION_WINDOW_MS)
+    return "new";
+  return a.appointment_type_id &&
+    a.appointment_type_id !== "new" &&
+    a.appointment_type_id in TYPE_LABELS
     ? a.appointment_type_id
     : "other";
 }
@@ -155,6 +183,8 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   // predating appointment_type_id (never backfilled, so an old row is
   // legitimately typeless, not a bug).
   const [typeFilter, setTypeFilter] = useState("all");
+  // where the booking came from: "all", or a booking source ("whatsapp", "web", "staff" = walk-in)
+  const [sourceFilter, setSourceFilter] = useState("all");
 
   // Live Operations' real per-table occupancy (tables.status) -- fetched here purely to derive
   // "Seated" (a still-'booked' row whose table is currently occupied) without inventing a new status.
@@ -222,8 +252,9 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
 
   const typeCounts = useMemo(() => {
     const counts: Record<string, number> = { all: appointments?.length ?? 0 };
+    const nowMs = Date.now();
     for (const a of appointments || []) {
-      const bucket = typeBucket(a);
+      const bucket = typeBucket(a, nowMs);
       counts[bucket] = (counts[bucket] || 0) + 1;
     }
     return counts;
@@ -261,9 +292,11 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     if (!appointments) return appointments;
     const q = searchQuery.trim().toLowerCase();
     const now = new Date();
+    const nowMs = now.getTime();
     return appointments.filter((a) => {
-      if (typeFilter !== "all" && typeBucket(a) !== typeFilter) return false;
+      if (typeFilter !== "all" && typeBucket(a, nowMs) !== typeFilter) return false;
       if (statusFilter !== "all" && a.status !== statusFilter) return false;
+      if (sourceFilter !== "all" && a.source !== sourceFilter) return false;
       if (!matchesView(a, viewFilter, now)) return false;
       if (!q) return true;
       return (
@@ -276,7 +309,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
         (a.patient_display_id || "").toLowerCase().includes(q)
       );
     });
-  }, [appointments, searchQuery, statusFilter, typeFilter, viewFilter]);
+  }, [appointments, searchQuery, statusFilter, typeFilter, sourceFilter, viewFilter]);
 
   // Item 9 (Spec.md Section 0): closes the "no-shows are a heuristic, not a
   // real status" gap -- a still-'booked' appointment whose scheduled time
@@ -581,6 +614,8 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setStatusFilter,
     typeFilter,
     setTypeFilter,
+    sourceFilter,
+    setSourceFilter,
     cancellingId,
     cancelPanelId,
     cancelMessage,

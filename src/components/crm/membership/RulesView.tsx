@@ -71,10 +71,7 @@ function qualIcon(r: QualificationRule) {
     return <TierCrown tier={key} size={32} />;
   return (
     <span className="flex h-8 w-8 items-center justify-center rounded-full bg-success-tint text-success">
-      <HugeiconsIcon
-        icon={key === "inactive" ? Briefcase01Icon : UserIcon}
-        size={16}
-      />
+      <HugeiconsIcon icon={key === "inactive" ? Briefcase01Icon : UserIcon} size={16} />
     </span>
   );
 }
@@ -109,9 +106,7 @@ export function RulesView({
   const [sub, setSub] = useState<SubTab>("qualification");
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("");
-  const [editingQual, setEditingQual] = useState<QualificationRule | null>(
-    null,
-  );
+  const [editingQual, setEditingQual] = useState<QualificationRule | null>(null);
   const [qual, setQual] = useState({
     name: "",
     value: "",
@@ -176,20 +171,13 @@ export function RulesView({
       if ((TIER_KEYS as readonly string[]).includes(key)) {
         const spend = qual.spend.trim() ? toMinor(qual.spend) : 0;
         if (spend === null || spend < 0)
-          return toast.error(
-            "Check the spend",
-            "Enter an amount, or leave it empty.",
-          );
+          return toast.error("Check the spend", "Enter an amount, or leave it empty.");
         body.min_spend_minor = spend;
         body.min_orders = qual.orders.trim() ? Number(qual.orders) : 0;
       }
     }
     setBusy(true);
-    const res = await erp(
-      `/api/v1/crm/membership/rules/system/${key}`,
-      "PUT",
-      body,
-    );
+    const res = await erp(`/api/v1/crm/membership/rules/system/${key}`, "PUT", body);
     setBusy(false);
     if (res.error) return toast.error("Couldn't save the rule", res.error);
     toast.success("Rule saved");
@@ -198,29 +186,19 @@ export function RulesView({
   }
 
   async function runNow(r: CrmRule) {
-    const res = await erp<RuleRun>(
-      `/api/v1/crm/rules/membership/${r.id}/run`,
-      "POST",
-    );
+    const res = await erp<RuleRun>(`/api/v1/crm/rules/membership/${r.id}/run`, "POST");
     if (res.error || !res.data)
       return toast.error("Couldn't run the automation", res.error ?? undefined);
-    toast.success(
-      "Automation ran",
-      `${res.data.matched} matched · ${res.data.added} acted on`,
-    );
+    toast.success("Automation ran", `${res.data.matched} matched · ${res.data.added} acted on`);
     reload();
   }
 
   async function remove() {
     if (!removing) return;
     setBusy(true);
-    const res = await erp(
-      `/api/v1/crm/rules/membership/${removing.id}`,
-      "DELETE",
-    );
+    const res = await erp(`/api/v1/crm/rules/membership/${removing.id}`, "DELETE");
     setBusy(false);
-    if (res.error)
-      return toast.error("Couldn't delete the automation", res.error);
+    if (res.error) return toast.error("Couldn't delete the automation", res.error);
     toast.success("Automation deleted");
     setRemoving(null);
     reload();
@@ -236,9 +214,7 @@ export function RulesView({
         cell: ({ row }) => (
           <span className="flex items-center gap-space-2">
             {qualIcon(row.original)}
-            <span className="font-semibold text-ink-900">
-              {row.original.name}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.name}</span>
           </span>
         ),
       },
@@ -246,9 +222,7 @@ export function RulesView({
       {
         header: "Trigger / condition",
         cell: ({ row }) => (
-          <span className="block max-w-[300px] whitespace-normal">
-            {row.original.trigger_text}
-          </span>
+          <span className="block max-w-[300px] whitespace-normal">{row.original.trigger_text}</span>
         ),
       },
       { header: "Action", cell: ({ row }) => row.original.action_text },
@@ -256,9 +230,7 @@ export function RulesView({
       {
         header: "Status",
         cell: ({ row }) => (
-          <StatusPill
-            status={row.original.status === "paused" ? "paused" : "active"}
-          />
+          <StatusPill status={row.original.status === "paused" ? "paused" : "active"} />
         ),
       },
       ...(canConfigure
@@ -276,9 +248,7 @@ export function RulesView({
                     <HugeiconsIcon icon={MoreHorizontalIcon} size={18} />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => openQual(row.original)}>
-                      Edit
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openQual(row.original)}>Edit</DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
               ),
@@ -297,17 +267,11 @@ export function RulesView({
           <span className="flex items-center gap-space-2">
             <span className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-50 text-brand-700">
               <HugeiconsIcon
-                icon={
-                  row.original.action.type === "award_points"
-                    ? GiftIcon
-                    : Notification01Icon
-                }
+                icon={row.original.action.type === "award_points" ? GiftIcon : Notification01Icon}
                 size={16}
               />
             </span>
-            <span className="font-semibold text-ink-900">
-              {row.original.name}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.name}</span>
           </span>
         ),
       },
@@ -316,10 +280,7 @@ export function RulesView({
         cell: ({ row }) => (
           <span
             className="block max-w-[280px] truncate"
-            title={describeConditions(
-              row.original.conditions,
-              row.original.match,
-            )}
+            title={describeConditions(row.original.conditions, row.original.match)}
           >
             {describeConditions(row.original.conditions, row.original.match)}
           </span>
@@ -370,9 +331,7 @@ export function RulesView({
                     <HugeiconsIcon icon={MoreHorizontalIcon} size={18} />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem
-                      onClick={() => setAutomation(row.original)}
-                    >
+                    <DropdownMenuItem onClick={() => setAutomation(row.original)}>
                       Edit
                     </DropdownMenuItem>
                     {row.original.status === "active" && (
@@ -394,8 +353,7 @@ export function RulesView({
     [canConfigure],
   );
 
-  const q = (key: string) =>
-    data.data?.qualification.find((r) => r.id === `system:${key}`);
+  const q = (key: string) => data.data?.qualification.find((r) => r.id === `system:${key}`);
   const tierLines = (key: (typeof TIER_KEYS)[number], from: string) => {
     const r = q(key);
     return [
@@ -403,9 +361,7 @@ export function RulesView({
       ...(r?.min_spend_minor
         ? [`Spend since joining ≥ ${formatMoney(r.min_spend_minor, currency)}`]
         : []),
-      ...(r?.min_orders
-        ? [`At least ${r.min_orders.toLocaleString("en-IN")} orders`]
-        : []),
+      ...(r?.min_orders ? [`At least ${r.min_orders.toLocaleString("en-IN")} orders`] : []),
       `Auto-upgrade from ${from}`,
     ];
   };
@@ -456,9 +412,7 @@ export function RulesView({
         />
         <StatCard
           label="Automation Actions"
-          value={
-            k ? k.automation_events_this_month.toLocaleString("en-IN") : "—"
-          }
+          value={k ? k.automation_events_this_month.toLocaleString("en-IN") : "—"}
           hint="points given / follow-ups this month"
           icon={<HugeiconsIcon icon={Settings02Icon} size={20} />}
         />
@@ -470,12 +424,7 @@ export function RulesView({
         />
       </div>
 
-      <Tabs
-        tabs={SUB_TABS}
-        value={sub}
-        onChange={setSub}
-        className="!mb-space-3"
-      />
+      <Tabs tabs={SUB_TABS} value={sub} onChange={setSub} className="!mb-space-3" />
 
       {sub !== "history" && (
         <Card className="mb-space-3 flex flex-wrap items-center gap-space-2 p-space-3">
@@ -508,11 +457,7 @@ export function RulesView({
           )}
         </Card>
       )}
-      {data.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {data.error}
-        </p>
-      )}
+      {data.error && <p className="mb-space-3 text-[13px] font-medium text-error">{data.error}</p>}
 
       <Card className="p-space-2">
         {sub === "history" ? (
@@ -530,14 +475,12 @@ export function RulesView({
                 getRowId={(r) => r.id}
                 loading={data.loading}
                 paginate={false}
-                emptyMessage={
-                  data.loading ? "Loading rules…" : "No rules match."
-                }
+                emptyMessage={data.loading ? "Loading rules…" : "No rules match."}
               />
             </div>
             <p className="px-space-3 py-space-3 text-[12px] text-ink-400">
-              Tiers are worked out live from these settings; editing one changes
-              every customer&apos;s tier at once.
+              Tiers are worked out live from these settings; editing one changes every
+              customer&apos;s tier at once.
             </p>
           </>
         ) : (
@@ -557,8 +500,8 @@ export function RulesView({
               />
             </div>
             <p className="px-space-3 py-space-3 text-[12px] text-ink-400">
-              Automations act on members only, once per customer per period,
-              when saved, daily, and after orders when set to real time.
+              Automations act on members only, once per customer per period, when saved, daily, and
+              after orders when set to real time.
             </p>
           </>
         )}
@@ -570,12 +513,9 @@ export function RulesView({
             <HugeiconsIcon icon={CrownIcon} size={20} />
           </span>
           <div>
-            <h3 className="text-[16px] font-bold text-ink-900">
-              Tier Qualification Summary
-            </h3>
+            <h3 className="text-[16px] font-bold text-ink-900">Tier Qualification Summary</h3>
             <p className="text-[12.5px] text-ink-600">
-              How customers qualify for each membership tier and the automation
-              behaviour.
+              How customers qualify for each membership tier and the automation behaviour.
             </p>
           </div>
         </div>
@@ -583,19 +523,12 @@ export function RulesView({
           {summary.map((s) => {
             const plan = plans.data?.tiers.find((p) => p.tier === s.tier);
             return (
-              <div
-                key={s.tier}
-                className="rounded-lg border border-line p-space-3"
-              >
+              <div key={s.tier} className="rounded-lg border border-line p-space-3">
                 <div className="mb-space-2 flex items-center gap-space-3">
                   <TierCrown tier={s.tier} size={40} />
                   <div>
-                    <p className="font-semibold text-ink-900">
-                      {TIER_LABEL[s.tier]}
-                    </p>
-                    <p className="text-[12px] text-ink-600">
-                      {plan?.description}
-                    </p>
+                    <p className="font-semibold text-ink-900">{TIER_LABEL[s.tier]}</p>
+                    <p className="text-[12px] text-ink-600">{plan?.description}</p>
                   </div>
                 </div>
                 <ul className="space-y-1">
@@ -612,11 +545,7 @@ export function RulesView({
         </div>
       </Card>
 
-      <PointsConversion
-        currency={currency}
-        canConfigure={canConfigure}
-        onChanged={reload}
-      />
+      <PointsConversion currency={currency} canConfigure={canConfigure} onChanged={reload} />
 
       <Modal
         open={editingQual !== null}
@@ -630,9 +559,7 @@ export function RulesView({
               Cancel
             </Button>
             <Button
-              disabled={
-                busy || (editingQual?.field != null && qual.value.trim() === "")
-              }
+              disabled={busy || (editingQual?.field != null && qual.value.trim() === "")}
               onClick={saveQual}
             >
               {busy ? "Saving…" : "Save rule"}
@@ -659,17 +586,11 @@ export function RulesView({
             <p className="text-label mb-space-2">Condition</p>
             <div
               className={
-                editingTier
-                  ? "grid gap-space-3 sm:grid-cols-3"
-                  : "grid gap-space-3 sm:max-w-xs"
+                editingTier ? "grid gap-space-3 sm:grid-cols-3" : "grid gap-space-3 sm:max-w-xs"
               }
             >
               <Field
-                label={
-                  editingKey === "inactive"
-                    ? "Days without a purchase"
-                    : "Loyalty points"
-                }
+                label={editingKey === "inactive" ? "Days without a purchase" : "Loyalty points"}
                 htmlFor="q_value"
                 required
                 className="!mb-0"
@@ -688,26 +609,16 @@ export function RulesView({
               </Field>
               {editingTier && (
                 <>
-                  <Field
-                    label={`Minimum spend (${currency})`}
-                    htmlFor="q_spend"
-                    className="!mb-0"
-                  >
+                  <Field label={`Minimum spend (${currency})`} htmlFor="q_spend" className="!mb-0">
                     <Input
                       id="q_spend"
                       inputMode="decimal"
                       placeholder="No minimum"
                       value={qual.spend}
-                      onChange={(e) =>
-                        setQual({ ...qual, spend: e.target.value })
-                      }
+                      onChange={(e) => setQual({ ...qual, spend: e.target.value })}
                     />
                   </Field>
-                  <Field
-                    label="Minimum orders"
-                    htmlFor="q_orders"
-                    className="!mb-0"
-                  >
+                  <Field label="Minimum orders" htmlFor="q_orders" className="!mb-0">
                     <Input
                       id="q_orders"
                       inputMode="numeric"
@@ -734,11 +645,7 @@ export function RulesView({
 
         <div className="mb-space-4">
           <p className="text-label mb-space-2">Status</p>
-          <div
-            role="radiogroup"
-            aria-label="Status"
-            className="grid gap-space-2 sm:grid-cols-2"
-          >
+          <div role="radiogroup" aria-label="Status" className="grid gap-space-2 sm:grid-cols-2">
             {(
               [
                 ["active", "Active", "The rule is applied."],
@@ -762,9 +669,7 @@ export function RulesView({
                   disabled={locked}
                   onClick={() => setQual({ ...qual, status: value })}
                   className={`flex items-start gap-space-2 rounded-lg border px-space-3 py-2 text-left transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-                    checked
-                      ? "border-brand-600 bg-brand-50"
-                      : "border-line hover:bg-black/[0.03]"
+                    checked ? "border-brand-600 bg-brand-50" : "border-line hover:bg-black/[0.03]"
                   }`}
                 >
                   <span
@@ -772,17 +677,11 @@ export function RulesView({
                       checked ? "border-brand-700" : "border-ink-300"
                     }`}
                   >
-                    {checked && (
-                      <span className="h-2 w-2 rounded-full bg-brand-700" />
-                    )}
+                    {checked && <span className="h-2 w-2 rounded-full bg-brand-700" />}
                   </span>
                   <span>
-                    <span className="block text-[13px] font-semibold text-ink-900">
-                      {label}
-                    </span>
-                    <span className="block text-[12px] text-ink-600">
-                      {hint}
-                    </span>
+                    <span className="block text-[13px] font-semibold text-ink-900">{label}</span>
+                    <span className="block text-[12px] text-ink-600">{hint}</span>
                   </span>
                 </button>
               );
@@ -814,17 +713,12 @@ export function RulesView({
             ) : (
               <div className="text-[13px]">
                 <p className="text-ink-600">Applies to</p>
-                <p className="font-medium text-ink-900">
-                  {editingQual?.applies_to}
-                </p>
+                <p className="font-medium text-ink-900">{editingQual?.applies_to}</p>
               </div>
             )}
             {editingQual && editingQual.action_choices.length > 0 ? (
               <Field label="Action" className="!mb-0">
-                <Select
-                  value={qual.action}
-                  onValueChange={(v) => setQual({ ...qual, action: v })}
-                >
+                <Select value={qual.action} onValueChange={(v) => setQual({ ...qual, action: v })}>
                   {editingQual.action_choices.map((c) => (
                     <option key={c} value={c}>
                       {ACTION_LABEL[c] ?? c}
@@ -835,17 +729,13 @@ export function RulesView({
             ) : (
               <div className="text-[13px]">
                 <p className="text-ink-600">Action</p>
-                <p className="font-medium text-ink-900">
-                  {editingQual?.action_text}
-                </p>
+                <p className="font-medium text-ink-900">{editingQual?.action_text}</p>
               </div>
             )}
             {editingQual?.field == null && (
               <div className="text-[13px] sm:col-span-2">
                 <p className="text-ink-600">Trigger / condition</p>
-                <p className="font-medium text-ink-900">
-                  {editingQual?.trigger_text}
-                </p>
+                <p className="font-medium text-ink-900">{editingQual?.trigger_text}</p>
               </div>
             )}
             <div className="text-[13px]">
@@ -854,8 +744,8 @@ export function RulesView({
             </div>
           </div>
           <p className="mt-space-2 text-[12px] text-ink-600">
-            Changes apply to every customer straight away. Frequency is always
-            real-time, because tiers are worked out live.
+            Changes apply to every customer straight away. Frequency is always real-time, because
+            tiers are worked out live.
           </p>
         </div>
       </Modal>
@@ -936,15 +826,11 @@ function PointsConversion({
         Loyalty points to money conversion
       </h3>
       <p className="mb-space-3 text-[13px] text-ink-600">
-        How many points equal a money deduction when a customer redeems them.
-        This is separate from the rate at which customers earn points.
+        How many points equal a money deduction when a customer redeems them. This is separate from
+        the rate at which customers earn points.
       </p>
       <div className="grid max-w-xl gap-space-3 sm:grid-cols-2">
-        <Field
-          label="Loyalty points"
-          htmlFor="rp_points"
-          hint="A positive whole number of points."
-        >
+        <Field label="Loyalty points" htmlFor="rp_points" hint="A positive whole number of points.">
           <Input
             id="rp_points"
             inputMode="numeric"
@@ -969,8 +855,7 @@ function PointsConversion({
       </div>
       {valid && (
         <p className="text-[13px] font-semibold text-brand-700">
-          {n.toLocaleString("en-IN")} points = {formatMoney(minor!, currency)}{" "}
-          deduction.
+          {n.toLocaleString("en-IN")} points = {formatMoney(minor!, currency)} deduction.
         </p>
       )}
       {canConfigure && (

@@ -1,6 +1,6 @@
 "use client";
 
-import { Globe, Plug, Store } from "lucide-react";
+import { ChevronRight, Globe, Plug, Store } from "lucide-react";
 import Link from "next/link";
 import { readinessStatus, useReadiness } from "@/components/portal/channels/ChannelPanels";
 import { SettingsPageFrame } from "@/components/portal/settings/SettingsPageFrame";
@@ -12,24 +12,19 @@ import { CHANNELS, CHANNEL_ORDER, type Channel } from "@/lib/erp/erp";
 
 const ICONS = { online: Globe, pos: Store, whatsapp: WhatsAppIcon } as const;
 
-function ChannelCard({ channel }: { channel: Channel }) {
+function ChannelRow({ channel }: { channel: Channel }) {
   const { data } = useReadiness(channel);
   const st = readinessStatus(data);
   const Icon = ICONS[channel];
   return (
-    <Link href={`/portal/settings/channels/${channel}`}>
-      <Card className="flex h-full items-start gap-space-3 p-space-4 transition-colors hover:border-brand-300">
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
-          <Icon size={20} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="flex flex-wrap items-center justify-between gap-space-2">
-            <span className="text-[15px] font-bold text-ink-900">{CHANNELS[channel].label}</span>
-            {data && <Badge tone={data.ready ? "success" : st.tone}>{data.ready ? "Ready" : st.label}</Badge>}
-          </span>
-          <span className="mt-1 block text-[13px] text-ink-600">{CHANNELS[channel].blurb}</span>
-        </span>
-      </Card>
+    <Link href={`/portal/settings/channels/${channel}`} className="flex items-center gap-space-3 p-space-4 hover:bg-paper">
+      <Icon size={22} />
+      <span className="min-w-0 flex-1">
+        <span className="block text-[14px] font-semibold text-ink-900">{CHANNELS[channel].label}</span>
+        <span className="block text-[12.5px] text-ink-600">{CHANNELS[channel].blurb}</span>
+      </span>
+      {data && <Badge tone={data.ready ? "success" : st.tone}>{data.ready ? "Ready" : st.label}</Badge>}
+      <ChevronRight size={16} className="text-ink-400" />
     </Link>
   );
 }
@@ -39,12 +34,12 @@ export default function SalesChannelsSettingsPage() {
   const { restaurant, ready } = usePortalGuard();
   if (!ready) return null;
   return (
-    <SettingsPageFrame restaurant={restaurant} title="Sales channels" icon={<Plug size={20} />} description="Connect and set up the channels you sell through.">
-      <div className="grid max-w-4xl gap-space-3 md:grid-cols-3">
+    <SettingsPageFrame maxWidthClass="max-w-[880px]" restaurant={restaurant} title="Sales channels" icon={<Plug size={20} />} description="Where your orders come from. Pick a channel to set up how it connects.">
+      <Card className="divide-y divide-line">
         {CHANNEL_ORDER.map((c) => (
-          <ChannelCard key={c} channel={c} />
+          <ChannelRow key={c} channel={c} />
         ))}
-      </div>
+      </Card>
     </SettingsPageFrame>
   );
 }

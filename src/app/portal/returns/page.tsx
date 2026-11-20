@@ -37,7 +37,7 @@ export default function ReturnsPage() {
   const { selectedBranchId } = useBranchFilter();
   // the period comes from the header's global filter
   const { days: windowDays, range, label: periodLabel } = usePagePeriod(RETURN_PERIODS);
-  const { orders, error } = useFoodOrders(ready, "", windowDays, undefined, selectedBranchId);
+  const { orders, error, load: reload } = useFoodOrders(ready, "", windowDays, undefined, selectedBranchId);
   const windowLabel = `${periodLabel} (${formatRange(range)})`;
 
   const [tab, setTab] = useState<Tab>("cancelled");
@@ -55,8 +55,10 @@ export default function ReturnsPage() {
     return {
       cancelled: all.filter((o) => o.status === "cancelled").length,
       completed: all.filter((o) => o.status === "completed").length,
-      paidCancelled: all.filter((o) => o.status === "cancelled" && o.payment_method === "online")
-        .length,
+      // only an order that was actually paid can need money back (an online order cancelled before the guest paid has nothing to refund)
+      paidCancelled: all.filter(
+        (o) => o.status === "cancelled" && o.payment_status === "paid" && (o.refunded_paise ?? 0) < (o.paid_paise ?? 0),
+      ).length,
     };
   }, [inPeriod]);
 
@@ -92,11 +94,28 @@ export default function ReturnsPage() {
       {
         header: "Payment",
         cell: ({ row }) =>
-          row.original.payment_method === "online" ? (
+          row.original.payment_status === "paid" ? (
             <Badge tone="success">Paid online</Badge>
+          ) : row.original.payment_method === "online" ? (
+            <Badge tone="warning">Not paid</Badge>
           ) : (
             <Badge tone="neutral">At restaurant</Badge>
           ),
+      },
+      {
+        header: "Refunded",
+        cell: ({ row }) => {
+          const { paid_paise = 0, refunded_paise = 0, payment_status } = row.original;
+          if (payment_status !== "paid") return <span className="text-ink-400">—</span>;
+          if (refunded_paise >= paid_paise) return <Badge tone="success">Fully refunded</Badge>;
+          if (refunded_paise > 0)
+            return (
+              <span className="text-[12.5px] text-ink-900">
+                {rupees(refunded_paise)} <span className="text-ink-400">of {rupees(paid_paise)}</span>
+              </span>
+            );
+          return <span className="text-ink-400">Not yet</span>;
+        },
       },
       {
         header: "Status",
@@ -110,11 +129,16 @@ export default function ReturnsPage() {
       {
         id: "actions",
         header: "",
-        cell: ({ row }) => (
-          <Button variant="secondary" onClick={() => setOpenOrderId(row.original.id)}>
-            <Undo2 size={14} /> Refund
-          </Button>
-        ),
+        cell: ({ row }) => {
+          const { payment_status, paid_paise = 0, refunded_paise = 0 } = row.original;
+          // nothing to refund: an order that was never paid (cash at the restaurant, or abandoned online), or one already refunded in full
+          if (payment_status !== "paid" || refunded_paise >= paid_paise) return null;
+          return (
+            <Button variant="secondary" onClick={() => setOpenOrderId(row.original.id)}>
+              <Undo2 size={14} /> {refunded_paise > 0 ? "Refund more" : "Refund"}
+            </Button>
+          );
+        },
       },
     ],
     [],
@@ -200,13 +224,19 @@ export default function ReturnsPage() {
             columns={columns}
             data={visible}
             getRowId={(o) => String(o.id)}
-            emptyMessage="No orders to refund here."
+            emptyMessage="No orders here."
           />
         )}
       </Card>
 
       {openOrderId != null && (
-        <OrderDetailDrawer orderId={openOrderId} onClose={() => setOpenOrderId(null)} />
+        <OrderDetailDrawer
+          orderId={openOrderId}
+          onClose={() => {
+            setOpenOrderId(null);
+            void reload(); // a refund issued in the drawer shows in the queue straight away
+          }}
+        />
       )}
     </PortalShell>
   );

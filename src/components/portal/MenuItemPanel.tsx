@@ -8,6 +8,7 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import { ComboLinesEditor } from "@/components/portal/ComboLinesEditor";
 import type { MenuItem, MenuItemFormState } from "@/hooks/useMenuItems";
+import { Select } from "@/components/erp-ui/Select";
 
 const NEW_CATEGORY = "__new__";
 
@@ -151,19 +152,19 @@ export function MenuItemPanel({
               />
             </Field>
             <Field label="Category" htmlFor="mi-category">
-              <select
-                id="mi-category"
+              <Select
                 value={showNewCategory ? NEW_CATEGORY : form.category}
-                onChange={(e) => {
-                  if (e.target.value === NEW_CATEGORY) {
+                onValueChange={(v) => {
+                  if (v === NEW_CATEGORY) {
                     setNewCategoryMode(true);
                     setForm({ ...form, category: "" });
                   } else {
                     setNewCategoryMode(false);
-                    setForm({ ...form, category: e.target.value });
+                    setForm({ ...form, category: v });
                   }
                 }}
-                className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)]"
+                className="w-full"
+                id="mi-category"
               >
                 <option value="">No category</option>
                 {categories.map((c) => (
@@ -172,7 +173,7 @@ export function MenuItemPanel({
                   </option>
                 ))}
                 <option value={NEW_CATEGORY}>+ New category…</option>
-              </select>
+              </Select>
               {showNewCategory && (
                 <Input
                   id="mi-category-new"
@@ -203,18 +204,18 @@ export function MenuItemPanel({
               htmlFor="mi-is-veg"
               hint="Used by the storefront veg filter."
             >
-              <select
-                id="mi-is-veg"
+              <Select
                 value={form.is_veg}
-                onChange={(e) =>
-                  setForm({ ...form, is_veg: e.target.value as MenuItemFormState["is_veg"] })
+                onValueChange={(v) =>
+                  setForm({ ...form, is_veg: v as MenuItemFormState["is_veg"] })
                 }
-                className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 shadow-[var(--shadow-sm)]"
+                className="w-full"
+                id="mi-is-veg"
               >
                 <option value="unset">Not set</option>
                 <option value="veg">Veg</option>
                 <option value="non_veg">Non-veg</option>
-              </select>
+              </Select>
             </Field>
           </div>
         </FormSection>

@@ -150,13 +150,7 @@ const DONUT = `conic-gradient(${PAYMENTS.map((p, i) => {
 const TREND = [6, 11, 10.5, 16, 23, 17.5, 23.5];
 
 /** A dashboard card in the preview (the till's dashboard is the same for every business: shown, not edited). */
-function Widget({
-  className,
-  children,
-}: {
-  className?: string;
-  children: React.ReactNode;
-}) {
+function Widget({ className, children }: { className?: string; children: React.ReactNode }) {
   return (
     <div
       className={cn(
@@ -170,16 +164,11 @@ function Widget({
 }
 
 function Trend({ accent }: { accent: string }) {
-  const pts = TREND.map(
-    (v, i) => `${(i / (TREND.length - 1)) * 100},${100 - (v / 30) * 100}`,
-  ).join(" ");
+  const pts = TREND.map((v, i) => `${(i / (TREND.length - 1)) * 100},${100 - (v / 30) * 100}`).join(
+    " ",
+  );
   return (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      className="h-24 w-full"
-      aria-hidden
-    >
+    <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="h-24 w-full" aria-hidden>
       <polygon points={`0,100 ${pts} 100,100`} fill={accent} opacity="0.12" />
       <polyline
         points={pts}
@@ -222,9 +211,7 @@ function Preview({
             role="button"
             tabIndex={0}
             onClick={() => onSelect("brand")}
-            onKeyDown={(e) =>
-              (e.key === "Enter" || e.key === " ") && onSelect("brand")
-            }
+            onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onSelect("brand")}
             className={cn(
               "mb-2 flex cursor-pointer items-center gap-1.5 rounded-md px-1.5 py-1 outline-none",
               sel === "brand" && "ring-2 ring-white/70",
@@ -240,11 +227,7 @@ function Preview({
             )}
             <p className="truncate text-[13px] font-extrabold tracking-wide">
               {cut > 0 ? name.slice(0, cut + 1) : name}
-              {cut > 0 && (
-                <span style={{ color: sidebarAccent }}>
-                  {name.slice(cut + 1)}
-                </span>
-              )}
+              {cut > 0 && <span style={{ color: sidebarAccent }}>{name.slice(cut + 1)}</span>}
             </p>
           </div>
           {NAV.map((n, i) => (
@@ -294,14 +277,9 @@ function Preview({
               <div className="flex items-start justify-between">
                 <div>
                   <p className="text-[12px] font-bold">Sales Trend</p>
-                  <p className="text-slate-500">
-                    Daily sales for the last 7 days
-                  </p>
+                  <p className="text-slate-500">Daily sales for the last 7 days</p>
                 </div>
-                <span
-                  className="rounded px-1.5 py-0.5 text-white"
-                  style={{ background: accent }}
-                >
+                <span className="rounded px-1.5 py-0.5 text-white" style={{ background: accent }}>
                   7 Days
                 </span>
               </div>
@@ -314,8 +292,7 @@ function Preview({
             </Widget>
             <Widget className="@min-[1000px]:flex-1">
               <p className="flex items-center gap-1 text-[12px] font-bold">
-                <CheckCircle2 size={12} style={{ color: accent }} /> Payment
-                Method Breakdown
+                <CheckCircle2 size={12} style={{ color: accent }} /> Payment Method Breakdown
               </p>
               <div className="mt-2 flex items-center gap-3">
                 <div
@@ -329,10 +306,7 @@ function Preview({
                 <ul className="min-w-0 flex-1 space-y-1">
                   {PAYMENTS.map((p) => (
                     <li key={p.label} className="flex items-center gap-1.5">
-                      <span
-                        className="size-2 rounded-full"
-                        style={{ background: p.color }}
-                      />{" "}
+                      <span className="size-2 rounded-full" style={{ background: p.color }} />{" "}
                       {p.label}
                       <span className="ml-auto text-slate-500">{p.pct}%</span>
                     </li>
@@ -352,9 +326,7 @@ function Preview({
                   key={b[0]}
                   className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-x-2 gap-y-1 border-t border-slate-100 py-1.5 @min-[400px]/bills:grid-cols-[auto_auto_minmax(0,1fr)_auto_auto]"
                 >
-                  <span className="whitespace-nowrap font-semibold">
-                    {b[0]}
-                  </span>
+                  <span className="whitespace-nowrap font-semibold">{b[0]}</span>
                   <span className="col-start-1 row-start-2 whitespace-nowrap text-slate-500 @min-[400px]/bills:col-start-auto @min-[400px]/bills:row-start-auto">
                     {b[1]}
                   </span>
@@ -373,10 +345,7 @@ function Preview({
             <Widget className="@min-[1000px]:flex-[3]">
               <p className="mb-1 text-[12px] font-bold">Top Selling Products</p>
               {TOP.map((p, i) => (
-                <div
-                  key={p[0]}
-                  className="flex items-center gap-2 border-t border-slate-100 py-1"
-                >
+                <div key={p[0]} className="flex items-center gap-2 border-t border-slate-100 py-1">
                   <span className="text-slate-500">{i + 1}</span>
                   <span className="truncate">{p[0]}</span>
                   <span className="ml-auto text-slate-500">{p[1]}</span>
@@ -389,13 +358,11 @@ function Preview({
                 <span className="flex items-center gap-1">
                   <Cloud size={12} style={{ color: accent }} /> Sync Insight
                 </span>
-                <span className="rounded-full bg-emerald-50 px-2 text-emerald-700">
-                  Connected
-                </span>
+                <span className="rounded-full bg-emerald-50 px-2 text-emerald-700">Connected</span>
               </p>
               <p className="mt-1 text-slate-600">
-                Your website and POS share the same products, stock, customers
-                and orders in real time.
+                Your website and POS share the same products, stock, customers and orders in real
+                time.
               </p>
             </Widget>
           </div>
@@ -411,13 +378,7 @@ const SECTIONS: { key: Selection; label: string }[] = [
 ];
 
 /** Brand / Lock screen as one row of pills; the panel below shows the chosen one's settings. */
-function SectionPills({
-  value,
-  onChange,
-}: {
-  value: Selection;
-  onChange: (s: Selection) => void;
-}) {
+function SectionPills({ value, onChange }: { value: Selection; onChange: (s: Selection) => void }) {
   return (
     <div
       role="tablist"
@@ -477,11 +438,7 @@ export function PosScreenEditor() {
           <Badge tone="success">Saved to every till on its next sync</Badge>
         )}
         <div className="mobile-page-actions mobile-page-actions-pair flex gap-space-2">
-          <Button
-            variant="secondary"
-            disabled={!dirty}
-            onClick={() => setEdits(null)}
-          >
+          <Button variant="secondary" disabled={!dirty} onClick={() => setEdits(null)}>
             Reset
           </Button>
           <Button onClick={onSave} disabled={!dirty || invalid || save.isPending}>
@@ -508,18 +465,13 @@ export function PosScreenEditor() {
             <>
               <label className="mb-space-4 flex items-center justify-between gap-space-3 text-[13.5px] text-ink-900">
                 Require staff PIN
-                <Switch
-                  checked={lock.pin}
-                  onChange={() => setLock({ ...lock, pin: !lock.pin })}
-                />
+                <Switch checked={lock.pin} onChange={() => setLock({ ...lock, pin: !lock.pin })} />
               </label>
               <Field label="Lock after" htmlFor="lock-timeout">
                 <Select
                   id="lock-timeout"
                   value={lock.timeout}
-                  onValueChange={(value) =>
-                    setLock({ ...lock, timeout: value })
-                  }
+                  onValueChange={(value) => setLock({ ...lock, timeout: value })}
                 >
                   <option value="1">1 minute idle</option>
                   <option value="5">5 minutes idle</option>

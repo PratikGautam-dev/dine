@@ -6,8 +6,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Switch } from "@/components/ui/Switch";
 import type { BranchForm } from "@/hooks/useBranchManagement";
-
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+import { Select } from "@/components/erp-ui/Select";
 
 type Props = {
   title: string;
@@ -31,14 +30,6 @@ export function BranchFormDialog({
   saving,
   error,
 }: Props) {
-  function toggleDay(day: string) {
-    onChange({
-      operating_days: form.operating_days.includes(day)
-        ? form.operating_days.filter((d) => d !== day)
-        : [...form.operating_days, day],
-    });
-  }
-
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit();
@@ -79,63 +70,6 @@ export function BranchFormDialog({
               onChange={(e) => onChange({ phone: e.target.value })}
             />
           </Field>
-          <Field
-            label="Operating hours"
-            htmlFor="br-hours"
-            hint="e.g. 11:00-23:00 -- leave blank to use the restaurant's own hours"
-          >
-            <Input
-              id="br-hours"
-              value={form.operating_hours}
-              onChange={(e) => onChange({ operating_hours: e.target.value })}
-              placeholder="11:00-23:00"
-            />
-          </Field>
-          <Field
-            label="Turnover (min)"
-            htmlFor="br-turnover"
-            hint="Leave blank to use the restaurant's own setting"
-          >
-            <Input
-              id="br-turnover"
-              type="number"
-              min="0"
-              value={form.turnover_minutes}
-              onChange={(e) => onChange({ turnover_minutes: e.target.value })}
-            />
-          </Field>
-          <Field
-            label="Booking interval (min)"
-            htmlFor="br-interval"
-            hint="Leave blank to use the restaurant's own setting"
-          >
-            <Input
-              id="br-interval"
-              type="number"
-              min="0"
-              value={form.booking_interval_minutes}
-              onChange={(e) => onChange({ booking_interval_minutes: e.target.value })}
-            />
-          </Field>
-          <div className="sm:col-span-2">
-            <p className="mb-space-2 text-[12.5px] font-semibold text-ink-700">Operating days</p>
-            <div className="flex flex-wrap gap-space-2">
-              {WEEKDAYS.map((day) => (
-                <button
-                  key={day}
-                  type="button"
-                  onClick={() => toggleDay(day)}
-                  className={`rounded-md border px-space-3 py-1 text-[12.5px] font-semibold transition-colors ${
-                    form.operating_days.includes(day)
-                      ? "border-brand-400 bg-brand-50 text-brand-700"
-                      : "border-line text-ink-600"
-                  }`}
-                >
-                  {day}
-                </button>
-              ))}
-            </div>
-          </div>
           <Field
             label="Minimum order (₹)"
             htmlFor="br-min-order"
@@ -211,22 +145,22 @@ export function BranchFormDialog({
             hint="Force this branch open or closed regardless of its hours"
             className="sm:col-span-2"
           >
-            <select
-              id="br-open-override"
+            <Select
               value={
                 form.is_open_override === null ? "" : form.is_open_override ? "open" : "closed"
               }
-              onChange={(e) =>
+              onValueChange={(v) =>
                 onChange({
-                  is_open_override: e.target.value === "" ? null : e.target.value === "open",
+                  is_open_override: v === "" ? null : v === "open",
                 })
               }
-              className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+              className="w-full"
+              id="br-open-override"
             >
               <option value="">Follow operating hours</option>
               <option value="open">Force open</option>
               <option value="closed">Force closed</option>
-            </select>
+            </Select>
           </Field>
           <div className="sm:col-span-2 flex flex-wrap gap-space-6 border-t border-line pt-space-4">
             <label className="flex items-center gap-space-2">

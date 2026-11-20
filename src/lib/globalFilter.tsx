@@ -53,7 +53,7 @@ export const PERIOD_LABEL: Record<Period, string> = {
 };
 export const CHANNEL_LABEL: Record<GlobalChannel, string> = {
   web: "Website",
-  app: "Daap App",
+  app: "App",
   whatsapp: "WhatsApp",
   pos: "POS",
 };
@@ -68,7 +68,7 @@ export const REPORT_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !=
 export const REPORT_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp", "pos"];
 export const REPORT_PICKUPS: readonly GlobalPickup[] = ["dine_in", "takeaway", "delivery"];
 export const ORDER_PERIODS: readonly Period[] = PERIOD_ORDER;
-export const ORDER_CHANNELS: readonly GlobalChannel[] = ["web", "whatsapp"]; // the order sources that exist today
+export const ORDER_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp"];
 export const RETURN_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const FEEDBACK_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const DASHBOARD_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !== "all"); // the dashboard API needs a bounded range
