@@ -11,12 +11,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ColumnDef } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
-import {
-  StatCard,
-  StatusPill,
-  TierCrown,
-  ViewHeader,
-} from "@/components/crm/membership/parts";
+import { StatCard, StatusPill, TierCrown, ViewHeader } from "@/components/crm/membership/parts";
 import { Button } from "@/components/erp-ui/Button";
 import { Card } from "@/components/erp-ui/Card";
 import { DataTable } from "@/components/erp-ui/DataTable";
@@ -115,29 +110,19 @@ export function MembershipsView({
     const fee = form.fee.trim() ? toMinor(form.fee) : 0;
     const months = form.validity.trim() ? Number(form.validity) : null;
     if (fee === null || fee < 0)
-      return toast.error(
-        "Check the fee",
-        "Enter an amount, or leave it empty.",
-      );
-    if (
-      months !== null &&
-      !(Number.isInteger(months) && months >= 1 && months <= 120)
-    )
+      return toast.error("Check the fee", "Enter an amount, or leave it empty.");
+    if (months !== null && !(Number.isInteger(months) && months >= 1 && months <= 120))
       return toast.error(
         "Check the validity",
         "Enter 1 to 120 months, or leave it empty for no expiry.",
       );
     setBusy(true);
-    const res = await erp(
-      `/api/v1/crm/membership/tiers/${editing.tier}`,
-      "PUT",
-      {
-        description: form.description.trim() || null,
-        annual_fee_minor: fee,
-        validity_months: months,
-        is_active: form.active,
-      },
-    );
+    const res = await erp(`/api/v1/crm/membership/tiers/${editing.tier}`, "PUT", {
+      description: form.description.trim() || null,
+      annual_fee_minor: fee,
+      validity_months: months,
+      is_active: form.active,
+    });
     setBusy(false);
     if (res.error) return toast.error("Couldn't save the plan", res.error);
     // link or unlink benefits that changed (benefits are shared across tiers, so each is saved with its other tiers kept)
@@ -147,9 +132,7 @@ export function MembershipsView({
       const want = included.includes(b.id);
       if (has === want) continue;
       const tiers = { ...b.tiers };
-      if (want)
-        tiers[editing.tier as BenefitTier] =
-          tiers[editing.tier as BenefitTier] ?? "";
+      if (want) tiers[editing.tier as BenefitTier] = tiers[editing.tier as BenefitTier] ?? "";
       else delete tiers[editing.tier as BenefitTier];
       const r = await erp(`/api/v1/crm/membership/benefits/${b.id}`, "PUT", {
         name: b.name,
@@ -160,8 +143,7 @@ export function MembershipsView({
       });
       if (r.error) failed.push(b.name);
     }
-    if (failed.length)
-      toast.error("Some benefits weren't updated", failed.join(", "));
+    if (failed.length) toast.error("Some benefits weren't updated", failed.join(", "));
     toast.success(`${TIER_LABEL[editing.tier]} plan saved`);
     setEditing(null);
     data.reload();
@@ -179,9 +161,7 @@ export function MembershipsView({
               <span className="block font-semibold leading-tight text-ink-900">
                 {TIER_LABEL[row.original.tier]}
               </span>
-              <span className="block text-[12px] text-ink-600">
-                {row.original.description}
-              </span>
+              <span className="block text-[12px] text-ink-600">{row.original.description}</span>
             </span>
           </span>
         ),
@@ -208,9 +188,7 @@ export function MembershipsView({
       {
         header: "Status",
         cell: ({ row }) => (
-          <StatusPill
-            status={row.original.is_active ? "active" : "inactive_plan"}
-          />
+          <StatusPill status={row.original.is_active ? "active" : "inactive_plan"} />
         ),
       },
       {
@@ -226,9 +204,7 @@ export function MembershipsView({
               <HugeiconsIcon icon={MoreHorizontalIcon} size={18} />
             </DropdownMenuTrigger>
             <DropdownMenuContent>
-              <DropdownMenuItem
-                onClick={() => onOpenSegment(row.original.tier)}
-              >
+              <DropdownMenuItem onClick={() => onOpenSegment(row.original.tier)}>
                 View customers
               </DropdownMenuItem>
               {canConfigure && (
@@ -307,11 +283,7 @@ export function MembershipsView({
           <option value="inactive">Inactive</option>
         </Select>
       </Card>
-      {data.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {data.error}
-        </p>
-      )}
+      {data.error && <p className="mb-space-3 text-[13px] font-medium text-error">{data.error}</p>}
       <Card className="p-space-2">
         <div className="whitespace-nowrap">
           <DataTable
@@ -320,14 +292,11 @@ export function MembershipsView({
             getRowId={(t) => t.tier}
             loading={data.loading}
             paginate={false}
-            emptyMessage={
-              data.loading ? "Loading memberships…" : "No memberships match."
-            }
+            emptyMessage={data.loading ? "Loading memberships…" : "No memberships match."}
           />
         </div>
         <p className="px-space-3 py-space-3 text-[12.5px] text-ink-600">
-          Showing {rows.length ? `1–${rows.length}` : "0"} of {rows.length}{" "}
-          memberships
+          Showing {rows.length ? `1–${rows.length}` : "0"} of {rows.length} memberships
         </p>
       </Card>
 
@@ -403,17 +372,11 @@ export function MembershipsView({
                   key={b.id}
                   checked={included.includes(b.id)}
                   onChange={(on) =>
-                    setIncluded(
-                      on
-                        ? [...included, b.id]
-                        : included.filter((i) => i !== b.id),
-                    )
+                    setIncluded(on ? [...included, b.id] : included.filter((i) => i !== b.id))
                   }
                 >
                   {b.name}
-                  {b.status === "draft" && (
-                    <span className="text-ink-600"> (draft)</span>
-                  )}
+                  {b.status === "draft" && <span className="text-ink-600"> (draft)</span>}
                 </CheckboxRow>
               ))}
             </div>

@@ -143,11 +143,7 @@ export function BenefitsView({
     const res =
       editing === "new"
         ? await erp("/api/v1/crm/membership/benefits", "POST", bodyOf(form))
-        : await erp(
-            `/api/v1/crm/membership/benefits/${editing.id}`,
-            "PUT",
-            bodyOf(form),
-          );
+        : await erp(`/api/v1/crm/membership/benefits/${editing.id}`, "PUT", bodyOf(form));
     setBusy(false);
     if (res.error) return toast.error("Couldn't save the benefit", res.error);
     toast.success(editing === "new" ? "Benefit added" : "Benefit saved");
@@ -170,10 +166,7 @@ export function BenefitsView({
   async function remove() {
     if (!removing) return;
     setBusy(true);
-    const res = await erp(
-      `/api/v1/crm/membership/benefits/${removing.id}`,
-      "DELETE",
-    );
+    const res = await erp(`/api/v1/crm/membership/benefits/${removing.id}`, "DELETE");
     setBusy(false);
     if (res.error) return toast.error("Couldn't delete the benefit", res.error);
     toast.success("Benefit deleted");
@@ -188,14 +181,9 @@ export function BenefitsView({
         cell: ({ row }) => (
           <span className="flex items-center gap-space-2">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-50 text-brand-700">
-              <HugeiconsIcon
-                icon={BENEFIT_TYPE[row.original.benefit_type].icon}
-                size={16}
-              />
+              <HugeiconsIcon icon={BENEFIT_TYPE[row.original.benefit_type].icon} size={16} />
             </span>
-            <span className="font-semibold text-ink-900">
-              {row.original.name}
-            </span>
+            <span className="font-semibold text-ink-900">{row.original.name}</span>
           </span>
         ),
       },
@@ -207,31 +195,23 @@ export function BenefitsView({
         id: t,
         header: TIER_LABEL[t],
         cell: ({ row }) => {
-          if (!(t in row.original.tiers))
-            return <span className="text-ink-400">–</span>;
+          if (!(t in row.original.tiers)) return <span className="text-ink-400">–</span>;
           const value = row.original.tiers[t];
           return value ? (
             <span className="text-ink-900">{value}</span>
           ) : (
-            <HugeiconsIcon
-              icon={CheckmarkCircle02Icon}
-              size={18}
-              className="text-success"
-            />
+            <HugeiconsIcon icon={CheckmarkCircle02Icon} size={18} className="text-success" />
           );
         },
       })),
       {
         header: "Usage / limit",
-        cell: ({ row }) =>
-          row.original.usage_limit ?? <span className="text-ink-400">—</span>,
+        cell: ({ row }) => row.original.usage_limit ?? <span className="text-ink-400">—</span>,
       },
       {
         header: "Status",
         cell: ({ row }) => (
-          <StatusPill
-            status={row.original.status === "active" ? "active" : "draft"}
-          />
+          <StatusPill status={row.original.status === "active" ? "active" : "draft"} />
         ),
       },
       ...(canConfigure
@@ -249,9 +229,7 @@ export function BenefitsView({
                     <HugeiconsIcon icon={MoreHorizontalIcon} size={18} />
                   </DropdownMenuTrigger>
                   <DropdownMenuContent>
-                    <DropdownMenuItem onClick={() => openEdit(row.original)}>
-                      Edit
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => openEdit(row.original)}>Edit</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setRemoving(row.original)}>
                       Delete
                     </DropdownMenuItem>
@@ -298,19 +276,12 @@ export function BenefitsView({
         <StatCard
           label="Members Using Benefits"
           value={k ? k.members_using.toLocaleString("en-IN") : "—"}
-          hint={
-            k ? `of ${k.members.toLocaleString("en-IN")} members` : undefined
-          }
+          hint={k ? `of ${k.members.toLocaleString("en-IN")} members` : undefined}
           icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />}
         />
       </div>
 
-      <Tabs
-        tabs={SUB_TABS}
-        value={sub}
-        onChange={setSub}
-        className="!mb-space-3"
-      />
+      <Tabs tabs={SUB_TABS} value={sub} onChange={setSub} className="!mb-space-3" />
 
       {sub === "overview" && (
         <Card className="mb-space-3 flex flex-wrap items-center gap-space-2 p-space-3">
@@ -372,11 +343,7 @@ export function BenefitsView({
           </Select>
         </Card>
       )}
-      {data.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {data.error}
-        </p>
-      )}
+      {data.error && <p className="mb-space-3 text-[13px] font-medium text-error">{data.error}</p>}
 
       <Card className="p-space-2">
         {sub === "overview" && (
@@ -398,8 +365,7 @@ export function BenefitsView({
               />
             </div>
             <p className="px-space-3 py-space-3 text-[12.5px] text-ink-600">
-              Showing {rows.length ? `1–${rows.length}` : "0"} of {all.length}{" "}
-              benefits
+              Showing {rows.length ? `1–${rows.length}` : "0"} of {all.length} benefits
             </p>
           </>
         )}
@@ -419,9 +385,7 @@ export function BenefitsView({
               <tbody>
                 {all.map((b) => (
                   <tr key={b.id} className="border-t border-line">
-                    <td className="px-space-3 py-space-2 font-semibold text-ink-900">
-                      {b.name}
-                    </td>
+                    <td className="px-space-3 py-space-2 font-semibold text-ink-900">{b.name}</td>
                     {BENEFIT_TIERS.map((t) => (
                       <td key={t} className="px-space-3 py-space-2 text-center">
                         <input
@@ -437,10 +401,7 @@ export function BenefitsView({
                 ))}
                 {!all.length && (
                   <tr>
-                    <td
-                      colSpan={5}
-                      className="px-space-3 py-space-6 text-center text-ink-600"
-                    >
+                    <td colSpan={5} className="px-space-3 py-space-6 text-center text-ink-600">
                       No benefits yet.
                     </td>
                   </tr>
@@ -452,29 +413,17 @@ export function BenefitsView({
         {sub === "usage" && (
           <div className="grid gap-space-3 p-space-3 sm:grid-cols-2 xl:grid-cols-4">
             {BENEFIT_TIERS.map((t) => {
-              const members =
-                usage.data?.tier_summary.find((s) => s.tier === t)?.members ??
-                0;
-              const offered = all.filter(
-                (b) => b.status === "active" && t in b.tiers,
-              ).length;
+              const members = usage.data?.tier_summary.find((s) => s.tier === t)?.members ?? 0;
+              const offered = all.filter((b) => b.status === "active" && t in b.tiers).length;
               return (
-                <div
-                  key={t}
-                  className="rounded-lg border border-line p-space-3"
-                >
+                <div key={t} className="rounded-lg border border-line p-space-3">
                   <div className="flex items-center gap-space-2">
                     <TierCrown tier={t} size={34} />
-                    <p className="font-semibold text-ink-900">
-                      {TIER_LABEL[t]}
-                    </p>
+                    <p className="font-semibold text-ink-900">{TIER_LABEL[t]}</p>
                   </div>
                   <p className="mt-space-2 text-[22px] font-bold text-ink-900">
                     {members.toLocaleString("en-IN")}
-                    <span className="text-[13px] font-semibold text-ink-600">
-                      {" "}
-                      members
-                    </span>
+                    <span className="text-[13px] font-semibold text-ink-600"> members</span>
                   </p>
                   <p className="text-[13px] text-ink-600">
                     {offered} active benefit{offered === 1 ? "" : "s"} offered
@@ -499,9 +448,7 @@ export function BenefitsView({
             <HugeiconsIcon icon={CrownIcon} size={20} />
           </span>
           <div>
-            <h3 className="text-[16px] font-bold text-ink-900">
-              Tier Benefit Summary
-            </h3>
+            <h3 className="text-[16px] font-bold text-ink-900">Tier Benefit Summary</h3>
             <p className="text-[12.5px] text-ink-600">
               Quick overview of key benefits for each membership plan.
             </p>
@@ -509,21 +456,13 @@ export function BenefitsView({
         </div>
         <div className="grid gap-space-3 sm:grid-cols-2 xl:grid-cols-4">
           {(data.data?.summary ?? []).map((s) => (
-            <div
-              key={s.tier}
-              className="rounded-lg border border-line p-space-3"
-            >
+            <div key={s.tier} className="rounded-lg border border-line p-space-3">
               <div className="mb-space-2 flex items-center gap-space-3">
                 <TierCrown tier={s.tier} size={40} />
                 <div>
-                  <p className="font-semibold text-ink-900">
-                    {TIER_LABEL[s.tier]}
-                  </p>
+                  <p className="font-semibold text-ink-900">{TIER_LABEL[s.tier]}</p>
                   <p className="text-[12px] text-ink-600">
-                    {
-                      plans.data?.tiers.find((p) => p.tier === s.tier)
-                        ?.description
-                    }
+                    {plans.data?.tiers.find((p) => p.tier === s.tier)?.description}
                   </p>
                 </div>
               </div>
@@ -571,9 +510,7 @@ export function BenefitsView({
             <Select
               id="b_type"
               value={form.type}
-              onValueChange={(v) =>
-                setForm({ ...form, type: v as BenefitType })
-              }
+              onValueChange={(v) => setForm({ ...form, type: v as BenefitType })}
             >
               {(Object.keys(BENEFIT_TYPE) as BenefitType[]).map((t) => (
                 <option key={t} value={t}>
@@ -628,17 +565,11 @@ export function BenefitsView({
             ))}
           </div>
         </Field>
-        <Field
-          label="Status"
-          htmlFor="b_status"
-          hint="A draft isn't shown as offered to members."
-        >
+        <Field label="Status" htmlFor="b_status" hint="A draft isn't shown as offered to members.">
           <Select
             id="b_status"
             value={form.status}
-            onValueChange={(v) =>
-              setForm({ ...form, status: v as Form["status"] })
-            }
+            onValueChange={(v) => setForm({ ...form, status: v as Form["status"] })}
           >
             <option value="active">Active</option>
             <option value="draft">Draft</option>

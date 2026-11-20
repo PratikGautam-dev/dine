@@ -15,6 +15,7 @@ import { formatDateTime } from "@/lib/formatDate";
 import { toast } from "@/lib/toast";
 import { useAdminTenantDetail, type TenantUpdatePayload } from "@/hooks/useAdminTenants";
 import { useTenantAuditLog, type AuditLogEntry } from "@/hooks/useAdminAuditLog";
+import { Select } from "@/components/erp-ui/Select";
 
 // Edit-tenant form for an EXISTING restaurant -- mirrors admin/tenants_api.py's
 // TenantUpdatePayload field-for-field (see that file's update_tenant() handler
@@ -51,7 +52,11 @@ export default function AdminRestaurantDetailPage() {
   const router = useRouter();
   const tenantId = Number(params.id);
   const { tenant, loading, error, updateTenant, assignOwner } = useAdminTenantDetail(tenantId);
-  const { entries: auditEntries, loading: auditLoading, error: auditError } = useTenantAuditLog(tenantId);
+  const {
+    entries: auditEntries,
+    loading: auditLoading,
+    error: auditError,
+  } = useTenantAuditLog(tenantId);
 
   const [form, setForm] = useState<FormState | null>(null);
   const [saving, setSaving] = useState(false);
@@ -110,7 +115,12 @@ export default function AdminRestaurantDetailPage() {
     setForm((f) => {
       if (!f) return f;
       const has = f.admin_capabilities.includes(cap);
-      return { ...f, admin_capabilities: has ? f.admin_capabilities.filter((c) => c !== cap) : [...f.admin_capabilities, cap] };
+      return {
+        ...f,
+        admin_capabilities: has
+          ? f.admin_capabilities.filter((c) => c !== cap)
+          : [...f.admin_capabilities, cap],
+      };
     });
   }
 
@@ -118,7 +128,12 @@ export default function AdminRestaurantDetailPage() {
     setForm((f) => {
       if (!f) return f;
       const has = f.enabled_features.includes(key);
-      return { ...f, enabled_features: has ? f.enabled_features.filter((k) => k !== key) : [...f.enabled_features, key] };
+      return {
+        ...f,
+        enabled_features: has
+          ? f.enabled_features.filter((k) => k !== key)
+          : [...f.enabled_features, key],
+      };
     });
   }
 
@@ -207,7 +222,11 @@ export default function AdminRestaurantDetailPage() {
           <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Identity</h3>
           <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">
             <Field label="Restaurant Name" htmlFor="t-name" required>
-              <Input id="t-name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              <Input
+                id="t-name"
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+              />
             </Field>
             <Field label="WhatsApp Phone Number ID" htmlFor="t-phone" required>
               <Input
@@ -218,26 +237,44 @@ export default function AdminRestaurantDetailPage() {
             </Field>
           </div>
           <Field label="Data Connection Tier" htmlFor="t-tier" required>
-            <select
-              id="t-tier"
+            <Select
               value={form.data_tier}
-              onChange={(e) => setForm({ ...form, data_tier: e.target.value })}
-              className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+              onValueChange={(v) => setForm({ ...form, data_tier: v })}
+              className="w-full"
+              id="t-tier"
             >
               {VALID_TIERS.map((tier) => (
                 <option key={tier} value={tier}>
                   {TIER_LABELS[tier]}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           {form.data_tier === "tier2" && (
             <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">
-              <Field label="External API Base URL" htmlFor="t-api-base" required hint="Required for Tier 2">
-                <Input id="t-api-base" value={form.api_base_url} onChange={(e) => setForm({ ...form, api_base_url: e.target.value })} />
+              <Field
+                label="External API Base URL"
+                htmlFor="t-api-base"
+                required
+                hint="Required for Tier 2"
+              >
+                <Input
+                  id="t-api-base"
+                  value={form.api_base_url}
+                  onChange={(e) => setForm({ ...form, api_base_url: e.target.value })}
+                />
               </Field>
-              <Field label="External API Key" htmlFor="t-api-key" required hint="Required for Tier 2">
-                <Input id="t-api-key" value={form.api_key} onChange={(e) => setForm({ ...form, api_key: e.target.value })} />
+              <Field
+                label="External API Key"
+                htmlFor="t-api-key"
+                required
+                hint="Required for Tier 2"
+              >
+                <Input
+                  id="t-api-key"
+                  value={form.api_key}
+                  onChange={(e) => setForm({ ...form, api_key: e.target.value })}
+                />
               </Field>
             </div>
           )}
@@ -246,7 +283,11 @@ export default function AdminRestaurantDetailPage() {
         <Card className="mb-space-4 p-space-5">
           <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Credentials</h3>
           <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">
-            <Field label="WhatsApp Access Token" htmlFor="t-token" hint={`Currently: ${tenant.access_token_masked} — leave blank to keep it`}>
+            <Field
+              label="WhatsApp Access Token"
+              htmlFor="t-token"
+              hint={`Currently: ${tenant.access_token_masked} — leave blank to keep it`}
+            >
               <Input
                 id="t-token"
                 type="password"
@@ -255,7 +296,11 @@ export default function AdminRestaurantDetailPage() {
                 onChange={(e) => setForm({ ...form, access_token: e.target.value })}
               />
             </Field>
-            <Field label="App Secret" htmlFor="t-secret" hint={`Currently: ${tenant.app_secret_masked} — leave blank to keep it`}>
+            <Field
+              label="App Secret"
+              htmlFor="t-secret"
+              hint={`Currently: ${tenant.app_secret_masked} — leave blank to keep it`}
+            >
               <Input
                 id="t-secret"
                 type="password"
@@ -268,7 +313,11 @@ export default function AdminRestaurantDetailPage() {
           <Field
             label="Portal Password"
             htmlFor="t-portal-password"
-            hint={tenant.has_portal_password ? "A password is set — leave blank to keep it, or enter a new one to reset it." : "No password set — enter one to set it."}
+            hint={
+              tenant.has_portal_password
+                ? "A password is set — leave blank to keep it, or enter a new one to reset it."
+                : "No password set — enter one to set it."
+            }
           >
             <Input
               id="t-portal-password"
@@ -289,7 +338,11 @@ export default function AdminRestaurantDetailPage() {
             />
           </Field>
           <div className="grid grid-cols-1 gap-space-3 sm:grid-cols-2">
-            <Field label="Reminder Offsets (hours)" htmlFor="t-offsets" hint="Comma-separated, e.g. 24,2">
+            <Field
+              label="Reminder Offsets (hours)"
+              htmlFor="t-offsets"
+              hint="Comma-separated, e.g. 24,2"
+            >
               <Input
                 id="t-offsets"
                 value={form.reminder_offsets_hours}
@@ -307,20 +360,22 @@ export default function AdminRestaurantDetailPage() {
         </Card>
 
         <Card className="mb-space-4 p-space-5">
-          <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Tenant Type &amp; Capabilities</h3>
+          <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">
+            Tenant Type &amp; Capabilities
+          </h3>
           <Field label="Tenant Type" htmlFor="t-type">
-            <select
-              id="t-type"
+            <Select
               value={form.tenant_type}
-              onChange={(e) => setForm({ ...form, tenant_type: e.target.value })}
-              className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+              onValueChange={(v) => setForm({ ...form, tenant_type: v })}
+              className="w-full"
+              id="t-type"
             >
               {tenantTypes.map((type) => (
                 <option key={type} value={type}>
                   {type}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <div className="mb-space-2 flex items-center justify-between">
             <p className="text-label">Admin Capabilities</p>
@@ -334,7 +389,11 @@ export default function AdminRestaurantDetailPage() {
           </div>
           <div className="grid grid-cols-1 gap-space-2 sm:grid-cols-2 md:grid-cols-3">
             {tenant.all_capabilities.map((cap) => (
-              <CheckboxRow key={cap} checked={form.admin_capabilities.includes(cap)} onChange={() => toggleCapability(cap)}>
+              <CheckboxRow
+                key={cap}
+                checked={form.admin_capabilities.includes(cap)}
+                onChange={() => toggleCapability(cap)}
+              >
                 {cap}
               </CheckboxRow>
             ))}
@@ -345,7 +404,11 @@ export default function AdminRestaurantDetailPage() {
           <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Enabled Features</h3>
           <div className="grid grid-cols-1 gap-space-2 sm:grid-cols-2 md:grid-cols-3">
             {Object.entries(tenant.feature_default_labels).map(([key, label]) => (
-              <CheckboxRow key={key} checked={form.enabled_features.includes(key)} onChange={() => toggleFeature(key)}>
+              <CheckboxRow
+                key={key}
+                checked={form.enabled_features.includes(key)}
+                onChange={() => toggleFeature(key)}
+              >
                 {label}
               </CheckboxRow>
             ))}
@@ -359,7 +422,10 @@ export default function AdminRestaurantDetailPage() {
           ) : (
             <ul className="space-y-space-2">
               {tenant.owners.map((owner) => (
-                <li key={owner.id} className="flex items-center gap-space-2 text-[13.5px] text-ink-900">
+                <li
+                  key={owner.id}
+                  className="flex items-center gap-space-2 text-[13.5px] text-ink-900"
+                >
                   <Badge tone="neutral">Owner</Badge>
                   <span className="font-medium">{owner.name || owner.email}</span>
                   <span className="text-ink-500">{owner.email}</span>
@@ -369,7 +435,11 @@ export default function AdminRestaurantDetailPage() {
           )}
 
           <div className="mt-space-4 flex flex-wrap items-end gap-space-2">
-            <Field label="Assign owner by email" htmlFor="t-owner-email" className="mb-0 flex-1 min-w-[220px]">
+            <Field
+              label="Assign owner by email"
+              htmlFor="t-owner-email"
+              className="mb-0 flex-1 min-w-[220px]"
+            >
               <Input
                 id="t-owner-email"
                 type="email"
@@ -378,7 +448,12 @@ export default function AdminRestaurantDetailPage() {
                 onChange={(e) => setOwnerEmail(e.target.value)}
               />
             </Field>
-            <Button type="button" variant="secondary" onClick={handleAssignOwner} disabled={assigningOwner}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleAssignOwner}
+              disabled={assigningOwner}
+            >
               {assigningOwner ? "Assigning…" : "Assign owner"}
             </Button>
           </div>
@@ -449,7 +524,9 @@ function AuditLogRow({ entry }: { entry: AuditLogEntry }) {
       </div>
       {hasDetail && (
         <details className="mt-space-2">
-          <summary className="cursor-pointer text-[12px] font-semibold text-brand-600">Show before/after</summary>
+          <summary className="cursor-pointer text-[12px] font-semibold text-brand-600">
+            Show before/after
+          </summary>
           <pre className="mt-space-2 overflow-x-auto rounded-md bg-black/[0.04] p-space-2 text-[11.5px] text-ink-700">
             {JSON.stringify({ before: entry.before_value, after: entry.after_value }, null, 2)}
           </pre>

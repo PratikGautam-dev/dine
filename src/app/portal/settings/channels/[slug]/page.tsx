@@ -1,11 +1,11 @@
 "use client";
 
 import { Globe, Store } from "lucide-react";
-import Link from "next/link";
+import { Button } from "@/components/erp-ui/Button";
 import { notFound } from "next/navigation";
 import { use } from "react";
 import {
-  ChannelReadiness,
+  ChannelBranches,
   OnlineChannelPanel,
   PosChannelPanel,
   WhatsAppChannelPanel,
@@ -29,20 +29,19 @@ export default function ChannelSettingsPage({ params }: { params: Promise<{ slug
   const Panel = PANELS[channel];
   return (
     <SettingsPageFrame
+      maxWidthClass="max-w-[880px]"
       restaurant={restaurant}
       title={CHANNELS[channel].label}
       icon={<Icon size={20} />}
       description={CHANNELS[channel].blurb}
       actions={
-        <Link href={WORKING_PAGE[channel]} className="text-[13px] font-semibold text-brand-700 hover:underline">
-          Open the {CHANNELS[channel].label} page →
-        </Link>
+        <Button variant="secondary" href={WORKING_PAGE[channel]}>
+          Open {CHANNELS[channel].label}
+        </Button>
       }
     >
-      <div className="max-w-3xl">
-        <ChannelReadiness channel={channel} />
-        <Panel />
-      </div>
+      <Panel />
+      <ChannelBranches channel={channel} />
     </SettingsPageFrame>
   );
 }

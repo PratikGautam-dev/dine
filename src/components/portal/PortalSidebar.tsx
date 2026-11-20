@@ -92,7 +92,7 @@ const NAV_ITEMS: {
   },
   {
     key: "sales-daap-website",
-    label: "Daap App",
+    label: "App",
     icon: Monitor,
     href: "/portal/channels/daap-website",
     pageKey: "food_orders",
@@ -343,6 +343,8 @@ const NAV_ITEMS: {
 type Props = {
   restaurant: PortalRestaurant | null;
   active: string;
+  /** The business's own logo (Settings > Theme and colours); the Dine mark when none is set. */
+  logoUrl?: string | null;
   /** Mobile drawer state -- undefined/false renders the sidebar off-canvas
    * below the `lg` breakpoint (PortalShell owns the toggle); at `lg` and up
    * the sidebar is always statically visible regardless of this prop. */
@@ -355,7 +357,7 @@ type Props = {
 // last scroll position is kept here and restored on mount.
 let savedNavScroll = 0;
 
-export function PortalSidebar({ restaurant, active, open = false, onClose }: Props) {
+export function PortalSidebar({ restaurant, active, logoUrl, open = false, onClose }: Props) {
   // Resolved once, here, via the real hook -- hasPermission below is a
   // plain function taking this value, safe to call inside .filter() (a real
   // hook can't be called in a loop). null on the server and on the client's
@@ -482,14 +484,19 @@ export function PortalSidebar({ restaurant, active, open = false, onClose }: Pro
 
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-brand-700 py-space-4 text-white transition-transform duration-200 ease-out",
+          "fixed inset-y-0 left-0 z-50 flex h-screen w-72 max-w-[85vw] shrink-0 -translate-x-full flex-col bg-[var(--sidebar,var(--brand-700))] py-space-4 text-white transition-transform duration-200 ease-out",
           "lg:static lg:z-auto lg:w-64 lg:max-w-none lg:translate-x-0",
           open && "translate-x-0",
         )}
       >
         <div className="mb-space-4 flex items-center gap-space-3 px-space-4">
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-white">
-            <Image src="/logo-mark.png" alt="Dine Connect" width={30} height={30} />
+            {logoUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={logoUrl} alt="" className="h-full w-full rounded-lg object-contain" />
+            ) : (
+              <Image src="/logo-mark.png" alt="Dine Connect" width={30} height={30} />
+            )}
           </div>
           <div className="min-w-0 leading-tight">
             <span className="block truncate text-[15px] font-bold">

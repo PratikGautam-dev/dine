@@ -79,13 +79,7 @@ const DONUT: Record<Segment, string> = {
 };
 const TIERS: Segment[] = ["regular", "silver", "gold", "platinum"];
 // Top Tags bars get lighter down the list
-const BAR_SHADES = [
-  "bg-brand-700",
-  "bg-brand-500",
-  "bg-brand-400",
-  "bg-brand-300",
-  "bg-brand-200",
-];
+const BAR_SHADES = ["bg-brand-700", "bg-brand-500", "bg-brand-400", "bg-brand-300", "bg-brand-200"];
 const TABS = [
   { key: "top", label: "Top Customers" },
   { key: "high", label: "High-Value Customers" },
@@ -99,15 +93,7 @@ const monthName = (m: string, long = false) =>
     year: long ? "numeric" : undefined,
   });
 
-function Change({
-  pct,
-  pp,
-  period,
-}: {
-  pct?: number | null;
-  pp?: number;
-  period: InsightPeriod;
-}) {
+function Change({ pct, pp, period }: { pct?: number | null; pp?: number; period: InsightPeriod }) {
   const value = pp !== undefined ? pp : pct;
   if (value === null || value === undefined)
     return <p className="text-[11.5px] text-ink-400">No earlier data</p>;
@@ -117,9 +103,7 @@ function Change({
       <span
         className={cn(
           "rounded-full px-2 py-0.5 font-semibold",
-          up
-            ? "bg-success-tint text-success"
-            : "bg-destructive-tint text-error",
+          up ? "bg-success-tint text-success" : "bg-destructive-tint text-error",
         )}
       >
         {up ? "↑" : "↓"} {up ? "+" : ""}
@@ -149,9 +133,7 @@ function Kpi({
       </span>
       <div className="min-w-0">
         <p className="text-[12px] text-ink-600">{label}</p>
-        <p className="break-words text-[22px] font-bold leading-tight text-ink-900">
-          {value}
-        </p>
+        <p className="break-words text-[22px] font-bold leading-tight text-ink-900">{value}</p>
       </div>
       {children}
     </Card>
@@ -190,13 +172,7 @@ function Panel({
   );
 }
 
-function FilterField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
+function FilterField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="min-w-0">
       <p className="mb-1 text-[12px] font-semibold text-ink-900">{label}</p>
@@ -206,8 +182,7 @@ function FilterField({
 }
 
 /** Retention cell shade: the higher the share, the darker the green. */
-const shade = (pct: number) =>
-  `rgba(74, 93, 69, ${(0.12 + (pct / 100) * 0.7).toFixed(2)})`;
+const shade = (pct: number) => `rgba(74, 93, 69, ${(0.12 + (pct / 100) * 0.7).toFixed(2)})`;
 
 function CustomerTable({
   rows,
@@ -237,12 +212,8 @@ function CustomerTable({
             >
               <Avatar name={c.name} size={30} />
               <span className="min-w-0">
-                <span className="block truncate font-semibold text-ink-900">
-                  {c.name}
-                </span>
-                <span className="block text-[11.5px] text-ink-400">
-                  {c.customer_code ?? ""}
-                </span>
+                <span className="block truncate font-semibold text-ink-900">{c.name}</span>
+                <span className="block text-[11.5px] text-ink-400">{c.customer_code ?? ""}</span>
               </span>
             </Link>
           ),
@@ -253,8 +224,7 @@ function CustomerTable({
         },
         {
           header: "Purchase amount",
-          cell: ({ row }) =>
-            formatMoney(row.original.total_spent_minor, currency),
+          cell: ({ row }) => formatMoney(row.original.total_spent_minor, currency),
         },
         { header: "Orders", cell: ({ row }) => row.original.total_orders },
         {
@@ -280,11 +250,8 @@ export function InsightsTab({ currency }: { currency: string }) {
   const [branchId, setBranchId] = useState("");
   const [list, setList] = useState<ListTab>("top");
   const branches = useBranches();
-  const tags =
-    useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");
-  const savedSegments = useErpQuery<SavedSegment[]>(
-    "/api/v1/crm/customer-segments",
-  );
+  const tags = useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");
+  const savedSegments = useErpQuery<SavedSegment[]>("/api/v1/crm/customer-segments");
   const q = useErpQuery<CrmInsights>(
     `/api/v1/crm/insights${qs({ period, segment, tag, segment_id: segmentId, branch_id: branchId })}`,
   );
@@ -297,16 +264,8 @@ export function InsightsTab({ currency }: { currency: string }) {
       ["Customer insights", PERIODS.find((p) => p.value === period)!.label],
       [],
       ["Metric", "Value", "Change"],
-      [
-        "Total customers",
-        k.total_customers.value,
-        k.total_customers.change_pct,
-      ],
-      [
-        "Active customers",
-        k.active_customers.value,
-        k.active_customers.change_pct,
-      ],
+      ["Total customers", k.total_customers.value, k.total_customers.change_pct],
+      ["Active customers", k.active_customers.value, k.active_customers.change_pct],
       ["Repeat rate %", k.repeat_rate.value, k.repeat_rate.change_pp],
       [
         "Avg. purchase value",
@@ -322,14 +281,7 @@ export function InsightsTab({ currency }: { currency: string }) {
       ["Returning customers", k.new_vs_returning.returning],
       [],
       ["Top customers"],
-      [
-        "Name",
-        "Code",
-        "Membership",
-        "Purchase amount",
-        "Orders",
-        "Last purchase",
-      ],
+      ["Name", "Code", "Membership", "Purchase amount", "Orders", "Last purchase"],
       ...d.top_customers.map((c) => [
         c.name,
         c.customer_code,
@@ -339,12 +291,9 @@ export function InsightsTab({ currency }: { currency: string }) {
         c.last_order_at?.slice(0, 10) ?? "",
       ]),
     ];
-    const blob = new Blob(
-      [lines.map((l) => l.map(csvCell).join(",")).join("\n")],
-      {
-        type: "text/csv",
-      },
-    );
+    const blob = new Blob([lines.map((l) => l.map(csvCell).join(",")).join("\n")], {
+      type: "text/csv",
+    });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
     a.download = `customer-insights-${period}.csv`;
@@ -367,24 +316,12 @@ export function InsightsTab({ currency }: { currency: string }) {
     const table = (head: string[], body: (string | number | null)[][]) =>
       `<table><thead><tr>${head.map((h) => `<th>${esc(h)}</th>`).join("")}</tr></thead><tbody>${
         body.length
-          ? body
-              .map(
-                (r) =>
-                  `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`,
-              )
-              .join("")
+          ? body.map((r) => `<tr>${r.map((c) => `<td>${esc(c)}</td>`).join("")}</tr>`).join("")
           : `<tr><td colspan="${head.length}">Nothing to show.</td></tr>`
       }</tbody></table>`;
     const people = (rows: InsightCustomer[]) =>
       table(
-        [
-          "Customer",
-          "Code",
-          "Membership",
-          "Purchase amount",
-          "Orders",
-          "Last purchase",
-        ],
+        ["Customer", "Code", "Membership", "Purchase amount", "Orders", "Last purchase"],
         rows.map((c) => [
           c.name,
           c.customer_code,
@@ -415,21 +352,9 @@ export function InsightsTab({ currency }: { currency: string }) {
       ${table(
         ["Metric", "Value", "Change"],
         [
-          [
-            "Total customers",
-            k.total_customers.value,
-            change(k.total_customers.change_pct),
-          ],
-          [
-            "Active customers",
-            k.active_customers.value,
-            change(k.active_customers.change_pct),
-          ],
-          [
-            "Repeat rate",
-            `${k.repeat_rate.value}%`,
-            change(null, k.repeat_rate.change_pp),
-          ],
+          ["Total customers", k.total_customers.value, change(k.total_customers.change_pct)],
+          ["Active customers", k.active_customers.value, change(k.active_customers.change_pct)],
+          ["Repeat rate", `${k.repeat_rate.value}%`, change(null, k.repeat_rate.change_pp)],
           [
             "Avg. purchase value",
             formatMoney(k.avg_purchase_value.value_minor, currency),
@@ -467,16 +392,7 @@ export function InsightsTab({ currency }: { currency: string }) {
       )}
       <h2>Customer retention (cohort analysis)</h2>
       ${table(
-        [
-          "Cohort",
-          "Customers",
-          "Month 0",
-          "Month 1",
-          "Month 2",
-          "Month 3",
-          "Month 4",
-          "Month 5",
-        ],
+        ["Cohort", "Customers", "Month 0", "Month 1", "Month 2", "Month 3", "Month 4", "Month 5"],
         d.cohorts.map((c) => [
           monthName(c.cohort, true),
           c.customers,
@@ -489,8 +405,7 @@ export function InsightsTab({ currency }: { currency: string }) {
     </body></html>`;
     const frame = document.createElement("iframe");
     frame.setAttribute("aria-hidden", "true");
-    frame.style.cssText =
-      "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
+    frame.style.cssText = "position:fixed;right:0;bottom:0;width:0;height:0;border:0";
     document.body.appendChild(frame);
     const doc = frame.contentDocument;
     if (!doc || !frame.contentWindow) return frame.remove();
@@ -502,10 +417,8 @@ export function InsightsTab({ currency }: { currency: string }) {
     window.setTimeout(() => frame.remove(), 60_000);
   };
 
-  const growthData =
-    d?.growth.map((g) => ({ ...g, label: monthName(g.month) })) ?? [];
-  const tiers =
-    d?.segments.filter((s) => TIERS.includes(s.key) && s.customers > 0) ?? [];
+  const growthData = d?.growth.map((g) => ({ ...g, label: monthName(g.month) })) ?? [];
+  const tiers = d?.segments.filter((s) => TIERS.includes(s.key) && s.customers > 0) ?? [];
   const members = tiers.reduce((n, s) => n + s.customers, 0);
   const rows =
     d &&
@@ -531,37 +444,21 @@ export function InsightsTab({ currency }: { currency: string }) {
             align="end"
             className="w-[var(--anchor-width)] min-w-[var(--anchor-width)]"
           >
-            <DropdownMenuItem onClick={exportCsv}>
-              Export as CSV
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={exportPdf}>
-              Export as PDF
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={exportCsv}>Export as CSV</DropdownMenuItem>
+            <DropdownMenuItem onClick={exportPdf}>Export as PDF</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
       {d && k && (
         <div className="grid grid-cols-2 gap-space-3 md:grid-cols-3 xl:grid-cols-6">
-          <Kpi
-            label="Total Customers"
-            value={k.total_customers.value}
-            icon={UserGroupIcon}
-          >
+          <Kpi label="Total Customers" value={k.total_customers.value} icon={UserGroupIcon}>
             <Change pct={k.total_customers.change_pct} period={period} />
           </Kpi>
-          <Kpi
-            label="Active Customers"
-            value={k.active_customers.value}
-            icon={UserCheck01Icon}
-          >
+          <Kpi label="Active Customers" value={k.active_customers.value} icon={UserCheck01Icon}>
             <Change pct={k.active_customers.change_pct} period={period} />
           </Kpi>
-          <Kpi
-            label="Repeat Rate"
-            value={`${k.repeat_rate.value}%`}
-            icon={RepeatIcon}
-          >
+          <Kpi label="Repeat Rate" value={`${k.repeat_rate.value}%`} icon={RepeatIcon}>
             <Change pp={k.repeat_rate.change_pp} period={period} />
           </Kpi>
           <Kpi
@@ -588,8 +485,7 @@ export function InsightsTab({ currency }: { currency: string }) {
             icon={UserAdd01Icon}
           >
             <p className="text-[11.5px] text-ink-400">
-              {k.new_vs_returning.new} new • {k.new_vs_returning.returning}{" "}
-              returning
+              {k.new_vs_returning.new} new • {k.new_vs_returning.returning} returning
             </p>
           </Kpi>
         </div>
@@ -610,11 +506,7 @@ export function InsightsTab({ currency }: { currency: string }) {
           </Select>
         </FilterField>
         <FilterField label="Membership">
-          <Select
-            value={segment}
-            onValueChange={setSegment}
-            aria-label="Membership"
-          >
+          <Select value={segment} onValueChange={setSegment} aria-label="Membership">
             <option value="">All memberships</option>
             {(Object.keys(SEGMENT_META) as Segment[]).map((s) => (
               <option key={s} value={s}>
@@ -634,11 +526,7 @@ export function InsightsTab({ currency }: { currency: string }) {
           </Select>
         </FilterField>
         <FilterField label="Segment">
-          <Select
-            value={segmentId}
-            onValueChange={setSegmentId}
-            aria-label="Segment"
-          >
+          <Select value={segmentId} onValueChange={setSegmentId} aria-label="Segment">
             <option value="">All segments</option>
             {(savedSegments.data ?? []).map((s) => (
               <option key={s.id} value={s.id}>
@@ -648,11 +536,7 @@ export function InsightsTab({ currency }: { currency: string }) {
           </Select>
         </FilterField>
         <FilterField label="Branch">
-          <Select
-            value={branchId}
-            onValueChange={setBranchId}
-            aria-label="Branch"
-          >
+          <Select value={branchId} onValueChange={setBranchId} aria-label="Branch">
             <option value="">All branches</option>
             {(branches.data ?? []).map((b) => (
               <option key={b.id} value={b.id}>
@@ -663,9 +547,7 @@ export function InsightsTab({ currency }: { currency: string }) {
         </FilterField>
       </Card>
 
-      {q.error && (
-        <p className="text-[13px] font-medium text-error">{q.error}</p>
-      )}
+      {q.error && <p className="text-[13px] font-medium text-error">{q.error}</p>}
       {!d || !k ? (
         !q.error && <SkeletonLines rows={6} />
       ) : (
@@ -702,23 +584,9 @@ export function InsightsTab({ currency }: { currency: string }) {
                     margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
                   >
                     <defs>
-                      <linearGradient
-                        id="growthFill"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="#4a5d45"
-                          stopOpacity={0.3}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="#4a5d45"
-                          stopOpacity={0.02}
-                        />
+                      <linearGradient id="growthFill" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#4a5d45" stopOpacity={0.3} />
+                        <stop offset="100%" stopColor="#4a5d45" stopOpacity={0.02} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid vertical={false} stroke="rgba(0,0,0,0.08)" />
@@ -798,15 +666,12 @@ export function InsightsTab({ currency }: { currency: string }) {
                     <span className="text-[22px] font-bold leading-none text-ink-900">
                       {members}
                     </span>
-                    <span className="mt-1 text-[11px] text-ink-600">
-                      Members
-                    </span>
+                    <span className="mt-1 text-[11px] text-ink-600">Members</span>
                   </div>
                 </div>
                 <ul className="min-w-[150px] flex-1 space-y-space-2 text-[12.5px]">
                   {TIERS.map((key) => {
-                    const n =
-                      d.segments.find((s) => s.key === key)?.customers ?? 0;
+                    const n = d.segments.find((s) => s.key === key)?.customers ?? 0;
                     return (
                       <li key={key} className="flex items-center gap-space-2">
                         <span
@@ -838,26 +703,18 @@ export function InsightsTab({ currency }: { currency: string }) {
               ) : (
                 <ul className="space-y-space-3">
                   {d.tags.map((t, i) => {
-                    const color =
-                      TAG_COLOR[t.color as TagColor] ?? TAG_COLOR.grey;
+                    const color = TAG_COLOR[t.color as TagColor] ?? TAG_COLOR.grey;
                     const icon = TAG_ICON[t.icon as TagIcon] ?? Tag01Icon;
                     const max = d.tags[0].customers;
                     return (
-                      <li
-                        key={t.name}
-                        className="flex items-center gap-space-3"
-                      >
+                      <li key={t.name} className="flex items-center gap-space-3">
                         <span
                           className={cn(
                             "inline-flex w-[132px] shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1.5 text-[12px] font-semibold",
                             color.chip,
                           )}
                         >
-                          <HugeiconsIcon
-                            icon={icon}
-                            size={13}
-                            className="shrink-0"
-                          />
+                          <HugeiconsIcon icon={icon} size={13} className="shrink-0" />
                           <span className="truncate">{t.name}</span>
                         </span>
                         <span className="h-3.5 min-w-0 flex-1">
@@ -872,10 +729,7 @@ export function InsightsTab({ currency }: { currency: string }) {
                           />
                         </span>
                         <span className="w-[68px] shrink-0 whitespace-nowrap text-right text-[12px] text-ink-900">
-                          {t.customers} (
-                          {d.total
-                            ? Math.round((100 * t.customers) / d.total)
-                            : 0}
+                          {t.customers} ({d.total ? Math.round((100 * t.customers) / d.total) : 0}
                           %)
                         </span>
                       </li>
@@ -901,17 +755,10 @@ export function InsightsTab({ currency }: { currency: string }) {
                   <table className="w-full table-fixed border-collapse text-[12.5px]">
                     <thead>
                       <tr className="text-left text-[11.5px] text-ink-600">
-                        <th className="w-[22%] py-2 pr-2 font-semibold">
-                          Cohort (First Purchase)
-                        </th>
-                        <th className="w-[15%] px-2 font-semibold">
-                          Customers
-                        </th>
+                        <th className="w-[22%] py-2 pr-2 font-semibold">Cohort (First Purchase)</th>
+                        <th className="w-[15%] px-2 font-semibold">Customers</th>
                         {[0, 1, 2, 3, 4, 5].map((i) => (
-                          <th
-                            key={i}
-                            className="px-1 text-center font-semibold"
-                          >
+                          <th key={i} className="px-1 text-center font-semibold">
                             Month {i}
                           </th>
                         ))}
@@ -928,18 +775,10 @@ export function InsightsTab({ currency }: { currency: string }) {
                             <td
                               key={i}
                               className="px-1 py-1 text-center font-medium"
-                              style={
-                                r === null
-                                  ? undefined
-                                  : { background: shade(r) }
-                              }
+                              style={r === null ? undefined : { background: shade(r) }}
                             >
                               <span
-                                className={
-                                  r !== null && r >= 60
-                                    ? "text-white"
-                                    : "text-ink-900"
-                                }
+                                className={r !== null && r >= 60 ? "text-white" : "text-ink-900"}
                               >
                                 {r === null ? "—" : `${r}%`}
                               </span>
@@ -966,11 +805,7 @@ export function InsightsTab({ currency }: { currency: string }) {
                   Customers who bought before but not in the last 90 days.
                 </p>
               )}
-              <CustomerTable
-                rows={rows ?? []}
-                currency={currency}
-                empty="No customers to show."
-              />
+              <CustomerTable rows={rows ?? []} currency={currency} empty="No customers to show." />
             </Card>
           </div>
         </>

@@ -60,9 +60,7 @@ export function AddCustomerModal({
   );
 
   // A member's tier follows their loyalty points, so a tier above Regular is set by adding the points that tier starts at.
-  const plans = useErpQuery<{ settings: CrmSettings }>(
-    canEnrich ? "/api/v1/crm/segments" : null,
-  );
+  const plans = useErpQuery<{ settings: CrmSettings }>(canEnrich ? "/api/v1/crm/segments" : null);
   const startPoints = (t: Start): number | null => {
     if (t === "") return 0;
     if (t === "regular") return 0;
@@ -74,10 +72,7 @@ export function AddCustomerModal({
   const hasContact = member
     ? !!form.phone.trim() && !!form.email.trim()
     : !!form.phone.trim() || !!form.email.trim();
-  const ready =
-    !!form.name.trim() &&
-    hasContact &&
-    (!member || (!!birthday && points !== null));
+  const ready = !!form.name.trim() && hasContact && (!member || (!!birthday && points !== null));
 
   /** Adds what is typed in the tag box; returns the tags afterwards (the state is not updated yet when a submit needs them). */
   function commitDraft(current: string[]): string[] {
@@ -140,18 +135,11 @@ export function AddCustomerModal({
         });
         if (m.error) missed.push(`membership (${m.error})`);
         else if (points) {
-          const bonus = await erp(
-            `/api/v1/crm/customers/${id}/loyalty`,
-            "POST",
-            {
-              delta: points,
-              reason: `Starting tier set when the customer was added (${TIER_LABEL[tier as BenefitTier]})`,
-            },
-          );
-          if (bonus.error)
-            missed.push(
-              `${TIER_LABEL[tier as BenefitTier]} tier (${bonus.error})`,
-            );
+          const bonus = await erp(`/api/v1/crm/customers/${id}/loyalty`, "POST", {
+            delta: points,
+            reason: `Starting tier set when the customer was added (${TIER_LABEL[tier as BenefitTier]})`,
+          });
+          if (bonus.error) missed.push(`${TIER_LABEL[tier as BenefitTier]} tier (${bonus.error})`);
         }
       }
     }
@@ -184,11 +172,7 @@ export function AddCustomerModal({
           <Button variant="ghost" onClick={onClose}>
             Cancel
           </Button>
-          <Button
-            disabled={busy || !ready}
-            type="submit"
-            form="add-customer-form"
-          >
+          <Button disabled={busy || !ready} type="submit" form="add-customer-form">
             Add customer
           </Button>
         </>
@@ -282,11 +266,7 @@ export function AddCustomerModal({
                       : `Enrols them and adds ${points} loyalty points, the least ${TIER_LABEL[tier]} needs. The adjustment is recorded with a reason.`
               }
             >
-              <Select
-                id="c_member"
-                value={tier}
-                onValueChange={(v) => setTier(v as Start)}
-              >
+              <Select id="c_member" value={tier} onValueChange={(v) => setTier(v as Start)}>
                 <option value="">Not a member</option>
                 {BENEFIT_TIERS.map((t) => (
                   <option key={t} value={t}>
@@ -297,11 +277,7 @@ export function AddCustomerModal({
             </Field>
             {member && (
               <Field className="!mb-space-3" label="Source" htmlFor="c_source">
-                <Select
-                  id="c_source"
-                  value={source}
-                  onValueChange={(v) => setSource(v as Source)}
-                >
+                <Select id="c_source" value={source} onValueChange={(v) => setSource(v as Source)}>
                   {(Object.keys(SOURCE_LABEL) as Source[]).map((s) => (
                     <option key={s} value={s}>
                       {SOURCE_LABEL[s]}
@@ -316,15 +292,10 @@ export function AddCustomerModal({
               label="Tags"
               htmlFor="c_tag"
               error={tagError ?? undefined}
-              hint={
-                tagError ? undefined : "Press Enter or comma after each tag."
-              }
+              hint={tagError ? undefined : "Press Enter or comma after each tag."}
             >
               {tags.length > 0 && (
-                <ul
-                  className="mb-space-2 flex flex-wrap gap-space-1"
-                  aria-label="Tags to add"
-                >
+                <ul className="mb-space-2 flex flex-wrap gap-space-1" aria-label="Tags to add">
                   {tags.map((t) => (
                     <li key={t}>
                       <Badge tone="clay" className="normal-case">
@@ -332,9 +303,7 @@ export function AddCustomerModal({
                         <button
                           type="button"
                           aria-label={`Remove tag ${t}`}
-                          onClick={() =>
-                            setTags((cur) => cur.filter((x) => x !== t))
-                          }
+                          onClick={() => setTags((cur) => cur.filter((x) => x !== t))}
                           className="ml-1 inline-flex text-ink-600 hover:text-error"
                         >
                           <HugeiconsIcon icon={Cancel01Icon} size={12} />
@@ -347,9 +316,7 @@ export function AddCustomerModal({
               <Input
                 id="c_tag"
                 list="c_tag_suggestions"
-                placeholder={
-                  tags.length ? "Add another tag" : "e.g. vip, wedding"
-                }
+                placeholder={tags.length ? "Add another tag" : "e.g. vip, wedding"}
                 value={draft}
                 maxLength={MAX_TAG_LENGTH + 10}
                 onChange={(e) => {

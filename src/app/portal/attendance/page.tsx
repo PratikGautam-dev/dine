@@ -23,6 +23,7 @@ import { StatTile } from "@/components/portal/StatTile";
 import { DAY_STATE, fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyMonthlyAttendance } from "@/hooks/useHr";
+import { Select } from "@/components/erp-ui/Select";
 
 // Same escaping precedent as food-orders/page.tsx's own exportCsv -- not extracted to a shared
 // helper since that page keeps its own local copy too.
@@ -227,18 +228,13 @@ export default function MyAttendancePage() {
               value={month}
               onChange={(e) => e.target.value && setMonth(e.target.value)}
             />
-            <select
-              aria-label="Status"
-              className={SELECT_CLASS}
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-            >
+            <Select value={status} onValueChange={(v) => setStatus(v)} aria-label="Status">
               {STATUS_FILTERS.map((s) => (
                 <option key={s} value={s}>
                   {s ? (DAY_STATE[s]?.label ?? s) : "All"}
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
         </div>
         <div className="overflow-x-auto">

@@ -16,8 +16,6 @@ export type StaffMember = {
   employee_id: string | null;
   phone: string | null;
   address: string | null;
-  department_id: string | null;
-  department_name: string | null;
   reports_to_id: number | null;
   reports_to_name: string | null;
   working_days: string[];
@@ -27,16 +25,12 @@ export type StaffMember = {
   branch_ids: string[];
 };
 
-export type Section = { id: string; name: string };
-
 /** Team & Access merge: a real person with no portal login yet -- a `doctors` row (this
  * restaurant's roster/leftover-from-clinic table) with nothing in staff_details pointing at it.
  * "Give portal access" turns one of these into a real StaffMember, linked back to this same id. */
 export type RosterMember = {
   id: string;
   name: string;
-  department_id: string;
-  department_name: string;
   is_active: boolean;
 };
 
@@ -55,7 +49,6 @@ export type StaffFormValues = {
   role: string;
   phone: string;
   address: string;
-  department_id: string;
   reports_to_id: string; // "" = nobody
   working_days: string[];
   shift_start: string; // "" = none
@@ -69,9 +62,9 @@ export type StaffDialog =
   | { kind: "branches"; member: StaffMember }
   | { kind: "toggle"; member: StaffMember }
   // Team & Access merge: "Give portal access" on a roster-only person -- the same Add-Staff form,
-  // pre-filled with their name/section, that on submit links the new login back to `member.id`.
+  // pre-filled with their name, that on submit links the new login back to `member.id`.
   | { kind: "grant"; member: RosterMember }
-  // Adding a person with no login yet -- name + section only, a `doctors` row.
+  // Adding a person with no login yet -- name only, a `doctors` row.
   | { kind: "addRoster" }
   | null;
 
@@ -82,22 +75,19 @@ export const emptyStaffForm = (): StaffFormValues => ({
   role: "receptionist",
   phone: "",
   address: "",
-  department_id: "",
   reports_to_id: "",
   working_days: [],
   shift_start: "",
   shift_end: "",
 });
 
-/** Loads and owns everything on /portal/settings/staff: the team list, the section list for the
- * "section" picker, search/filters, the selected row, and every mutation (add, edit incl. role,
+/** Loads and owns everything on /portal/settings/staff: the team list, search/filters, the selected row, and every mutation (add, edit incl. role,
  * activate/deactivate, reset password). Mutations return an error message (or null) so the dialog
  * that asked can show it in place. */
 export function useStaffManagement(canView: boolean) {
   const router = useRouter();
   const [staff, setStaff] = useState<StaffMember[] | null>(null);
   const [roster, setRoster] = useState<RosterMember[] | null>(null);
-  const [sections, setSections] = useState<Section[]>([]);
   const [error, setError] = useState<string | null>(null);
   // A MergedRow's `key` (e.g. "s12" or "r7"), not a raw id -- staff ids and roster ids are different
   // id spaces (identities.id vs doctors.id) and can collide numerically.
@@ -118,11 +108,6 @@ export function useStaffManagement(canView: boolean) {
     setStaff(result.data as StaffMember[]);
   }, [router]);
 
-  const loadSections = useCallback(async () => {
-    const result = await staffFetch("/api/portal/departments");
-    if (result.ok) setSections((result.data as { departments?: Section[] }).departments ?? []);
-  }, []);
-
   const loadRoster = useCallback(async () => {
     const result = await staffFetch("/api/portal/staff/roster");
     if (result.ok) setRoster(result.data as RosterMember[]);
@@ -131,9 +116,8 @@ export function useStaffManagement(canView: boolean) {
   useEffect(() => {
     if (!canView) return;
     load();
-    loadSections();
     loadRoster();
-  }, [canView, load, loadSections, loadRoster]);
+  }, [canView, load, loadRoster]);
 
   // Team & Access merge: every real login UNION every roster-only person -- one list, one row per
   // human, tagged has_login so the table/actions can branch (see MergedRow's own doc comment).
@@ -165,10 +149,9 @@ export function useStaffManagement(canView: boolean) {
             row.staff.name,
             row.staff.email,
             row.staff.phone ?? "",
-            row.staff.department_name ?? "",
             row.staff.employee_id ?? "",
           ]
-        : [row.roster.name, row.roster.department_name];
+        : [row.roster.name];
       return haystack.some((v) => v.toLowerCase().includes(q));
     });
   }, [merged, search, roleFilter, statusFilter]);
@@ -234,7 +217,6 @@ export function useStaffManagement(canView: boolean) {
         role: f.role,
         phone: nullIfBlank(f.phone),
         address: nullIfBlank(f.address),
-        department_id: nullIfBlank(f.department_id),
         reports_to_id: f.reports_to_id ? Number(f.reports_to_id) : null,
         working_days: f.working_days,
         shift_start: nullIfBlank(f.shift_start),
@@ -247,13 +229,13 @@ export function useStaffManagement(canView: boolean) {
     return error;
   }
 
-  /** Adding a person with no login yet -- name + section only (a `doctors` row; the roster's own
+  /** Adding a person with no login yet -- name only (a `doctors` row; the roster's own
    * booking-only fields -- slots, quotas, breaks -- are irrelevant here and left at their defaults). */
-  async function addRosterMember(name: string, departmentId: string): Promise<string | null> {
+  async function addRosterMember(name: string): Promise<string | null> {
     const error = await mutate(
-      "/api/portal/doctors",
+      "/api/portal/staff-roster",
       "POST",
-      { name, department_id: departmentId },
+      { name },
       "Added to the roster",
       true,
     );
@@ -262,7 +244,7 @@ export function useStaffManagement(canView: boolean) {
 
   async function setRosterActive(member: RosterMember, isActive: boolean) {
     return mutate(
-      `/api/portal/doctors/${member.id}/active`,
+      `/api/portal/staff-roster/${member.id}/active`,
       "POST",
       { is_active: isActive },
       isActive ? "Reactivated" : "Deactivated",
@@ -279,8 +261,6 @@ export function useStaffManagement(canView: boolean) {
       patch.phone = nullIfBlank(f.phone);
     if ((nullIfBlank(f.address) ?? null) !== (member.address ?? null))
       patch.address = nullIfBlank(f.address);
-    if ((nullIfBlank(f.department_id) ?? null) !== (member.department_id ?? null))
-      patch.department_id = nullIfBlank(f.department_id);
     const reports = f.reports_to_id ? Number(f.reports_to_id) : null;
     if (reports !== (member.reports_to_id ?? null)) patch.reports_to_id = reports;
     const sameDays = f.working_days.join(",") === (member.working_days ?? []).join(",");
@@ -367,26 +347,12 @@ export function useStaffManagement(canView: boolean) {
     return mutate(`/api/portal/staff/${member.id}`, "PATCH", { role }, "Role updated");
   }
 
-  async function addSection(name: string): Promise<string | null> {
-    const result = await staffFetch("/api/portal/departments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name }),
-    });
-    if (!result.ok)
-      return result.unauthorized ? "Session expired -- please sign in again." : result.error;
-    toast.success(`"${name}" added`);
-    await loadSections();
-    return null;
-  }
-
   return {
     staff,
     roster,
     merged,
     visible,
     counts,
-    sections,
     error,
     selected,
     selectedKey,
@@ -408,6 +374,5 @@ export function useStaffManagement(canView: boolean) {
     setStaffBranches,
     addRosterMember,
     setRosterActive,
-    addSection,
   };
 }

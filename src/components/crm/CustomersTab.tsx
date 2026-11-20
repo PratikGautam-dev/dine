@@ -22,12 +22,7 @@ import {
 } from "@/components/erp-ui/dropdown-menu";
 import { Input } from "@/components/erp-ui/Input";
 import { Select } from "@/components/erp-ui/Select";
-import {
-  SEGMENT_META,
-  SEGMENT_ORDER,
-  formatDate,
-  type CrmCustomer,
-} from "@/lib/erp/crm";
+import { SEGMENT_META, SEGMENT_ORDER, formatDate, type CrmCustomer } from "@/lib/erp/crm";
 import { formatMoney, qs, useErpQuery } from "@/lib/erp/erp";
 import type { SavedSegment } from "@/lib/erp/rules";
 import { useDebounced } from "@/lib/erp/useDebounced";
@@ -52,14 +47,11 @@ export function CustomersTab({
   const query = useDebounced(search.trim());
   const [status, setStatus] = useState("");
   const [segmentId, setSegmentId] = useState("");
-  const savedSegments = useErpQuery<SavedSegment[]>(
-    "/api/v1/crm/customer-segments",
-  );
+  const savedSegments = useErpQuery<SavedSegment[]>("/api/v1/crm/customer-segments");
   const list = useErpQuery<{ total: number; items: CrmCustomer[] }>(
     `/api/v1/crm/customers${qs({ q: query, segment, tag, status, segment_id: segmentId, limit: 200 })}`,
   );
-  const tags =
-    useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");
+  const tags = useErpQuery<{ tag: string; customers: number }[]>("/api/v1/crm/tags");
   const [composeFor, setComposeFor] = useState<CrmCustomer | null>(null);
 
   const rows = list.data?.items ?? [];
@@ -89,8 +81,7 @@ export function CustomersTab({
       },
       {
         header: "Phone",
-        cell: ({ row }) =>
-          row.original.phone ?? <span className="text-ink-400">—</span>,
+        cell: ({ row }) => row.original.phone ?? <span className="text-ink-400">—</span>,
       },
       {
         header: "Tags / Membership",
@@ -118,16 +109,13 @@ export function CustomersTab({
       },
       {
         header: "Purchase amount",
-        cell: ({ row }) =>
-          formatMoney(row.original.total_spent_minor, currency),
+        cell: ({ row }) => formatMoney(row.original.total_spent_minor, currency),
       },
       { header: "Orders", cell: ({ row }) => row.original.total_orders },
       {
         header: "Last purchase",
         cell: ({ row }) => (
-          <span className="text-ink-600">
-            {formatDate(row.original.last_order_at)}
-          </span>
+          <span className="text-ink-600">{formatDate(row.original.last_order_at)}</span>
         ),
       },
       {
@@ -222,9 +210,7 @@ export function CustomersTab({
               </option>
             ))}
           </Select>
-          {(savedSegments.data ?? []).some(
-            (g) => g.status === "active" && g.show_in_filters,
-          ) && (
+          {(savedSegments.data ?? []).some((g) => g.status === "active" && g.show_in_filters) && (
             <Select
               value={segmentId}
               onValueChange={setSegmentId}
@@ -253,9 +239,7 @@ export function CustomersTab({
           </Select>
         </Card>
         {list.error && (
-          <p className="mb-space-3 text-[13px] font-medium text-error">
-            {list.error}
-          </p>
+          <p className="mb-space-3 text-[13px] font-medium text-error">{list.error}</p>
         )}
         <Card className="p-space-2">
           <div className="whitespace-nowrap">
@@ -266,19 +250,13 @@ export function CustomersTab({
               onRowClick={(c) => router.push(`/portal/customers/${c.id}`)}
               loading={list.loading}
               pageSize={15}
-              emptyMessage={
-                list.loading ? "Loading customers…" : "No customers match."
-              }
+              emptyMessage={list.loading ? "Loading customers…" : "No customers match."}
             />
           </div>
         </Card>
       </div>
 
-      <ComposeModal
-        customer={composeFor}
-        onClose={() => setComposeFor(null)}
-        onSent={reload}
-      />
+      <ComposeModal customer={composeFor} onClose={() => setComposeFor(null)} onSent={reload} />
     </div>
   );
 }

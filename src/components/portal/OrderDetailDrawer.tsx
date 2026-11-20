@@ -32,7 +32,9 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
   const refunds = detail?.refunds ?? [];
   const alreadyRefundedPaise = refunds.reduce((sum, r) => sum + r.amount_paise, 0);
   const remainingPaise = payment ? payment.amount_paise - alreadyRefundedPaise : 0;
-  const canRefund = payment?.status === "paid" && remainingPaise > 0;
+  // A refund is for an order that is over: the server only accepts it for a cancelled or completed order.
+  const orderOver = detail ? ["cancelled", "completed"].includes(detail.food_order.status) : false;
+  const canRefund = payment?.status === "paid" && remainingPaise > 0 && orderOver;
 
   async function handleRefund(e: React.FormEvent) {
     e.preventDefault();
@@ -44,6 +46,10 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
     }
     if (amountPaise > remainingPaise) {
       setFormError(`Can't refund more than ${rupees(remainingPaise)} remaining.`);
+      return;
+    }
+    if (refundReason.length > 300) {
+      setFormError("The reason can be at most 300 characters.");
       return;
     }
     const ok = await issueRefund(amountPaise, refundReason);
@@ -192,6 +198,7 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
                     <Input
                       id="refund-reason"
                       value={refundReason}
+                      maxLength={300}
                       onChange={(e) => setRefundReason(e.target.value)}
                       placeholder="e.g. Item unavailable"
                     />
@@ -208,8 +215,12 @@ export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClo
                     {refunding ? "Recording…" : "Issue Refund"}
                   </Button>
                 </form>
-              ) : payment?.status === "paid" ? (
+              ) : payment?.status === "paid" && remainingPaise <= 0 ? (
                 <p className="text-[12.5px] text-ink-400">Fully refunded.</p>
+              ) : payment?.status === "paid" ? (
+                <p className="text-[12.5px] text-ink-400">
+                  This order is still in progress. Cancel or complete it before refunding.
+                </p>
               ) : (
                 <p className="text-[12.5px] text-ink-400">No paid payment to refund.</p>
               )}

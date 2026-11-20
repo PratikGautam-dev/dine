@@ -1,6 +1,7 @@
 "use client";
 
 import { ChannelStatusStrip } from "@/components/portal/channels/ChannelStatusStrip";
+import { WhatsAppConversation } from "@/components/portal/channels/WhatsAppConversation";
 import { WhatsAppBot } from "@/components/portal/channels/WhatsAppBot";
 import { WhatsAppTemplates } from "@/components/portal/channels/WhatsAppTemplates";
 import { PortalShell } from "@/components/portal/PortalShell";
@@ -19,6 +20,7 @@ export default function WhatsAppChannelPage() {
       <ChannelStatusStrip channel="whatsapp" />
       <div className="flex flex-col gap-space-4">
         <WhatsAppBot />
+        <WhatsAppConversation ready={ready} />
         <WhatsAppTemplates />
       </div>
     </PortalShell>

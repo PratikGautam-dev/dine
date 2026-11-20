@@ -94,9 +94,8 @@ function payloadFromForm(form: BranchForm) {
   };
 }
 
-/** Settings > Branches (multi-branch plan, Phase 3) -- the toggle plus full branch CRUD. */
+/** Settings > Branches (multi-branch plan, Phase 3) -- full branch CRUD. */
 export function useBranchManagement(ready: boolean) {
-  const [multiBranchEnabled, setMultiBranchEnabled] = useState(false);
   const [branches, setBranches] = useState<Branch[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -108,30 +107,13 @@ export function useBranchManagement(ready: boolean) {
       if (!result.unauthorized) setError(result.error);
       return;
     }
-    const data = result.data as { multi_branch_enabled: boolean; branches: Branch[] };
-    setMultiBranchEnabled(data.multi_branch_enabled);
+    const data = result.data as { branches: Branch[] };
     setBranches(data.branches);
   }, []);
 
   useEffect(() => {
     if (ready) load();
   }, [ready, load]);
-
-  async function toggleMultiBranch(enabled: boolean) {
-    setSaving(true);
-    const result = await staffFetch("/api/portal/branches/toggle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ multi_branch_enabled: enabled }),
-    });
-    setSaving(false);
-    if (!result.ok) {
-      if (!result.unauthorized) toast.error("Couldn't update multi-branch setting", result.error);
-      return;
-    }
-    setMultiBranchEnabled((result.data as { multi_branch_enabled: boolean }).multi_branch_enabled);
-    toast.success(enabled ? "Multi-branch enabled" : "Multi-branch disabled");
-  }
 
   async function createBranch(form: BranchForm): Promise<string | null> {
     setSaving(true);
@@ -163,6 +145,23 @@ export function useBranchManagement(ready: boolean) {
     return null;
   }
 
+  /** Saves just some of a branch's fields (the branch page's cards each edit their own): anything not in `fields` is left as it is.
+   * The contact fields (address_line, city, phone, email, state, pincode) take "" to clear a value. */
+  async function patchBranch(branch: Branch, fields: Record<string, unknown>): Promise<string | null> {
+    setSaving(true);
+    const result = await staffFetch(`/api/portal/branches/${branch.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: branch.name, ...fields }),
+    });
+    setSaving(false);
+    if (!result.ok)
+      return result.unauthorized ? "Session expired -- please sign in again." : result.error;
+    toast.success("Branch updated");
+    load();
+    return null;
+  }
+
   async function setBranchActive(id: string, active: boolean) {
     setTogglingId(id);
     const result = await staffFetch(
@@ -178,14 +177,14 @@ export function useBranchManagement(ready: boolean) {
   }
 
   return {
-    multiBranchEnabled,
     branches,
     error,
     saving,
     togglingId,
-    toggleMultiBranch,
     createBranch,
     updateBranch,
+    patchBranch,
     setBranchActive,
+    reload: load,
   };
 }

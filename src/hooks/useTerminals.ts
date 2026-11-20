@@ -179,10 +179,22 @@ export function useClearCashierPin() {
 
 
 /** What the Sales channels pages need of a branch: its name and whether it takes POS sales (GET /api/v1/channels/branches). */
-export type ChannelBranch = { id: string; branch_code: string; branch_name: string; status: string; accepts_pos: boolean };
+export type ChannelBranch = { id: string; branch_code: string; branch_name: string; status: string; accepts_pos: boolean; accepts_online: boolean; accepts_whatsapp: boolean };
 
 export function useChannelBranches() {
   return useQuery({ queryKey: queryKeys.channelBranches, queryFn: () => erpGet<ChannelBranch[]>("/api/v1/channels/branches") });
+}
+
+export type ChannelSwitch = "accepts_pos" | "accepts_online" | "accepts_whatsapp";
+
+/** Switch a branch on or off for the website or WhatsApp. */
+export function useToggleChannelBranch() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (input: { branchId: string; field: ChannelSwitch; value: boolean }) =>
+      erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", { [input.field]: input.value }),
+    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: queryKeys.channelBranches }), qc.invalidateQueries({ queryKey: queryKeys.channels })]),
+  });
 }
 
 /** Switch "Takes POS sales" on or off for a branch. The POS checklist depends on it, so it refreshes too. */

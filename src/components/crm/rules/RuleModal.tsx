@@ -53,14 +53,10 @@ export function RuleModal({
     rule?.conditions.length
       ? rule.conditions
       : (start?.conditions ?? [
-          defaultCondition(
-            scope === "tag" ? "total_spend" : "birthday_this_month",
-          ),
+          defaultCondition(scope === "tag" ? "total_spend" : "birthday_this_month"),
         ]),
   );
-  const [match, setMatch] = useState<Match>(
-    rule?.match ?? start?.match ?? "all",
-  );
+  const [match, setMatch] = useState<Match>(rule?.match ?? start?.match ?? "all");
   const [tagId, setTagId] = useState(rule?.tag_id ?? start?.tag_id ?? "");
   const action = rule?.action;
   const [kind, setKind] = useState<"award_points" | "follow_up">(
@@ -72,12 +68,8 @@ export function RuleModal({
   const [reason, setReason] = useState(
     action?.type === "award_points" ? (action.reason ?? "") : "",
   );
-  const [note, setNote] = useState(
-    action?.type === "follow_up" ? action.note : "",
-  );
-  const [once, setOnce] = useState<Once>(
-    action && action.type !== "tag" ? action.once : "year",
-  );
+  const [note, setNote] = useState(action?.type === "follow_up" ? action.note : "");
+  const [once, setOnce] = useState<Once>(action && action.type !== "tag" ? action.once : "year");
   const [frequency, setFrequency] = useState<RuleFrequency>(
     rule?.frequency ?? (scope === "tag" ? "real_time" : "daily"),
   );
@@ -87,19 +79,13 @@ export function RuleModal({
   const usable = tags.filter((t) => t.kind !== "system");
   const ready =
     conditions.every(conditionReady) &&
-    (scope === "tag"
-      ? !!tagId
-      : kind === "follow_up"
-        ? !!note.trim()
-        : Number(points) > 0);
+    (scope === "tag" ? !!tagId : kind === "follow_up" ? !!note.trim() : Number(points) > 0);
 
   async function save() {
     if (busy || !ready) return;
     setBusy(true);
     const body = {
-      name:
-        name.trim() ||
-        describeConditions(conditions, match, tagNames).slice(0, 80),
+      name: name.trim() || describeConditions(conditions, match, tagNames).slice(0, 80),
       description: description.trim() || null,
       conditions,
       match,
@@ -125,11 +111,7 @@ export function RuleModal({
           "PUT",
           body,
         )
-      : await erp<CrmRule & { run: RuleRun | null }>(
-          `/api/v1/crm/rules/${scope}`,
-          "POST",
-          body,
-        );
+      : await erp<CrmRule & { run: RuleRun | null }>(`/api/v1/crm/rules/${scope}`, "POST", body);
     setBusy(false);
     if (res.error || !res.data)
       return toast.error("Couldn't save the rule", res.error ?? undefined);
@@ -150,13 +132,7 @@ export function RuleModal({
       open
       onClose={onClose}
       width="lg"
-      title={
-        rule
-          ? "Edit rule"
-          : scope === "tag"
-            ? "Create tag rule"
-            : "Add automation"
-      }
+      title={rule ? "Edit rule" : scope === "tag" ? "Create tag rule" : "Add automation"}
       description={
         scope === "tag"
           ? "Customers who match carry the tag; anyone who stops matching loses it. Tags given by hand are never touched."
@@ -217,11 +193,7 @@ export function RuleModal({
         </Field>
       ) : (
         <div className="space-y-space-3">
-          <Select
-            value={kind}
-            onValueChange={(v) => setKind(v as typeof kind)}
-            aria-label="Action"
-          >
+          <Select value={kind} onValueChange={(v) => setKind(v as typeof kind)} aria-label="Action">
             <option value="award_points">Give loyalty points</option>
             <option value="follow_up">Add a follow-up for the team</option>
           </Select>
@@ -235,10 +207,7 @@ export function RuleModal({
                   onChange={(e) => setPoints(e.target.value.replace(/\D/g, ""))}
                 />
               </Field>
-              <Field
-                label="Reason (shown in the points history)"
-                htmlFor="rule_reason"
-              >
+              <Field label="Reason (shown in the points history)" htmlFor="rule_reason">
                 <Input
                   id="rule_reason"
                   maxLength={120}
@@ -258,11 +227,7 @@ export function RuleModal({
             </Field>
           )}
           <Field label="How often per customer" htmlFor="rule_once">
-            <Select
-              id="rule_once"
-              value={once}
-              onValueChange={(v) => setOnce(v as Once)}
-            >
+            <Select id="rule_once" value={once} onValueChange={(v) => setOnce(v as Once)}>
               {(Object.keys(ONCE_LABEL) as Once[]).map((o) => (
                 <option key={o} value={o}>
                   {ONCE_LABEL[o]}
@@ -291,14 +256,8 @@ export function RuleModal({
           </Select>
         </Field>
         <Field label="Status" htmlFor="rule_status">
-          <Select
-            id="rule_status"
-            value={status}
-            onValueChange={(v) => setStatus(v as RuleStatus)}
-          >
-            <option value="active">
-              Active (runs now and then on schedule)
-            </option>
+          <Select id="rule_status" value={status} onValueChange={(v) => setStatus(v as RuleStatus)}>
+            <option value="active">Active (runs now and then on schedule)</option>
             <option value="draft">Draft</option>
             <option value="paused">Paused</option>
           </Select>

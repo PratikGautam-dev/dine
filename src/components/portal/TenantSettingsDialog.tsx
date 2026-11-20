@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { Switch } from "@/components/ui/Switch";
 import { CURRENCIES, DATE_FORMATS, type TenantSettings } from "@/hooks/useTenantSettings";
+import { Select } from "@/components/erp-ui/Select";
 
 type Props = {
   settings: TenantSettings;
@@ -55,32 +56,32 @@ export function TenantSettingsDialog({ settings, onSubmit, onClose, saving }: Pr
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
           <Field label="Currency" htmlFor="ts-currency">
-            <select
-              id="ts-currency"
+            <Select
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
-              className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+              onValueChange={(v) => setCurrency(v)}
+              className="w-full"
+              id="ts-currency"
             >
               {CURRENCIES.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Date format" htmlFor="ts-date-format">
-            <select
-              id="ts-date-format"
+            <Select
               value={dateFormat}
-              onChange={(e) => setDateFormat(e.target.value)}
-              className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+              onValueChange={(v) => setDateFormat(v)}
+              className="w-full"
+              id="ts-date-format"
             >
               {DATE_FORMATS.map((f) => (
                 <option key={f} value={f}>
                   {f}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field
             label="Default tax rate (%)"

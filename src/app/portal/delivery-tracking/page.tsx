@@ -27,11 +27,12 @@ import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
-import { type FoodOrder, STATUS_LABELS, useFoodOrders } from "@/hooks/useFoodOrders";
+import { type FoodOrder, orderStatusLabel, useFoodOrders } from "@/hooks/useFoodOrders";
 import { useBranchFilter } from "@/lib/branchContext";
 import { cn } from "@/lib/cn";
 import { isSameLocalDay, parseOrderTime, rupees } from "@/lib/foodOrders";
 import { usePermission } from "@/lib/staffAuth";
+import { Select } from "@/components/erp-ui/Select";
 
 const POLL_MS = 10_000;
 // Delivery orders are loaded for the last week so "Delivered" and "Cancelled" have something to show; the tiles count today only.
@@ -198,8 +199,6 @@ export default function PortalDeliveryTrackingPage() {
   }, [byTab, tab, query, source, status]);
   const selected = visible.find((o) => o.id === selectedId) ?? visible[0] ?? null;
 
-  const select = "h-9 rounded-md border border-line bg-card px-space-2 text-[12.5px] text-ink-900";
-
   return (
     <PortalShell restaurant={restaurant} active="delivery-tracking">
       <PageHeader
@@ -299,29 +298,23 @@ export default function PortalDeliveryTrackingPage() {
                 className="h-9 w-64 rounded-md border border-line bg-card pr-space-2 pl-8 text-[12.5px] text-ink-900"
               />
             </label>
-            <select
+            <Select
               value={source}
-              onChange={(e) => setSource(e.target.value as "" | "web" | "whatsapp")}
+              onValueChange={(v) => setSource(v as "" | "web" | "whatsapp")}
               aria-label="Source"
-              className={select}
             >
               <option value="">All Sources</option>
               <option value="web">Website</option>
               <option value="whatsapp">WhatsApp</option>
-            </select>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value)}
-              aria-label="Status"
-              className={select}
-            >
+            </Select>
+            <Select value={status} onValueChange={(v) => setStatus(v)} aria-label="Status">
               <option value="">All Status</option>
               {statusOptions.map((s) => (
                 <option key={s} value={s}>
-                  {STATUS_LABELS[s] ?? s}
+                  {orderStatusLabel({ status: s, fulfillment_type: "delivery" })}
                 </option>
               ))}
-            </select>
+            </Select>
             <button
               type="button"
               onClick={() => load()}

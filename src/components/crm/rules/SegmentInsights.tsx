@@ -15,8 +15,7 @@ export function CustomersInSegment({ currency }: { currency: string }) {
   const [picked, setPicked] = useState("");
   const all = segments.data ?? [];
   const segment = all.find((s) => s.id === picked) ?? all[0] ?? null;
-  if (segments.loading)
-    return <p className="text-[13px] text-ink-600">Loading…</p>;
+  if (segments.loading) return <p className="text-[13px] text-ink-600">Loading…</p>;
   if (!segment)
     return (
       <Card className="p-space-4 text-[13px] text-ink-600">
@@ -40,11 +39,7 @@ export function CustomersInSegment({ currency }: { currency: string }) {
           ))}
         </Select>
       </div>
-      <SegmentCustomerList
-        key={segment.id}
-        segment={segment}
-        currency={currency}
-      />
+      <SegmentCustomerList key={segment.id} segment={segment} currency={currency} />
     </Card>
   );
 }
@@ -57,10 +52,8 @@ export function SegmentAnalytics() {
     .sort((a, b) => b.member_count - a.member_count);
   const biggest = all[0]?.member_count || 1;
   const kinds = new Map<string, number>();
-  for (const s of all)
-    kinds.set(s.rule_type, (kinds.get(s.rule_type) ?? 0) + 1);
-  if (segments.loading)
-    return <p className="text-[13px] text-ink-600">Loading…</p>;
+  for (const s of all) kinds.set(s.rule_type, (kinds.get(s.rule_type) ?? 0) + 1);
+  if (segments.loading) return <p className="text-[13px] text-ink-600">Loading…</p>;
   if (!all.length)
     return (
       <Card className="p-space-4 text-[13px] text-ink-600">
@@ -70,9 +63,7 @@ export function SegmentAnalytics() {
   return (
     <div className="grid gap-space-4 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,1fr)]">
       <Card className="p-space-4">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-          Customers by segment
-        </h2>
+        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Customers by segment</h2>
         <ul className="space-y-space-3">
           {all.map((s) => (
             <li key={s.id}>
@@ -103,8 +94,7 @@ export function SegmentAnalytics() {
           ))}
         </ul>
         <p className="mt-space-3 text-[12px] text-ink-600">
-          Active segments shown in reports. Counts are worked out afresh each
-          time this page loads.
+          Active segments shown in reports. Counts are worked out afresh each time this page loads.
         </p>
       </Card>
     </div>

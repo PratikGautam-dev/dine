@@ -30,8 +30,6 @@ import { toast } from "@/lib/toast";
 
 const MIN_PASSWORD = 8;
 const EMPTY_FORM = { name: "", email: "", phone: "", password: "", role: "", branch_id: "" };
-const SELECT_CLASS =
-  "h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900 focus:border-brand-400 focus:outline-none focus:ring-2 focus:ring-brand-100";
 
 /** Team & Access: who can sign in, and what they can do in which branch. Click a person to change their role, branches or password. */
 export default function TeamAccessPage() {
@@ -42,7 +40,6 @@ export default function TeamAccessPage() {
   const {
     staff,
     merged,
-    sections,
     error,
     dialog,
     setDialog,
@@ -55,11 +52,12 @@ export default function TeamAccessPage() {
     setStaffBranches,
     addRosterMember,
     setRosterActive,
-    addSection,
   } = useStaffManagement(canView);
   const { branches } = useBranchFilter();
   const { matrix } = usePortalRoles(canSeeRoles);
   const roles = useMemo(() => (matrix ? orderedRoles(matrix) : [...BUILT_IN_ROLES]), [matrix]);
+  // A business has exactly one Owner / Manager, so "Owner / Manager" is never offered for a new or changed role.
+  const assignableRoles = useMemo(() => roles.filter((r) => r !== "admin"), [roles]);
   const openBranches = useMemo(() => branches.filter((b) => b.is_active), [branches]);
   const branchName = (id: string) => branches.find((b) => b.id === id)?.name ?? `Branch #${id}`;
 
@@ -70,14 +68,13 @@ export default function TeamAccessPage() {
   const [newPassword, setNewPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [rosterName, setRosterName] = useState("");
-  const [rosterDept, setRosterDept] = useState("");
-  const [sectionName, setSectionName] = useState("");
-  const [sectionOpen, setSectionOpen] = useState(false);
 
   const opened = merged.find((r) => r.key === openKey) ?? null;
   const selfId = session?.id ?? null;
   const managersFor = (personId: number | null) =>
-    (staff ?? []).filter((m) => m.is_active && m.id !== personId).map((m) => ({ id: m.id, name: m.name }));
+    (staff ?? [])
+      .filter((m) => m.is_active && m.id !== personId)
+      .map((m) => ({ id: m.id, name: m.name }));
   const customRoles = roles.filter((r) => !(BUILT_IN_ROLES as readonly string[]).includes(r));
 
   const columns = useMemo<ColumnDef<MergedRow, unknown>[]>(
@@ -88,8 +85,14 @@ export default function TeamAccessPage() {
           const r = row.original;
           return (
             <div>
-              <p className="font-semibold text-ink-900">{r.has_login ? r.staff.name : r.roster.name}</p>
-              <p className={r.has_login ? "text-[12px] text-ink-400" : "text-[12px] italic text-ink-400"}>
+              <p className="font-semibold text-ink-900">
+                {r.has_login ? r.staff.name : r.roster.name}
+              </p>
+              <p
+                className={
+                  r.has_login ? "text-[12px] text-ink-400" : "text-[12px] italic text-ink-400"
+                }
+              >
                 {r.has_login ? r.staff.email : "No portal login yet"}
               </p>
             </div>
@@ -101,7 +104,8 @@ export default function TeamAccessPage() {
         cell: ({ row }) => {
           const r = row.original;
           if (!r.has_login) return <span className="text-ink-400">No access</span>;
-          const where = r.staff.branch_ids.length === 0 ? ["all"] : r.staff.branch_ids.map(branchName);
+          const where =
+            r.staff.branch_ids.length === 0 ? ["all"] : r.staff.branch_ids.map(branchName);
           return (
             <div className="flex flex-wrap gap-1">
               {where.slice(0, 3).map((w) => (
@@ -119,7 +123,9 @@ export default function TeamAccessPage() {
         cell: ({ row }) => {
           const r = row.original;
           const active = r.has_login ? r.staff.is_active : r.roster.is_active;
-          return <Badge tone={active ? "success" : "neutral"}>{active ? "active" : "disabled"}</Badge>;
+          return (
+            <Badge tone={active ? "success" : "neutral"}>{active ? "active" : "disabled"}</Badge>
+          );
         },
       },
       {
@@ -128,7 +134,9 @@ export default function TeamAccessPage() {
           const r = row.original;
           if (!r.has_login) return <span className="text-ink-400">—</span>;
           return (
-            <span className="text-ink-600">{r.staff.last_login_at ? formatDateTime(r.staff.last_login_at) : "Never"}</span>
+            <span className="text-ink-600">
+              {r.staff.last_login_at ? formatDateTime(r.staff.last_login_at) : "Never"}
+            </span>
           );
         },
       },
@@ -155,7 +163,13 @@ export default function TeamAccessPage() {
 
   const addPerson = () =>
     run(
-      () => createPerson({ ...form, name: form.name.trim(), email: form.email.trim(), role: form.role || roles[0] }),
+      () =>
+        createPerson({
+          ...form,
+          name: form.name.trim(),
+          email: form.email.trim(),
+          role: form.role || assignableRoles[0],
+        }),
       "Couldn't add the person",
       () => {
         setAdding(false);
@@ -198,30 +212,6 @@ export default function TeamAccessPage() {
         />
       </Card>
 
-      <Card className="mt-space-4 p-space-4">
-        <div className="flex items-center justify-between gap-space-3">
-          <div>
-            <h2 className="text-[15px] font-bold text-ink-900">Sections</h2>
-            <p className="text-[12.5px] text-ink-400">
-              {sections.length} section{sections.length === 1 ? "" : "s"} the team is organised by.
-            </p>
-          </div>
-          <PermissionGate page="staff" action="write">
-            <Button variant="secondary" onClick={() => setSectionOpen(true)}>
-              <Plus size={14} /> Add section
-            </Button>
-          </PermissionGate>
-        </div>
-        <ul className="mt-space-3 flex flex-wrap gap-space-2">
-          {sections.map((s) => (
-            <li key={s.id} className="rounded-full bg-paper px-space-3 py-1 text-[12.5px] font-semibold text-ink-700">
-              {s.name}
-            </li>
-          ))}
-          {sections.length === 0 && <li className="text-[13px] text-ink-400">No sections yet.</li>}
-        </ul>
-      </Card>
-
       <Modal
         open={adding}
         onClose={() => setAdding(false)}
@@ -234,7 +224,12 @@ export default function TeamAccessPage() {
               Cancel
             </Button>
             <Button
-              disabled={busy || !form.name.trim() || !form.email.trim() || form.password.length < MIN_PASSWORD}
+              disabled={
+                busy ||
+                !form.name.trim() ||
+                !form.email.trim() ||
+                form.password.length < MIN_PASSWORD
+              }
               onClick={addPerson}
             >
               Add user
@@ -244,20 +239,47 @@ export default function TeamAccessPage() {
       >
         <div className="grid gap-x-space-4 sm:grid-cols-2">
           <Field label="Name" htmlFor="u_name" required>
-            <Input id="u_name" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+            <Input
+              id="u_name"
+              value={form.name}
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+            />
           </Field>
           <Field label="Email" htmlFor="u_email" required>
-            <Input id="u_email" type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} />
+            <Input
+              id="u_email"
+              type="email"
+              value={form.email}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
+            />
           </Field>
           <Field label="Phone" htmlFor="u_phone" hint="Mobile number.">
-            <Input id="u_phone" value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} />
+            <Input
+              id="u_phone"
+              value={form.phone}
+              onChange={(e) => setForm({ ...form, phone: e.target.value })}
+            />
           </Field>
-          <Field label="Temporary password" htmlFor="u_pw" hint={`At least ${MIN_PASSWORD} characters.`} required>
-            <Input id="u_pw" type="password" value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
+          <Field
+            label="Temporary password"
+            htmlFor="u_pw"
+            hint={`At least ${MIN_PASSWORD} characters.`}
+            required
+          >
+            <Input
+              id="u_pw"
+              type="password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+            />
           </Field>
           <Field label="Role" htmlFor="u_role">
-            <Select id="u_role" value={form.role || roles[0]} onValueChange={(value) => setForm({ ...form, role: value })}>
-              {roles.map((r) => (
+            <Select
+              id="u_role"
+              value={form.role || assignableRoles[0]}
+              onValueChange={(value) => setForm({ ...form, role: value })}
+            >
+              {assignableRoles.map((r) => (
                 <option key={r} value={r}>
                   {roleLabel(r)}
                 </option>
@@ -265,7 +287,11 @@ export default function TeamAccessPage() {
             </Select>
           </Field>
           <Field label="Branch" htmlFor="u_branch" hint="“All branches” gives the role everywhere.">
-            <Select id="u_branch" value={form.branch_id} onValueChange={(value) => setForm({ ...form, branch_id: value })}>
+            <Select
+              id="u_branch"
+              value={form.branch_id}
+              onValueChange={(value) => setForm({ ...form, branch_id: value })}
+            >
               <option value="">All branches</option>
               {openBranches.map((b) => (
                 <option key={b.id} value={b.id}>
@@ -287,7 +313,7 @@ export default function TeamAccessPage() {
         {opened && !person && !opened.has_login && (
           <div className="space-y-space-3">
             <p className="text-[13px] text-ink-600">
-              {opened.roster.department_name}. On the roster, but not able to sign in.
+              On the roster, but not able to sign in.
             </p>
             {canManage && (
               <div className="flex flex-wrap gap-space-2">
@@ -302,7 +328,10 @@ export default function TeamAccessPage() {
                 <Button
                   variant={opened.roster.is_active ? "destructive" : "secondary"}
                   onClick={() =>
-                    run(() => setRosterActive(opened.roster, !opened.roster.is_active), "Couldn't update")
+                    run(
+                      () => setRosterActive(opened.roster, !opened.roster.is_active),
+                      "Couldn't update",
+                    )
                   }
                 >
                   {opened.roster.is_active ? "Deactivate" : "Reactivate"}
@@ -318,13 +347,21 @@ export default function TeamAccessPage() {
               <p className="text-[14px]">
                 <strong>{roleLabel(person.role)}</strong>{" "}
                 <span className="text-ink-600">
-                  — {person.branch_ids.length === 0 ? "All branches" : person.branch_ids.map(branchName).join(", ")}
+                  —{" "}
+                  {person.branch_ids.length === 0
+                    ? "All branches"
+                    : person.branch_ids.map(branchName).join(", ")}
                 </span>
               </p>
               {canManage && (
                 <div className="mt-space-3 flex flex-wrap items-end gap-space-2">
-                  <Select aria-label="Role" value={newRole} onValueChange={setNewRole} className="w-56">
-                    {roles.map((r) => (
+                  <Select
+                    aria-label="Role"
+                    value={newRole}
+                    onValueChange={setNewRole}
+                    className="w-56"
+                  >
+                    {(person.role === "admin" ? roles : assignableRoles).map((r) => (
                       <option key={r} value={r}>
                         {roleLabel(r)}
                       </option>
@@ -333,17 +370,24 @@ export default function TeamAccessPage() {
                   <Button
                     variant="secondary"
                     disabled={busy || newRole === person.role || person.id === selfId}
-                    onClick={() => run(() => changeRole(person, newRole), "Couldn't change the role")}
+                    onClick={() =>
+                      run(() => changeRole(person, newRole), "Couldn't change the role")
+                    }
                   >
                     Change role
                   </Button>
-                  <Button variant="secondary" onClick={() => setDialog({ kind: "branches", member: person })}>
+                  <Button
+                    variant="secondary"
+                    onClick={() => setDialog({ kind: "branches", member: person })}
+                  >
                     Branch access…
                   </Button>
                 </div>
               )}
               {person.id === selfId && (
-                <p className="mt-space-2 text-[12px] text-ink-400">You can&apos;t change your own role.</p>
+                <p className="mt-space-2 text-[12px] text-ink-400">
+                  You can&apos;t change your own role.
+                </p>
               )}
             </div>
 
@@ -352,8 +396,6 @@ export default function TeamAccessPage() {
               <dd className="font-medium">{person.employee_id ?? "—"}</dd>
               <dt className="text-ink-600">Phone</dt>
               <dd className="font-medium">{person.phone ?? "—"}</dd>
-              <dt className="text-ink-600">Section</dt>
-              <dd className="font-medium">{person.department_name ?? "—"}</dd>
               <dt className="text-ink-600">Reports to</dt>
               <dd className="font-medium">{person.reports_to_name ?? "—"}</dd>
               <dt className="text-ink-600">Shift</dt>
@@ -363,7 +405,9 @@ export default function TeamAccessPage() {
                   : "—"}
               </dd>
               <dt className="text-ink-600">Last sign-in</dt>
-              <dd className="font-medium">{person.last_login_at ? formatDateTime(person.last_login_at) : "Never"}</dd>
+              <dd className="font-medium">
+                {person.last_login_at ? formatDateTime(person.last_login_at) : "Never"}
+              </dd>
             </dl>
 
             <div className="flex flex-wrap gap-space-2">
@@ -401,7 +445,13 @@ export default function TeamAccessPage() {
                   <Button
                     variant="secondary"
                     disabled={busy || newPassword.length < MIN_PASSWORD}
-                    onClick={() => run(() => resetPassword(person, newPassword), "Couldn't reset the password", () => setNewPassword(""))}
+                    onClick={() =>
+                      run(
+                        () => resetPassword(person, newPassword),
+                        "Couldn't reset the password",
+                        () => setNewPassword(""),
+                      )
+                    }
                   >
                     <KeyRound size={15} /> Reset
                   </Button>
@@ -432,10 +482,9 @@ export default function TeamAccessPage() {
         <StaffFormDialog
           member={null}
           isSelf={false}
-          sections={sections}
           managers={managersFor(null)}
           customRoles={customRoles}
-          initialValues={{ name: dialog.member.name, department_id: dialog.member.department_id }}
+          initialValues={{ name: dialog.member.name }}
           addTitle="Give portal access"
           onSubmit={(values) => addStaff(values, dialog.member.id)}
           onClose={() => setDialog(null)}
@@ -445,7 +494,6 @@ export default function TeamAccessPage() {
         <StaffFormDialog
           member={dialog.member}
           isSelf={dialog.member.id === selfId}
-          sections={sections}
           managers={managersFor(dialog.member.id)}
           customRoles={customRoles}
           onSubmit={(values) => editStaff(dialog.member, values)}
@@ -462,73 +510,37 @@ export default function TeamAccessPage() {
         />
       )}
       {dialog?.kind === "addRoster" && (
-        <PlainModal onClose={() => setDialog(null)} labelledBy="add-roster-title" maxWidthClass="max-w-[400px]">
+        <PlainModal
+          onClose={() => setDialog(null)}
+          labelledBy="add-roster-title"
+          maxWidthClass="max-w-[400px]"
+        >
           <h2 id="add-roster-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">
             Add to roster
           </h2>
           <form
             onSubmit={async (e) => {
               e.preventDefault();
-              const err = await addRosterMember(rosterName.trim(), rosterDept);
+              const err = await addRosterMember(rosterName.trim());
               if (err) return toast.error("Couldn't add to the roster", err);
               setRosterName("");
-              setRosterDept("");
               setDialog(null);
             }}
           >
             <PlainField label="Full name" htmlFor="roster-name" required>
-              <PlainInput id="roster-name" value={rosterName} onChange={(e) => setRosterName(e.target.value)} autoFocus />
-            </PlainField>
-            <PlainField label="Section" htmlFor="roster-section" required hint="They can be given a portal login later, any time.">
-              <select id="roster-section" className={SELECT_CLASS} value={rosterDept} onChange={(e) => setRosterDept(e.target.value)}>
-                <option value="">Choose…</option>
-                {sections.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name}
-                  </option>
-                ))}
-              </select>
+              <PlainInput
+                id="roster-name"
+                value={rosterName}
+                onChange={(e) => setRosterName(e.target.value)}
+                autoFocus
+              />
             </PlainField>
             <div className="flex justify-end gap-space-2">
               <Button type="button" variant="ghost" onClick={() => setDialog(null)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={!rosterName.trim() || !rosterDept}>
+              <Button type="submit" disabled={!rosterName.trim()}>
                 Add to roster
-              </Button>
-            </div>
-          </form>
-        </PlainModal>
-      )}
-      {sectionOpen && (
-        <PlainModal onClose={() => setSectionOpen(false)} labelledBy="add-section-title" maxWidthClass="max-w-[380px]">
-          <h2 id="add-section-title" className="mb-space-4 text-[16px] font-semibold text-ink-900">
-            Add section
-          </h2>
-          <form
-            onSubmit={async (e) => {
-              e.preventDefault();
-              const err = await addSection(sectionName.trim());
-              if (err) return toast.error("Couldn't add section", err);
-              setSectionName("");
-              setSectionOpen(false);
-            }}
-          >
-            <PlainField label="Section name" htmlFor="new-section-name" required>
-              <PlainInput
-                id="new-section-name"
-                placeholder="e.g. Kitchen, Front of House"
-                value={sectionName}
-                onChange={(e) => setSectionName(e.target.value)}
-                autoFocus
-              />
-            </PlainField>
-            <div className="mt-space-2 flex justify-end gap-space-2">
-              <Button type="button" variant="ghost" onClick={() => setSectionOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!sectionName.trim()}>
-                Add section
               </Button>
             </div>
           </form>

@@ -1,13 +1,14 @@
 "use client";
 
+import { SlotCalendar } from "@/components/portal/SlotCalendar";
 import { useEffect } from "react";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { FormSkeleton } from "@/components/ui/Skeleton";
-import { cn } from "@/lib/cn";
 import { useNewBooking } from "@/hooks/useNewBooking";
+import { Select } from "@/components/erp-ui/Select";
 
 type Props = {
   restaurantName: string | undefined;
@@ -94,13 +95,9 @@ export function NewReservationDialog({ restaurantName, onClose, onCreated }: Pro
             htmlFor="branch"
             hint="Single-location restaurant — nothing to choose yet."
           >
-            <select
-              id="branch"
-              disabled
-              className="h-11 w-full cursor-not-allowed rounded-md border border-line bg-paper px-space-3 text-[14px] text-ink-600"
-            >
+            <Select className="w-full" disabled id="branch">
               <option>Main Venue — {restaurantName}</option>
-            </select>
+            </Select>
           </Field>
 
           <div className="grid grid-cols-1 gap-x-space-4 md:grid-cols-2">
@@ -115,11 +112,11 @@ export function NewReservationDialog({ restaurantName, onClose, onCreated }: Pro
               />
             </Field>
             <Field label="Section preference (optional)" htmlFor="department">
-              <select
-                id="department"
+              <Select
                 value={departmentId}
-                onChange={(e) => setDepartmentId(e.target.value)}
-                className="h-11 w-full rounded-md border border-line bg-card px-space-3 text-[14px] text-ink-900"
+                onValueChange={(v) => setDepartmentId(v)}
+                className="w-full"
+                id="department"
               >
                 <option value="">No preference</option>
                 {ctx.departments.map((d) => (
@@ -127,7 +124,7 @@ export function NewReservationDialog({ restaurantName, onClose, onCreated }: Pro
                     {d.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
           </div>
 
@@ -148,23 +145,11 @@ export function NewReservationDialog({ restaurantName, onClose, onCreated }: Pro
                   No tables available for this party size.
                 </p>
               ) : (
-                <div className="flex flex-wrap gap-space-2">
-                  {tableSlots.map((s) => (
-                    <button
-                      type="button"
-                      key={s.id}
-                      onClick={() => setSlotId(s.id)}
-                      className={cn(
-                        "rounded-md border px-space-3 py-space-2 text-[12.5px] font-semibold",
-                        slotId === s.id
-                          ? "border-brand-600 bg-brand-600 text-white"
-                          : "border-line bg-card text-ink-600",
-                      )}
-                    >
-                      {s.label}
-                    </button>
-                  ))}
-                </div>
+                <SlotCalendar
+                  slots={tableSlots}
+                  value={slotId}
+                  onChange={(slot) => setSlotId(slot?.id ?? "")}
+                />
               )}
             </Field>
           )}

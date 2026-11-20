@@ -9,11 +9,7 @@ import {
 } from "@/components/crm/followUpMeta";
 import { CustomerSelect } from "@/components/erp/CustomerSelect";
 import { Button } from "@/components/erp-ui/Button";
-import {
-  DateTimeField,
-  isoToLocalInput,
-  localInputToIso,
-} from "@/components/erp-ui/DateTimeField";
+import { DateTimeField, isoToLocalInput, localInputToIso } from "@/components/erp-ui/DateTimeField";
 import { Field } from "@/components/erp-ui/Field";
 import { Input } from "@/components/erp-ui/Input";
 import { Modal } from "@/components/erp-ui/Modal";
@@ -41,37 +37,22 @@ export function AddFollowUpModal({
   onAdded: () => void;
 }) {
   const [customer, setCustomer] = useState<Customer | null>(null);
-  const [type, setType] = useState<FollowUpType>(
-    editing?.follow_up_type ?? "call",
-  );
-  const [channel, setChannel] = useState<FollowUpChannel>(
-    editing?.channel ?? "call",
-  );
-  const [priority, setPriority] = useState<FollowUpPriority>(
-    editing?.priority ?? "medium",
-  );
-  const [status, setStatus] = useState<FollowUpStatus>(
-    editing?.status ?? "scheduled",
-  );
+  const [type, setType] = useState<FollowUpType>(editing?.follow_up_type ?? "call");
+  const [channel, setChannel] = useState<FollowUpChannel>(editing?.channel ?? "call");
+  const [priority, setPriority] = useState<FollowUpPriority>(editing?.priority ?? "medium");
+  const [status, setStatus] = useState<FollowUpStatus>(editing?.status ?? "scheduled");
   const [assignedTo, setAssignedTo] = useState(editing?.assigned_to ?? "");
   const [purpose, setPurpose] = useState(editing?.purpose ?? "");
-  const [lastContact, setLastContact] = useState(
-    isoToLocalInput(editing?.last_contact_at ?? null),
-  );
+  const [lastContact, setLastContact] = useState(isoToLocalInput(editing?.last_contact_at ?? null));
   const [at, setAt] = useState(isoToLocalInput(editing?.follow_up_at ?? null));
   const [saving, setSaving] = useState(false);
 
   async function save() {
     if (!editing && !customer)
-      return toast.error(
-        "Choose a customer",
-        "Search for the customer to follow up.",
-      );
-    if (!purpose.trim())
-      return toast.error("Add a purpose", "Say what the follow-up is about.");
+      return toast.error("Choose a customer", "Search for the customer to follow up.");
+    if (!purpose.trim()) return toast.error("Add a purpose", "Say what the follow-up is about.");
     const iso = localInputToIso(at);
-    if (!iso)
-      return toast.error("Choose when", "Pick the date and time to follow up.");
+    if (!iso) return toast.error("Choose when", "Pick the date and time to follow up.");
     setSaving(true);
     const fields = {
       body: purpose.trim(),
@@ -129,26 +110,16 @@ export function AddFollowUpModal({
           <p className="flex h-10 items-center rounded-md border border-line bg-black/[0.03] px-space-3 text-[14px] text-ink-900">
             {editing.customer_name}
             {editing.customer_code && (
-              <span className="ml-2 text-[12px] text-ink-400">
-                {editing.customer_code}
-              </span>
+              <span className="ml-2 text-[12px] text-ink-400">{editing.customer_code}</span>
             )}
           </p>
         ) : (
-          <CustomerSelect
-            id="fu_customer"
-            value={customer}
-            onChange={setCustomer}
-          />
+          <CustomerSelect id="fu_customer" value={customer} onChange={setCustomer} />
         )}
       </Field>
       <div className="grid gap-x-space-3 sm:grid-cols-2">
         <Field label="Follow-up type" htmlFor="fu_type">
-          <Select
-            id="fu_type"
-            value={type}
-            onValueChange={(v) => setType(v as FollowUpType)}
-          >
+          <Select id="fu_type" value={type} onValueChange={(v) => setType(v as FollowUpType)}>
             {(Object.keys(FOLLOW_UP_TYPE) as FollowUpType[]).map((t) => (
               <option key={t} value={t}>
                 {FOLLOW_UP_TYPE[t].label}
@@ -175,13 +146,11 @@ export function AddFollowUpModal({
             value={priority}
             onValueChange={(v) => setPriority(v as FollowUpPriority)}
           >
-            {(Object.keys(FOLLOW_UP_PRIORITY) as FollowUpPriority[]).map(
-              (p) => (
-                <option key={p} value={p}>
-                  {FOLLOW_UP_PRIORITY[p].label}
-                </option>
-              ),
-            )}
+            {(Object.keys(FOLLOW_UP_PRIORITY) as FollowUpPriority[]).map((p) => (
+              <option key={p} value={p}>
+                {FOLLOW_UP_PRIORITY[p].label}
+              </option>
+            ))}
           </Select>
         </Field>
         <Field label="Status" htmlFor="fu_status">
@@ -197,16 +166,8 @@ export function AddFollowUpModal({
             ))}
           </Select>
         </Field>
-        <Field
-          label="Assigned to"
-          htmlFor="fu_assigned"
-          className="sm:col-span-2"
-        >
-          <Select
-            id="fu_assigned"
-            value={assignedTo}
-            onValueChange={setAssignedTo}
-          >
+        <Field label="Assigned to" htmlFor="fu_assigned" className="sm:col-span-2">
+          <Select id="fu_assigned" value={assignedTo} onValueChange={setAssignedTo}>
             <option value="">{editing ? "Unassigned" : "Me"}</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>

@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useBranchFilter } from "@/lib/branchContext";
 import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type Department = { id: string; name: string };
 export type Doctor = { id: string; name: string };
 export type Slot = { id: string; label: string };
+export type TableSlot = Slot & { date: string; time: string };
 export type NewBookingContext = {
   departments: Department[];
   doctors_by_department: Record<string, Doctor[]>;
@@ -19,6 +21,8 @@ export type NewBookingContext = {
  * doctor appointments -- but booking_type="doctor" is left alone server-side, untouched by this. */
 export function useNewBooking(ready: boolean) {
   const router = useRouter();
+  // Table-booking hours are per branch: a booking made while one branch is picked in the top bar uses that branch's.
+  const { selectedBranchId } = useBranchFilter();
   const [ctx, setCtx] = useState<NewBookingContext | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
@@ -32,7 +36,8 @@ export function useNewBooking(ready: boolean) {
   const [slotId, setSlotId] = useState("");
 
   const [partySize, setPartySizeRaw] = useState<number | "">("");
-  const [tableSlots, setTableSlots] = useState<Slot[] | null>(null);
+  // table-reservation availability: each slot carries its date ("YYYY-MM-DD") and time ("HH:MM") so the calendar can lay them out
+  const [tableSlots, setTableSlots] = useState<TableSlot[] | null>(null);
   const [loadingTableSlots, setLoadingTableSlots] = useState(false);
 
   const load = useCallback(async () => {
@@ -67,6 +72,7 @@ export function useNewBooking(ready: boolean) {
     setTableSlots(null);
     const params = new URLSearchParams({ party_size: String(partySize) });
     if (departmentId) params.set("department_id", departmentId);
+    if (selectedBranchId) params.set("branch_id", selectedBranchId);
     const result = await portalFetch(`/api/portal/new-booking/table-slots?${params.toString()}`);
     setLoadingTableSlots(false);
     if (!result.ok) {
@@ -74,9 +80,9 @@ export function useNewBooking(ready: boolean) {
       else toast.error("Couldn't load slots", result.error);
       return;
     }
-    const data = result.data as { slots: Slot[] };
+    const data = result.data as { slots: TableSlot[] };
     setTableSlots(data.slots);
-  }, [partySize, departmentId, router]);
+  }, [partySize, departmentId, selectedBranchId, router]);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

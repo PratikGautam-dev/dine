@@ -49,8 +49,9 @@ import {
   CANCELLABLE_STATUSES,
   FoodOrder,
   nextActionFor,
+  orderStatusLabel,
+  STATUS_TONE,
   NOTIFIABLE_STATUSES,
-  STATUS_LABELS,
   useFoodOrders,
 } from "@/hooks/useFoodOrders";
 import { cn } from "@/lib/cn";
@@ -64,6 +65,7 @@ import {
 } from "@/lib/foodOrders";
 import { DispatchModal } from "@/components/portal/DispatchModal";
 import { usePermission } from "@/lib/staffAuth";
+import { Select } from "@/components/erp-ui/Select";
 
 const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
   { id: "all", label: "All Orders", always: true },
@@ -76,26 +78,14 @@ const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
 ];
 
 // Web Storefront: a second real channel now exists alongside the WhatsApp bot.
-type SourceFilter = "all" | "whatsapp" | "web";
+type SourceFilter = "all" | "whatsapp" | "web" | "app";
 type TypeFilter = "all" | "pickup" | "delivery";
-
-const STATUS_TONE: Record<string, "brand" | "clay" | "success" | "neutral"> = {
-  pending_payment: "neutral",
-  placed: "clay",
-  paid: "clay",
-  accepted: "clay",
-  preparing: "brand",
-  ready_for_pickup: "brand",
-  out_for_delivery: "brand",
-  completed: "success",
-  cancelled: "neutral",
-};
 
 // The same status, read as "what stage is the kitchen at" -- a coarser view of the identical
 // real `status` value, not a second tracked field. Blank before a kitchen is even involved yet.
 const KITCHEN_STATUS_LABELS: Record<string, string> = {
-  accepted: "Preparing",
-  preparing: "Preparing",
+  accepted: "In preparation",
+  preparing: "In preparation",
   ready_for_pickup: "Ready",
   out_for_delivery: "Ready",
   completed: "Ready",
@@ -173,12 +163,18 @@ export default function PortalFoodOrdersPage() {
       cancelled: 0,
       awaiting_payment: 0,
     };
+    let delivered = 0;
+    let served = 0;
     for (const o of orders || []) {
       if (!inRange(parseOrderTime(o.created_at), range)) continue;
+      if (o.status === "completed") {
+        if (o.fulfillment_type === "delivery") delivered += 1;
+        else served += 1;
+      }
       for (const v of Object.keys(counts) as OrderView[])
         if (matchesOrderView(o.status, v)) counts[v] += 1;
     }
-    return counts;
+    return { ...counts, delivered, served };
   }, [orders, range]);
 
   // Everything below is computed from the orders themselves -- no numbers that aren't in the list.
@@ -260,7 +256,7 @@ export default function PortalFoodOrdersPage() {
       formatOrderTime(o.created_at),
       (o.total_paise / 100).toFixed(2),
       paymentLine(o),
-      STATUS_LABELS[o.status] ?? o.status,
+      orderStatusLabel(o),
     ]);
     const csv = [header, ...rows].map((r) => r.map((c) => csvCell(String(c))).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -300,11 +296,23 @@ export default function PortalFoodOrdersPage() {
         header: "Source",
         cell: ({ row }) =>
           row.original.source === "web" ? (
-            <Badge tone="brand">Web</Badge>
+            <Badge tone="brand">Website</Badge>
+          ) : row.original.source === "app" ? (
+            <Badge tone="brand">App</Badge>
           ) : (
             <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12.5px] font-semibold text-ink-700">
               <WhatsAppIcon size={16} /> WhatsApp
             </span>
+          ),
+      },
+      {
+        id: "type",
+        header: "Order Type",
+        cell: ({ row }) =>
+          row.original.fulfillment_type === "delivery" ? (
+            <Badge tone="violet">Delivery</Badge>
+          ) : (
+            <Badge tone="success">Takeaway</Badge>
           ),
       },
       {
@@ -325,25 +333,6 @@ export default function PortalFoodOrdersPage() {
             </ul>
           );
         },
-      },
-      {
-        id: "type",
-        header: "Order Type",
-        cell: ({ row }) => (
-          <div className="max-w-[120px]">
-            <div className="font-semibold text-ink-900">
-              {row.original.fulfillment_type === "delivery" ? "Delivery" : "Takeaway"}
-            </div>
-            {row.original.fulfillment_type === "delivery" && row.original.delivery_address && (
-              <div
-                className="truncate text-[12px] text-ink-600"
-                title={row.original.delivery_address}
-              >
-                {row.original.delivery_address}
-              </div>
-            )}
-          </div>
-        ),
       },
       {
         id: "placed",
@@ -390,7 +379,7 @@ export default function PortalFoodOrdersPage() {
         cell: ({ row }) => (
           <div className="whitespace-nowrap">
             <Badge tone={STATUS_TONE[row.original.status] ?? "neutral"}>
-              {STATUS_LABELS[row.original.status] ?? row.original.status}
+              {orderStatusLabel(row.original)}
             </Badge>
           </div>
         ),
@@ -492,7 +481,7 @@ export default function PortalFoodOrdersPage() {
               tone="warning"
               filled
               icon={<ChefHat size={22} />}
-              label="Preparing"
+              label="In preparation"
               value={viewCounts.kitchen}
               deltaPct={null}
               hint="Accepted or preparing"
@@ -510,10 +499,10 @@ export default function PortalFoodOrdersPage() {
               tone="violet"
               filled
               icon={<ShieldCheck size={22} />}
-              label="Completed"
-              value={viewCounts.completed}
+              label="Served / Picked up"
+              value={viewCounts.served}
               deltaPct={null}
-              hint="All time"
+              hint="Completed pickup or dine-in"
             />
             <StatTile
               tone="brand"
@@ -529,11 +518,11 @@ export default function PortalFoodOrdersPage() {
               tone="clay"
               filled
               icon={<Download size={22} />}
-              label="Pending Payment"
-              value={viewCounts.awaiting_payment}
+              label="Delivered"
+              value={viewCounts.delivered}
               deltaPct={null}
               upIsGood={false}
-              hint="Awaiting payment"
+              hint="Completed deliveries"
             />
           </div>
 
@@ -588,7 +577,7 @@ export default function PortalFoodOrdersPage() {
         ))}
       </div>
 
-      <div className="mb-space-3 flex flex-wrap items-center gap-space-3">
+      <div className="mb-space-3 flex flex-wrap items-center gap-space-3 md:flex-nowrap">
         <div className="relative min-w-[220px] flex-1">
           <Search
             size={14}
@@ -602,17 +591,36 @@ export default function PortalFoodOrdersPage() {
             className="h-10 w-full rounded-md border border-line bg-card pl-space-8 pr-space-3 text-[13px] text-ink-900 outline-none focus:border-brand-400"
           />
         </div>
-        <select
-          aria-label="Filter by order type"
+        <Select
+          value={sourceFilter}
+          onValueChange={(v) =>
+            setGlobalChannels(v === "all" ? [] : [v as "web" | "whatsapp" | "app"])
+          }
+          className="!h-10 !w-[170px] shrink-0"
+          aria-label="Filter by source"
+        >
+          <option value="all">All sources</option>
+          <option value="whatsapp">WhatsApp</option>
+          <option value="web">Website</option>
+          <option value="app">App</option>
+        </Select>
+        <Select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
-          className="h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900"
+          onValueChange={(v) => setTypeFilter(v as TypeFilter)}
+          className="!h-10 !w-[210px] shrink-0"
+          aria-label="Filter by order type"
         >
           <option value="all">Takeaway and delivery</option>
           <option value="pickup">Takeaway only</option>
           <option value="delivery">Delivery only</option>
-        </select>
-        <Button variant="secondary" size="md" onClick={exportCsv} disabled={visible.length === 0}>
+        </Select>
+        <Button
+          className="shrink-0"
+          variant="secondary"
+          size="md"
+          onClick={exportCsv}
+          disabled={visible.length === 0}
+        >
           <Download size={14} /> Export
         </Button>
       </div>

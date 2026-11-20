@@ -3,7 +3,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { cn } from "@/lib/cn";
-import { MessageCircle, UserRound } from "lucide-react";
+import { Globe, MessageCircle, UserRound } from "lucide-react";
 import { formatShortDateTime, formatTimeOnly } from "@/lib/formatDate";
 import { TYPE_LABELS, type Appointment } from "@/hooks/useAppointments";
 import { AppointmentCellAction } from "./appointments-cellaction";
@@ -24,7 +24,12 @@ export const STATUS_LABELS: Record<string, string> = {
   attended: "Attended",
   no_show: "No-show",
 };
-const SOURCE_LABELS: Record<string, string> = { whatsapp: "WhatsApp", staff: "Walk-in" };
+const SOURCE_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  web: "Website",
+  app: "App",
+  staff: "Walk-in",
+};
 
 function formatDay(iso: string) {
   const d = new Date(iso);
@@ -218,7 +223,12 @@ export function createAppointmentColumns({
       meta: { className: "min-w-[85px]" },
       header: "Source",
       cell: ({ row }) => {
-        const Icon = row.original.source === "whatsapp" ? MessageCircle : UserRound;
+        const Icon =
+          row.original.source === "whatsapp"
+            ? MessageCircle
+            : row.original.source === "web"
+              ? Globe
+              : UserRound;
         return (
           <span className="inline-flex items-center gap-space-1 whitespace-nowrap text-ink-600">
             <Icon size={14} className="text-ink-400" />
@@ -264,7 +274,9 @@ export function createAppointmentColumns({
       meta: { className: "min-w-9 w-9" },
       header: "",
       cell: ({ row }) => (
-        <div className="text-right">
+        // A click on the "..." menu must not also count as a click on the row: that re-rendered the page, which re-created every cell
+        // (these cell functions are new on each render), and so closed the menu the moment it opened.
+        <div className="text-right" onClick={(e) => e.stopPropagation()}>
           <AppointmentCellAction
             appointment={row.original}
             cancelPanelId={cancelPanelId}

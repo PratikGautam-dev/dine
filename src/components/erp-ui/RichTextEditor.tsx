@@ -62,25 +62,15 @@ export function RichTextEditor({
   useEffect(() => {
     const track = () => {
       const selected = window.getSelection();
-      if (
-        !selected?.rangeCount ||
-        !editor.current?.contains(selected.anchorNode)
-      )
-        return;
+      if (!selected?.rangeCount || !editor.current?.contains(selected.anchorNode)) return;
       selection.current = selected.getRangeAt(0).cloneRange();
       setActive(
-        [
-          "bold",
-          "italic",
-          "underline",
-          "insertUnorderedList",
-          "insertOrderedList",
-        ].filter((command) => document.queryCommandState(command)),
+        ["bold", "italic", "underline", "insertUnorderedList", "insertOrderedList"].filter(
+          (command) => document.queryCommandState(command),
+        ),
       );
       const format = document.queryCommandValue("formatBlock").toLowerCase();
-      setBlock(
-        ["p", "h1", "h2", "h3", "blockquote"].includes(format) ? format : "p",
-      );
+      setBlock(["p", "h1", "h2", "h3", "blockquote"].includes(format) ? format : "p");
     };
     document.addEventListener("selectionchange", track);
     return () => document.removeEventListener("selectionchange", track);
@@ -88,10 +78,7 @@ export function RichTextEditor({
   const command = (name: string, argument?: string) => {
     if (disabled || !editor.current) return;
     editor.current.focus();
-    if (
-      selection.current &&
-      editor.current.contains(selection.current.commonAncestorContainer)
-    ) {
+    if (selection.current && editor.current.contains(selection.current.commonAncestorContainer)) {
       const selected = window.getSelection();
       selected?.removeAllRanges();
       selected?.addRange(selection.current);
@@ -100,12 +87,7 @@ export function RichTextEditor({
     document.execCommand(name, false, argument);
     publish();
   };
-  const tool = (
-    label: string,
-    name: string,
-    icon: React.ReactNode,
-    argument?: string,
-  ) => (
+  const tool = (label: string, name: string, icon: React.ReactNode, argument?: string) => (
     <button
       key={name}
       type="button"
@@ -150,10 +132,7 @@ export function RichTextEditor({
           disabled={disabled || source}
           onMouseDown={() => {
             const selected = window.getSelection();
-            if (
-              selected?.rangeCount &&
-              editor.current?.contains(selected.anchorNode)
-            )
+            if (selected?.rangeCount && editor.current?.contains(selected.anchorNode))
               selection.current = selected.getRangeAt(0).cloneRange();
           }}
           onValueChange={(value) => {
@@ -224,11 +203,7 @@ export function RichTextEditor({
         {tool("Numbered list", "insertOrderedList", <ListOrdered size={15} />)}
         {tool("Decrease indent", "outdent", <Outdent size={15} />)}
         {tool("Increase indent", "indent", <Indent size={15} />)}
-        {tool(
-          "Clear formatting",
-          "removeFormat",
-          <RemoveFormatting size={15} />,
-        )}
+        {tool("Clear formatting", "removeFormat", <RemoveFormatting size={15} />)}
         {tool("Undo", "undo", <Undo2 size={15} />)}
         {tool("Redo", "redo", <Redo2 size={15} />)}
         <button
@@ -307,11 +282,7 @@ export function RichTextEditor({
         {insert === "image" && images.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {images.map((image, index) => (
-              <Button
-                key={image}
-                variant="secondary"
-                onClick={() => setUrl(image)}
-              >
+              <Button key={image} variant="secondary" onClick={() => setUrl(image)}>
                 Product image {index + 1}
               </Button>
             ))}

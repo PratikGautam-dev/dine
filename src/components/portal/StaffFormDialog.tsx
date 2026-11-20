@@ -7,24 +7,21 @@ import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
 import { WEEKDAYS } from "@/lib/hr";
 import { roleLabel, ROLE_OPTIONS } from "@/lib/staffRoles";
-import type { Section, StaffFormValues, StaffMember } from "@/hooks/useStaffManagement";
+import type { StaffFormValues, StaffMember } from "@/hooks/useStaffManagement";
 import { emptyStaffForm } from "@/hooks/useStaffManagement";
-
-const SELECT_CLASS =
-  "h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
+import { Select } from "@/components/erp-ui/Select";
 
 type Props = {
   /** null = adding someone new; a member = editing them. */
   member: StaffMember | null;
   /** Their own account: role and active state can't be changed from here. */
   isSelf: boolean;
-  sections: Section[];
   /** Active teammates the person could report to (already excludes the person being edited). */
   managers: { id: number; name: string }[];
   /** Restaurant-created custom role_keys (Staff & Access's "Add Role") beyond the 3 built-in
    * ROLE_OPTIONS -- shown with a computed label (roleLabel()), no blurb. */
   customRoles?: string[];
-  /** "Give portal access" on a roster-only person: pre-fills the add form (name/section) without
+  /** "Give portal access" on a roster-only person: pre-fills the add form (name) without
    * treating this as an edit -- `member` stays null so email/password are still asked for. Ignored
    * when `member` is set. */
   initialValues?: Partial<StaffFormValues>;
@@ -40,7 +37,6 @@ type Props = {
 export function StaffFormDialog({
   member,
   isSelf,
-  sections,
   managers,
   customRoles = [],
   initialValues,
@@ -56,7 +52,6 @@ export function StaffFormDialog({
           role: member.role,
           phone: member.phone ?? "",
           address: member.address ?? "",
-          department_id: member.department_id ?? "",
           reports_to_id: member.reports_to_id ? String(member.reports_to_id) : "",
           working_days: member.working_days ?? [],
           shift_start: member.shift_start ?? "",
@@ -130,14 +125,13 @@ export function StaffFormDialog({
             hint={isSelf ? "You can't change your own role." : blurb}
             className="sm:col-span-2"
           >
-            <select
-              id="sf-role"
-              className={SELECT_CLASS}
+            <Select
               value={form.role}
+              onValueChange={(v) => set({ role: v })}
               disabled={isSelf}
-              onChange={(e) => set({ role: e.target.value })}
+              id="sf-role"
             >
-              {ROLE_OPTIONS.map((r) => (
+              {ROLE_OPTIONS.filter((r) => r.value !== "admin" || member?.role === "admin").map((r) => (
                 <option key={r.value} value={r.value}>
                   {r.label}
                 </option>
@@ -147,7 +141,7 @@ export function StaffFormDialog({
                   {roleLabel(key)}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="Phone" htmlFor="sf-phone">
             <Input
@@ -157,31 +151,11 @@ export function StaffFormDialog({
               onChange={(e) => set({ phone: e.target.value })}
             />
           </Field>
-          <Field
-            label="Section"
-            htmlFor="sf-section"
-            hint={sections.length === 0 ? "No sections set up yet." : undefined}
-          >
-            <select
-              id="sf-section"
-              className={SELECT_CLASS}
-              value={form.department_id}
-              onChange={(e) => set({ department_id: e.target.value })}
-            >
-              <option value="">— None —</option>
-              {sections.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </Field>
           <Field label="Reports to" htmlFor="sf-manager" className="sm:col-span-2">
-            <select
-              id="sf-manager"
-              className={SELECT_CLASS}
+            <Select
               value={form.reports_to_id}
-              onChange={(e) => set({ reports_to_id: e.target.value })}
+              onValueChange={(v) => set({ reports_to_id: v })}
+              id="sf-manager"
             >
               <option value="">— Nobody —</option>
               {managers.map((m) => (
@@ -189,7 +163,7 @@ export function StaffFormDialog({
                   {m.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <fieldset className="mb-space-4 sm:col-span-2">
             <legend className="text-label mb-space-1 block">Working days</legend>

@@ -80,10 +80,7 @@ export function SegmentsView({
   async function remove() {
     if (!removing) return;
     setBusy(true);
-    const res = await erp(
-      `/api/v1/crm/customer-segments/${removing.id}`,
-      "DELETE",
-    );
+    const res = await erp(`/api/v1/crm/customer-segments/${removing.id}`, "DELETE");
     setBusy(false);
     if (res.error) return toast.error("Couldn't delete the segment", res.error);
     toast.success(`“${removing.name}” deleted`);
@@ -104,13 +101,9 @@ export function SegmentsView({
               className="shrink-0 text-brand-700"
             />
             <span>
-              <span className="block font-semibold text-ink-900">
-                {row.original.name}
-              </span>
+              <span className="block font-semibold text-ink-900">{row.original.name}</span>
               {row.original.description && (
-                <span className="block text-[12px] text-ink-600">
-                  {row.original.description}
-                </span>
+                <span className="block text-[12px] text-ink-600">{row.original.description}</span>
               )}
             </span>
           </span>
@@ -127,16 +120,9 @@ export function SegmentsView({
       {
         header: "Condition Summary",
         cell: ({ row }) => {
-          const text = describeConditions(
-            row.original.conditions,
-            row.original.match,
-            tagNames,
-          );
+          const text = describeConditions(row.original.conditions, row.original.match, tagNames);
           return (
-            <span
-              className="block max-w-[380px] truncate text-ink-600"
-              title={text}
-            >
+            <span className="block max-w-[380px] truncate text-ink-600" title={text}>
               {text}
             </span>
           );
@@ -167,9 +153,7 @@ export function SegmentsView({
       {
         header: "Created",
         cell: ({ row }) => (
-          <span className="text-ink-600">
-            {formatDate(row.original.created_at)}
-          </span>
+          <span className="text-ink-600">{formatDate(row.original.created_at)}</span>
         ),
       },
       {
@@ -205,15 +189,11 @@ export function SegmentsView({
                   <DropdownMenuItem onClick={() => setViewing(row.original)}>
                     View customers
                   </DropdownMenuItem>
-                  <DropdownMenuItem
-                    onClick={() => router.push("/portal/campaigns")}
-                  >
+                  <DropdownMenuItem onClick={() => router.push("/portal/campaigns")}>
                     Send a campaign
                   </DropdownMenuItem>
                   {canConfigure && (
-                    <DropdownMenuItem onClick={() => onEdit(row.original)}>
-                      Edit
-                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => onEdit(row.original)}>Edit</DropdownMenuItem>
                   )}
                   {canConfigure && (
                     <DropdownMenuItem onClick={() => setRemoving(row.original)}>
@@ -294,9 +274,7 @@ export function SegmentsView({
         </button>
       </Card>
       {segments.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {segments.error}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{segments.error}</p>
       )}
       <Card className="p-space-2">
         <div className="whitespace-nowrap">
@@ -315,17 +293,13 @@ export function SegmentsView({
           />
         </div>
         <p className="px-space-3 py-space-3 text-[12.5px] text-ink-600">
-          Counts are worked out afresh each time this page loads. Pick a segment
-          as a campaign&apos;s audience in Campaigns.
+          Counts are worked out afresh each time this page loads. Pick a segment as a
+          campaign&apos;s audience in Campaigns.
         </p>
       </Card>
 
       {viewing && (
-        <SegmentCustomers
-          segment={viewing}
-          currency={currency}
-          onClose={() => setViewing(null)}
-        />
+        <SegmentCustomers segment={viewing} currency={currency} onClose={() => setViewing(null)} />
       )}
       <ConfirmDialog
         open={removing !== null}
@@ -393,11 +367,7 @@ export function SegmentCustomerList({
         className="mb-space-3"
         aria-label="Search customers"
       />
-      {list.error && (
-        <p className="mb-space-2 text-[13px] font-medium text-error">
-          {list.error}
-        </p>
-      )}
+      {list.error && <p className="mb-space-2 text-[13px] font-medium text-error">{list.error}</p>}
       <div className="divide-y divide-line rounded-lg border border-line">
         {rows.map((c) => (
           <button
@@ -425,13 +395,9 @@ export function SegmentCustomerList({
           </button>
         ))}
         {!list.loading && rows.length === 0 && (
-          <p className="p-space-3 text-[13px] text-ink-400">
-            No customers match right now.
-          </p>
+          <p className="p-space-3 text-[13px] text-ink-400">No customers match right now.</p>
         )}
-        {list.loading && (
-          <p className="p-space-3 text-[13px] text-ink-400">Loading…</p>
-        )}
+        {list.loading && <p className="p-space-3 text-[13px] text-ink-400">Loading…</p>}
       </div>
       <Pager
         page={page}
@@ -466,8 +432,8 @@ export function SegmentsOverview() {
           Dynamic customer audiences for smarter campaigns
         </p>
         <p className="text-[13px] text-ink-700 max-md:col-span-2 md:col-start-2">
-          Build segments from Membership tiers, Tags, spend and behaviour, then
-          use them as a campaign&apos;s audience.
+          Build segments from Membership tiers, Tags, spend and behaviour, then use them as a
+          campaign&apos;s audience.
         </p>
       </div>
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
@@ -478,19 +444,13 @@ export function SegmentsOverview() {
         />
         <StatCard
           label="Using Membership"
-          value={
-            segments.data ? all.filter((s) => usesField(s, "tier")).length : "—"
-          }
+          value={segments.data ? all.filter((s) => usesField(s, "tier")).length : "—"}
           hint="segments with a tier condition"
           icon={<HugeiconsIcon icon={UserMultiple02Icon} size={20} />}
         />
         <StatCard
           label="Using Tags"
-          value={
-            segments.data
-              ? all.filter((s) => usesField(s, "has_tag")).length
-              : "—"
-          }
+          value={segments.data ? all.filter((s) => usesField(s, "has_tag")).length : "—"}
           hint="segments with a tag condition"
           icon={<HugeiconsIcon icon={UserGroupIcon} size={20} />}
         />

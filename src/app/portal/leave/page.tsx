@@ -15,9 +15,8 @@ import { StatTile } from "@/components/portal/StatTile";
 import { LEAVE_STATUS_TONE, LEAVE_TYPE_LABEL, fmtDateRange } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyLeave, type LeaveForm } from "@/hooks/useHr";
+import { Select } from "@/components/erp-ui/Select";
 
-const SELECT_CLASS =
-  "h-10 w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
 const blank = (): LeaveForm => ({
   leave_type: "casual",
   from_date: "",
@@ -112,18 +111,17 @@ export default function MyLeavePage() {
           <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">Ask for leave</h2>
           <form onSubmit={submit} aria-label="Ask for leave">
             <Field label="Type" htmlFor="lv-type">
-              <select
-                id="lv-type"
-                className={SELECT_CLASS}
+              <Select
                 value={form.leave_type}
-                onChange={(e) => set({ leave_type: e.target.value })}
+                onValueChange={(v) => set({ leave_type: v })}
+                id="lv-type"
               >
                 {(types.length ? types : Object.keys(LEAVE_TYPE_LABEL)).map((t) => (
                   <option key={t} value={t}>
                     {LEAVE_TYPE_LABEL[t] ?? t}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <div className="grid grid-cols-2 gap-space-3">
               <Field label="From" htmlFor="lv-from" required>
