@@ -225,7 +225,7 @@ export default function AttendanceSettingsPage() {
   return (
     <PortalShell restaurant={session?.restaurant || null} active="settings">
       <PageHeader
-        title="Attendance rules"
+        title="Attendance and holidays"
         description="The shift, the lateness grace, and where staff may clock in from."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}

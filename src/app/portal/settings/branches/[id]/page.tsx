@@ -10,7 +10,8 @@ import { Select } from "@/components/erp-ui/Select";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Textarea } from "@/components/ui/Input";
+import { Input, Textarea } from "@/components/ui/Input";
+import { Field } from "@/components/ui/Field";
 import { Switch } from "@/components/ui/Switch";
 import { FormSkeleton } from "@/components/ui/Skeleton";
 import { BranchFormDialog } from "@/components/portal/BranchFormDialog";
@@ -275,6 +276,47 @@ export default function BranchPage() {
         >
           <Row label="Offered">{types.types === null ? null : activeTypes.map((t) => t.label).join(", ") || null}</Row>
         </Section>
+
+        <Card className="mb-space-4 p-space-4">
+          <h2 className="text-[15px] font-bold text-ink-900">Booking rules</h2>
+          <p className="mb-space-3 mt-0.5 text-[13px] text-ink-600">
+            How table booking works at this branch. Guests book within the opening hours above.
+          </p>
+          <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
+            <Field
+              label="Turnover per table (minutes)"
+              htmlFor="rh-turnover"
+              hint="How long a party typically occupies a table."
+            >
+              <Input
+                id="rh-turnover"
+                type="number"
+                min="1"
+                disabled={!canWrite}
+                value={hours.form.turnover_minutes}
+                onChange={(e) => hours.setForm({ turnover_minutes: e.target.value })}
+              />
+            </Field>
+            <Field
+              label="Booking interval (minutes)"
+              htmlFor="rh-interval"
+              hint="How far apart bookable time slots are."
+            >
+              <Input
+                id="rh-interval"
+                type="number"
+                min="1"
+                disabled={!canWrite}
+                value={hours.form.booking_interval_minutes}
+                onChange={(e) => hours.setForm({ booking_interval_minutes: e.target.value })}
+              />
+            </Field>
+          </div>
+          {hours.error && <p className="mb-space-2 text-[12.5px] font-medium text-error">{hours.error}</p>}
+          <Button disabled={!canWrite || hours.saving || !hours.dirty} onClick={() => hours.handleSave()}>
+            {hours.saving ? "Saving…" : "Save booking rules"}
+          </Button>
+        </Card>
 
         <p className="mb-space-6 text-[12.5px] text-ink-400">
           Who works here is under{" "}
