@@ -121,7 +121,7 @@ export default function TeamAttendancePage() {
         description="Who's in, who's late, who's off -- and the month's totals."
         actions={
           <Button href="/portal/settings/attendance" variant="secondary">
-            Attendance rules
+            Attendance and holidays
           </Button>
         }
       />

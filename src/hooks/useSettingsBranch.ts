@@ -8,7 +8,7 @@ import { useBranchFilter } from "@/lib/branchContext";
 export function useSettingsBranch() {
   const { accessibleBranches, selectedBranchId } = useBranchFilter();
   const [pickedId, setPickedId] = useState<string | null>(null);
-  // A link such as /portal/settings/booking?branch=<id> (the branch page's Edit hours button) opens it on that branch.
+  // A link such as /portal/settings/reservation-types?branch=<id> opens it on that branch.
   useEffect(() => {
     const fromUrl = new URLSearchParams(window.location.search).get("branch");
     // Read once on mount (the URL is client-only), so the first render matches the server's.

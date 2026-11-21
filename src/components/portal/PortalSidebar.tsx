@@ -40,6 +40,7 @@ import { cn } from "@/lib/cn";
 import type { PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { visibleSettingsItems } from "@/components/portal/SettingsNavMenu";
+import { useInactiveModules, type ModuleKey } from "@/hooks/useModules";
 
 // Staff/Branches/Reports/Calendar/Departments were removed (not just hidden)
 // -- Calendar had no backend and no near-term plan to build one; Departments
@@ -73,6 +74,8 @@ const NAV_ITEMS: {
   /** Key of the item this one is nested under. A child has no row of its own at the top level: it is
    * listed under its parent, and only while the parent is open (see the renderer below). */
   parent?: string;
+  /** Hidden while this optional module is switched off (Settings > Modules). */
+  module?: ModuleKey;
 }[] = [
   {
     key: "dashboard",
@@ -129,6 +132,7 @@ const NAV_ITEMS: {
     href: "/portal/appointments",
     pageKey: "appointments",
     group: "Main",
+    module: "table_bookings",
   },
   {
     key: "food-orders",
@@ -153,6 +157,7 @@ const NAV_ITEMS: {
     href: "/portal/kitchen-orders",
     pageKey: "food_orders",
     group: "Main",
+    module: "kitchen",
   },
   {
     key: "delivery-tracking",
@@ -161,6 +166,7 @@ const NAV_ITEMS: {
     href: "/portal/delivery-tracking",
     pageKey: "food_orders",
     group: "Main",
+    module: "delivery",
   },
   {
     key: "messages-automations",
@@ -169,6 +175,7 @@ const NAV_ITEMS: {
     href: "/portal/settings/messages-automations",
     pageKey: "settings",
     group: "Main",
+    module: "messaging",
   },
   {
     key: "messages",
@@ -177,6 +184,7 @@ const NAV_ITEMS: {
     href: "/portal/messages",
     pageKey: "messages",
     group: "Main",
+    module: "messaging",
   },
   {
     key: "tables",
@@ -185,6 +193,7 @@ const NAV_ITEMS: {
     href: "/portal/tables",
     pageKey: "tables",
     group: "Catalog",
+    module: "table_bookings",
   },
   {
     key: "food-menu",
@@ -229,6 +238,7 @@ const NAV_ITEMS: {
     pageKey: "customers",
     group: "Main",
     parent: "customers-group",
+    module: "marketing",
   },
   {
     key: "customers-tags",
@@ -238,6 +248,7 @@ const NAV_ITEMS: {
     pageKey: "customers",
     group: "Main",
     parent: "customers-group",
+    module: "marketing",
   },
   {
     key: "customers-segments",
@@ -247,6 +258,7 @@ const NAV_ITEMS: {
     pageKey: "customers",
     group: "Main",
     parent: "customers-group",
+    module: "marketing",
   },
   {
     key: "offers",
@@ -256,6 +268,7 @@ const NAV_ITEMS: {
     pageKey: "offers",
     group: "Main",
     parent: "customers-group",
+    module: "marketing",
   },
   {
     key: "campaigns",
@@ -265,6 +278,7 @@ const NAV_ITEMS: {
     pageKey: "customers",
     group: "Main",
     parent: "customers-group",
+    module: "marketing",
   },
   {
     key: "reports",
@@ -281,6 +295,7 @@ const NAV_ITEMS: {
     href: "/portal/feedback",
     pageKey: "feedback",
     group: "Main",
+    module: "feedback",
   },
   {
     key: "my-attendance",
@@ -289,6 +304,7 @@ const NAV_ITEMS: {
     href: "/portal/attendance",
     pageKey: "check_in_out",
     group: "Workforce",
+    module: "workforce",
   },
   {
     key: "check-in-out",
@@ -297,6 +313,7 @@ const NAV_ITEMS: {
     href: "/portal/check-in-out",
     pageKey: "check_in_out",
     group: "Workforce",
+    module: "workforce",
   },
   {
     key: "leave",
@@ -305,6 +322,7 @@ const NAV_ITEMS: {
     href: "/portal/leave",
     pageKey: "my_leave",
     group: "Workforce",
+    module: "workforce",
   },
   {
     key: "team-attendance",
@@ -313,6 +331,7 @@ const NAV_ITEMS: {
     href: "/portal/attendance-overview",
     pageKey: "attendance",
     group: "Workforce",
+    module: "workforce",
   },
   {
     key: "leave-requests",
@@ -321,6 +340,7 @@ const NAV_ITEMS: {
     href: "/portal/leave-requests",
     pageKey: "leave_requests",
     group: "Workforce",
+    module: "workforce",
   },
   {
     key: "support",
@@ -364,6 +384,7 @@ export function PortalSidebar({ restaurant, active, logoUrl, open = false, onClo
   // own first render pass (same value both places -- no hydration mismatch),
   // then the real session an instant later.
   const session = useStaffSession();
+  const inactiveModules = useInactiveModules();
   const navRef = useRef<HTMLElement>(null);
 
   // The nav items only render once the session has loaded, so restore after that (before paint).
@@ -379,14 +400,15 @@ export function PortalSidebar({ restaurant, active, logoUrl, open = false, onClo
   // items at a Kitchen or Front of House login for a moment.
   // "Settings" is a single entry: its pages live in the settings menu (SettingsNav). It shows when the person
   // may open any of them and leads to the first one they can use (e.g. someone with only Team & Access).
-  const settingsPages = visibleSettingsItems(session);
+  const settingsPages = visibleSettingsItems(session, inactiveModules);
+  const liveItems = NAV_ITEMS.filter((item) => !(item.module && inactiveModules.has(item.module)));
   const visible = session
-    ? NAV_ITEMS.filter((item) =>
+    ? liveItems.filter((item) =>
         item.key === "settings"
           ? settingsPages.length > 0
-          : NAV_ITEMS.some((child) => child.parent === item.key)
+          : liveItems.some((child) => child.parent === item.key)
             ? // a parent row shows when the person may open any of its sub-pages
-              NAV_ITEMS.some(
+              liveItems.some(
                 (child) =>
                   child.parent === item.key && hasPermission(session, child.pageKey, "view"),
               )

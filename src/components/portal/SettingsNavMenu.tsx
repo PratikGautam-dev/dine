@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { Dialog } from "@base-ui/react/dialog";
 import { cn } from "@/lib/cn";
 import { hasPermission, useStaffSession, type StaffSession } from "@/lib/staffAuth";
+import { useInactiveModules } from "@/hooks/useModules";
 import { SETTINGS_NAV, type SettingsNavItem } from "@/components/portal/settingsNav";
 
 const initials = (s: string) =>
@@ -17,10 +18,11 @@ const initials = (s: string) =>
     .map((w) => w[0]!.toUpperCase())
     .join("") || "?";
 
-/** The settings pages this person may open (permission + restaurant capability). */
-export function visibleSettingsItems(session: StaffSession | null): SettingsNavItem[] {
+/** The settings pages this person may open (permission, restaurant capability, optional module switched on). */
+export function visibleSettingsItems(session: StaffSession | null, inactiveModules: ReadonlySet<string> = new Set()): SettingsNavItem[] {
   return SETTINGS_NAV.filter(
     (i) =>
+      !(i.module && inactiveModules.has(i.module)) &&
       (!i.pageKey || hasPermission(session, i.pageKey, "view")) &&
       (!i.capability || !session || session.restaurant.admin_capabilities?.includes(i.capability)),
   );
@@ -30,9 +32,10 @@ export function visibleSettingsItems(session: StaffSession | null): SettingsNavI
 export function SettingsNav({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const session = useStaffSession();
+  const inactiveModules = useInactiveModules();
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
-  const items = visibleSettingsItems(session).filter((i) => i.label.toLowerCase().includes(query));
+  const items = visibleSettingsItems(session, inactiveModules).filter((i) => i.label.toLowerCase().includes(query));
   const isActive = (href: string) =>
     href === "/portal/settings" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
   const name = session?.restaurant.name ?? "Settings";
