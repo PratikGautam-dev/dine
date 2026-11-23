@@ -107,6 +107,8 @@ function OrderCard({
       <div className="mb-space-2 flex items-center gap-2 text-[12px] text-ink-600">
         {order.source === "web" ? (
           <span className="flex items-center gap-1 font-semibold text-brand-700">Web</span>
+        ) : order.source === "skip_queue" ? (
+          <span className="flex items-center gap-1 font-semibold text-clay-700">Skip queue</span>
         ) : (
           <span className="flex items-center gap-1">
             <WhatsAppIcon size={13} /> WhatsApp

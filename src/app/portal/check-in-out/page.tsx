@@ -12,18 +12,27 @@ import {
   LogOut,
   MapPin,
   Play,
+  Send,
 } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { PageHeader } from "@/components/ui/PageHeader";
+import { Badge } from "@/components/erp-ui/Badge";
+import { Button } from "@/components/erp-ui/Button";
+import { Card } from "@/components/erp-ui/Card";
+import { Field } from "@/components/erp-ui/Field";
+import { Textarea } from "@/components/erp-ui/Input";
+import { Modal } from "@/components/erp-ui/Modal";
+import { PageHeader } from "@/components/erp-ui/PageHeader";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
-import { StatTile } from "@/components/portal/StatTile";
+import { StatTile } from "@/components/erp/StatTile";
 import { cn } from "@/lib/cn";
 import { fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import { useClock, useMyMonthlyAttendance } from "@/hooks/useHr";
+import {
+  useClock,
+  useMyMonthlyAttendance,
+  type ClockProblem,
+  type ClockToday,
+} from "@/hooks/useHr";
 
 const STATE_TEXT: Record<string, string> = {
   not_in: "Not checked in",
@@ -48,7 +57,10 @@ function liveMinutes(
   nowMs: number,
 ): number {
   const end = breakStartedAt ? new Date(breakStartedAt).getTime() : nowMs;
-  return Math.max(0, Math.floor((end - new Date(checkInAt).getTime()) / 60000) - breakMinutes);
+  return Math.max(
+    0,
+    Math.floor((end - new Date(checkInAt).getTime()) / 60000) - breakMinutes,
+  );
 }
 
 /** The scheduled shift's length in minutes, for the work-timer ring's denominator. Falls back to a plain
@@ -61,8 +73,162 @@ function shiftMinutes(start: string | null, end: string | null): number {
   return mins > 0 ? mins : mins + 24 * 60;
 }
 
-function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+/** "2026-10-26T03:00:00+00:00" -> "08:30" in the shop's own timezone (never the browser's). */
+function shopTime(iso: string, timeZone: string): string {
+  return new Date(iso).toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone,
+  });
+}
+
+/** Why the clock-in didn't go through, and the way forward: try again, or ask a manager to approve. */
+function ProblemPanel({
+  problem,
+  busy,
+  onRetry,
+  onAsk,
+  onDismiss,
+}: {
+  problem: ClockProblem;
+  busy: boolean;
+  onRetry: () => void;
+  onAsk: () => void;
+  onDismiss: () => void;
+}) {
+  return (
+    <div
+      role="alert"
+      className="mb-space-4 rounded-md border border-error/30 bg-error/5 p-space-3 text-[13px] [overflow-wrap:anywhere]"
+    >
+      <p className="font-medium text-error">{problem.message}</p>
+      <div className="mt-space-2 flex flex-wrap gap-space-2">
+        {problem.canRequest && (
+          <Button onClick={onAsk} disabled={busy}>
+            <Send size={14} /> Ask my manager to approve
+          </Button>
+        )}
+        <Button variant="secondary" onClick={onRetry} disabled={busy}>
+          Try again
+        </Button>
+        <Button variant="ghost" onClick={onDismiss}>
+          Dismiss
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+function AskDialog({
+  open,
+  onClose,
+  onSend,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSend: (reason: string) => Promise<string | null>;
+}) {
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [sending, setSending] = useState(false);
+  async function send() {
+    setSending(true);
+    const problem = await onSend(reason.trim());
+    setSending(false);
+    if (problem) setError(problem);
+    else {
+      setReason("");
+      onClose();
+    }
+  }
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Ask your manager to approve"
+      description="Your clock-in will be dated to now once they approve it."
+      width="sm"
+      footer={
+        <div className="flex justify-end gap-space-2">
+          <Button variant="secondary" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button onClick={send} disabled={sending || reason.trim().length < 5}>
+            Send request
+          </Button>
+        </div>
+      }
+    >
+      <Field
+        label="Why couldn't you clock in?"
+        htmlFor="ask-reason"
+        error={error ?? undefined}
+        hint="For example: inside the shop but the phone shows the wrong place."
+      >
+        <Textarea
+          id="ask-reason"
+          rows={3}
+          maxLength={500}
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+      </Field>
+    </Modal>
+  );
+}
+
+/** Today's situation the person should know before tapping: a holiday, leave, waiting for approval, too early. */
+function DayNotices({ today }: { today: ClockToday }) {
+  const notes: { text: string; tone: "info" | "warn" | "error" }[] = [];
+  if (today.holiday)
+    notes.push({
+      text: `Today is a holiday: ${today.holiday.name}.`,
+      tone: "info",
+    });
+  if (today.on_leave)
+    notes.push({ text: "You're on approved leave today.", tone: "info" });
+  else if (today.half_day_leave)
+    notes.push({ text: "You have a half day of leave today.", tone: "info" });
+  else if (!today.shift.working_day && !today.holiday)
+    notes.push({ text: "Today is your weekly off.", tone: "info" });
+  const req = today.pending_request;
+  if (req?.status === "pending" && today.state === "not_in")
+    notes.push({
+      text: `Waiting for your manager to approve your clock-in (asked at ${req.requested_local}).`,
+      tone: "warn",
+    });
+  if (req?.status === "rejected" && today.state === "not_in")
+    notes.push({
+      text: `Your manager declined your clock-in request${req.review_note ? `: ${req.review_note}` : "."}`,
+      tone: "error",
+    });
+  if (
+    today.state === "not_in" &&
+    today.earliest_clock_in &&
+    new Date(today.now) < new Date(today.earliest_clock_in)
+  )
+    notes.push({
+      text: `Your shift starts at ${today.shift.start}. You can clock in from ${shopTime(today.earliest_clock_in, today.timezone)}.`,
+      tone: "info",
+    });
+  if (notes.length === 0) return null;
+  return (
+    <div className="mb-space-4 space-y-space-2">
+      {notes.map((n) => (
+        <p
+          key={n.text}
+          className={cn(
+            "rounded-md px-space-3 py-space-2 text-[13px] font-medium",
+            n.tone === "info" && "bg-brand-50 text-brand-700",
+            n.tone === "warn" && "bg-warning-tint text-warning",
+            n.tone === "error" && "bg-error/10 text-error",
+          )}
+        >
+          {n.text}
+        </p>
+      ))}
+    </div>
+  );
 }
 
 function WorkTimer({
@@ -76,11 +242,19 @@ function WorkTimer({
 }) {
   const r = 80;
   const c = 2 * Math.PI * r;
-  const pct = targetMinutes > 0 ? Math.min(1, workingMinutes / targetMinutes) : 0;
+  const pct =
+    targetMinutes > 0 ? Math.min(1, workingMinutes / targetMinutes) : 0;
   return (
     <div className="relative h-[200px] w-[200px] shrink-0">
       <svg viewBox="0 0 200 200" className="h-full w-full -rotate-90">
-        <circle cx={100} cy={100} r={r} stroke={RING_TRACK} strokeWidth={14} fill="none" />
+        <circle
+          cx={100}
+          cy={100}
+          r={r}
+          stroke={RING_TRACK}
+          strokeWidth={14}
+          fill="none"
+        />
         <circle
           cx={100}
           cy={100}
@@ -123,7 +297,11 @@ function TimelineRow({
   last?: boolean;
 }) {
   const dotTone =
-    tone === "success" ? "bg-success" : tone === "brand" ? "bg-brand-600" : "bg-ink-400";
+    tone === "success"
+      ? "bg-success"
+      : tone === "brand"
+        ? "bg-brand-600"
+        : "bg-ink-400";
   return (
     <div className="flex gap-space-3">
       <div className="flex flex-col items-center">
@@ -132,11 +310,13 @@ function TimelineRow({
       </div>
       <div
         className={cn(
-          "mb-space-3 flex min-w-0 flex-1 items-start gap-space-3 rounded-md px-space-3 py-space-2",
+          "mb-space-3 grid min-w-0 flex-1 grid-cols-[auto_minmax(0,1fr)] items-start gap-x-space-2 gap-y-1 rounded-md px-space-3 py-space-2 [overflow-wrap:anywhere] md:flex md:gap-space-3",
           tone === "brand" && "bg-success-tint",
         )}
       >
-        <span className="mt-0.5 w-16 shrink-0 text-[12px] font-medium text-ink-600">{time}</span>
+        <span className="col-span-2 mt-0.5 w-16 shrink-0 text-[12px] font-medium text-ink-600 md:col-auto">
+          {time}
+        </span>
         <span className="mt-0.5 text-ink-600">{icon}</span>
         <div className="min-w-0">
           <p className="text-[13.5px] font-semibold text-ink-900">{title}</p>
@@ -153,14 +333,23 @@ export default function CheckInOutPage() {
   const {
     today,
     error: clockError,
+    problem,
+    dismissProblem,
     busy,
+    locating,
     checkIn,
     checkOut,
     breakStart,
     breakEnd,
+    requestApproval,
   } = useClock(canView);
-  const { records } = useMyMonthlyAttendance(canView, currentMonth());
+  // the shop's month, from the server's work date (the browser's clock and zone may differ)
+  const { records } = useMyMonthlyAttendance(
+    canView,
+    today ? today.work_date.slice(0, 7) : null,
+  );
   const [nowMs, setNowMs] = useState(0);
+  const [asking, setAsking] = useState(false);
 
   useEffect(() => {
     const tick = () => setNowMs(Date.now());
@@ -176,9 +365,17 @@ export default function CheckInOutPage() {
   const state = today?.state ?? "not_in";
   const working =
     rec && !rec.check_out_at
-      ? liveMinutes(rec.check_in_at, rec.break_minutes, rec.break_started_at, nowMs)
+      ? liveMinutes(
+          rec.check_in_at,
+          rec.break_minutes,
+          rec.break_started_at,
+          nowMs,
+        )
       : (rec?.working_minutes ?? 0);
-  const target = shiftMinutes(today?.shift.start ?? null, today?.shift.end ?? null);
+  const target = shiftMinutes(
+    today?.shift.start ?? null,
+    today?.shift.end ?? null,
+  );
 
   const timeline = useMemo(() => {
     if (!rec) return [];
@@ -203,7 +400,9 @@ export default function CheckInOutPage() {
         time: state === "on_break" ? "Now" : "",
         title: state === "on_break" ? "On a break" : "Break taken",
         note:
-          state === "on_break" ? "Currently on a break" : `${fmtMinutes(rec.break_minutes)} today`,
+          state === "on_break"
+            ? "Currently on a break"
+            : `${fmtMinutes(rec.break_minutes)} today`,
         tone: "neutral",
       });
     }
@@ -240,8 +439,9 @@ export default function CheckInOutPage() {
         : state === "on_break"
           ? breakEnd
           : undefined;
-  const primaryLabel =
-    state === "not_in"
+  const primaryLabel = locating
+    ? "Finding your location…"
+    : state === "not_in"
       ? "Check In"
       : state === "in"
         ? "Check Out"
@@ -251,28 +451,32 @@ export default function CheckInOutPage() {
 
   if (!canView) {
     return (
-      <PortalShell restaurant={session?.restaurant || null} active="check-in-out">
-        <p className="text-[13px] text-ink-400">You don&apos;t have access to attendance.</p>
+      <PortalShell restaurant={session?.restaurant ?? null} active="check-in-out">
+        <p className="text-[13px] text-ink-400">
+          You don&apos;t have access to attendance.
+        </p>
       </PortalShell>
     );
   }
 
   return (
-    <PortalShell restaurant={session?.restaurant || null} active="check-in-out">
+    <PortalShell restaurant={session?.restaurant ?? null} active="check-in-out">
       <PageHeader
         title="Check-in / Check-out"
         description={
           today
-            ? new Date(`${today.work_date}T00:00:00`).toLocaleDateString("en-GB", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })
+            ? new Date(`${today.work_date}T00:00:00`).toLocaleDateString(
+                "en-GB",
+                { weekday: "long", day: "numeric", month: "long" },
+              )
             : ""
         }
         actions={
           <PermissionGate page="check_in_out" action="write">
-            <Button disabled={busy || !today || !primaryAction} onClick={primaryAction}>
+            <Button
+              disabled={busy || !today || !primaryAction}
+              onClick={primaryAction}
+            >
               <CalendarCheck size={16} /> {primaryLabel}
             </Button>
           </PermissionGate>
@@ -283,18 +487,35 @@ export default function CheckInOutPage() {
           role="alert"
           className="mb-space-4 rounded-md bg-error/10 px-space-3 py-space-2 text-[13px] font-medium text-error"
         >
-          {clockError}
+          Couldn&apos;t load today&apos;s attendance: {clockError}
         </p>
       )}
+      {problem && (
+        <ProblemPanel
+          problem={problem}
+          busy={busy}
+          onRetry={checkIn}
+          onAsk={() => setAsking(true)}
+          onDismiss={dismissProblem}
+        />
+      )}
+      <AskDialog
+        open={asking}
+        onClose={() => setAsking(false)}
+        onSend={requestApproval}
+      />
+      {today && <DayNotices today={today} />}
       {today?.location_required && state === "not_in" && (
         <p className="mb-space-4 flex items-center gap-space-2 text-[12.5px] text-ink-600">
-          <MapPin size={14} /> This restaurant checks your location when you clock in -- allow
-          location access when asked.
+          <MapPin size={14} /> Your company checks your location when you clock
+          in -- allow location access when asked.
         </p>
       )}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
+          stackOnMobile
+          loading={!today && !clockError}
           icon={<LogIn size={22} />}
           label="Current status"
           value={STATE_TEXT[state]}
@@ -304,6 +525,8 @@ export default function CheckInOutPage() {
           filled
         />
         <StatTile
+          stackOnMobile
+          loading={!today && !clockError}
           icon={<Clock size={22} />}
           label="Check-in time"
           value={rec?.check_in_local ?? "—"}
@@ -313,6 +536,8 @@ export default function CheckInOutPage() {
           filled
         />
         <StatTile
+          stackOnMobile
+          loading={!today && !clockError}
           icon={<Coffee size={22} />}
           label="Break taken"
           value={fmtMinutes(rec?.break_minutes ?? 0)}
@@ -322,6 +547,8 @@ export default function CheckInOutPage() {
           filled
         />
         <StatTile
+          stackOnMobile
+          loading={!today && !clockError}
           icon={<Briefcase size={22} />}
           label="Working hours"
           value={fmtMinutes(working)}
@@ -332,11 +559,15 @@ export default function CheckInOutPage() {
         />
       </div>
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-2">
-        <Card className="p-space-4">
-          <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Today&apos;s activity</h3>
+      <div className="mb-space-4 grid grid-cols-1 gap-space-4 xl:grid-cols-2">
+        <Card className="@container min-w-0 p-space-3 md:p-space-4">
+          <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
+            Today&apos;s activity
+          </h3>
           {timeline.length === 0 ? (
-            <p className="p-space-2 text-[13px] text-ink-400">You haven&apos;t checked in today.</p>
+            <p className="p-space-2 text-[13px] text-ink-400">
+              You haven&apos;t checked in today.
+            </p>
           ) : (
             <div>
               {timeline.map((t, i) => (
@@ -346,9 +577,11 @@ export default function CheckInOutPage() {
           )}
         </Card>
 
-        <Card className="p-space-4">
-          <div className="mb-space-3 flex items-center justify-between">
-            <h3 className="text-[15px] font-bold text-ink-900">Live work timer</h3>
+        <Card className="@container min-w-0 p-space-3 md:p-space-4">
+          <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
+            <h3 className="text-[15px] font-bold text-ink-900">
+              Live work timer
+            </h3>
             {(state === "in" || state === "on_break") && (
               <span className="flex items-center gap-1.5 text-[12px] font-semibold text-success">
                 <span className="h-2 w-2 rounded-full bg-success" />{" "}
@@ -357,7 +590,11 @@ export default function CheckInOutPage() {
             )}
           </div>
           <div className="flex flex-wrap items-center justify-center gap-space-5">
-            <WorkTimer workingMinutes={working} targetMinutes={target} label="Working today" />
+            <WorkTimer
+              workingMinutes={working}
+              targetMinutes={target}
+              label="Working today"
+            />
             <div className="min-w-[160px] flex-1 space-y-space-3">
               <div className="flex items-center gap-space-2">
                 <LogIn size={15} className="text-ink-400" />
@@ -380,9 +617,13 @@ export default function CheckInOutPage() {
               <div className="flex items-center gap-space-2">
                 <Clock size={15} className="text-ink-400" />
                 <div>
-                  <p className="text-hint">{rec?.check_out_at ? "Checked out" : "Active since"}</p>
+                  <p className="text-hint">
+                    {rec?.check_out_at ? "Checked out" : "Active since"}
+                  </p>
                   <p className="text-[13.5px] font-semibold text-ink-900">
-                    {(rec?.check_out_at ? rec.check_out_local : rec?.check_in_local) ?? "—"}
+                    {(rec?.check_out_at
+                      ? rec.check_out_local
+                      : rec?.check_in_local) ?? "—"}
                   </p>
                 </div>
               </div>
@@ -391,11 +632,13 @@ export default function CheckInOutPage() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 gap-space-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-space-4 xl:grid-cols-2">
         <PermissionGate page="check_in_out" action="write">
-          <Card className="p-space-4">
-            <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">Quick actions</h3>
-            <div className="grid grid-cols-2 gap-space-3 sm:grid-cols-4">
+          <Card className="@container min-w-0 p-space-3 md:p-space-4">
+            <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
+              Quick actions
+            </h3>
+            <div className="grid grid-cols-2 gap-space-3 @min-[500px]:grid-cols-4 md:grid-cols-4">
               <Button
                 variant={state === "not_in" ? "primary" : "secondary"}
                 disabled={busy || state !== "not_in"}
@@ -421,7 +664,11 @@ export default function CheckInOutPage() {
                 <Play size={20} /> End Break
               </Button>
               <Button
-                variant={state === "in" || state === "on_break" ? "primary" : "secondary"}
+                variant={
+                  state === "in" || state === "on_break"
+                    ? "primary"
+                    : "secondary"
+                }
                 disabled={busy || (state !== "in" && state !== "on_break")}
                 onClick={checkOut}
                 className="h-auto flex-col gap-space-2 py-space-4"
@@ -450,49 +697,60 @@ export default function CheckInOutPage() {
           </Card>
         </PermissionGate>
 
-        <Card className="p-space-4">
-          <div className="mb-space-3 flex items-center justify-between">
-            <h3 className="text-[15px] font-bold text-ink-900">Recent check-in history</h3>
+        <Card className="@container min-w-0 p-space-3 md:p-space-4">
+          <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
+            <h3 className="text-[15px] font-bold text-ink-900">
+              Recent check-in history
+            </h3>
             <a
               href="/portal/attendance"
-              className="flex items-center gap-0.5 text-[12.5px] font-semibold text-brand-600 hover:text-brand-700"
+              className="flex shrink-0 items-center gap-0.5 text-[12.5px] font-semibold text-brand-600 hover:text-brand-700"
             >
               View all <ChevronRight size={14} />
             </a>
           </div>
           {recentRows.length === 0 ? (
-            <p className="p-space-2 text-[13px] text-ink-400">No check-ins yet.</p>
+            <p className="p-space-2 text-[13px] text-ink-400">
+              No check-ins yet.
+            </p>
           ) : (
-            <table className="w-full text-left text-[12.5px]">
-              <thead>
-                <tr className="text-label border-b border-line text-ink-600">
-                  <th className="py-space-2 font-medium">Date</th>
-                  <th className="py-space-2 font-medium">Check-in</th>
-                  <th className="py-space-2 font-medium">Check-out</th>
-                  <th className="py-space-2 font-medium">Total hours</th>
-                  <th className="py-space-2 font-medium">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {recentRows.map((r) => (
-                  <tr key={r.work_date} className="border-b border-line last:border-0">
-                    <td className="py-space-2 font-semibold text-ink-900">
-                      {fmtDate(r.work_date)}
-                    </td>
-                    <td className="py-space-2">{r.check_in_local ?? "—"}</td>
-                    <td className="py-space-2">{r.check_out_local ?? "—"}</td>
-                    <td className="py-space-2">
-                      {r.working_minutes ? fmtMinutes(r.working_minutes) : "—"}
-                    </td>
-                    <td className="py-space-2">
-                      <Badge tone={r.check_out_local ? "success" : "brand"}>
-                        {r.check_out_local ? "Completed" : "In Progress"}
-                      </Badge>
-                    </td>
+            <div className="min-w-0 max-w-full overflow-x-auto">
+              <table className="w-full text-left text-[12.5px] max-md:min-w-[560px]">
+                <thead>
+                  <tr className="text-label border-b border-line text-ink-600">
+                    <th className="py-space-2 font-medium">Date</th>
+                    <th className="py-space-2 font-medium">Check-in</th>
+                    <th className="py-space-2 font-medium">Check-out</th>
+                    <th className="py-space-2 font-medium">Total hours</th>
+                    <th className="py-space-2 font-medium">Status</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {recentRows.map((r) => (
+                    <tr
+                      key={r.work_date}
+                      className="border-b border-line last:border-0"
+                    >
+                      <td className="py-space-2 font-semibold text-ink-900">
+                        {fmtDate(r.work_date)}
+                      </td>
+                      <td className="py-space-2">{r.check_in_local ?? "—"}</td>
+                      <td className="py-space-2">{r.check_out_local ?? "—"}</td>
+                      <td className="py-space-2">
+                        {r.working_minutes
+                          ? fmtMinutes(r.working_minutes)
+                          : "—"}
+                      </td>
+                      <td className="py-space-2">
+                        <Badge tone={r.check_out_local ? "success" : "brand"}>
+                          {r.check_out_local ? "Completed" : "In Progress"}
+                        </Badge>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </Card>
       </div>

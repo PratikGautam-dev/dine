@@ -110,7 +110,7 @@ function DeliveryRow({
           ) : (
             <WhatsAppIcon size={12} />
           )}
-          <span className="truncate">{order.source === "web" ? "Website" : "WhatsApp"}</span>
+          <span className="truncate">{order.source === "web" ? "Website" : order.source === "skip_queue" ? "Skip queue" : "WhatsApp"}</span>
         </span>
       </span>
       <span className="flex shrink-0 flex-col items-end gap-1">

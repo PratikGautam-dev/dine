@@ -8,6 +8,7 @@ import {
   Tag,
   CalendarCheck,
   CalendarDays,
+  CalendarHeart,
   CalendarOff,
   ChefHat,
   Clock,
@@ -321,6 +322,15 @@ const NAV_ITEMS: {
     icon: CalendarOff,
     href: "/portal/leave",
     pageKey: "my_leave",
+    group: "Workforce",
+    module: "workforce",
+  },
+  {
+    key: "holidays",
+    label: "Holidays",
+    icon: CalendarHeart,
+    href: "/portal/holidays",
+    pageKey: "my_leave", // everyone who can see their leave can see the holiday calendar
     group: "Workforce",
     module: "workforce",
   },
