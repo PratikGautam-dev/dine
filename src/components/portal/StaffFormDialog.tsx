@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Modal } from "@/components/ui/Modal";
-import { WEEKDAYS } from "@/lib/hr";
+import { WorkPatternSection } from "@/components/portal/WorkPatternSection";
+import { useBranches } from "@/hooks/erp/useBranches";
 import { roleLabel, ROLE_OPTIONS } from "@/lib/staffRoles";
 import type { StaffFormValues, StaffMember } from "@/hooks/useStaffManagement";
 import { emptyStaffForm } from "@/hooks/useStaffManagement";
@@ -59,6 +60,7 @@ export function StaffFormDialog({
         }
       : { ...emptyStaffForm(), ...initialValues },
   );
+  const { data: branches } = useBranches();
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const set = (patch: Partial<StaffFormValues>) => setForm((f) => ({ ...f, ...patch }));
@@ -165,59 +167,11 @@ export function StaffFormDialog({
               ))}
             </Select>
           </Field>
-          <fieldset className="mb-space-4 sm:col-span-2">
-            <legend className="text-label mb-space-1 block">Working days</legend>
-            <div className="flex flex-wrap gap-space-2">
-              {WEEKDAYS.map((d) => {
-                const on = form.working_days.includes(d);
-                return (
-                  <label
-                    key={d}
-                    className={`flex cursor-pointer items-center gap-1 rounded-md border px-space-3 py-1.5 text-[13px] ${on ? "border-brand-600 bg-brand-50 font-semibold text-brand-700" : "border-line text-ink-600"}`}
-                  >
-                    <input
-                      type="checkbox"
-                      className="sr-only"
-                      checked={on}
-                      aria-label={d}
-                      onChange={() =>
-                        set({
-                          working_days: WEEKDAYS.filter((x) =>
-                            x === d ? !on : form.working_days.includes(x),
-                          ),
-                        })
-                      }
-                    />
-                    {d}
-                  </label>
-                );
-              })}
+          {member && (
+            <div className="mb-space-4 sm:col-span-2">
+              <WorkPatternSection userId={String(member.id)} branches={branches} />
             </div>
-            <p className="text-hint mt-space-1">
-              The days they&apos;re due to work. Used to spot absences; leave empty to never count
-              them absent.
-            </p>
-          </fieldset>
-          <Field
-            label="Shift starts"
-            htmlFor="sf-shift-start"
-            hint="Leave both blank to use the restaurant's default shift."
-          >
-            <Input
-              id="sf-shift-start"
-              type="time"
-              value={form.shift_start}
-              onChange={(e) => set({ shift_start: e.target.value })}
-            />
-          </Field>
-          <Field label="Shift ends" htmlFor="sf-shift-end">
-            <Input
-              id="sf-shift-end"
-              type="time"
-              value={form.shift_end}
-              onChange={(e) => set({ shift_end: e.target.value })}
-            />
-          </Field>
+          )}
           <Field label="Address" htmlFor="sf-address" className="sm:col-span-2">
             <Textarea
               id="sf-address"

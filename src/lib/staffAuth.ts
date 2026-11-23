@@ -78,7 +78,7 @@ export const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://loca
 type FetchResult =
   | { ok: true; data: unknown }
   | { ok: false; unauthorized: true }
-  | { ok: false; unauthorized: false; error: string };
+  | { ok: false; unauthorized: false; error: string; details?: Record<string, unknown> };
 
 /** Attempts one silent refresh via /api/portal/staff/refresh, storing the
  * rotated tokens on success. Returns the new access token, or null if the
@@ -139,6 +139,12 @@ function responseErrorMessage(res: { status: number; data?: unknown }): string {
   return "Something went wrong.";
 }
 
+/** The server's `details` object on a failed call (e.g. `reason`, `can_request_manual`), for callers that branch on more than the message. */
+function errorDetails(res: { data?: unknown }): Record<string, unknown> | undefined {
+  const d = (res.data as { details?: unknown } | undefined)?.details;
+  return d && typeof d === "object" ? (d as Record<string, unknown>) : undefined;
+}
+
 export async function staffFetch(path: string, init?: RequestInit): Promise<FetchResult> {
   let token = getStaffAccessToken();
   if (!token) return { ok: false, unauthorized: true };
@@ -163,6 +169,7 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
         ok: false,
         unauthorized: false,
         error: responseErrorMessage(err.response),
+        details: errorDetails(err.response),
       };
     }
 
@@ -185,6 +192,7 @@ export async function staffFetch(path: string, init?: RequestInit): Promise<Fetc
         ok: false,
         unauthorized: false,
         error: responseErrorMessage(retryErr.response),
+        details: errorDetails(retryErr.response),
       };
     }
   }

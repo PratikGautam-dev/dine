@@ -1,5 +1,7 @@
 "use client";
 
+import { Select } from "@/components/erp-ui/Select";
+
 import { useMemo, useState } from "react";
 import {
   Bar,
@@ -11,36 +13,52 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { CalendarCheck, Download, TrendingUp, TriangleAlert, UserX } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
-import { Card } from "@/components/ui/Card";
-import { PageHeader } from "@/components/ui/PageHeader";
-import { TableSkeleton } from "@/components/ui/Skeleton";
+import {
+  CalendarCheck,
+  Download,
+  TrendingUp,
+  TriangleAlert,
+  UserX,
+} from "lucide-react";
+import { Badge } from "@/components/erp-ui/Badge";
+import { Button } from "@/components/erp-ui/Button";
+import { Card } from "@/components/erp-ui/Card";
+import { PageHeader } from "@/components/erp-ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
-import { SectionDonut } from "@/components/portal/SectionDonut";
-import { StatTile } from "@/components/portal/StatTile";
+import { DonutChart } from "@/components/portal/DonutChart";
+import { StatTile } from "@/components/erp/StatTile";
 import { DAY_STATE, fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyMonthlyAttendance } from "@/hooks/useHr";
-import { Select } from "@/components/erp-ui/Select";
+import { SkeletonLines } from "@/components/erp-ui/Skeleton";
+import { neutralise } from "@/lib/csvSafe";
 
-// Same escaping precedent as food-orders/page.tsx's own exportCsv -- not extracted to a shared
+// CSV cells are escaped inline here -- not extracted to a shared
 // helper since that page keeps its own local copy too.
-function csvCell(value: string): string {
+function csvCell(raw: string): string {
+  const value = neutralise(raw);
   return /[,"\n]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
 }
 
 const SELECT_CLASS =
-  "h-10 rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
-const STATUS_FILTERS = ["", "on_time", "late", "on_leave", "absent", "missing_clock_out"];
+  "h-10 min-w-0 max-w-full rounded-md border border-line bg-card px-space-3 text-[13px] text-ink-900";
+const STATUS_FILTERS = [
+  "",
+  "on_time",
+  "late",
+  "on_leave",
+  "holiday",
+  "absent",
+  "missing_clock_out",
+];
 // The app's own --success token (globals.css) and a lighter, still-visible tint of it -- not a new hue,
 // just two steps of the same one: solid for the current week, tinted for earlier weeks.
 const SUCCESS = "#1e9e5a";
 const SUCCESS_TINT = "#a9ddc4";
 
+/** This month in the browser's own zone (YYYY-MM) -- only the starting choice; every date shown comes from the server. */
 function currentMonth(): string {
-  return new Date().toISOString().slice(0, 7);
+  return new Date().toLocaleDateString("en-CA").slice(0, 7);
 }
 
 function TrendTooltip({
@@ -64,7 +82,8 @@ export default function MyAttendancePage() {
   const canView = usePermission("check_in_out", "view");
   const [month, setMonth] = useState(currentMonth());
   const [status, setStatus] = useState("");
-  const { records, stats, weeklyTrend, error } = useMyMonthlyAttendance(canView, month);
+  const { records, stats, weeklyTrend, firstMonth, error } =
+    useMyMonthlyAttendance(canView, month);
 
   const filtered = useMemo(
     () => (records ?? []).filter((r) => !status || r.status === status),
@@ -72,7 +91,14 @@ export default function MyAttendancePage() {
   );
 
   function exportCsv() {
-    const header = ["Date", "Check-in", "Check-out", "Break (min)", "Working (min)", "Status"];
+    const header = [
+      "Date",
+      "Check-in",
+      "Check-out",
+      "Break (min)",
+      "Working (min)",
+      "Status",
+    ];
     const rows = filtered.map((r) => [
       r.work_date,
       r.check_in_local ?? "",
@@ -81,7 +107,9 @@ export default function MyAttendancePage() {
       String(r.working_minutes ?? 0),
       DAY_STATE[r.status]?.label ?? r.status,
     ]);
-    const csv = [header, ...rows].map((r) => r.map((c) => csvCell(c)).join(",")).join("\n");
+    const csv = [header, ...rows]
+      .map((r) => r.map((c) => csvCell(c)).join(","))
+      .join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -101,8 +129,10 @@ export default function MyAttendancePage() {
 
   if (!canView) {
     return (
-      <PortalShell restaurant={session?.restaurant || null} active="my-attendance">
-        <p className="text-[13px] text-ink-400">You don&apos;t have access to attendance.</p>
+      <PortalShell restaurant={session?.restaurant ?? null} active="my-attendance">
+        <p className="text-[13px] text-ink-400">
+          You don&apos;t have access to attendance.
+        </p>
       </PortalShell>
     );
   }
@@ -110,28 +140,34 @@ export default function MyAttendancePage() {
   const presentOnTime = stats ? stats.present_days - stats.late_days : 0;
   const statusData = stats
     ? [
-        { department_name: "Present", count: presentOnTime },
-        { department_name: "Late", count: stats.late_days },
-        { department_name: "Leave", count: stats.leave_days },
-        { department_name: "Absent", count: stats.absent_days },
+        { name: "Present", count: presentOnTime },
+        { name: "Late", count: stats.late_days },
+        { name: "Leave", count: stats.leave_days },
+        { name: "Absent", count: stats.absent_days },
       ].filter((s) => s.count > 0)
     : [];
 
   return (
-    <PortalShell restaurant={session?.restaurant || null} active="my-attendance">
+    <PortalShell restaurant={session?.restaurant ?? null} active="my-attendance">
       <PageHeader
         title="Attendance"
         description="See your own hours, overtime, and attendance history. Clock in from Check-in / Check-out."
         actions={
-          <Button variant="secondary" onClick={exportCsv} disabled={filtered.length === 0}>
+          <Button
+            variant="secondary"
+            onClick={exportCsv}
+            disabled={filtered.length === 0}
+          >
             <Download size={16} /> Download Report
           </Button>
         }
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
-      <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-4">
+      <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile
+          stackOnMobile
+          loading={!stats && !error}
           icon={<CalendarCheck size={22} />}
           label="Present days"
           value={stats?.present_days ?? 0}
@@ -141,6 +177,8 @@ export default function MyAttendancePage() {
           filled
         />
         <StatTile
+          stackOnMobile
+          loading={!stats && !error}
           icon={<UserX size={22} />}
           label="Absent days"
           value={stats?.absent_days ?? 0}
@@ -151,6 +189,8 @@ export default function MyAttendancePage() {
           upIsGood={false}
         />
         <StatTile
+          stackOnMobile
+          loading={!stats && !error}
           icon={<TriangleAlert size={22} />}
           label="Late check-ins"
           value={stats?.late_days ?? 0}
@@ -161,6 +201,8 @@ export default function MyAttendancePage() {
           upIsGood={false}
         />
         <StatTile
+          stackOnMobile
+          loading={!stats && !error}
           icon={<TrendingUp size={22} />}
           label="Overtime hours"
           value={fmtMinutes(stats?.overtime_minutes ?? 0)}
@@ -171,8 +213,8 @@ export default function MyAttendancePage() {
         />
       </div>
 
-      <div className="mb-space-4 grid grid-cols-1 gap-space-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card className="p-space-4">
+      <div className="mb-space-4 grid min-w-0 grid-cols-1 gap-space-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]">
+        <Card className="min-w-0 p-space-3 md:p-space-4">
           <h3 className="mb-space-3 text-[15px] font-bold text-ink-900">
             Attendance trend (this month)
           </h3>
@@ -182,7 +224,10 @@ export default function MyAttendancePage() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={trendData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+              <BarChart
+                data={trendData}
+                margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
+              >
                 <CartesianGrid stroke="#ebe0d6" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -197,10 +242,16 @@ export default function MyAttendancePage() {
                   unit="%"
                   domain={[0, 100]}
                 />
-                <Tooltip content={<TrendTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
+                <Tooltip
+                  content={<TrendTooltip />}
+                  cursor={{ fill: "rgba(0,0,0,0.03)" }}
+                />
                 <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
                   {trendData.map((w) => (
-                    <Cell key={w.label} fill={w.isLatest ? SUCCESS : SUCCESS_TINT} />
+                    <Cell
+                      key={w.label}
+                      fill={w.isLatest ? SUCCESS : SUCCESS_TINT}
+                    />
                   ))}
                 </Bar>
               </BarChart>
@@ -208,7 +259,7 @@ export default function MyAttendancePage() {
           )}
         </Card>
 
-        <SectionDonut
+        <DonutChart
           data={statusData}
           title="Attendance status"
           subtitle={month}
@@ -217,18 +268,27 @@ export default function MyAttendancePage() {
         />
       </div>
 
-      <Card className="p-space-4">
+      <Card className="min-w-0 p-space-3 md:p-space-4">
         <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-3">
-          <h3 className="text-[15px] font-bold text-ink-900">Attendance records</h3>
-          <div className="flex flex-wrap items-center gap-space-2">
+          <h3 className="text-[15px] font-bold text-ink-900">
+            Attendance records
+          </h3>
+          <div className="flex min-w-0 w-full flex-col items-stretch gap-space-2 md:w-auto md:flex-row md:flex-wrap md:items-center">
             <input
               aria-label="Month"
               type="month"
               className={SELECT_CLASS}
               value={month}
+              min={firstMonth ?? undefined}
+              max={currentMonth()}
               onChange={(e) => e.target.value && setMonth(e.target.value)}
             />
-            <Select value={status} onValueChange={(v) => setStatus(v)} aria-label="Status">
+            <Select
+              aria-label="Status"
+              className={SELECT_CLASS}
+              value={status}
+              onValueChange={(value) => setStatus(value)}
+            >
               {STATUS_FILTERS.map((s) => (
                 <option key={s} value={s}>
                   {s ? (DAY_STATE[s]?.label ?? s) : "All"}
@@ -237,20 +297,28 @@ export default function MyAttendancePage() {
             </Select>
           </div>
         </div>
-        <div className="overflow-x-auto">
+        <div className="no-scrollbar min-w-0 max-w-full overflow-x-auto">
           {!records ? (
-            <TableSkeleton rows={6} columns={5} />
+            <SkeletonLines rows={3} />
           ) : filtered.length === 0 ? (
-            <p className="p-space-4 text-[13px] text-ink-400">No attendance in this period.</p>
+            <p className="p-space-4 text-[13px] text-ink-400">
+              No attendance in this period.
+            </p>
           ) : (
-            <table className="w-full text-left text-[13px]">
+            <table className="w-full text-left text-[13px] max-md:min-w-[600px]">
               <thead>
                 <tr className="text-label border-b border-line text-ink-600">
                   <th className="px-space-3 py-space-2 font-medium">Date</th>
-                  <th className="px-space-3 py-space-2 font-medium">Check-in</th>
-                  <th className="px-space-3 py-space-2 font-medium">Check-out</th>
+                  <th className="px-space-3 py-space-2 font-medium">
+                    Check-in
+                  </th>
+                  <th className="px-space-3 py-space-2 font-medium">
+                    Check-out
+                  </th>
                   <th className="px-space-3 py-space-2 font-medium">Break</th>
-                  <th className="px-space-3 py-space-2 font-medium">Working hours</th>
+                  <th className="px-space-3 py-space-2 font-medium">
+                    Working hours
+                  </th>
                   <th className="px-space-3 py-space-2 font-medium">Status</th>
                 </tr>
               </thead>
@@ -264,8 +332,12 @@ export default function MyAttendancePage() {
                     <td className="px-space-3 py-space-2 font-semibold text-ink-900">
                       {fmtDate(r.work_date)}
                     </td>
-                    <td className="px-space-3 py-space-2">{r.check_in_local ?? "—"}</td>
-                    <td className="px-space-3 py-space-2">{r.check_out_local ?? "—"}</td>
+                    <td className="px-space-3 py-space-2">
+                      {r.check_in_local ?? "—"}
+                    </td>
+                    <td className="px-space-3 py-space-2">
+                      {r.check_out_local ?? "—"}
+                    </td>
                     <td className="px-space-3 py-space-2">
                       {r.break_minutes ? fmtMinutes(r.break_minutes) : "—"}
                     </td>
@@ -276,6 +348,14 @@ export default function MyAttendancePage() {
                       <Badge tone={DAY_STATE[r.status]?.tone ?? "neutral"}>
                         {DAY_STATE[r.status]?.label ?? r.status}
                       </Badge>
+                      {(r.holiday_name || r.leave_type || r.corrected) && (
+                        <span className="ml-space-2 text-hint">
+                          {r.holiday_name ??
+                            (r.leave_type
+                              ? `${r.leave_type}${r.half_day_leave ? " (half day)" : ""}`
+                              : "corrected by a manager")}
+                        </span>
+                      )}
                     </td>
                   </tr>
                 ))}

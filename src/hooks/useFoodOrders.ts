@@ -28,7 +28,7 @@ export type FoodOrder = {
   updated_at: string;
   // Web Storefront: which front door this order came through. Every order predates 'web' as
   // 'whatsapp' (the column's own DB default) -- see food-orders/page.tsx's own Source column.
-  source: "whatsapp" | "web" | "app";
+  source: "whatsapp" | "web" | "app" | "skip_queue";
   mock_payment_ref: string | null;
   // The latest payment on the order and how much of it has been refunded (the Returns page's queue). payment_status is null when the order has
   // no payment record at all (an "at restaurant" order).

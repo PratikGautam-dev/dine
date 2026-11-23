@@ -78,7 +78,7 @@ const VIEW_TABS: { id: OrderView; label: string; always: boolean }[] = [
 ];
 
 // Web Storefront: a second real channel now exists alongside the WhatsApp bot.
-type SourceFilter = "all" | "whatsapp" | "web" | "app";
+type SourceFilter = "all" | "whatsapp" | "web" | "app" | "skip_queue";
 type TypeFilter = "all" | "pickup" | "delivery";
 
 // The same status, read as "what stage is the kitchen at" -- a coarser view of the identical
@@ -251,7 +251,7 @@ export default function PortalFoodOrdersPage() {
       o.reference_id ?? `#${o.id}`,
       o.patient_name || "",
       o.phone,
-      o.source === "web" ? "Web" : "WhatsApp",
+      o.source === "web" ? "Web" : o.source === "skip_queue" ? "Skip queue" : "WhatsApp",
       o.fulfillment_type === "delivery" ? "Delivery" : "Takeaway",
       formatOrderTime(o.created_at),
       (o.total_paise / 100).toFixed(2),
@@ -299,6 +299,8 @@ export default function PortalFoodOrdersPage() {
             <Badge tone="brand">Website</Badge>
           ) : row.original.source === "app" ? (
             <Badge tone="brand">App</Badge>
+          ) : row.original.source === "skip_queue" ? (
+            <Badge tone="clay">Skip queue</Badge>
           ) : (
             <span className="inline-flex items-center gap-1 whitespace-nowrap text-[12.5px] font-semibold text-ink-700">
               <WhatsAppIcon size={16} /> WhatsApp
@@ -594,7 +596,7 @@ export default function PortalFoodOrdersPage() {
         <Select
           value={sourceFilter}
           onValueChange={(v) =>
-            setGlobalChannels(v === "all" ? [] : [v as "web" | "whatsapp" | "app"])
+            setGlobalChannels(v === "all" ? [] : [v as "web" | "whatsapp" | "app" | "skip_queue"])
           }
           className="!h-10 !w-[170px] shrink-0"
           aria-label="Filter by source"
@@ -603,6 +605,7 @@ export default function PortalFoodOrdersPage() {
           <option value="whatsapp">WhatsApp</option>
           <option value="web">Website</option>
           <option value="app">App</option>
+          <option value="skip_queue">Skip queue</option>
         </Select>
         <Select
           value={typeFilter}

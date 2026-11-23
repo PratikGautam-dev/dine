@@ -20,7 +20,7 @@ export type Period =
   | "custom"
   | "all";
 /** How the order arrived. The filter holds a list of these (none selected = all channels). */
-export type GlobalChannel = "web" | "app" | "whatsapp" | "pos";
+export type GlobalChannel = "web" | "app" | "whatsapp" | "pos" | "skip_queue";
 /** How it is fulfilled. A list too (none = all). Within a list the choices are "any of"; the two lists combine ("and"). */
 export type GlobalPickup = "dine_in" | "takeaway" | "delivery";
 
@@ -56,6 +56,7 @@ export const CHANNEL_LABEL: Record<GlobalChannel, string> = {
   app: "App",
   whatsapp: "WhatsApp",
   pos: "POS",
+  skip_queue: "Skip queue",
 };
 export const PICKUP_LABEL: Record<GlobalPickup, string> = {
   dine_in: "Dine-in",
@@ -68,7 +69,7 @@ export const REPORT_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !=
 export const REPORT_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp", "pos"];
 export const REPORT_PICKUPS: readonly GlobalPickup[] = ["dine_in", "takeaway", "delivery"];
 export const ORDER_PERIODS: readonly Period[] = PERIOD_ORDER;
-export const ORDER_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp"];
+export const ORDER_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp", "skip_queue"];
 export const RETURN_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const FEEDBACK_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const DASHBOARD_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !== "all"); // the dashboard API needs a bounded range

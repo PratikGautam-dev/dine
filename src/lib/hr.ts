@@ -1,22 +1,34 @@
 import { staffFetch } from "@/lib/staffAuth";
 
-/** One JSON call to the portal API as the signed-in staff member. `error` is a readable message or null. */
+/** One JSON call to the ERP API as the signed-in staff member. `error` is a readable message or null; `details` is the server's error
+ * object (e.g. `reason`, `can_request_manual`) when it sent one. */
 export async function staffJson<T = unknown>(
   path: string,
-  method: "GET" | "POST" | "PATCH" | "PUT" = "GET",
+  method: "GET" | "POST" | "PATCH" | "PUT" | "DELETE" = "GET",
   body?: unknown,
-): Promise<{ data: T | null; error: string | null; unauthorized: boolean }> {
+): Promise<{
+  data: T | null;
+  error: string | null;
+  unauthorized: boolean;
+  details?: Record<string, unknown>;
+}> {
   const result = await staffFetch(path, {
     method,
     ...(body !== undefined
-      ? { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      ? {
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
       : {}),
   });
   if (!result.ok)
     return {
       data: null,
-      error: result.unauthorized ? "Session expired -- please sign in again." : result.error,
+      error: result.unauthorized
+        ? "Session expired -- please sign in again."
+        : result.error,
       unauthorized: result.unauthorized,
+      details: result.unauthorized ? undefined : result.details,
     };
   return { data: result.data as T, error: null, unauthorized: false };
 }
@@ -35,7 +47,11 @@ export function fmtDate(iso: string): string {
   const d = new Date(`${iso}T00:00:00`);
   return Number.isNaN(d.getTime())
     ? iso
-    : d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+    : d.toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+      });
 }
 
 export function fmtDateRange(from: string, to: string): string {
@@ -66,17 +82,29 @@ export const DAY_STATE: Record<string, { label: string; tone: Tone }> = {
   clocked_in: { label: "Clocked in", tone: "brand" },
   missing_clock_out: { label: "Missing clock-out", tone: "clay" },
   on_leave: { label: "On leave", tone: "brand" },
+  holiday: { label: "Holiday", tone: "neutral" },
   absent: { label: "Absent", tone: "clay" },
   not_in: { label: "Not in yet", tone: "clay" },
   upcoming: { label: "Due later", tone: "neutral" },
   off: { label: "Off", tone: "neutral" },
 };
 
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
+/** 0 = Sunday ... 6 = Saturday, as the server counts weekdays (weekly offs). */
+export const WEEKDAY_NUMBERS = [
+  { n: 1, label: "Mon" },
+  { n: 2, label: "Tue" },
+  { n: 3, label: "Wed" },
+  { n: 4, label: "Thu" },
+  { n: 5, label: "Fri" },
+  { n: 6, label: "Sat" },
+  { n: 0, label: "Sun" },
+] as const;
 
 export type AttendanceRecord = {
-  id: number;
+  id: string;
   work_date: string;
+  branch_id: string;
+  branch_name: string;
   status: "on_time" | "late";
   late_minutes: number;
   check_in_at: string;
@@ -84,11 +112,26 @@ export type AttendanceRecord = {
   check_out_at: string | null;
   check_out_local: string | null;
   check_in_method: string;
+  check_in_distance_m: number | null;
+  needs_review: boolean;
   break_started_at: string | null;
   break_minutes: number;
   working_minutes: number;
   overtime_minutes: number;
+  scheduled_minutes: number | null;
+  shift_start_local: string | null;
+  shift_end_local: string | null;
   missing_clock_out: boolean;
   corrected: boolean;
   correction_note: string | null;
 };
+
+/** How a clock-in was checked, in words. */
+export const CHECK_METHOD: Record<string, string> = {
+  gps: "Location",
+  ip: "Shop network",
+  both: "Location + network",
+  manual: "Manager",
+  none: "No check",
+};
+export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
