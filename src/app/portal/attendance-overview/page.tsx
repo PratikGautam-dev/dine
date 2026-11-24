@@ -6,6 +6,7 @@ import {
   CircleCheck,
   Clock,
   MapPin,
+  Smartphone,
   TriangleAlert,
   UserX,
 } from "lucide-react";
@@ -27,6 +28,7 @@ import { roleLabel } from "@/lib/staffRoles";
 import {
   useAttendanceSettings,
   useCheckinRequests,
+  usePersonDevice,
   useStaffMonth,
   useTeamAttendance,
   type OverviewRow,
@@ -217,6 +219,47 @@ function MarkPresentDialog({
   );
 }
 
+/** The phone a person clocks in from, while the business locks attendance to one device; a manager resets it for a lost or new phone. */
+function PersonDevice({ userId }: { userId: string }) {
+  const { data, reset } = usePersonDevice(userId);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  if (!data || (!data.locked && !data.device)) return null;
+  return (
+    <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2 rounded-md bg-black/[0.03] px-space-3 py-space-2 text-[13px]">
+      <p className="flex min-w-0 items-center gap-space-2 text-ink-600">
+        <Smartphone size={14} />
+        {data.device
+          ? `Clocks in from ${data.device.label ?? "a registered device"}, since ${fmtDate(data.device.registered_at.slice(0, 10))}.`
+          : "No device yet: the next clock-in registers one."}
+        {!data.locked && " (Device lock is off.)"}
+      </p>
+      {data.device && (
+        <PermissionGate page="attendance" action="write">
+          <Button
+            variant="secondary"
+            disabled={busy}
+            onClick={async () => {
+              if (
+                !window.confirm(
+                  "Reset this device? Their next clock-in registers whichever device they use.",
+                )
+              )
+                return;
+              setBusy(true);
+              setError(await reset());
+              setBusy(false);
+            }}
+          >
+            Reset device
+          </Button>
+        </PermissionGate>
+      )}
+      {error && <p className="w-full text-[12.5px] text-error">{error}</p>}
+    </div>
+  );
+}
+
 /** One person's month, from the team's month table. */
 function PersonMonth({
   userId,
@@ -237,6 +280,7 @@ function PersonMonth({
       width="lg"
     >
       {error && <p className="text-[13px] text-error">{error}</p>}
+      <PersonDevice userId={userId} />
       {!data ? (
         <SkeletonLines rows={4} />
       ) : data.records.length === 0 ? (
@@ -314,10 +358,18 @@ function RequestsPanel({ enabled }: { enabled: boolean }) {
               <p className="text-[13.5px] font-semibold text-ink-900">
                 {q.staff_name}{" "}
                 <span className="font-normal text-ink-600">
-                  · {q.branch_name} · {fmtDate(q.work_date)} at{" "}
-                  {q.requested_local}
+                  · {q.branch_name} · {fmtDate(q.work_date)}{" "}
+                  {q.kind === "past_day"
+                    ? `· missed day, ${q.requested_local}–${q.check_out_local}`
+                    : `at ${q.requested_local}`}
                 </span>
               </p>
+              {q.failure_code === "new_device" && (
+                <p className="flex items-center gap-1 text-hint">
+                  <Smartphone size={12} /> From a device that isn&apos;t their
+                  registered one
+                </p>
+              )}
               <p className="text-[12.5px] text-ink-600">“{q.reason}”</p>
               {q.distance_m != null && (
                 <p className="flex items-center gap-1 text-hint">

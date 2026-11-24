@@ -3,6 +3,7 @@
 import {
   CalendarClock,
   Copy,
+  LocateFixed,
   MapPin,
   Pencil,
   Trash2,
@@ -25,12 +26,17 @@ import { cn } from "@/lib/cn";
 import { fmtDate, WEEKDAY_NUMBERS } from "@/lib/hr";
 import { hasTenantWide } from "@/lib/erp/staffAuth";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
+import { mapLink, parseMapPoint } from "@/lib/geo";
 import {
+  bestPosition,
+  LOCATION_HINT,
   useAttendanceSettings,
+  useLeaveAllowance,
   useHolidays,
   type AttendanceDefaults,
   type BranchRule,
   type Holiday,
+  type ShopLocation,
   type VerifyMode,
 } from "@/hooks/useHr";
 
@@ -127,6 +133,7 @@ function BusinessRules({
   const [autoClose, setAutoClose] = useState(
     initial.auto_close_after_minutes?.toString() ?? "",
   );
+  const [deviceLock, setDeviceLock] = useState(initial.device_lock);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -141,6 +148,7 @@ function BusinessRules({
         late_grace_minutes: Number(grace || 0),
         early_clock_in_minutes: numOrNull(early),
         auto_close_after_minutes: numOrNull(autoClose),
+        device_lock: deviceLock,
       }),
     );
     setSaving(false);
@@ -239,6 +247,24 @@ function BusinessRules({
           </Field>
         </div>
       </Card>
+
+      <Card className="mb-space-4 p-space-5">
+        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
+          Devices
+        </h2>
+        <div className={canEdit ? undefined : "pointer-events-none opacity-60"}>
+          <SwitchRow
+            label="Lock attendance to one device per person"
+            hint={
+              "Off by default. When on, the device someone first clocks in from becomes theirs, and clock-in and clock-out work only " +
+              "from it. Lost or new phone: on Team Attendance, open the month, click their name and reset the device. Clearing the browser's data or " +
+              "a private window also counts as a new device. Someone on another device can still ask a manager to approve their clock-in."
+            }
+            checked={deviceLock}
+            onChange={() => setDeviceLock((v) => !v)}
+          />
+        </div>
+      </Card>
       {error && (
         <p
           role="alert"
@@ -260,23 +286,287 @@ function BusinessRules({
   );
 }
 
+/** The yearly leave allowance: a business-wide number, changed only by someone who approves leave for every branch. */
+function LeaveAllowance() {
+  const session = useStaffSession();
+  const canEdit = hasTenantWide(session, "leave:approve");
+  const { allowance, save } = useLeaveAllowance(true);
+  const [draft, setDraft] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  async function submit(e: React.FormEvent) {
+    e.preventDefault();
+    const value = Number(draft);
+    if (!Number.isInteger(value) || value < 0)
+      return setError("Enter a whole number of days.");
+    setSaving(true);
+    const problem = await save(value);
+    setSaving(false);
+    setError(problem);
+    if (!problem) setDraft("");
+  }
+
+  return (
+    <form
+      onSubmit={submit}
+      aria-label="Yearly leave allowance"
+      className="max-w-2xl"
+    >
+      <Card className="mb-space-4 p-space-5">
+        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
+          Yearly leave allowance
+        </h2>
+        <p className="mb-space-3 text-[13px] text-ink-600">
+          Everyone gets{" "}
+          <strong data-testid="allowance-current">{allowance ?? "—"}</strong>{" "}
+          days a year (unpaid leave doesn&apos;t count against it).
+        </p>
+        {canEdit ? (
+          <div className="flex flex-wrap items-end gap-space-3">
+            <Field
+              label="New allowance (days)"
+              htmlFor="allowance"
+              error={error ?? undefined}
+            >
+              <Input
+                id="allowance"
+                inputMode="numeric"
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder={String(allowance ?? 20)}
+              />
+            </Field>
+            <Button
+              type="submit"
+              variant="secondary"
+              disabled={saving || draft === ""}
+              className="mb-space-3"
+            >
+              {saving ? "Saving…" : "Save allowance"}
+            </Button>
+          </div>
+        ) : (
+          <p className="text-hint">
+            Only someone who approves leave for every branch can change it.
+          </p>
+        )}
+      </Card>
+    </form>
+  );
+}
+
 // ============================================================================================ branches
+const CAPTURE_ACCURACY_M = 50; // the server's limit for a reading taken at the shop
+const MAX_RADIUS_M = 500;
+const usesGeo = (m: VerifyMode) =>
+  m === "location" || m === "either" || m === "both";
+const exactLocation = (r: BranchRule) =>
+  r.latitude !== null &&
+  (r.location_source === "device" || r.location_source === "manual");
+
+/** Where a branch's position came from, in a few words. */
+function locationLabel(r: BranchRule): string {
+  if (r.latitude === null) return "No location";
+  if (r.location_source === "device") return "Exact spot, taken at the shop";
+  if (r.location_source === "manual") return "Exact spot, entered by hand";
+  return "Rough location from the pincode";
+}
+
+/** The shop's exact spot: take it with this device while at the shop (the Wi-Fi address comes with it), or paste coordinates or a
+ * Google Maps link. Nothing is saved until the editor's Save. */
+function ShopLocationSection({
+  rule,
+  pending,
+  onPending,
+  onNetwork,
+}: {
+  rule: BranchRule;
+  pending: ShopLocation | null;
+  onPending: (l: ShopLocation | null) => void;
+  onNetwork: () => void;
+}) {
+  const [locating, setLocating] = useState(false);
+  const [problem, setProblem] = useState<string | null>(null);
+  const [typing, setTyping] = useState(false);
+  const [typed, setTyped] = useState("");
+  const shown = pending ?? (rule.latitude !== null ? rule : null);
+
+  async function takeHere() {
+    setProblem(null);
+    setLocating(true);
+    const r = await bestPosition();
+    setLocating(false);
+    if (!r.ok) return setProblem(LOCATION_HINT[r.reason]);
+    const { latitude, longitude, accuracy } = r.position;
+    if (accuracy > CAPTURE_ACCURACY_M)
+      return setProblem(
+        `That reading could be off by about ${Math.round(accuracy)} m; it needs to be within ${CAPTURE_ACCURACY_M} m. Step near a window or outside and try again -- a phone works far better than a laptop.`,
+      );
+    onPending({
+      latitude: Number(latitude.toFixed(6)),
+      longitude: Number(longitude.toFixed(6)),
+      source: "device",
+      accuracy_m: Math.round(accuracy),
+    });
+    onNetwork(); // standing in the shop: its Wi-Fi address is the one this page sees, if it's on the shop's Wi-Fi
+  }
+
+  function applyTyped() {
+    const point = parseMapPoint(typed);
+    if (!point)
+      return setProblem(
+        typed.includes("goo.gl")
+          ? "Short links don't carry the location. Open the link, then copy the full address from the browser, or long-press the pin in Google Maps and copy the numbers."
+          : "Paste numbers like 25.5941, 85.1376, or a Google Maps link to the shop.",
+      );
+    setProblem(null);
+    setTyping(false);
+    setTyped("");
+    onPending({ ...point, source: "manual" });
+  }
+
+  return (
+    <div className="mb-space-4 rounded-md border border-line p-space-3">
+      <div className="flex flex-wrap items-start justify-between gap-space-2">
+        <div className="min-w-0">
+          <p className="text-[13.5px] font-semibold text-ink-900">
+            Shop location
+          </p>
+          <p
+            className={cn(
+              "text-[13px]",
+              pending || exactLocation(rule) ? "text-ink-600" : "text-warning",
+            )}
+          >
+            {pending
+              ? pending.source === "device"
+                ? `Taken here, within ${pending.accuracy_m} m. Save to use it.`
+                : "Entered by hand. Save to use it."
+              : locationLabel(rule)}
+            {shown && shown.latitude !== null && shown.longitude !== null && (
+              <>
+                {" · "}
+                <a
+                  href={mapLink(shown.latitude, shown.longitude)}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="font-semibold text-brand-700 underline"
+                >
+                  {shown.latitude.toFixed(5)}, {shown.longitude.toFixed(5)}
+                </a>
+              </>
+            )}
+          </p>
+        </div>
+        {pending && (
+          <Button variant="ghost" onClick={() => onPending(null)}>
+            Undo
+          </Button>
+        )}
+      </div>
+      {!pending && !exactLocation(rule) && (
+        <p className="mt-space-1 text-hint">
+          A pincode&apos;s centre can be kilometres from the shop, so location
+          checks need the exact spot.
+        </p>
+      )}
+      <div className="mt-space-3 flex flex-wrap gap-space-2">
+        <Button variant="secondary" onClick={takeHere} disabled={locating}>
+          <LocateFixed size={14} />
+          {locating ? "Finding you…" : "I'm at the shop now"}
+        </Button>
+        {!typing && (
+          <Button variant="ghost" onClick={() => setTyping(true)}>
+            Enter it myself
+          </Button>
+        )}
+      </div>
+      {typing && (
+        <div className="mt-space-3 flex flex-wrap items-end gap-space-2">
+          <Field
+            label="Coordinates or Google Maps link"
+            htmlFor="br-point"
+            className="mb-0 min-w-0 flex-1"
+          >
+            <Input
+              id="br-point"
+              value={typed}
+              placeholder="25.5941, 85.1376"
+              onChange={(e) => setTyped(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && applyTyped()}
+            />
+          </Field>
+          <Button variant="secondary" onClick={applyTyped}>
+            Use this
+          </Button>
+        </div>
+      )}
+      {problem && (
+        <p role="alert" className="mt-space-2 text-[13px] text-error">
+          {problem}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** The business's own hours and days off, in words, for "a branch without its own uses …". */
+const businessHours = (d: AttendanceDefaults) =>
+  d.shift_start && d.shift_end
+    ? `${d.shift_start}–${d.shift_end}`
+    : "no set hours (nobody is marked late)";
+const businessOff = (d: AttendanceDefaults) =>
+  d.weekly_off.length
+    ? WEEKDAY_NUMBERS.filter((w) => d.weekly_off.includes(w.n))
+        .map((w) => w.label)
+        .join(", ")
+    : "no weekly off";
+
+/** A switch with what it means underneath. */
+function SwitchRow({
+  label,
+  hint,
+  checked,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  checked: boolean;
+  onChange: () => void;
+}) {
+  return (
+    <div className="mb-space-3 flex items-start justify-between gap-space-3">
+      <span className="min-w-0">
+        <span className="block text-[13.5px] font-semibold text-ink-900">
+          {label}
+        </span>
+        <span className="text-hint block">{hint}</span>
+      </span>
+      <Switch checked={checked} onChange={onChange} aria-label={label} />
+    </div>
+  );
+}
+
 function BranchEditor({
   rule,
+  defaults,
   detectedIp,
   onSave,
+  onSaveLocation,
   onClose,
 }: {
   rule: BranchRule;
+  defaults: AttendanceDefaults;
   detectedIp: string | null;
   onSave: (patch: Partial<BranchRule>) => Promise<string | null>;
+  onSaveLocation: (location: ShopLocation) => Promise<string | null>;
   onClose: () => void;
 }) {
+  const [location, setLocation] = useState<ShopLocation | null>(null);
   const [mode, setMode] = useState<VerifyMode>(rule.verify_mode);
   const [radius, setRadius] = useState(rule.radius_meters?.toString() ?? "100");
   const [ips, setIps] = useState(rule.allowed_ips.join("\n"));
-  const [lat, setLat] = useState(rule.latitude?.toString() ?? "");
-  const [lng, setLng] = useState(rule.longitude?.toString() ?? "");
   const [ownHours, setOwnHours] = useState(rule.shift_start !== null);
   const [start, setStart] = useState(rule.shift_start ?? "");
   const [end, setEnd] = useState(rule.shift_end ?? "");
@@ -284,8 +574,10 @@ function BranchEditor({
   const [off, setOff] = useState<number[]>(rule.weekly_off ?? []);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const usesLocation =
-    mode === "location" || mode === "either" || mode === "both";
+  const usesLocation = usesGeo(mode);
+  // location checks need the exact spot; one already switched on stays selectable so saving other changes still works
+  const geoAllowed =
+    location !== null || exactLocation(rule) || usesGeo(rule.verify_mode);
   const usesNetwork =
     mode === "network" || mode === "either" || mode === "both";
   const ipList = ips
@@ -294,12 +586,22 @@ function BranchEditor({
     .filter(Boolean);
 
   async function save() {
+    const r = Number(radius || 100);
+    if (usesLocation && !(r >= 50 && r <= MAX_RADIUS_M))
+      return setError(`The radius must be 50 to ${MAX_RADIUS_M} metres.`);
     setSaving(true);
+    if (location) {
+      // first, so a location check switched on in the same save finds the exact spot
+      const failed = await onSaveLocation(location);
+      if (failed) {
+        setSaving(false);
+        return setError(failed);
+      }
+      setLocation(null);
+    }
     const problem = await onSave({
-      latitude: lat.trim() === "" ? null : Number(lat),
-      longitude: lng.trim() === "" ? null : Number(lng),
       verify_mode: mode,
-      radius_meters: usesLocation ? Number(radius || 100) : rule.radius_meters,
+      radius_meters: usesLocation ? r : rule.radius_meters,
       allowed_ips: ipList,
       shift_start: ownHours ? start || null : null,
       shift_end: ownHours ? end || null : null,
@@ -327,65 +629,73 @@ function BranchEditor({
         </div>
       }
     >
-      <Field label="Clock-in check">
+      <ShopLocationSection
+        rule={rule}
+        pending={location}
+        onPending={setLocation}
+        onNetwork={() =>
+          detectedIp &&
+          setIps((v) =>
+            v.split(/[\n,]/).some((x) => x.trim() === detectedIp)
+              ? v
+              : v.trim()
+                ? `${v.trim()}\n${detectedIp}`
+                : detectedIp,
+          )
+        }
+      />
+      <Field
+        label="Clock-in check"
+        hint={
+          geoAllowed
+            ? undefined
+            : "Set the shop location above to use a location check."
+        }
+      >
         <div className="space-y-space-2">
-          {MODES.map((m) => (
-            <label
-              key={m.value}
-              className={cn(
-                "flex cursor-pointer gap-space-2 rounded-md border p-space-2",
-                mode === m.value
-                  ? "border-brand-600 bg-brand-50"
-                  : "border-line",
-              )}
-            >
-              <input
-                type="radio"
-                name="mode"
-                checked={mode === m.value}
-                onChange={() => setMode(m.value)}
-              />
-              <span>
-                <span className="block text-[13.5px] font-semibold text-ink-900">
-                  {m.label}
+          {MODES.map((m) => {
+            const blocked = usesGeo(m.value) && !geoAllowed;
+            return (
+              <label
+                key={m.value}
+                className={cn(
+                  "flex gap-space-2 rounded-md border p-space-2",
+                  blocked ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+                  mode === m.value
+                    ? "border-brand-600 bg-brand-50"
+                    : "border-line",
+                )}
+              >
+                <input
+                  type="radio"
+                  name="mode"
+                  disabled={blocked}
+                  checked={mode === m.value}
+                  onChange={() => setMode(m.value)}
+                />
+                <span>
+                  <span className="block text-[13.5px] font-semibold text-ink-900">
+                    {m.label}
+                  </span>
+                  <span className="text-hint">{m.hint}</span>
                 </span>
-                <span className="text-hint">{m.hint}</span>
-              </span>
-            </label>
-          ))}
+              </label>
+            );
+          })}
         </div>
       </Field>
-      {usesLocation && (
-        <Field label="Branch location" htmlFor="br-lat" hint="Where staff must be to clock in. Stand at the branch and use your current location.">
-          <div className="flex flex-wrap items-center gap-space-2">
-            <Input id="br-lat" inputMode="decimal" placeholder="Latitude" value={lat} onChange={(e) => setLat(e.target.value)} />
-            <Input id="br-lng" aria-label="Longitude" inputMode="decimal" placeholder="Longitude" value={lng} onChange={(e) => setLng(e.target.value)} />
-            <Button
-              variant="secondary"
-              type="button"
-              onClick={() =>
-                navigator.geolocation?.getCurrentPosition(
-                  (pos) => {
-                    setLat(pos.coords.latitude.toFixed(6));
-                    setLng(pos.coords.longitude.toFixed(6));
-                  },
-                  () => setError("Couldn't read your location. Allow location access, or type the coordinates."),
-                )
-              }
-            >
-              <MapPin size={14} /> Use my current location
-            </Button>
-          </div>
-        </Field>
-      )}
       {usesLocation && (
         <Field
           label="Radius (metres)"
           htmlFor="br-radius"
-          hint="100–200 m suits most shops."
+          hint={`50 to ${MAX_RADIUS_M} m around the shop location. 100 m suits most shops; go wider only for a large site, since a wide circle can take in nearby homes.`}
         >
           <Input
             id="br-radius"
+            type="number"
+            min={50}
+            max={MAX_RADIUS_M}
+            step={10}
             inputMode="numeric"
             value={radius}
             onChange={(e) => setRadius(e.target.value)}
@@ -396,7 +706,7 @@ function BranchEditor({
         <Field
           label="Shop internet addresses"
           htmlFor="br-ips"
-          hint="One per line: an address like 49.36.12.7 or a range like 49.36.0.0/16. Open this page on the shop's Wi-Fi and add it."
+          hint="One per line: an address like 49.36.12.7 or a range like 49.36.0.0/16. Browsers can't read the Wi-Fi's name, only the internet address it uses, so add it while on the shop's Wi-Fi (not mobile data). Home broadband addresses can change when the router restarts; if staff suddenly can't clock in, add the new one."
         >
           <Textarea
             id="br-ips"
@@ -419,16 +729,16 @@ function BranchEditor({
           )}
         </Field>
       )}
-      <div className="mb-space-3 flex items-center justify-between gap-space-2">
-        <span className="text-[13.5px] font-semibold text-ink-900">
-          Own working hours
-        </span>
-        <Switch
-          checked={ownHours}
-          onChange={() => setOwnHours((v) => !v)}
-          aria-label="Own working hours"
-        />
-      </div>
+      <SwitchRow
+        label="Own working hours"
+        hint={
+          ownHours
+            ? "This branch's start and end times decide who is late and what counts as overtime here."
+            : `Off: this branch follows the business hours (${businessHours(defaults)}), set under Business rules. Turn on if this branch keeps different hours.`
+        }
+        checked={ownHours}
+        onChange={() => setOwnHours((v) => !v)}
+      />
       {ownHours && (
         <div className="grid grid-cols-2 gap-space-3">
           <Field label="Starts" htmlFor="br-start">
@@ -449,16 +759,20 @@ function BranchEditor({
           </Field>
         </div>
       )}
-      <div className="mb-space-3 flex items-center justify-between gap-space-2">
-        <span className="text-[13.5px] font-semibold text-ink-900">
-          Own weekly off
-        </span>
-        <Switch
-          checked={ownOff}
-          onChange={() => setOwnOff((v) => !v)}
-          aria-label="Own weekly off"
-        />
-      </div>
+      <SwitchRow
+        label="Own weekly off"
+        hint={
+          ownOff
+            ? "The days picked below are this branch's days off: nobody here is marked absent on them."
+            : `Off: this branch follows the business's weekly off (${businessOff(defaults)}). Turn on if this branch closes on other days.`
+        }
+        checked={ownOff}
+        onChange={() => setOwnOff((v) => !v)}
+      />
+      <p className="text-hint mb-space-3">
+        Hours set for a person (Team &amp; Access) come before the
+        branch&apos;s, and the branch&apos;s before the business&apos;s.
+      </p>
       {ownOff && <WeekdayPicker value={off} onChange={setOff} />}
       {error && (
         <p
@@ -474,16 +788,23 @@ function BranchEditor({
 
 function Branches({
   rules,
+  defaults,
   detectedIp,
   canEdit,
   onSave,
+  onSaveLocation,
 }: {
   rules: BranchRule[];
+  defaults: AttendanceDefaults;
   detectedIp: string | null;
   canEdit: boolean;
   onSave: (
     branchId: string,
     patch: Partial<BranchRule>,
+  ) => Promise<string | null>;
+  onSaveLocation: (
+    branchId: string,
+    location: ShopLocation,
   ) => Promise<string | null>;
 }) {
   const [editing, setEditing] = useState<BranchRule | null>(null);
@@ -512,11 +833,14 @@ function Branches({
               >
                 <td className="px-space-3 py-space-2">
                   <p className="font-semibold text-ink-900">{b.branch_name}</p>
-                  {b.latitude === null && (
-                    <p className="flex items-center gap-1 text-hint">
-                      <MapPin size={12} /> No location saved
-                    </p>
-                  )}
+                  <p
+                    className={cn(
+                      "flex items-center gap-1 text-[12px]",
+                      exactLocation(b) ? "text-ink-400" : "text-warning",
+                    )}
+                  >
+                    <MapPin size={12} /> {locationLabel(b)}
+                  </p>
                 </td>
                 <td className="px-space-3 py-space-2">
                   <Badge tone={b.verify_mode === "off" ? "neutral" : "success"}>
@@ -550,8 +874,10 @@ function Branches({
       {editing && (
         <BranchEditor
           rule={editing}
+          defaults={defaults}
           detectedIp={detectedIp}
           onSave={(patch) => onSave(editing.branch_id, patch)}
+          onSaveLocation={(l) => onSaveLocation(editing.branch_id, l)}
           onClose={() => setEditing(null)}
         />
       )}
@@ -761,7 +1087,7 @@ export default function AttendanceSettingsPage() {
   const canView = usePermission("attendance_settings", "view");
   const canEdit = usePermission("attendance_settings", "write");
   const canEditBusiness = hasTenantWide(session, "attendance_settings:manage");
-  const { settings, error, saveDefaults, saveBranch } =
+  const { settings, error, saveDefaults, saveBranch, saveLocation } =
     useAttendanceSettings(canView);
   const [tab, setTab] = useState<"rules" | "branches" | "holidays">("rules");
 
@@ -780,7 +1106,7 @@ export default function AttendanceSettingsPage() {
       <PageHeader
         icon={<CalendarClock size={20} />}
         title="Attendance and holidays"
-        description="Working hours, lateness, how each branch checks clock-ins, and your holiday calendar."
+        description="Working hours, lateness, leave allowance, how each branch checks clock-ins, and your holiday calendar."
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
       <Tabs
@@ -795,18 +1121,25 @@ export default function AttendanceSettingsPage() {
       {!settings ? (
         <SkeletonLines rows={3} />
       ) : tab === "rules" ? (
-        <BusinessRules
-          key={JSON.stringify(settings.defaults)}
-          initial={settings.defaults}
-          canEdit={canEditBusiness}
-          onSave={saveDefaults}
-        />
+        <>
+          <BusinessRules
+            key={JSON.stringify(settings.defaults)}
+            initial={settings.defaults}
+            canEdit={canEditBusiness}
+            onSave={saveDefaults}
+          />
+          <div className="mt-space-6">
+            <LeaveAllowance />
+          </div>
+        </>
       ) : tab === "branches" ? (
         <Branches
           rules={settings.branches}
+          defaults={settings.defaults}
           detectedIp={settings.detected_ip}
           canEdit={canEdit}
           onSave={saveBranch}
+          onSaveLocation={saveLocation}
         />
       ) : (
         <Holidays
