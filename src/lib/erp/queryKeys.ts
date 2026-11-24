@@ -133,6 +133,9 @@ export const queryKeys = {
   hrTeamMonth: (month: string, branchId: string) =>
     ["hr", "attendance", "team-month", month, branchId] as const,
   hrCheckinRequests: ["hr", "attendance", "requests"] as const,
+  hrMyRequests: ["hr", "attendance", "my-requests"] as const,
+  hrPersonDevice: (userId: string) =>
+    ["hr", "attendance", "device", userId] as const,
   hrHolidays: (year: number) => ["hr", "attendance", "holidays", year] as const,
   hrPattern: (userId: string) =>
     ["hr", "attendance", "pattern", userId] as const,

@@ -13,6 +13,7 @@ import {
   MapPin,
   Play,
   Send,
+  Smartphone,
 } from "lucide-react";
 import { Badge } from "@/components/erp-ui/Badge";
 import { Button } from "@/components/erp-ui/Button";
@@ -342,7 +343,7 @@ export default function CheckInOutPage() {
     breakStart,
     breakEnd,
     requestApproval,
-  } = useClock(canView);
+  } = useClock(canView, session ? String(session.id) : undefined);
   // the shop's month, from the server's work date (the browser's clock and zone may differ)
   const { records } = useMyMonthlyAttendance(
     canView,
@@ -494,7 +495,7 @@ export default function CheckInOutPage() {
         <ProblemPanel
           problem={problem}
           busy={busy}
-          onRetry={checkIn}
+          onRetry={problem.retry === "check_out" ? checkOut : checkIn}
           onAsk={() => setAsking(true)}
           onDismiss={dismissProblem}
         />
@@ -509,6 +510,14 @@ export default function CheckInOutPage() {
         <p className="mb-space-4 flex items-center gap-space-2 text-[12.5px] text-ink-600">
           <MapPin size={14} /> Your company checks your location when you clock
           in -- allow location access when asked.
+        </p>
+      )}
+      {today?.device.locked && (
+        <p className="mb-space-4 flex items-center gap-space-2 text-[12.5px] text-ink-600">
+          <Smartphone size={14} />
+          {today.device.registered
+            ? `Attendance works only from your registered device (${today.device.registered.label ?? "this browser"}). New phone? Ask your manager to reset it.`
+            : "Your company locks attendance to one device: the one you clock in from first becomes yours. Use your own phone, not a private window."}
         </p>
       )}
 

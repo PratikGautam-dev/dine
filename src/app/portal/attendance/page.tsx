@@ -27,6 +27,7 @@ import { PageHeader } from "@/components/erp-ui/PageHeader";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { DonutChart } from "@/components/portal/DonutChart";
 import { StatTile } from "@/components/erp/StatTile";
+import { MyAttendanceRequests } from "@/components/portal/MyAttendanceRequests";
 import { DAY_STATE, fmtDate, fmtMinutes } from "@/lib/hr";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { useMyMonthlyAttendance } from "@/hooks/useHr";
@@ -163,6 +164,7 @@ export default function MyAttendancePage() {
         }
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
+      <MyAttendanceRequests enabled={canView} />
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">
         <StatTile

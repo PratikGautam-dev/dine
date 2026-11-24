@@ -9,8 +9,11 @@ export type { StaffSession };
 /** The ERP's CRM sub-areas (tags, segments, membership, campaigns) all sit on Dine's one `customers` page. */
 const CUSTOMER_AREAS = new Set(["tags", "segments", "membership", "campaigns"]);
 
+/** The ERP's Workforce grants (`leave:approve`, `attendance:manage` ...) sit on the Dine pages of the same screens: leave -> Leave Requests. */
+const PAGE_ALIASES: Record<string, string> = { leave: "leave_requests" };
+
 export function hasPermission(session: StaffSession | null, pageKey: string, action: "view" | "write" | "delete"): boolean {
-  return dinePermission(session, CUSTOMER_AREAS.has(pageKey) ? "customers" : pageKey, action);
+  return dinePermission(session, CUSTOMER_AREAS.has(pageKey) ? "customers" : (PAGE_ALIASES[pageKey] ?? pageKey), action);
 }
 
 export function hasGrant(session: StaffSession | null, permission: string): boolean {

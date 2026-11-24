@@ -134,4 +134,3 @@ export const CHECK_METHOD: Record<string, string> = {
   manual: "Manager",
   none: "No check",
 };
-export const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;

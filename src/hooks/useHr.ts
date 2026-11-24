@@ -5,6 +5,7 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { useState } from "react";
+import { proveDevice, type DeviceProof } from "@/lib/deviceKey";
 import { staffJson, type AttendanceRecord } from "@/lib/hr";
 import { queryKeys } from "@/lib/erp/queryKeys";
 import { toast } from "@/lib/toast";
@@ -199,12 +200,6 @@ export function useLeaveRequests(canView: boolean, status: string) {
       }),
     onSettled: reload, // a refused decision also reloads: the request may have changed under the reviewer
   });
-  const allowanceMutation = useMutation({
-    mutationFn: (days: number) =>
-      hrSend(`${LEAVE}/policy`, { annual_leave_days: days }, "PATCH"),
-    onSuccess: reload,
-  });
-
   async function decide(
     id: string,
     action: "approve" | "reject",
@@ -219,23 +214,36 @@ export function useLeaveRequests(canView: boolean, status: string) {
     return null;
   }
 
-  async function saveAllowance(days: number): Promise<string | null> {
+  return {
+    requests: query.data?.requests ?? null,
+    summary: query.data?.summary ?? null,
+    error: messageOf(query.error),
+    decide,
+  };
+}
+
+/** The business's yearly leave allowance (Settings > Attendance); changing it needs leave:approve for every branch. */
+export function useLeaveAllowance(enabled: boolean) {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: [...queryKeys.hrLeave, "policy"],
+    queryFn: () => hrGet<{ annual_leave_days: number }>(`${LEAVE}/policy`),
+    enabled,
+  });
+  async function save(days: number): Promise<string | null> {
     try {
-      await allowanceMutation.mutateAsync(days);
+      await hrSend(`${LEAVE}/policy`, { annual_leave_days: days }, "PATCH");
     } catch (e) {
       return (e as Error).message;
     }
     toast.success("Yearly allowance updated");
+    await qc.invalidateQueries({ queryKey: queryKeys.hrLeave });
     return null;
   }
-
   return {
-    requests: query.data?.requests ?? null,
-    summary: query.data?.summary ?? null,
     allowance: query.data?.annual_leave_days ?? null,
     error: messageOf(query.error),
-    decide,
-    saveAllowance,
+    save,
   };
 }
 
@@ -367,6 +375,8 @@ export function useHolidays(enabled: boolean, year: number) {
 
 export type CheckinRequest = {
   id: string;
+  /** clock_in = today's, asked when the shop's check failed; past_day = a missed day, with both times */
+  kind: "clock_in" | "past_day";
   staff_id: string;
   staff_name: string | null;
   employee_id: string | null;
@@ -375,6 +385,8 @@ export type CheckinRequest = {
   work_date: string;
   requested_at: string;
   requested_local: string | null;
+  check_out_local: string | null;
+  created_at: string;
   reason: string;
   failure_code: string | null;
   distance_m: number | null;
@@ -407,13 +419,25 @@ export type ClockToday = {
   pending_request: CheckinRequest | null;
   branches: { id: string; name: string; verify_mode: string }[];
   home_branch_id: string;
+  /** The business locks attendance to one device per person; `registered` is mine, or null until my first clock-in. */
+  device: { locked: boolean; registered: RegisteredDevice | null };
 };
+
+export type RegisteredDevice = {
+  label: string | null;
+  registered_at: string;
+  last_used_at: string | null;
+};
+
+/** What a problem's "Try again" repeats. */
+export type ClockAction = "check_in" | "check_out";
 
 /** Why a clock-in failed, when the page should offer more than the message (e.g. asking a manager to approve). */
 export type ClockProblem = {
   message: string;
   reason?: string;
   canRequest: boolean;
+  retry: ClockAction;
 };
 
 type Position = { latitude: number; longitude: number; accuracy: number };
@@ -423,7 +447,7 @@ type PositionResult =
 
 /** The best browser location reading within a few seconds. The wait only starts once location access is allowed, so a person
  * reading the permission prompt is never timed out; it stops early once a reading is precise enough. */
-async function bestPosition(): Promise<PositionResult> {
+export async function bestPosition(): Promise<PositionResult> {
   if (typeof navigator === "undefined" || !navigator.geolocation)
     return { ok: false, reason: "unsupported" };
   try {
@@ -473,7 +497,7 @@ async function bestPosition(): Promise<PositionResult> {
   });
 }
 
-const LOCATION_HINT: Record<string, string> = {
+export const LOCATION_HINT: Record<string, string> = {
   denied:
     "Location access is blocked for this site. Allow it in your browser's site settings and try again.",
   timeout: "Your location took too long to find. Try again near a window.",
@@ -483,7 +507,21 @@ const LOCATION_HINT: Record<string, string> = {
     "This browser can't share its location. Use your phone's browser.",
 };
 
-export function useClock(canView: boolean) {
+/** A signed challenge for the device lock, or undefined when the business doesn't lock devices (or the browser can't sign: the server
+ * then refuses with a clear message). */
+async function deviceProof(
+  today: ClockToday | null,
+  userId: string | undefined,
+): Promise<DeviceProof | undefined> {
+  if (!today?.device.locked || !userId) return undefined;
+  const r = await hrSend<{ challenge: string }>(
+    `${ATTENDANCE}/device/challenge`,
+  );
+  if (!r) return undefined;
+  return (await proveDevice(userId, r.challenge)) ?? undefined;
+}
+
+export function useClock(canView: boolean, userId?: string) {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: queryKeys.hrClockToday,
@@ -504,11 +542,21 @@ export function useClock(canView: boolean) {
 
   /** One action: the buttons stay disabled until the server answered AND today's state has been reloaded, so a second tap can never
    * land on a stale button. An "already done" answer just refreshes. */
-  async function act(path: string, body: unknown, success: string) {
+  async function act(
+    path: string,
+    body: Record<string, unknown>,
+    success: string,
+    retry: ClockAction = "check_in",
+    signed = false,
+  ) {
     setBusy(true);
     setProblem(null);
     try {
-      await step.mutateAsync({ path, body });
+      const device = signed ? await deviceProof(today, userId) : undefined;
+      await step.mutateAsync({
+        path,
+        body: device ? { ...body, device } : body,
+      });
       toast.success(success);
     } catch (e) {
       const err = e as HrError;
@@ -518,6 +566,7 @@ export function useClock(canView: boolean) {
           message: err.message,
           reason,
           canRequest: err.details.can_request_manual === true,
+          retry,
         });
     } finally {
       await qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
@@ -546,19 +595,22 @@ export function useClock(canView: boolean) {
         message: LOCATION_HINT[where.location_error] ?? "No location.",
         reason: "location_unavailable",
         canRequest: true,
+        retry: "check_in",
       });
       setBusy(false);
       return;
     }
-    await act(`${ATTENDANCE}/check-in`, where, "Clocked in");
+    await act(`${ATTENDANCE}/check-in`, where, "Clocked in", "check_in", true);
   }
 
   async function requestApproval(reason: string): Promise<string | null> {
     try {
+      const device = await deviceProof(today, userId).catch(() => undefined);
       await hrSend(`${ATTENDANCE}/check-in/request`, {
         reason,
         failure_code: problem?.reason ?? null,
         ...lastLocation,
+        ...(device ? { device } : {}),
       });
       setProblem(null);
       toast.success("Request sent", "Your manager will approve it.");
@@ -581,7 +633,13 @@ export function useClock(canView: boolean) {
     checkIn,
     checkOut: async () => {
       // never blocked for location: record it only when it is quick to get
-      await act(`${ATTENDANCE}/check-out`, {}, "Clocked out");
+      await act(
+        `${ATTENDANCE}/check-out`,
+        {},
+        "Clocked out",
+        "check_out",
+        true,
+      );
     },
     breakStart: () => act(`${ATTENDANCE}/break/start`, {}, "Break started"),
     breakEnd: () => act(`${ATTENDANCE}/break/end`, {}, "Break ended"),
@@ -821,7 +879,7 @@ export function useCheckinRequests(canView: boolean) {
     } catch (e) {
       return (e as Error).message;
     }
-    toast.success(approve ? "Clock-in approved" : "Request declined");
+    toast.success(approve ? "Approved" : "Request declined");
     return null;
   }
 
@@ -830,6 +888,67 @@ export function useCheckinRequests(canView: boolean) {
     error: messageOf(query.error),
     decide,
   };
+}
+
+/** What I asked my manager for (clock-ins and missed days, last 60 days), and asking for a missed day. */
+export function useMyRequests(canView: boolean) {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.hrMyRequests,
+    queryFn: () =>
+      hrGet<{ requests: CheckinRequest[] }>(`${ATTENDANCE}/my-requests`),
+    enabled: canView,
+  });
+  async function askPastDay(input: {
+    work_date: string;
+    check_in_time: string;
+    check_out_time: string;
+    reason: string;
+  }): Promise<string | null> {
+    try {
+      await hrSend(`${ATTENDANCE}/requests/past-day`, input);
+    } catch (e) {
+      return (e as Error).message;
+    }
+    toast.success("Request sent", "Your manager will approve it.");
+    await qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
+    return null;
+  }
+  return {
+    requests: query.data?.requests ?? null,
+    error: messageOf(query.error),
+    askPastDay,
+  };
+}
+
+/** A person's registered attendance device, and a manager's reset (lost or new phone). */
+export function usePersonDevice(userId: string) {
+  const qc = useQueryClient();
+  const query = useQuery({
+    queryKey: queryKeys.hrPersonDevice(userId),
+    queryFn: () =>
+      hrGet<{ locked: boolean; device: RegisteredDevice | null }>(
+        `${ATTENDANCE}/people/${userId}/device`,
+      ),
+  });
+  async function reset(): Promise<string | null> {
+    try {
+      await hrSend(
+        `${ATTENDANCE}/people/${userId}/device`,
+        undefined,
+        "DELETE",
+      );
+    } catch (e) {
+      return (e as Error).message;
+    }
+    toast.success(
+      "Device reset",
+      "Their next clock-in registers the device they use.",
+    );
+    await qc.invalidateQueries({ queryKey: queryKeys.hrPersonDevice(userId) });
+    return null;
+  }
+  return { data: query.data ?? null, error: messageOf(query.error), reset };
 }
 
 // ---------------------------------------------------------------- Attendance rules
@@ -842,6 +961,7 @@ export type AttendanceDefaults = {
   early_clock_in_minutes: number | null;
   auto_close_after_minutes: number | null;
   max_gps_accuracy_m: number;
+  device_lock: boolean;
 };
 export type VerifyMode = "off" | "location" | "network" | "either" | "both";
 export type BranchRule = {
@@ -850,6 +970,8 @@ export type BranchRule = {
   timezone: string;
   latitude: number | null;
   longitude: number | null;
+  /** How the position was set: 'device' (measured at the shop) and 'manual' (typed) are exact; 'pincode' is only the area's centre. */
+  location_source: "pincode" | "device" | "manual" | null;
   verify_mode: VerifyMode;
   radius_meters: number | null;
   allowed_ips: string[];
@@ -862,6 +984,14 @@ export type AttendanceSettings = {
   branches: BranchRule[];
   detected_ip: string | null;
   can_edit_defaults: boolean;
+};
+
+/** The shop's exact spot: measured by this device at the shop, or typed in / read from a map link. */
+export type ShopLocation = {
+  latitude: number;
+  longitude: number;
+  source: "device" | "manual";
+  accuracy_m?: number;
 };
 
 export function useAttendanceSettings(canView: boolean) {
@@ -888,6 +1018,33 @@ export function useAttendanceSettings(canView: boolean) {
       ),
     onSuccess: reload,
   });
+
+  const locationMutation = useMutation({
+    mutationFn: (input: { branchId: string; location: ShopLocation }) =>
+      hrSend<BranchRule>(
+        `${ATTENDANCE}/branches/${input.branchId}/location`,
+        input.location,
+        "PUT",
+      ),
+    // the same spot ranks branches for online orders and shows on the branch page
+    onSuccess: () =>
+      Promise.all([
+        reload(),
+        qc.invalidateQueries({ queryKey: queryKeys.branches }),
+      ]),
+  });
+
+  async function saveLocation(
+    branchId: string,
+    location: ShopLocation,
+  ): Promise<string | null> {
+    try {
+      await locationMutation.mutateAsync({ branchId, location });
+    } catch (e) {
+      return (e as Error).message;
+    }
+    return null;
+  }
 
   async function saveDefaults(
     patch: Partial<AttendanceDefaults>,
@@ -919,6 +1076,7 @@ export function useAttendanceSettings(canView: boolean) {
     error: messageOf(query.error),
     saveDefaults,
     saveBranch,
+    saveLocation,
   };
 }
 

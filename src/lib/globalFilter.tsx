@@ -56,7 +56,7 @@ export const CHANNEL_LABEL: Record<GlobalChannel, string> = {
   app: "App",
   whatsapp: "WhatsApp",
   pos: "POS",
-  skip_queue: "Skip queue",
+  skip_queue: "SkipQ",
 };
 export const PICKUP_LABEL: Record<GlobalPickup, string> = {
   dine_in: "Dine-in",
