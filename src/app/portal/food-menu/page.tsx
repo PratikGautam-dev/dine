@@ -12,6 +12,7 @@ import {
   PackageX,
   Plus,
   Search,
+  Settings2,
   Soup,
   Utensils,
 } from "lucide-react";
@@ -26,6 +27,7 @@ import { TableSkeleton } from "@/components/ui/Skeleton";
 import { BulkImportMenuItemsModal } from "@/components/portal/BulkImportMenuItemsModal";
 import { BulkPhotoUploadModal } from "@/components/portal/BulkPhotoUploadModal";
 import { MenuItemPanel } from "@/components/portal/MenuItemPanel";
+import { PosMenuSetup } from "@/components/portal/PosMenuSetup";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -88,6 +90,7 @@ export default function PortalFoodMenuPage() {
   const [search, setSearch] = useState("");
   const [showBulkUpload, setShowBulkUpload] = useState(false);
   const [showBulkImport, setShowBulkImport] = useState(false);
+  const [showPosSetup, setShowPosSetup] = useState(false);
 
   const stats = useMemo(() => {
     const all = items || [];
@@ -327,6 +330,9 @@ export default function PortalFoodMenuPage() {
         actions={
           canManage && (
             <div className="flex items-center gap-space-2">
+              <Button size="md" variant="secondary" onClick={() => setShowPosSetup(true)}>
+                <Settings2 size={14} /> POS setup
+              </Button>
               <Button size="md" variant="secondary" onClick={() => setShowBulkImport(true)}>
                 <FileUp size={14} /> Bulk import (CSV)
               </Button>
@@ -404,6 +410,16 @@ export default function PortalFoodMenuPage() {
           existingNames={(items || []).map((i) => i.name.trim().toLowerCase())}
           onClose={() => setShowBulkImport(false)}
           onImported={load}
+        />
+      )}
+
+      {showPosSetup && (
+        <PosMenuSetup
+          canWrite={canManage}
+          onClose={() => {
+            setShowPosSetup(false);
+            load();
+          }}
         />
       )}
 

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { CashiersPanel, TerminalsPanel } from "@/components/portal/channels/BranchTerminals";
+import { PosSettingsPanel } from "@/components/portal/channels/PosSettingsPanel";
 import { ChannelConnections } from "@/components/portal/channels/ChannelConnections";
 import { WhatsAppConnect } from "@/components/portal/channels/WhatsAppConnect";
 import { Badge } from "@/components/erp-ui/Badge";
@@ -11,7 +12,12 @@ import { Card } from "@/components/erp-ui/Card";
 import { Select } from "@/components/erp-ui/Select";
 import { Switch } from "@/components/erp-ui/Switch";
 import { useChannelReadiness, type Readiness } from "@/hooks/useChannels";
-import { useChannelBranches, useTerminalSummary, useToggleChannelBranch, type ChannelBranch } from "@/hooks/useTerminals";
+import {
+  useChannelBranches,
+  useTerminalSummary,
+  useToggleChannelBranch,
+  type ChannelBranch,
+} from "@/hooks/useTerminals";
 import { CHANNELS, formatDateTime, type Channel } from "@/lib/erp/erp";
 import { hasPermission, useStaffSession } from "@/lib/erp/staffAuth";
 import { toast } from "@/lib/toast";
@@ -106,15 +112,28 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
   const toggleBranch = useToggleChannelBranch();
   const [busy, setBusy] = useState<string | null>(null);
   const canWrite = hasPermission(session, "settings", "write");
-  const field = channel === "online" ? "accepts_online" : channel === "pos" ? "accepts_pos" : "accepts_whatsapp";
-  const label = channel === "online" ? "Takes website orders" : channel === "pos" ? "Takes POS sales" : "Takes WhatsApp orders";
+  const field =
+    channel === "online"
+      ? "accepts_online"
+      : channel === "pos"
+        ? "accepts_pos"
+        : "accepts_whatsapp";
+  const label =
+    channel === "online"
+      ? "Takes website orders"
+      : channel === "pos"
+        ? "Takes POS sales"
+        : "Takes WhatsApp orders";
   const rows = (branches.data ?? []).filter((b) => b.status === "active");
 
   function toggle(b: ChannelBranch) {
     setBusy(b.id);
     toggleBranch.mutate(
       { branchId: b.id, field, value: !b[field] },
-      { onError: (e) => toast.error("Couldn't update the branch", e.message), onSettled: () => setBusy(null) },
+      {
+        onError: (e) => toast.error("Couldn't update the branch", e.message),
+        onSettled: () => setBusy(null),
+      },
     );
   }
 
@@ -122,10 +141,13 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
     <Card className="mt-space-5 min-w-0 p-space-3 md:p-space-4">
       <h2 className="text-[15px] font-bold text-ink-900">Branches on this channel</h2>
       <p className="mb-space-3 text-[13px] text-ink-600">
-        Switch a branch on or off for {CHANNELS[channel].label}. More detail (hours, fees, minimum order) is on each branch&apos;s page.
+        Switch a branch on or off for {CHANNELS[channel].label}. More detail (hours, fees, minimum
+        order) is on each branch&apos;s page.
       </p>
       {rows.length === 0 ? (
-        <p className="text-[13.5px] text-ink-400">{branches.isFetching ? "Loading…" : "No active branches."}</p>
+        <p className="text-[13.5px] text-ink-400">
+          {branches.isFetching ? "Loading…" : "No active branches."}
+        </p>
       ) : (
         <table className="w-full text-[13.5px]">
           <thead>
@@ -142,10 +164,18 @@ export function ChannelBranches({ channel }: { channel: Channel }) {
                   <span className="break-words font-medium text-ink-900">{b.branch_name}</span>
                 </td>
                 <td className="px-space-3">
-                  <Switch checked={b[field]} disabled={!canWrite || busy === b.id} onChange={() => toggle(b)} aria-label={`${label}: ${b.branch_name}`} />
+                  <Switch
+                    checked={b[field]}
+                    disabled={!canWrite || busy === b.id}
+                    onChange={() => toggle(b)}
+                    aria-label={`${label}: ${b.branch_name}`}
+                  />
                 </td>
                 <td className="text-right">
-                  <Link href={`/portal/settings/branches/${b.id}`} className="font-semibold text-brand-600 hover:underline">
+                  <Link
+                    href={`/portal/settings/branches/${b.id}`}
+                    className="font-semibold text-brand-600 hover:underline"
+                  >
                     Manage
                   </Link>
                 </td>
@@ -163,8 +193,9 @@ export function OnlineChannelPanel() {
   return (
     <>
       <p className="max-w-2xl text-[14px] text-ink-600">
-        Your website talks to the backend with an API key. Orders it places are recorded on the <strong>Website</strong> channel and appear in Food orders and
-        Customers like any other order.
+        Your website talks to the backend with an API key. Orders it places are recorded on the{" "}
+        <strong>Website</strong> channel and appear in Food orders and Customers like any other
+        order.
       </p>
       <ChannelConnections channel="online" />
     </>
@@ -188,7 +219,8 @@ export function PosChannelPanel() {
   return (
     <>
       <p className="max-w-2xl text-[14px] text-ink-600">
-        Each till is paired to one branch. Pick a branch to pair terminals and set cashier PINs for it.
+        Each till is paired to one branch. Pick a branch to pair terminals and set cashier PINs for
+        it.
       </p>
       <Card className="mt-space-5 min-w-0 p-space-3 md:p-space-4">
         <div className="mb-space-3">
@@ -202,16 +234,23 @@ export function PosChannelPanel() {
           </p>
         </div>
         {branches.data && posBranches.length === 0 ? (
-          <p className="text-[13.5px] text-ink-400">No active branch takes POS sales. Switch on “Takes POS sales” for a branch below.</p>
+          <p className="text-[13.5px] text-ink-400">
+            No active branch takes POS sales. Switch on “Takes POS sales” for a branch below.
+          </p>
         ) : (
           <ul className="divide-y divide-line">
             {posBranches.map((b) => {
               const t = stats.get(b.id);
               const paired = t?.paired ?? 0;
               return (
-                <li key={b.id} className="flex flex-col items-start gap-space-1 py-space-3 text-[13.5px]">
+                <li
+                  key={b.id}
+                  className="flex flex-col items-start gap-space-1 py-space-3 text-[13.5px]"
+                >
                   <div className="flex w-full min-w-0 items-start justify-between gap-space-2">
-                    <span className="min-w-0 break-words font-medium text-ink-900">{b.branch_name}</span>
+                    <span className="min-w-0 break-words font-medium text-ink-900">
+                      {b.branch_name}
+                    </span>
                     {summary.data && (
                       <Badge className="shrink-0" tone={paired ? "success" : "warning"}>
                         {paired ? `${paired} paired` : "No terminal"}
@@ -220,19 +259,25 @@ export function PosChannelPanel() {
                   </div>
                   {summary.data && paired > 0 && (
                     <p className="text-[12.5px] text-ink-600">
-                      {t?.online ?? 0} connected · last seen {t?.last_seen_at ? formatDateTime(t.last_seen_at) : "never"}
+                      {t?.online ?? 0} connected · last seen{" "}
+                      {t?.last_seen_at ? formatDateTime(t.last_seen_at) : "never"}
                     </p>
                   )}
                   <div className="flex w-full flex-wrap items-center gap-space-2">
                     {(t?.waiting_bills ?? 0) > 0 && (
                       <Badge tone="warning">
-                        {t?.waiting_bills} bill{t?.waiting_bills === 1 ? "" : "s"} waiting on {t?.tills_holding} till{t?.tills_holding === 1 ? "" : "s"}
+                        {t?.waiting_bills} bill{t?.waiting_bills === 1 ? "" : "s"} waiting on{" "}
+                        {t?.tills_holding} till{t?.tills_holding === 1 ? "" : "s"}
                       </Badge>
                     )}
                     {selected?.id === b.id ? (
                       <Badge tone="brand">Showing below</Badge>
                     ) : (
-                      <Button variant="secondary" className="h-11 px-space-3 text-[12.5px]" onClick={() => setPicked(b.id)}>
+                      <Button
+                        variant="secondary"
+                        className="h-11 px-space-3 text-[12.5px]"
+                        onClick={() => setPicked(b.id)}
+                      >
                         Manage
                       </Button>
                     )}
@@ -247,9 +292,16 @@ export function PosChannelPanel() {
       {selected && (
         <>
           <div className="mt-space-5 flex flex-wrap items-center justify-between gap-space-3">
-            <h2 className="min-w-0 break-words text-[16px] font-bold text-ink-900">{selected.branch_name}</h2>
+            <h2 className="min-w-0 break-words text-[16px] font-bold text-ink-900">
+              {selected.branch_name}
+            </h2>
             {posBranches.length > 1 && (
-              <Select value={selected.id} onValueChange={(value) => setPicked(value)} className="w-full md:w-56" aria-label="Branch">
+              <Select
+                value={selected.id}
+                onValueChange={(value) => setPicked(value)}
+                className="w-full md:w-56"
+                aria-label="Branch"
+              >
                 {posBranches.map((b) => (
                   <option key={b.id} value={b.id}>
                     {b.branch_name}
@@ -268,6 +320,7 @@ export function PosChannelPanel() {
           </Card>
         </>
       )}
+      <PosSettingsPanel branchId={selected?.id ?? null} />
     </>
   );
 }

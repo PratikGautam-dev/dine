@@ -7,6 +7,8 @@ import { Field } from "@/components/ui/Field";
 import { Input, Textarea } from "@/components/ui/Input";
 import { Switch } from "@/components/ui/Switch";
 import { ComboLinesEditor } from "@/components/portal/ComboLinesEditor";
+import { MenuItemPosSection } from "@/components/portal/MenuItemPosSection";
+import { usePermission } from "@/lib/staffAuth";
 import type { MenuItem, MenuItemFormState } from "@/hooks/useMenuItems";
 import { Select } from "@/components/erp-ui/Select";
 
@@ -50,6 +52,7 @@ export function MenuItemPanel({
   onRestock,
   onAvailability,
 }: Props) {
+  const canWriteMenu = usePermission("food_menu", "write");
   const [newCategoryMode, setNewCategoryMode] = useState(false);
   const [restockAmount, setRestockAmount] = useState("");
   const [imageError, setImageError] = useState<string | null>(null);
@@ -356,6 +359,23 @@ export function MenuItemPanel({
           </label>
         </div>
       )}
+
+      <div className="mt-space-5 border-t border-line pt-space-4">
+        <h3 className="mb-space-1 text-[13px] font-bold text-ink-900">POS</h3>
+        {item ? (
+          <>
+            <p className="mb-space-3 text-[12px] text-ink-600">
+              How the till sells it. Saved on its own with the button below.
+            </p>
+            <MenuItemPosSection itemId={item.id} canWrite={canWriteMenu} />
+          </>
+        ) : (
+          <p className="text-[12px] text-ink-600">
+            Save the item first, then open it again to set its kitchen station, GST, variants and
+            add-ons for the till.
+          </p>
+        )}
+      </div>
     </>
   );
 }
