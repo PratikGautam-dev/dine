@@ -123,11 +123,14 @@ export function useSaveItemPos(id: string) {
 /** POS settings: restaurant-wide values and each branch's overrides (null = the restaurant's). */
 export type PosSettings = {
   restaurant: {
+    /** Read-only here: edited in Settings > Taxes. */
     prices_include_tax: boolean;
-    default_tax_code: string | null;
+    default_tax_bps: number;
     fssai_number: string | null;
     takeaway_pay_first: boolean;
     packaging_fee_paise: number;
+    /** When the business day ends, 0-6 o'clock (0 = midnight): KOT numbers, the bill's day and the Z follow it. */
+    day_ends_hour: number;
   };
   branches: {
     id: string;
@@ -136,6 +139,7 @@ export type PosSettings = {
     fssai_number: string | null;
     takeaway_pay_first: boolean | null;
     packaging_fee_paise: number | null;
+    day_ends_hour: number | null;
     service_charge_pct: number | null;
   }[];
 };

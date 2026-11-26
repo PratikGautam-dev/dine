@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useMemo, useState } from "react";
 import {
   Area,
@@ -180,6 +182,14 @@ export default function PortalReportsPage() {
         title="Analytics"
         icon={<BarChart3 size={22} />}
         description="Insights from your WhatsApp and website orders, and table reservations."
+        actions={
+          <Link
+            href="/portal/reports/pos"
+            className="text-[13px] font-semibold text-brand-700 underline"
+          >
+            POS sales →
+          </Link>
+        }
       />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 

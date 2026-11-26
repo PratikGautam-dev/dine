@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { Select } from "@/components/erp-ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -8,10 +9,15 @@ import { Field } from "@/components/ui/Field";
 import { Input } from "@/components/ui/Input";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { type PosSettings, usePosSettings, useSavePosSettings } from "@/hooks/usePosMenu";
-import { useTaxRules } from "@/hooks/useTaxes";
 import { fromMinor, toMinor } from "@/lib/erp/erp";
 import { usePermission } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
+
+/** When the business day can end: midnight (most restaurants) up to 6 am, for places open late. */
+const DAY_ENDS = [0, 1, 2, 3, 4, 5, 6];
+const dayEndsLabel = (h: number) => (h === 0 ? "Midnight (12 am)" : `${h} am`);
+const DAY_ENDS_HINT =
+  "Bills after midnight and before this hour count for the evening before: KOT numbers carry on and the Z report covers the whole night.";
 
 /** Settings > Channels > POS: how the till prices and prints a bill. Restaurant-wide values first; a branch can override some of them. */
 export function PosSettingsPanel({ branchId }: { branchId: string | null }) {
@@ -64,14 +70,12 @@ function RestaurantForm({
   value: PosSettings["restaurant"];
   canWrite: boolean;
 }) {
-  const taxes = useTaxRules();
   const save = useSavePosSettings();
   const [form, setForm] = useState({
-    prices_include_tax: value.prices_include_tax ? "yes" : "no",
-    default_tax_code: value.default_tax_code ?? "",
     fssai_number: value.fssai_number ?? "",
     takeaway_pay_first: value.takeaway_pay_first ? "yes" : "no",
     packaging_fee: fromMinor(value.packaging_fee_paise),
+    day_ends_hour: String(value.day_ends_hour),
   });
 
   async function submit(e: React.FormEvent) {
@@ -81,11 +85,10 @@ function RestaurantForm({
     try {
       await save.mutateAsync({
         body: {
-          prices_include_tax: form.prices_include_tax === "yes",
-          default_tax_code: form.default_tax_code || null,
           fssai_number: form.fssai_number.trim() || null,
           takeaway_pay_first: form.takeaway_pay_first === "yes",
           packaging_fee_paise: fee,
+          day_ends_hour: Number(form.day_ends_hour),
         },
       });
       toast.success("Billing settings saved");
@@ -97,43 +100,16 @@ function RestaurantForm({
   const ro = !canWrite;
   return (
     <form onSubmit={submit}>
+      <p className="mb-space-3 rounded-md border border-line bg-paper px-space-3 py-space-2 text-[13px] text-ink-600">
+        Menu prices{" "}
+        {value.prices_include_tax ? "include GST" : "are before GST (GST is added on the bill)"};
+        items without their own GST use {value.default_tax_bps / 100}%. Change these in{" "}
+        <Link href="/portal/settings/taxes" className="font-semibold text-brand-700 underline">
+          Settings &gt; Taxes
+        </Link>
+        .
+      </p>
       <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-        <Field
-          label="Menu prices"
-          htmlFor="pos-incl"
-          hint="Most restaurants show prices before GST."
-        >
-          <Select
-            id="pos-incl"
-            className="w-full"
-            value={form.prices_include_tax}
-            disabled={ro}
-            onValueChange={(v) => setForm({ ...form, prices_include_tax: v })}
-          >
-            <option value="no">Before GST (GST added on the bill)</option>
-            <option value="yes">Include GST</option>
-          </Select>
-        </Field>
-        <Field
-          label="Default GST"
-          htmlFor="pos-tax"
-          hint="For items and categories without their own. Restaurants: usually 5%."
-        >
-          <Select
-            id="pos-tax"
-            className="w-full"
-            value={form.default_tax_code}
-            disabled={ro}
-            onValueChange={(v) => setForm({ ...form, default_tax_code: v })}
-          >
-            <option value="">None</option>
-            {(taxes.data ?? []).map((t) => (
-              <option key={t.code} value={t.code}>
-                {t.name} ({t.rate_bps / 100}%)
-              </option>
-            ))}
-          </Select>
-        </Field>
         <Field
           label="FSSAI licence number"
           htmlFor="pos-fssai"
@@ -173,6 +149,21 @@ function RestaurantForm({
             onChange={(e) => setForm({ ...form, packaging_fee: e.target.value })}
           />
         </Field>
+        <Field label="Business day ends at" htmlFor="pos-day-ends" hint={DAY_ENDS_HINT}>
+          <Select
+            id="pos-day-ends"
+            className="w-full"
+            value={form.day_ends_hour}
+            disabled={ro}
+            onValueChange={(v) => setForm({ ...form, day_ends_hour: v })}
+          >
+            {DAY_ENDS.map((h) => (
+              <option key={h} value={String(h)}>
+                {dayEndsLabel(h)}
+              </option>
+            ))}
+          </Select>
+        </Field>
       </div>
       {canWrite && (
         <Button type="submit" disabled={save.isPending}>
@@ -196,6 +187,7 @@ function BranchForm({
     takeaway_pay_first:
       branch.takeaway_pay_first === null ? "" : branch.takeaway_pay_first ? "yes" : "no",
     packaging_fee: fromMinor(branch.packaging_fee_paise),
+    day_ends_hour: branch.day_ends_hour === null ? "" : String(branch.day_ends_hour),
   });
 
   async function submit(e: React.FormEvent) {
@@ -211,6 +203,7 @@ function BranchForm({
           takeaway_pay_first:
             form.takeaway_pay_first === "" ? null : form.takeaway_pay_first === "yes",
           packaging_fee_paise: fee,
+          day_ends_hour: form.day_ends_hour === "" ? null : Number(form.day_ends_hour),
         },
       });
       toast.success("Branch settings saved");
@@ -222,7 +215,7 @@ function BranchForm({
   const ro = !canWrite;
   return (
     <form onSubmit={submit}>
-      <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
         <Field label="FSSAI licence number" htmlFor="pos-b-fssai">
           <Input
             id="pos-b-fssai"
@@ -254,6 +247,22 @@ function BranchForm({
             disabled={ro}
             onChange={(e) => setForm({ ...form, packaging_fee: e.target.value })}
           />
+        </Field>
+        <Field label="Business day ends at" htmlFor="pos-b-day-ends">
+          <Select
+            id="pos-b-day-ends"
+            className="w-full"
+            value={form.day_ends_hour}
+            disabled={ro}
+            onValueChange={(v) => setForm({ ...form, day_ends_hour: v })}
+          >
+            <option value="">Restaurant&apos;s setting</option>
+            {DAY_ENDS.map((h) => (
+              <option key={h} value={String(h)}>
+                {dayEndsLabel(h)}
+              </option>
+            ))}
+          </Select>
         </Field>
       </div>
       {canWrite && (

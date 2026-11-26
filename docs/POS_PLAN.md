@@ -237,6 +237,9 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 
 ### Delivery riders (recommended approach)
 
+> **Superseded 2026-11-26**: restaurants will not keep their own riders. DAAP will run its own delivery partners, and restaurants
+> connect to them; that is a later phase (with equal/seat split and the offline takeaway fallback). The section below is kept for history.
+
 **Today**: each order has only a free-text `delivery_partner_name` / `delivery_partner_phone`, typed in at dispatch. There is no rider list, no history and no way to know how much cash a rider holds.
 
 **Recommendation**: riders are their **own record in Dine, separate from staff**.
@@ -348,6 +351,38 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 
 ## Open questions
 Settled as they come up.
+
+## Changes made while building (2026-11-25 onwards)
+- **POS bills have their own tables** (`pos_bills`, `pos_bill_lines`, `pos_bill_payments`, migration 0123), not `food_orders`: `food_orders`
+  is read in about thirty places (kitchen board, WhatsApp flows, dashboards, loyalty) whose rules are for online orders. Reports join
+  the two in phase 4.
+- **The bill number is given at the first print**, not at settling: the guest's tax invoice must carry it. A printed bill is never
+  cancelled (it is settled, complimentary if need be), so the series has no gaps.
+- **Tax-inclusive prices and the default GST rate** are the existing Settings > Taxes values (`restaurants.tax_inclusive_prices` /
+  `default_tax_rate`); the POS settings card shows them and links there.
+- **Shifts and day closes upload offline-first** (migration 0124): the till sends the cashier session it has; a record uploaded after the
+  session ended is still booked, flagged `unverified_cashier` (ShopConnect's SEC-22 refuses instead, but its day close is online-only).
+  The server keeps its own sums beside the till's Z report and flags differences. Closing a shift is a blind count.
+- **POS reports** are their own portal page, Reports > POS sales (`/portal/reports/pos`), linked from Analytics.
+- **Several tills on one network (phase 5, migration 0125)**: requests to the hub are signed with a per-branch LAN key the server derives
+  (never stored) and hands out with `me`; revoking a till moves the key. The server grants the hub lease (renewed every 2 minutes);
+  taking it over needs a cashier session whose role holds `till.hub`. Tills find the hub by a UDP broadcast on the network (instead of
+  mDNS: no extra package, works offline), then the server's lease record, then an address typed in. The hub uploads a snapshot of its
+  open orders, counters and open shifts every minute; a till that takes over imports it (a printed but unpaid bill is printed again under
+  the new hub's numbers). The hub issues and uploads every bill; shifts are per till's drawer and filed under that till on the server.
+- **Business day (migration 0126)**: POS settings have "Business day ends at", midnight (the default, as most Indian restaurants run)
+  up to 6 am, for the restaurant and per branch. Before that hour a bill counts for the evening before: KOT and token numbers carry on,
+  `pos_bills.business_day` and the reports follow it, and the Z covers the whole night. A Z taken before the day's end moves the till on
+  to the next day (what is sold after it belongs to tomorrow); the server accepts the till's day when it is the settle time's day or the
+  next one, and otherwise books its own and flags `business_day_differs`.
+- **Till sign-in safety, from ShopConnect 1.3.0 (migration 0127)**: a till that lost the answer to a refresh sends the old token again
+  and gets a new one (72 h grace, while the replacement was never used) instead of being signed out. A truly copied token resets the
+  terminal's credentials (`credentials_reset`): the real till pairs again with a new code and keeps its data; it is no longer revoked.
+- **A revoked till hands over (migration 0127)**: for 30 days after a revoke, the till sends what it never uploaded (bills, shifts, day
+  closes) with the refresh token it held at the revoke. Nothing is booked by itself: a manager approves each in the branch's Terminals
+  tab (booked like any upload, flagged `from_revoked_terminal`) or rejects it with a note.
+- **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
+  item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 
 ## Verification
 - **Backend**:

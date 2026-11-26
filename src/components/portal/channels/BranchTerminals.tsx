@@ -27,6 +27,7 @@ import { hasPermission, useStaffSession } from "@/lib/erp/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { SkeletonLines } from "@/components/erp-ui/Skeleton";
+import { HandoverRecords } from "./HandoverRecords";
 
 const rowActionClass =
   "min-w-0 max-md:h-11 max-md:border max-md:border-line max-md:bg-card max-md:px-space-2 max-md:text-[12.5px]";
@@ -428,6 +429,13 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   ? `Last seen ${ago(t.last_seen_at)}`
                   : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}
               </p>
+              {t.status === "revoked" && (t.handover_held ?? 0) > 0 && (
+                <p className="mt-space-1">
+                  <Badge tone="warning">
+                    {t.handover_held} handed over · waiting for your decision below
+                  </Badge>
+                </p>
+              )}
               {t.status === "active" && (t.queue_unsent ?? 0) > 0 && (
                 <p className="mt-space-1">
                   <Badge tone={isOld(t.queue_oldest_at) ? "error" : "warning"}>
@@ -482,6 +490,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           </li>
         ))}
       </ul>
+      <HandoverRecords branchId={branchId} canManage={canManage} />
       {issued && <CodeModal issued={issued} onClose={() => setIssued(null)} />}
       {detail && <Detail id={detail} onClose={() => setDetail(null)} />}
       <Modal

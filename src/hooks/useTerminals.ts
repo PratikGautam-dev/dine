@@ -41,7 +41,28 @@ export type Terminal = {
   queue_reported_at: string | null;
   revoked_at: string | null;
   revoke_reason: string | null;
+  /** Records this (revoked) terminal handed over that wait for a decision. */
+  handover_held?: number;
   events?: TerminalEvent[];
+};
+
+/** A bill, shift or day close a revoked terminal handed over (erp-dine-backend pos/handover.py): held until a manager decides. */
+export type HandoverRecord = {
+  id: string;
+  terminal_id: string;
+  terminal_code: string;
+  terminal_name: string;
+  kind: "bill" | "shift" | "day_close";
+  reference: string | null;
+  occurred_at: string | null;
+  received_at: string;
+  total_paise: number | null;
+  cashier_name: string | null;
+  status: "held" | "approved" | "rejected" | "refused";
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  error_message: string | null;
 };
 export type PairingCode = {
   id: string;
@@ -141,6 +162,32 @@ export function useRenameTerminal() {
   return useMutation({
     mutationFn: (input: { id: string; name: string }) =>
       erpSend(`/api/v1/terminals/${input.id}`, "PATCH", { name: input.name }),
+    onSuccess: refresh,
+  });
+}
+
+/** What revoked terminals of a branch handed over and still wait for a decision. */
+export function useHandoverRecords(branchId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.terminals, "handover", branchId],
+    queryFn: () =>
+      erpGet<{ total: number; records: HandoverRecord[] }>(
+        `/api/v1/terminals/handover-records?status=held&branch_id=${encodeURIComponent(branchId)}`,
+      ),
+    enabled: Boolean(branchId),
+  });
+}
+
+/** Approve (booked like any upload, flagged as handed over) or reject (a note is required) one handed-over record. */
+export function useDecideHandover() {
+  const refresh = useRefreshTerminals();
+  return useMutation({
+    mutationFn: (input: { id: string; decision: "approve" | "reject"; note: string | null }) =>
+      erpSend<{ id: string; status: string; error?: string }>(
+        `/api/v1/terminals/handover-records/${input.id}/${input.decision}`,
+        "POST",
+        { note: input.note },
+      ),
     onSuccess: refresh,
   });
 }

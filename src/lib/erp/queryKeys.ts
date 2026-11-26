@@ -12,6 +12,7 @@ export const queryKeys = {
   posMenuItem: (id: string) => ["erp", "pos-menu", "item", id] as const,
   posSettings: ["erp", "pos-settings"] as const,
   tillPermissions: ["erp", "roles", "till"] as const,
+  posReports: (kind: string, params: Params) => ["erp", "pos-reports", kind, params] as const,
   orders: ["erp", "orders"] as const,
   orderList: (params: Params) => ["erp", "orders", "list", params] as const,
   order: (id: string) => ["erp", "orders", "detail", id] as const,
