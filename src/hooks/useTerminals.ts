@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { erpGet, erpSend } from "@/lib/erp/erp";
 import { queryKeys } from "@/lib/erp/queryKeys";
+import type { PosRelease } from "@/lib/posReleases";
 
 export type TerminalEvent = {
   id: number;
@@ -163,6 +164,19 @@ export function useRenameTerminal() {
     mutationFn: (input: { id: string; name: string }) =>
       erpSend(`/api/v1/terminals/${input.id}`, "PATCH", { name: input.name }),
     onSuccess: refresh,
+  });
+}
+
+/** The newest published till release (null before the first one), to flag terminals running an older version. Read through
+ * /api/pos/latest: the browser can't read R2 directly. */
+export function usePosLatestRelease() {
+  return useQuery({
+    queryKey: queryKeys.posLatestRelease,
+    queryFn: async (): Promise<PosRelease | null> => {
+      const res = await fetch("/api/pos/latest");
+      return res.ok ? ((await res.json()) as PosRelease | null) : null;
+    },
+    staleTime: 10 * 60_000,
   });
 }
 

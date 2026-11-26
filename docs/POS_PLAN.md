@@ -381,6 +381,10 @@ Settled as they come up.
 - **A revoked till hands over (migration 0127)**: for 30 days after a revoke, the till sends what it never uploaded (bills, shifts, day
   closes) with the refresh token it held at the revoke. Nothing is booked by itself: a manager approves each in the branch's Terminals
   tab (booked like any upload, flagged `from_revoked_terminal`) or rejects it with a note.
+- **Releases (phase 6, 2026-11-26)**: as ShopConnect, the workflow in dine-pos builds Windows / Android / Linux and publishes to
+  Dine's R2 bucket (`releases/dine-pos/`); the portal's public `/download` page and the tills read `latest.json`; the Terminals tab
+  flags tills on an older version. Hosted builds use the Render backend (`https://erp-dine-backend.onrender.com/api/v1`). Windows
+  builds are unsigned for now (SEC-18); a download domain comes later.
 - **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 

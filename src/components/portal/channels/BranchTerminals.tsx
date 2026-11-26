@@ -18,11 +18,13 @@ import {
   useRenameTerminal,
   useRevokeTerminal,
   useSetCashierPin,
+  usePosLatestRelease,
   useTerminal,
   type Issued,
   type Terminal,
 } from "@/hooks/useTerminals";
 import { formatDateTime, humanize } from "@/lib/erp/erp";
+import { compareVersions } from "@/lib/posReleases";
 import { hasPermission, useStaffSession } from "@/lib/erp/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
@@ -244,6 +246,9 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const session = useStaffSession();
   const canManage = hasPermission(session, "settings", "write");
   const list = useBranchTerminals(branchId);
+  const latest = usePosLatestRelease().data;
+  const outdated = (t: Terminal) =>
+    !!latest && t.status === "active" && !!t.app_version && compareVersions(t.app_version, latest.version) < 0;
   const [nextName, setNextName] = useState("");
   const [issued, setIssued] = useState<Issued | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
@@ -356,6 +361,13 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           >
             Generate pairing code
           </Button>
+          <p className="basis-full text-[12.5px] text-ink-600">
+            No app on the device yet?{" "}
+            <a href="/download" target="_blank" rel="noopener" className="font-semibold text-brand-700 underline">
+              Download Dine POS
+            </a>{" "}
+            for Windows, Android or Linux.
+          </p>
         </div>
       )}
       {(list.data?.pairing_codes ?? []).length > 0 && (
@@ -429,6 +441,13 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   ? `Last seen ${ago(t.last_seen_at)}`
                   : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}
               </p>
+              {outdated(t) && (
+                <p className="mt-space-1">
+                  <Badge tone={latest?.min_version && compareVersions(t.app_version!, latest.min_version) < 0 ? "error" : "info"}>
+                    Update available: {latest!.version}
+                  </Badge>
+                </p>
+              )}
               {t.status === "revoked" && (t.handover_held ?? 0) > 0 && (
                 <p className="mt-space-1">
                   <Badge tone="warning">
