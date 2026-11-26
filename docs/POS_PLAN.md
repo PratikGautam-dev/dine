@@ -385,6 +385,18 @@ Settled as they come up.
   Dine's R2 bucket (`releases/dine-pos/`); the portal's public `/download` page and the tills read `latest.json`; the Terminals tab
   flags tills on an older version. Hosted builds use the Render backend (`https://erp-dine-backend.onrender.com/api/v1`). Windows
   builds are unsigned for now (SEC-18); a download domain comes later.
+- **Till screens redesigned (2026-11-26)**, after a user review of the first build (no navigation, actions hidden under ⋮, a tap went
+  straight onto the table's order, no photos or stock). The till now has ShopConnect's shell: a dark sidebar (Tables, Takeaway, Delivery,
+  Running orders, KOTs, Bills (today), Menu & stock, Shift & cash, Settings), each entry shown only for the cashier's till permissions,
+  and a top bar with the shift, hub and upload states. The order screen is categories | dishes (photo, veg mark, price, "N left") |
+  order. A tap puts a dish in **New items · not sent** on that till (stepper, note, remove); nothing reaches the hub until **KOT** or
+  **Save** (kept on the order without a KOT, shown as Items not sent: the held orders), and a table or takeaway is only opened on the hub
+  then. Every action is a visible button; leaving with new items asks to send, save or drop them. Photos are kept on disk for offline
+  use (a small file cache like the logo's: `cached_network_image` needs sqflite, which Windows and Linux lack).
+- **Stock on the till**: plates left = the count the menu download brought, less what the outlet has on open orders and in bills the
+  server has not counted yet; the hub refuses an add beyond it (`out_of_stock`). Menu & stock switches a dish off (86) or sets its count
+  through `POST /terminal/items/{id}/stock` (pos/till_stock.py): a cashier session whose role holds `menu.out_of_stock`, or a manager's
+  session when one approves. It is the portal's own switch and count, so online ordering follows.
 - **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 
