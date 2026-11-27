@@ -129,6 +129,8 @@ export type PosSettings = {
     fssai_number: string | null;
     takeaway_pay_first: boolean;
     packaging_fee_paise: number;
+    /** No delivery fee on a till bill once the food reaches this (null = the fee always applies). */
+    free_delivery_above_paise: number | null;
     /** When the business day ends, 0-6 o'clock (0 = midnight): KOT numbers, the bill's day and the Z follow it. */
     day_ends_hour: number;
   };
@@ -139,6 +141,8 @@ export type PosSettings = {
     fssai_number: string | null;
     takeaway_pay_first: boolean | null;
     packaging_fee_paise: number | null;
+    /** null = the restaurant's setting; 0 = the fee always applies at this branch. */
+    free_delivery_above_paise: number | null;
     day_ends_hour: number | null;
     service_charge_pct: number | null;
   }[];

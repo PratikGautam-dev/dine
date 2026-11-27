@@ -433,11 +433,20 @@ Settled as they come up.
   by token, in Saved (not sent) / Preparing / Ready, with paid or not on each card; New takeaway starts an order (each new one keeps its
   own cart). **Pay first** is the main button, **Pay & send**: the payment is asked first, the hub checks it against the bill, and only
   then sends the KOT and settles (`POST /hub/v1/orders/{id}/pay-and-send`); a fresh takeaway opens for the next customer. **Pay at
-  pickup** stays possible (KOT now, Settle later). The first KOT puts a takeaway on the board as Preparing; **Ready** when packed;
+  pickup** (KOT now, Settle later) is possible only when POS settings say "Takeaway: guest pays on pickup"; with "guest pays when ordering" (the default) the till offers Pay & send only and the hub refuses a KOT for an unpaid takeaway (`pay_first`). The first KOT puts a takeaway on the board as Preparing; **Ready** when packed;
   **Handed over** only once paid (an unpaid ready order shows Take payment); more items sent later take it back to Preparing. The
   **customer is optional** (name and phone, as for a table); the name prints on the KOT under the token. Packaging stays one fee per
   order. All on the hub (works offline); local schema v6 adds `orders.pickup_status`, `ready_at`, `handed_over_at`. No server change:
   the bill uploads at settle as before, with its token.
+- **Delivery flow (2026-11-27, user's choices)**: Delivery in the sidebar opens the **delivery board**: Saved / Preparing / Out for
+  delivery, with COD or Paid on each card. **New delivery** asks the phone and address (needed), the name, and the customer's **DPDP
+  consent** (recorded with the office when online, as for a table's customer); no lookup of earlier addresses, by decision. **Prepaid**
+  (paid on the phone): Prepaid · pay & send settles at once. **Cash on delivery**: KOT now; **Out for delivery** prints the bill to go
+  with the food; **Cash received** settles it when the money comes back and marks it delivered. Who delivers is not recorded yet (to be
+  attached later, with DAAP's delivery partners). **Delivery fee**: the branch's fee, else the restaurant's (the rule online orders follow;
+  the till used to read the branch's only), **free above** an order value (POS settings, per restaurant with a branch override; measured
+  on the food after dish discounts; migration 0131), and removable on one bill with the new till permission `bill.remove_delivery_fee`.
+  Local schema v7 adds `orders.delivery_fee_removed`; the board reuses the pickup columns (`out` = out for delivery).
 - **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 

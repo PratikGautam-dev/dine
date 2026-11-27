@@ -75,6 +75,7 @@ function RestaurantForm({
     fssai_number: value.fssai_number ?? "",
     takeaway_pay_first: value.takeaway_pay_first ? "yes" : "no",
     packaging_fee: fromMinor(value.packaging_fee_paise),
+    free_delivery_above: fromMinor(value.free_delivery_above_paise),
     day_ends_hour: String(value.day_ends_hour),
   });
 
@@ -82,12 +83,17 @@ function RestaurantForm({
     e.preventDefault();
     const fee = form.packaging_fee.trim() === "" ? 0 : toMinor(form.packaging_fee);
     if (fee === null) return toast.error("Enter the packaging fee as an amount, like 20 or 20.50.");
+    const freeAbove =
+      form.free_delivery_above.trim() === "" ? null : toMinor(form.free_delivery_above);
+    if (form.free_delivery_above.trim() !== "" && freeAbove === null)
+      return toast.error("Enter free delivery above as an amount, like 500.");
     try {
       await save.mutateAsync({
         body: {
           fssai_number: form.fssai_number.trim() || null,
           takeaway_pay_first: form.takeaway_pay_first === "yes",
           packaging_fee_paise: fee,
+          free_delivery_above_paise: freeAbove || null,
           day_ends_hour: Number(form.day_ends_hour),
         },
       });
@@ -149,6 +155,19 @@ function RestaurantForm({
             onChange={(e) => setForm({ ...form, packaging_fee: e.target.value })}
           />
         </Field>
+        <Field
+          label="Free delivery above (₹)"
+          htmlFor="pos-free-delivery"
+          hint="No delivery fee once the food comes to this. Blank = the fee always applies."
+        >
+          <Input
+            id="pos-free-delivery"
+            inputMode="decimal"
+            value={form.free_delivery_above}
+            disabled={ro}
+            onChange={(e) => setForm({ ...form, free_delivery_above: e.target.value })}
+          />
+        </Field>
         <Field label="Business day ends at" htmlFor="pos-day-ends" hint={DAY_ENDS_HINT}>
           <Select
             id="pos-day-ends"
@@ -187,6 +206,7 @@ function BranchForm({
     takeaway_pay_first:
       branch.takeaway_pay_first === null ? "" : branch.takeaway_pay_first ? "yes" : "no",
     packaging_fee: fromMinor(branch.packaging_fee_paise),
+    free_delivery_above: fromMinor(branch.free_delivery_above_paise),
     day_ends_hour: branch.day_ends_hour === null ? "" : String(branch.day_ends_hour),
   });
 
@@ -195,6 +215,10 @@ function BranchForm({
     const fee = form.packaging_fee.trim() === "" ? null : toMinor(form.packaging_fee);
     if (form.packaging_fee.trim() !== "" && fee === null)
       return toast.error("Enter the packaging fee as an amount, like 20 or 20.50.");
+    const freeAbove =
+      form.free_delivery_above.trim() === "" ? null : toMinor(form.free_delivery_above);
+    if (form.free_delivery_above.trim() !== "" && freeAbove === null)
+      return toast.error("Enter free delivery above as an amount, like 500.");
     try {
       await save.mutateAsync({
         branchId: branch.id,
@@ -203,6 +227,7 @@ function BranchForm({
           takeaway_pay_first:
             form.takeaway_pay_first === "" ? null : form.takeaway_pay_first === "yes",
           packaging_fee_paise: fee,
+          free_delivery_above_paise: freeAbove,
           day_ends_hour: form.day_ends_hour === "" ? null : Number(form.day_ends_hour),
         },
       });
@@ -246,6 +271,19 @@ function BranchForm({
             value={form.packaging_fee}
             disabled={ro}
             onChange={(e) => setForm({ ...form, packaging_fee: e.target.value })}
+          />
+        </Field>
+        <Field
+          label="Free delivery above (₹)"
+          htmlFor="pos-b-free-delivery"
+          hint="Blank = the restaurant's setting; 0 = the fee always applies here."
+        >
+          <Input
+            id="pos-b-free-delivery"
+            inputMode="decimal"
+            value={form.free_delivery_above}
+            disabled={ro}
+            onChange={(e) => setForm({ ...form, free_delivery_above: e.target.value })}
           />
         </Field>
         <Field label="Business day ends at" htmlFor="pos-b-day-ends">
