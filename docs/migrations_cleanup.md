@@ -33,7 +33,7 @@ Never edit a merged migration. Migrations only add: tables, nullable columns, fu
 `.github/workflows/deploy.yml` in erp-dine-backend. The same pipeline works on any host: moving off Render changes only the last step.
 
 ```
-checks   (every PR and push)    check_schema.sh + the POS tests
+checks   (every PR and push)    check_schema.sh + the whole test suite
    ↓ only if green, and only on a push to main (a merge)
 migrate                          python -m db.init_db  → production database (Neon today)
    ↓ only if it succeeded
@@ -46,7 +46,7 @@ deploy                           Render deploy hook for that commit  (later: ssh
   - `DATABASE_URL`: the same connection string the server uses.
   - `RENDER_DEPLOY_HOOK`: from Render, Settings, then Deploy Hook.
 - **Render settings:** auto-deploy **Off**, pre-deploy command empty. The pipeline is the only thing that migrates or deploys.
-- **Test gate:** the POS tests for now, because the rest of the suite already fails on `main`. Widen it as those tests are fixed.
+- **Test gate:** the whole suite (about 1,300 tests), all green. A failing test blocks the deploy.
 
 **At the first merge of `chandan`:** `main` stops at 0121, so the pipeline will apply **0122 to 0130** to Neon: POS menu, bills, shifts, LAN, business day, hand-over, workforce view, table flow and the trigger fix. All of them only add.
 
@@ -67,7 +67,7 @@ deploy                           Render deploy hook for that commit  (later: ssh
 
 **Tests.**
 
-- Old and new give the same failing tests: the suite already had about 160 failures, and none are new.
+- Old and new gave the same failing tests at the time (the suite then had about 160 old failures). Those were fixed afterwards; see "Test suite repair" below.
 - The RBAC, staff and leave failures that appear in some runs depend on test order. They fail the same way on the old code when run file by file.
 - One cause of that was found: the tests used the developer's local Redis (from `.env`), which all parallel test workers shared. A permission cached by one worker leaked into another. `tests/conftest.py` now turns Redis off for tests.
 
@@ -81,6 +81,39 @@ deploy                           Render deploy hook for that commit  (later: ssh
 ## Later
 
 - **Squash:** when the migrations number in the hundreds, add a new baseline built from `db/schema.sql` for fresh databases. Databases already past it skip it.
-- **Test gate:** widen it from the POS tests to the whole suite as the existing failures are fixed.
 - **Own server:** replace the `deploy` job with ssh + docker. `DATABASE_URL` can then leave GitHub, with the migration run on the server over ssh.
 - **ShopConnect:** generate `erp_schema.sql` in the same way instead of editing it by hand.
+
+## Test suite repair (2026-11-27)
+
+The suite had about 160 failing tests on `main`, so CI could only gate on the POS tests. All of them are fixed, and CI now runs the
+whole suite on every push. What the failures were:
+
+- **Out-of-date tests (most of them).** Written for the hospital product this backend came from, or for an earlier Dine:
+  - doctor slots and appointments, removed in `037eb35`;
+  - patient URLs and classes, renamed to customer;
+  - registration steps (`2ab7a43`, `525b547`);
+  - the DPDP and marketing consent steps;
+  - the one-owner rule and the reworked cart editing.
+    Each was updated to today's behaviour, or deleted where it only tested something that no longer exists.
+- **Real bugs found and fixed:**
+  - Saving the loyalty settings always failed with a 500: the code still imported the removed `PatientRow` class.
+  - A Hindi WhatsApp conversation got the table-booking confirmation card and success message in English.
+  - A typed or voice order with one unknown dish dropped the whole order. Now the recognised dishes are added and the unknown one is
+    reported.
+- **Unreliable tests:**
+  - Tests read the developer's `.env`, including real keys such as the R2 bucket's and the real WhatsApp phone id. Whether the
+    webhook tests passed depended on which file a worker imported first. Tests now never read `.env`.
+  - Tests used the local Redis, shared by the parallel workers, so cached permissions leaked between tests. Tests now run without
+    Redis.
+  - Web-order tests depended on the time of day (the test restaurant opens at 10:00 UTC); they now keep the storefront open.
+  - Staff emails were made "unique" with `id(object())`, which Python reuses.
+- **Leftover from the replay:** the 0070/0071 repair in `db/init_db.py` and its test were removed. Only a database built by the old
+  replay could ever reach it.
+
+**Found but not changed (for the team to decide):**
+
+- The WhatsApp bot checks DPDP consent only in its own `dpdp_consents` table. Consent given on the web storefront (`customer_consents`)
+  does not count there, so that guest is asked again on WhatsApp.
+- `flows/router.py` still has branches for the `reception_handoff` and `restaurant_info` menu rows, which the menu no longer shows.
+- The default seed names table sections after hospital departments (Cardiology, Orthopedics...), and WhatsApp offers those to guests.
