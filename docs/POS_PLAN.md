@@ -429,6 +429,15 @@ Settled as they come up.
   at once. The bill shows captain, customer and GSTIN, and each dish's discount; the upload carries `captain`, `customer.gstin`,
   `lines[].discount_reason` and `kots[].note` (pos_bills.captain_id / captain_name / customer_gstin, pos_bill_lines.discount_reason,
   migration 0129).
+- **Takeaway flow (2026-11-27, user's choices)**: Takeaway in the sidebar opens the **pickup board**: every takeaway not yet handed over,
+  by token, in Saved (not sent) / Preparing / Ready, with paid or not on each card; New takeaway starts an order (each new one keeps its
+  own cart). **Pay first** is the main button, **Pay & send**: the payment is asked first, the hub checks it against the bill, and only
+  then sends the KOT and settles (`POST /hub/v1/orders/{id}/pay-and-send`); a fresh takeaway opens for the next customer. **Pay at
+  pickup** stays possible (KOT now, Settle later). The first KOT puts a takeaway on the board as Preparing; **Ready** when packed;
+  **Handed over** only once paid (an unpaid ready order shows Take payment); more items sent later take it back to Preparing. The
+  **customer is optional** (name and phone, as for a table); the name prints on the KOT under the token. Packaging stays one fee per
+  order. All on the hub (works offline); local schema v6 adds `orders.pickup_status`, `ready_at`, `handed_over_at`. No server change:
+  the bill uploads at settle as before, with its token.
 - **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 
