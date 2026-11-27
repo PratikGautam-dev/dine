@@ -24,7 +24,8 @@ export type Platform = "android" | "windows" | "linux";
 /** Where latest.json and index.json live: Dine's public R2 bucket, the same address as dine-pos config/hosted.json RELEASES_URL.
  * POS_RELEASES_URL overrides it (a test folder, or a download domain later). */
 const BASE = (
-  process.env.POS_RELEASES_URL ?? "https://pub-2992a09c48e1469eb6aa2122dc2fcf89.r2.dev/releases/dine-pos"
+  process.env.POS_RELEASES_URL ??
+  "https://pub-2992a09c48e1469eb6aa2122dc2fcf89.r2.dev/releases/dine-pos"
 ).replace(/\/+$/, "");
 
 async function getJson<T>(name: string): Promise<T | null> {

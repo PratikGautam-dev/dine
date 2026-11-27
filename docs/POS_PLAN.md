@@ -5,6 +5,7 @@
 Dine Connect handles WhatsApp and web food ordering, table booking and a staff portal. It has **no restaurant billing**. We want a counter POS that works like ShopConnect's Flutter till (local-first, paired devices, cashier PINs, thermal printing, signed releases) and behaves the way Indian restaurant POS products do: tables, KOTs, rounds, bills, splits, shifts.
 
 What exists today:
+
 - **`dine-apps/erp-dine-backend`**:
   - Till device pairing, refresh, PIN login and `staff_pins`, copied from ShopConnect (`pos/routes.py`, `pos/service.py`, `db/pos_schema.py`).
   - `departments` (sections) and `tables` (with floor-map x/y).
@@ -25,16 +26,17 @@ What exists today:
 
 ## Decisions taken (2026-11-25)
 
-| Topic | Choice |
-|---|---|
-| v1 scope | Counter POS only. Captain app and KDS come later, but the protocol is designed for them now. |
-| Code reuse | New app that copies the files it needs from `shopconnect-pos`. No shared package. |
-| Offline | LAN hub: one counter device holds the live floor state and other devices talk to it over Wi-Fi. |
+| Topic       | Choice                                                                                                      |
+| ----------- | ----------------------------------------------------------------------------------------------------------- |
+| v1 scope    | Counter POS only. Captain app and KDS come later, but the protocol is designed for them now.                |
+| Code reuse  | New app that copies the files it needs from `shopconnect-pos`. No shared package.                           |
+| Offline     | LAN hub: one counter device holds the live floor state and other devices talk to it over Wi-Fi.             |
 | Order types | Dine-in, takeaway/counter, delivery (phone orders). Existing WhatsApp/web orders inside the POS come later. |
 
 ## How the POS will behave (industry standard)
 
 **Floor and tables**
+
 - The floor plan is built from the existing `departments` and `tables`. Each table shows a colour for its state:
   - Blank: free.
   - Running: KOT sent.
@@ -49,6 +51,7 @@ What exists today:
 - Mark an item out of stock ("86") straight from the POS. It syncs to the menu and to online ordering.
 
 **KOT (kitchen order ticket)**
+
 - Items are added to the order and stay editable until the cashier presses **Send KOT**.
 - Each send prints a new KOT number with **only the new items** (rounds). The previous KOTs stay unchanged.
 - KOTs go to printers by **kitchen station** (kitchen, bar, tandoor, desserts). Each menu item belongs to a station, and each station has a printer.
@@ -60,6 +63,7 @@ What exists today:
 - A reprinted KOT is marked "REPRINT" and counted.
 
 **Bill and settlement**
+
 - **Print bill** locks the order. Changing it afterwards needs the "edit printed bill" permission and prints a new version.
 - A reprinted bill is marked **DUPLICATE**.
 - Bill totals, in order:
@@ -96,6 +100,7 @@ What exists today:
 - **Split bill**: by item, equal split, or by seat. Each split is its own bill with its own number.
 
 **Takeaway and delivery**
+
 - **Takeaway**: a quick order screen. You pay first (configurable) and get a **token number** that resets daily. KOTs print the same way as dine-in.
 - **Delivery (phone orders)**:
   - Look up the customer by phone; name and address are saved.
@@ -105,6 +110,7 @@ What exists today:
 - **Prices per order type**: an item can have a different price for dine-in, takeaway and delivery (common in Indian restaurants).
 
 **Shifts and cash** (ShopConnect has only a Day Close, so this is new)
+
 - Open a shift with a cashier PIN and an opening float.
 - Cash in and cash out, each with a reason.
 - **X report**: a mid-shift snapshot.
@@ -115,6 +121,7 @@ What exists today:
 ## Architecture
 
 **The LAN hub**
+
 - Each outlet chooses one counter device as the **hub**. Windows is recommended; an Android hub must run as a foreground service, because Android stops background servers.
 - The hub runs an embedded HTTP + WebSocket server (`dart:io`) and stores the live floor in its own encrypted Drift database. It is the **only writer** of live order state for its outlet.
 - **Every terminal, including the hub itself, uses the hub API** (the hub over loopback). There is one code path, so captains and the KDS can join later with no new protocol.
@@ -128,6 +135,7 @@ What exists today:
   - With no internet and no hub, each terminal can still bill takeaway on its own offline series. Those bills are reconciled at upload.
 
 **Pricing on server and till**
+
 - New `pricing` module in `erp-dine-backend`: item, modifiers, discount, service charge, packaging, GST, round-off.
 - It is ported to Dart with **shared test vectors**, as ShopConnect's `test/fixtures/pricing_vectors.json` does.
 - On upload, the server recalculates each bill and **flags** mismatches (`price_differs`, `item_inactive`, `discount_not_permitted`, `clock_ahead`, and so on). It never silently changes a bill. This keeps the rule "totals are computed on the server" while the till works offline.
@@ -139,10 +147,12 @@ What exists today:
 ### 1. `erp-dine-backend` (FastAPI)
 
 Follow its conventions:
+
 - Every migration needs two files: `db/migrations/versions/00NN_*.py` and an idempotent block in `db/init_db.py`.
 - Use the `routes.py` + `service.py` pattern that the copied modules use (`crm/sql.py` `transaction()`).
 
 **Menu**
+
 - New tables:
   - `menu_categories`.
   - `menu_variants` (half/full, sizes).
@@ -155,6 +165,7 @@ Follow its conventions:
   - `short_name`, for KOTs.
 
 **Orders**
+
 - Add `dine_in` and `takeaway` to the `food_orders` fulfillment CHECK, and add `source = 'pos'`. All orders stay in one table, so reports stay unified.
 - New POS detail tables:
   - `pos_kots` and `pos_kot_items`.
@@ -165,6 +176,7 @@ Follow its conventions:
   - `delivery_riders`.
 
 **Till API** (extends `pos/routes.py`, copying ShopConnect's `terminal/` where it can):
+
 - `GET /terminal/menu`, versioned so an unchanged menu is skipped, the same way ShopConnect pulls its catalog.
 - `POST /terminal/bills`: a batch upload with event ids. Server recalculation and flags go here.
 - `POST /terminal/shifts` and `POST /terminal/day-closes`. Both need a cashier session, as SEC-22 requires.
@@ -173,6 +185,7 @@ Follow its conventions:
 - `POST /terminal/items/{id}/availability`, for 86.
 
 **Till permissions** (see "Roles & Permissions: Till tab" below):
+
 - New table `role_till_permissions (restaurant_id, role, perm_key)`.
 - A catalogue of till actions in `portal/permissions.py`.
 - `GET/PUT /api/portal/roles/{key}/till-permissions`.
@@ -186,6 +199,7 @@ Follow its conventions:
 Most of this **extends pages that already exist**. Only a few pages are new.
 
 **Extend existing pages**
+
 - **Food Menu** (`/portal/food-menu`, `MenuItemPanel.tsx`). It already has the items, categories (free text), combos, availability, stock, photos and bulk import. In the item panel, add:
   - **Variants** (half/full, sizes).
   - **Add-on groups** (min/max choices).
@@ -207,25 +221,27 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 - **Reports**: add POS reports to the existing page: bills, voids, discounts, NC, shifts, Z reports, rider COD.
 
 **New pages (nothing like them exists today)**
+
 - **Kitchen stations and printers** (Settings > Channels > POS > Stations). Stations such as kitchen, bar or tandoor. The printer address itself is set on the till, because the printer is on the till's local network.
 - **Delivery riders** (Settings > Delivery riders). Details are under "Delivery riders" below.
 
 **Roles & Permissions: Till tab** (the same pattern as ShopConnect's `RoleEditor.tsx` / `PermissionGrid.tsx` and `auth/permissions.py` `till_permissions`)
+
 - Each role has two tabs, **Portal** and **Till**.
   - The **Portal** tab is today's page view/write/delete grid.
   - The **Till** tab lists POS actions by group. A tick counts only on its own tab.
   - A role with an empty Till tab cannot sign in on the till.
 - **Till permissions**, by group:
 
-| Group | Permissions |
-|---|---|
-| Orders | take dine-in orders; take takeaway orders; take delivery orders |
-| Floor | transfer/merge tables; move items between tables; mark items out of stock (86) |
-| KOT | void an item after its KOT (needs a reason); reprint a KOT |
-| Bill | apply discounts (with a max % per role); complimentary/NC; edit a printed bill; reprint a bill; split a bill; remove the service charge |
-| Payments | settle bills; put a bill on due/credit |
-| Cash | open/close a shift; cash in/out; view X/Z reports; close the day |
-| This till | change till settings and printers; promote this till to hub |
+| Group     | Permissions                                                                                                                             |
+| --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Orders    | take dine-in orders; take takeaway orders; take delivery orders                                                                         |
+| Floor     | transfer/merge tables; move items between tables; mark items out of stock (86)                                                          |
+| KOT       | void an item after its KOT (needs a reason); reprint a KOT                                                                              |
+| Bill      | apply discounts (with a max % per role); complimentary/NC; edit a printed bill; reprint a bill; split a bill; remove the service charge |
+| Payments  | settle bills; put a bill on due/credit                                                                                                  |
+| Cash      | open/close a shift; cash in/out; view X/Z reports; close the day                                                                        |
+| This till | change till settings and printers; promote this till to hub                                                                             |
 
 - **Manager approval**: if the cashier lacks a permission, the till asks for the PIN of someone who has it. Both names are recorded in the audit log, as in Petpooja and Posist.
 - **Default permissions** for the built-in roles:
@@ -243,17 +259,20 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 **Today**: each order has only a free-text `delivery_partner_name` / `delivery_partner_phone`, typed in at dispatch. There is no rider list, no history and no way to know how much cash a rider holds.
 
 **Recommendation**: riders are their **own record in Dine, separate from staff**.
+
 - They never sign in to the portal or the POS.
 - They will sign in to their **own rider app** later.
 - Making them staff would put them in roles, PINs, attendance and the staff limit, none of which applies to them.
 
 **Data**
+
 - New table `delivery_riders`, per restaurant and branch: name, phone, type (`own` or `third_party`, e.g. Porter, Dunzo), and active flag.
 - New column `food_orders.rider_id`. The existing name and phone columns are still filled, so the current Delivery Tracking page keeps working.
 
 **Portal**: a Riders page to add, edit and deactivate riders. It is gated by a portal permission.
 
 **POS v1 flow**
+
 1. The cashier assigns a rider from the list at dispatch. A third-party rider can be typed in once.
 2. The order moves to "out for delivery".
 3. When the rider returns, the cashier opens **Rider settlement**. It lists that rider's COD orders.
@@ -261,6 +280,7 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 5. Each rider has a running balance ("cash with rider") in reports.
 
 **The rider app (later, its own phase)**
+
 - Signs in with phone OTP. Dine already has an OTP service for customers.
 - Sees assigned orders, marks them picked up and delivered, shares location and shows how much cash they hold.
 - Uses its own token type (`typ=rider`), separate from terminal and staff tokens.
@@ -271,14 +291,14 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 - Create it with `flutter create` (official CLI rule). Add packages with `flutter pub add`: riverpod, dio, drift, sqlite3 multiple ciphers, secure storage, multicast_dns.
 - **Copy from `shopconnect-pos`, then adapt:**
 
-| Piece | Source path |
-|---|---|
-| API client and auth | `lib/core/api/auth_interceptor.dart`, `cashier_session.dart`, `lib/core/storage/token_store.dart` |
-| Encrypted Drift setup | `lib/core/db/app_db.dart`: only the setup and the `TerminalConfigs`, `Users`, `SyncOutbox`, `DevicePrefs`, `TerminalTokens`, `HardwareEvents` tables |
-| Pairing, gate, PIN | `lib/features/pairing/`, `lib/features/gate/app_gate.dart`, `lib/features/auth/` (`pin_hasher.dart`, `login_screen.dart`, `session_controller.dart`) |
-| Sync | the structure of `lib/features/sync/sync_service.dart`, rewritten for bills and menu |
-| Printing | all of `lib/hardware/printer/` (ESC/POS, Windows spooler, network 9100), extended to **several printers** routed by station |
-| Other | `lib/hardware/hardware_log.dart`, `lib/features/updates/`, `lib/features/branding/`, `lib/theme/`, `.github/workflows/release.yml` (with the SEC-21 fixes), `windows/installer/pos.iss` |
+| Piece                 | Source path                                                                                                                                                                             |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| API client and auth   | `lib/core/api/auth_interceptor.dart`, `cashier_session.dart`, `lib/core/storage/token_store.dart`                                                                                       |
+| Encrypted Drift setup | `lib/core/db/app_db.dart`: only the setup and the `TerminalConfigs`, `Users`, `SyncOutbox`, `DevicePrefs`, `TerminalTokens`, `HardwareEvents` tables                                    |
+| Pairing, gate, PIN    | `lib/features/pairing/`, `lib/features/gate/app_gate.dart`, `lib/features/auth/` (`pin_hasher.dart`, `login_screen.dart`, `session_controller.dart`)                                    |
+| Sync                  | the structure of `lib/features/sync/sync_service.dart`, rewritten for bills and menu                                                                                                    |
+| Printing              | all of `lib/hardware/printer/` (ESC/POS, Windows spooler, network 9100), extended to **several printers** routed by station                                                             |
+| Other                 | `lib/hardware/hardware_log.dart`, `lib/features/updates/`, `lib/features/branding/`, `lib/theme/`, `.github/workflows/release.yml` (with the SEC-21 fixes), `windows/installer/pos.iss` |
 
 - **Not copied:** catalog, offers, returns, CRM, wholesale, purchases or labels. These are retail-specific.
 - **New modules:**
@@ -299,10 +319,10 @@ Most of this **extends pages that already exist**. Only a few pages are new.
 - No other core change in v1. Payments stay manual or on the static QR. Dynamic UPI QR through core (`purpose: qr`) and card machines come later.
 
 ## Git branches
+
 - **All POS work goes on a branch named `chandan`** in each repo: `erp-dine-backend`, `dine` and the new `dine-pos`. It is merged into `main` when a phase is tested.
 - `dine-pos` is new, so it starts with just `main` and `chandan`.
 - This replaces `backend-sync` for the POS work in `erp-dine-backend`. Update its `AGENTS.md` to say so.
-
 
 ## Phases
 
@@ -344,15 +364,18 @@ Most of this **extends pages that already exist**. Only a few pages are new.
    - Live running tables in the owner's cloud dashboard. The hub uploads a snapshot every minute.
 
 ## Target hardware (agreed 2026-11-25)
+
 - **Counter and hub**: a Windows PC. A second counter runs on an Android tablet.
 - **Kitchen and bar printers**: network (LAN/Wi-Fi) thermal printers on port 9100, one per station.
 - **Receipt printer**: USB or network thermal printer at the counter.
 - **Cash drawer**: plugged into the receipt printer, which opens it when the bill prints (ShopConnect already does this, on pins 2 and 5).
 
 ## Open questions
+
 Settled as they come up.
 
 ## Changes made while building (2026-11-25 onwards)
+
 - **POS bills have their own tables** (`pos_bills`, `pos_bill_lines`, `pos_bill_payments`, migration 0123), not `food_orders`: `food_orders`
   is read in about thirty places (kitchen board, WhatsApp flows, dashboards, loyalty) whose rules are for online orders. Reports join
   the two in phase 4.
@@ -410,6 +433,7 @@ Settled as they come up.
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 
 ## Verification
+
 - **Backend**:
   - pytest for the pricing vectors, bill upload (idempotent resend, each flag), shift/day-close permissions and the pairing limit.
   - Migrations applied to the shared Neon database after printing its host. Check the real columns afterwards.

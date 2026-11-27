@@ -64,8 +64,8 @@ export function HandoverRecords({ branchId, canManage }: { branchId: string; can
       </h3>
       <p className="mb-space-2 text-[12.5px] text-ink-600">
         These were on terminals when they were revoked and never reached the office. They are not in
-        your sales until you approve them. Approve what really happened; reject anything you don&apos;t
-        recognise.
+        your sales until you approve them. Approve what really happened; reject anything you
+        don&apos;t recognise.
       </p>
       <ul className="divide-y divide-line">
         {records.map((r) => (
@@ -84,8 +84,7 @@ export function HandoverRecords({ branchId, canManage }: { branchId: string; can
                 )}
               </p>
               <p className="text-[12.5px] text-ink-600">
-                {r.terminal_name} ({r.terminal_code})
-                {r.cashier_name ? ` · ${r.cashier_name}` : ""}
+                {r.terminal_name} ({r.terminal_code}){r.cashier_name ? ` · ${r.cashier_name}` : ""}
                 {r.occurred_at ? ` · ${formatDateTime(r.occurred_at)}` : ""}
               </p>
             </div>

@@ -4,12 +4,7 @@ import { Check, Copy, Download } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import {
-  formatSize,
-  type Platform,
-  type PosRelease,
-  type ReleaseFile,
-} from "@/lib/posReleases";
+import { formatSize, type Platform, type PosRelease, type ReleaseFile } from "@/lib/posReleases";
 
 const TABS: { key: Platform; label: string }[] = [
   { key: "android", label: "Android" },
@@ -35,13 +30,7 @@ const STEPS: Record<Platform, string[]> = {
   ],
 };
 
-function FileButton({
-  file,
-  primary,
-}: {
-  file: ReleaseFile;
-  primary: boolean;
-}) {
+function FileButton({ file, primary }: { file: ReleaseFile; primary: boolean }) {
   const [copied, setCopied] = useState(false);
   return (
     <div className="space-y-space-1">
@@ -52,9 +41,7 @@ function FileButton({
         className="w-full sm:w-auto"
       >
         <Download size={18} /> {file.name}
-        <span className="font-normal opacity-80">
-          · {formatSize(file.size)}
-        </span>
+        <span className="font-normal opacity-80">· {formatSize(file.size)}</span>
       </Button>
       <button
         type="button"
@@ -75,13 +62,7 @@ function FileButton({
 }
 
 /** The newest release for one platform at a time, starting on the visitor's own. */
-export function DownloadPicker({
-  release,
-  initial,
-}: {
-  release: PosRelease;
-  initial: Platform;
-}) {
+export function DownloadPicker({ release, initial }: { release: PosRelease; initial: Platform }) {
   const [tab, setTab] = useState<Platform>(initial);
   const files: (ReleaseFile | undefined)[] =
     tab === "android"
@@ -134,8 +115,8 @@ export function DownloadPicker({
           <li key={s}>{s}</li>
         ))}
         <li>
-          Open the app and pair it with the code from the portal: Settings →
-          Sales channels → POS → your branch → Terminals.
+          Open the app and pair it with the code from the portal: Settings → Sales channels → POS →
+          your branch → Terminals.
         </li>
       </ol>
     </div>
