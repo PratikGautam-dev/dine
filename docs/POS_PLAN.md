@@ -397,6 +397,15 @@ Settled as they come up.
   server has not counted yet; the hub refuses an add beyond it (`out_of_stock`). Menu & stock switches a dish off (86) or sets its count
   through `POST /terminal/items/{id}/stock` (pos/till_stock.py): a cashier session whose role holds `menu.out_of_stock`, or a manager's
   session when one approves. It is the portal's own switch and count, so online ordering follows.
+- **Table flow (2026-11-27, user's choices)**: seating asks guests and the **captain** (who serves; the signed-in person unless another
+  is picked), both changeable on the running order. The **customer is optional** for a table ("Add customer": phone with DPDP consent,
+  recorded with the office when online; name; GSTIN for a business bill) and needed only for a bill on credit. Each KOT can carry a
+  **round note** for the kitchen; the KOT prints the captain. A sent dish can be **discounted** (₹ or %, reason, within the role's limit
+  or a manager's) or **moved to another table** (running or free) besides voided. **Changing a printed bill** needs "change printed
+  bill"; it keeps its number and the next print says TAX INVOICE (REVISED); an unchanged copy says DUPLICATE. A settled table is free
+  at once. The bill shows captain, customer and GSTIN, and each dish's discount; the upload carries `captain`, `customer.gstin`,
+  `lines[].discount_reason` and `kots[].note` (pos_bills.captain_id / captain_name / customer_gstin, pos_bill_lines.discount_reason,
+  migration 0129).
 - **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 
