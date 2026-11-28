@@ -26,9 +26,8 @@ export type FoodOrder = {
   // Was already returned by the backend (advance_order_status() stamps it on every transition) but
   // never declared here until the Kitchen Orders page's real avg-order-time metric needed it.
   updated_at: string;
-  // Web Storefront: which front door this order came through. Every order predates 'web' as
-  // 'whatsapp' (the column's own DB default) -- see food-orders/page.tsx's own Source column.
-  source: "whatsapp" | "web" | "app" | "skip_queue";
+  // The channel this order came through (backend migration 0136). skipq: the guest ordered from their phone at the table.
+  source: "whatsapp" | "website" | "app" | "skipq";
   mock_payment_ref: string | null;
   // The latest payment on the order and how much of it has been refunded (the Returns page's queue). payment_status is null when the order has
   // no payment record at all (an "at restaurant" order).
@@ -133,7 +132,6 @@ export function useFoodOrders(
 ) {
   const [orders, setOrders] = useState<FoodOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actingId, setActingId] = useState<string | null>(null);
   // Guards against an older, slower (e.g. unfiltered "All Branches") request resolving AFTER a
   // newer one and clobbering its correct data.
   const branchIdRef = useRef(branchId);
@@ -165,6 +163,18 @@ export function useFoodOrders(
     const interval = setInterval(load, pollMs);
     return () => clearInterval(interval);
   }, [ready, load, pollMs]);
+
+  const { actingId, runAction, dispatchOrder } = useFoodOrderActions(load);
+
+  return { orders, error, actingId, load, runAction, dispatchOrder };
+}
+
+/** Every action on one online order -- each a specific named endpoint (never a raw status-setter), matching the guarded-UPDATE
+ * transitions db/repositories/food_orders.py's advance_order_status() enforces server-side. A stale or double-tapped action gets a 409
+ * back, handled as "refresh, don't crash". `reload` runs after every action. Used by the Orders page and useFoodOrders below. */
+export function useFoodOrderActions(reload: () => void) {
+  const [actingId, setActingId] = useState<string | null>(null);
+  const load = reload;
 
   async function runAction(order: FoodOrder, action: string) {
     setActingId(order.id);
@@ -219,7 +229,7 @@ export function useFoodOrders(
     return true;
   }
 
-  return { orders, error, actingId, load, runAction, dispatchOrder };
+  return { actingId, runAction, dispatchOrder };
 }
 
 export type DispatchDetails = { partner_name: string; partner_phone: string; tracking_id: string };

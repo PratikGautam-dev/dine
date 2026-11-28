@@ -278,7 +278,7 @@ export function DeliveryDetailPanel({
   const live = order.status === "out_for_delivery";
   const dispatchedAt = order.dispatched_at ?? reachedAt("out_for_delivery");
   const address = order.delivery_address?.trim() || null;
-  const sourceLabel = order.source === "web" ? "Website" : "WhatsApp";
+  const sourceLabel = order.source === "website" ? "Website" : "WhatsApp";
   const partnerName = order.delivery_partner_name;
   const customerInitials =
     (order.patient_name || "Guest")

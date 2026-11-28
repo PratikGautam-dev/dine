@@ -1,17 +1,17 @@
 import { Badge } from "@/components/erp-ui/Badge";
 import {
-  CHANNELS,
+  ORDER_CHANNEL_LABEL,
   ORDER_STATUS_TONE,
   PAYMENT_STATUS_TONE,
   humanize,
-  type Channel,
+  type OrderChannel,
   type Order,
 } from "@/lib/erp/erp";
 
-export function ChannelBadge({ channel }: { channel: Channel }) {
+export function ChannelBadge({ channel }: { channel: OrderChannel }) {
   return (
-    <Badge tone={channel === "pos" ? "brand" : channel === "online" ? "violet" : "success"}>
-      {CHANNELS[channel].label}
+    <Badge tone={channel === "pos" ? "brand" : channel === "whatsapp" ? "success" : "violet"}>
+      {ORDER_CHANNEL_LABEL[channel] ?? humanize(channel)}
     </Badge>
   );
 }

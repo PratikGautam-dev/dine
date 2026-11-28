@@ -133,10 +133,10 @@ const NAV_ITEMS: {
     module: "table_bookings",
   },
   {
-    key: "food-orders",
-    label: "Food Orders",
+    key: "orders",
+    label: "Orders",
     icon: ClipboardList,
-    href: "/portal/food-orders?source=all",
+    href: "/portal/orders?source=all",
     pageKey: "food_orders",
     group: "Main",
   },

@@ -18,8 +18,12 @@ import {
   Banknote,
   CalendarCheck,
   Download,
+  Globe,
+  QrCode,
   Repeat,
   ShoppingBag,
+  Smartphone,
+  Store,
   Users,
   Wallet,
 } from "lucide-react";
@@ -29,6 +33,7 @@ import { DashboardSkeleton } from "@/components/ui/Skeleton";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PeakHoursChart } from "@/components/portal/PeakHoursChart";
 import { PortalShell } from "@/components/portal/PortalShell";
+import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { useBranchFilter } from "@/lib/branchContext";
@@ -121,10 +126,13 @@ function RevenueTooltip({
   );
 }
 
+// One entry per sales channel (backend db/repositories/reports.py _CHANNEL_LABEL); every number is measured.
 const CHANNEL_ICON: Record<string, React.ReactNode> = {
-  Takeaway: <ShoppingBag size={14} />,
-  Delivery: <ShoppingBag size={14} />,
-  "Dine-in": <CalendarCheck size={14} />,
+  WhatsApp: <WhatsAppIcon size={14} />,
+  Website: <Globe size={14} />,
+  App: <Smartphone size={14} />,
+  skipQ: <QrCode size={14} />,
+  POS: <Store size={14} />,
 };
 
 export default function PortalReportsPage() {
@@ -422,7 +430,7 @@ export default function PortalReportsPage() {
                 count: Math.round(c.revenue_paise / 100),
               }))}
               title="Revenue by Channel"
-              subtitle={`${periodText} · Dine-in revenue is estimated`}
+              subtitle={periodText}
               unit="₹"
               emptyText="No revenue in this period."
             />

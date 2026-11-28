@@ -68,7 +68,7 @@ export function NewOrderAlert() {
           : `${fresh.length} new orders. Latest: ${latest.reference_id ?? `#${latest.id}`} from ${who}`}
       </p>
       <Link
-        href="/portal/food-orders"
+        href="/portal/orders"
         onClick={() => setFresh([])}
         className="shrink-0 rounded-md bg-white px-space-3 py-1 text-[12.5px] font-bold text-error hover:bg-white/90"
       >

@@ -7,6 +7,7 @@ import { ActivityFeed } from "@/components/portal/ActivityFeed";
 import { SectionDonut } from "@/components/portal/SectionDonut";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { RecentAppointmentsTable } from "@/components/portal/RecentAppointmentsTable";
+import { SalesRow } from "@/components/portal/SalesRow";
 import { StatTile } from "@/components/portal/StatTile";
 import { WeeklyTrendChart } from "@/components/portal/WeeklyTrendChart";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
@@ -22,7 +23,7 @@ function greetingFor(hour: number): string {
 }
 
 // Everyone signed in sees the same restaurant-wide dashboard (the doctor self-service dashboard went away with
-// the doctor portal). Only real numbers are shown: reservations, guests, sections and recent activity.
+// the doctor portal). Only real numbers are shown: sales from every channel, reservations, guests, sections and recent activity.
 export default function PortalDashboardPage() {
   return <RestaurantDashboard />;
 }
@@ -69,6 +70,13 @@ function RestaurantDashboard() {
         <DashboardSkeleton tiles={5} />
       ) : (
         <>
+          {data.sales && (
+            <SalesRow
+              sales={data.sales}
+              compareHint={isToday ? "vs yesterday" : "vs previous period"}
+              periodText={isToday ? "Today" : periodText}
+            />
+          )}
           <div className="mb-space-4 grid grid-cols-2 gap-space-3 lg:grid-cols-3 xl:grid-cols-5">
             <StatTile
               icon={<CalendarCheck size={22} />}

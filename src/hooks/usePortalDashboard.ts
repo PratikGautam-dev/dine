@@ -2,9 +2,12 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getPortalRestaurant, portalFetch, type PortalRestaurant } from "@/lib/portalAuth";
 import { rangeParams, type DateRange } from "@/lib/globalFilter";
+import type { SalesSummary } from "@/hooks/useOrders";
 
 export type DashboardData = {
   restaurant: PortalRestaurant;
+  /** What sold in the period across every channel (backend sales/orders.py); "today" when no period is given. */
+  sales: SalesSummary;
   stats: {
     today_appointments: number;
     today_appointments_delta_pct: number | null;

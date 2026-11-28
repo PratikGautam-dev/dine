@@ -105,16 +105,16 @@ function DeliveryRow({
           <span className="truncate">{order.patient_name || "Guest"}</span>
         </span>
         <span className="flex items-center gap-1.5 text-[12.5px] text-ink-600">
-          {order.source === "web" ? (
+          {order.source === "website" ? (
             <Globe size={12} className="shrink-0 text-ink-400" />
           ) : (
             <WhatsAppIcon size={12} />
           )}
           <span className="truncate">
-            {order.source === "web"
+            {order.source === "website"
               ? "Website"
-              : order.source === "skip_queue"
-                ? "SkipQ"
+              : order.source === "skipq"
+                ? "skipQ"
                 : "WhatsApp"}
           </span>
         </span>
@@ -148,7 +148,7 @@ export default function PortalDeliveryTrackingPage() {
 
   const [tab, setTab] = useState<TabKey>("live");
   const [query, setQuery] = useState("");
-  const [source, setSource] = useState<"" | "web" | "whatsapp">("");
+  const [source, setSource] = useState<"" | "website" | "whatsapp">("");
   const [status, setStatus] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   // the order whose delivery partner is being entered / corrected
@@ -306,11 +306,11 @@ export default function PortalDeliveryTrackingPage() {
             </label>
             <Select
               value={source}
-              onValueChange={(v) => setSource(v as "" | "web" | "whatsapp")}
+              onValueChange={(v) => setSource(v as "" | "website" | "whatsapp")}
               aria-label="Source"
             >
               <option value="">All Sources</option>
-              <option value="web">Website</option>
+              <option value="website">Website</option>
               <option value="whatsapp">WhatsApp</option>
             </Select>
             <Select value={status} onValueChange={(v) => setStatus(v)} aria-label="Status">

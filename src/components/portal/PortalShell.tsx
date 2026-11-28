@@ -17,6 +17,7 @@ import {
   DASHBOARD_PERIODS,
   FEEDBACK_PERIODS,
   ORDER_CHANNELS,
+  ORDER_PICKUPS,
   ORDER_PERIODS,
   PERIOD_ORDER,
   REPORT_CHANNELS,
@@ -41,7 +42,7 @@ const _BRANCH_AWARE_PAGES = new Set([
   "live-operations",
   "appointments",
   "tables",
-  "food-orders",
+  "orders",
   "returns",
   "kitchen-orders",
   "delivery-tracking",
@@ -56,7 +57,7 @@ const _BRANCH_AWARE_PAGES = new Set([
 const DEFAULT_FILTER: GlobalFilterOptions = { periods: PERIOD_ORDER };
 const FILTER_PAGES: Record<string, GlobalFilterOptions> = {
   reports: { periods: REPORT_PERIODS, channels: REPORT_CHANNELS, pickups: REPORT_PICKUPS },
-  "food-orders": { periods: ORDER_PERIODS, channels: ORDER_CHANNELS },
+  orders: { periods: ORDER_PERIODS, channels: ORDER_CHANNELS, pickups: ORDER_PICKUPS },
   returns: { periods: RETURN_PERIODS },
   feedback: { periods: FEEDBACK_PERIODS },
   dashboard: { periods: DASHBOARD_PERIODS },

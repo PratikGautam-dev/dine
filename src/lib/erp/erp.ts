@@ -29,6 +29,17 @@ export const CHANNELS: Record<Channel, { label: string; slug: string; blurb: str
 
 export const CHANNEL_ORDER: Channel[] = ["online", "pos", "whatsapp"];
 
+/** The channel an order came through: the sales channels above, plus the app and skipQ (a guest ordering from their phone at the
+ * table). Only orders carry these two; they have no connection settings of their own. */
+export type OrderChannel = Channel | "app" | "skipq";
+export const ORDER_CHANNEL_LABEL: Record<OrderChannel, string> = {
+  online: "Website",
+  pos: "POS",
+  whatsapp: "WhatsApp",
+  app: "App",
+  skipq: "skipQ",
+};
+
 export type Customer = {
   id: string;
   customer_code: string | null;
@@ -261,10 +272,12 @@ export function qs(params: Record<string, string | number | boolean | null | und
 // ---------------------------------------------------------------------------------------------- types copied from the ERP
 export type Order = {
   id: string;
+  /** Dine: an online order or a bill a till settled (opened on the Orders page as such) */
+  kind?: "online" | "pos";
   order_number: string;
   branch_id: string;
   fulfilment_branch_id: string | null;
-  channel: Channel;
+  channel: OrderChannel;
   customer_id: string | null;
   /** In list responses: the customer's name, so a list never needs the customer list to label its rows. */
   customer_name?: string | null;

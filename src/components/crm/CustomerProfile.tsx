@@ -679,7 +679,9 @@ export function CustomerProfile({
               <li key={o.id}>
                 <button
                   type="button"
-                  onClick={() => router.push(`/portal/orders/${o.id}`)}
+                  onClick={() =>
+                    router.push(`/portal/orders?open=${o.id}&kind=${o.kind ?? "online"}`)
+                  }
                   className="flex w-full flex-wrap items-center justify-between gap-space-2 py-space-2 text-left text-[13.5px] hover:bg-black/[0.02]"
                 >
                   <span className="flex items-center gap-space-2">

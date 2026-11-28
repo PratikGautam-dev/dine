@@ -19,8 +19,9 @@ export type Period =
   | "fy"
   | "custom"
   | "all";
-/** How the order arrived. The filter holds a list of these (none selected = all channels). */
-export type GlobalChannel = "web" | "app" | "whatsapp" | "pos" | "skip_queue";
+/** How the order arrived: the API's channel codes (backend sales/orders.py CHANNELS). The filter holds a list of these (none = all).
+ * skipQ is a guest ordering from their phone at the table (scan the table's QR), confirmed on the till. */
+export type GlobalChannel = "whatsapp" | "website" | "app" | "skipq" | "pos";
 /** How it is fulfilled. A list too (none = all). Within a list the choices are "any of"; the two lists combine ("and"). */
 export type GlobalPickup = "dine_in" | "takeaway" | "delivery";
 
@@ -52,11 +53,11 @@ export const PERIOD_LABEL: Record<Period, string> = {
   all: "All time",
 };
 export const CHANNEL_LABEL: Record<GlobalChannel, string> = {
-  web: "Website",
-  app: "App",
   whatsapp: "WhatsApp",
+  website: "Website",
+  app: "App",
+  skipq: "skipQ",
   pos: "POS",
-  skip_queue: "SkipQ",
 };
 export const PICKUP_LABEL: Record<GlobalPickup, string> = {
   dine_in: "Dine-in",
@@ -66,10 +67,23 @@ export const PICKUP_LABEL: Record<GlobalPickup, string> = {
 
 /** What each kind of page offers in the header (PortalShell's FILTER_PAGES decides which page gets which). */
 export const REPORT_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !== "all"); // the reports API needs a bounded range
-export const REPORT_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp", "pos"];
+export const REPORT_CHANNELS: readonly GlobalChannel[] = [
+  "whatsapp",
+  "website",
+  "app",
+  "skipq",
+  "pos",
+];
 export const REPORT_PICKUPS: readonly GlobalPickup[] = ["dine_in", "takeaway", "delivery"];
 export const ORDER_PERIODS: readonly Period[] = PERIOD_ORDER;
-export const ORDER_CHANNELS: readonly GlobalChannel[] = ["web", "app", "whatsapp", "skip_queue"];
+export const ORDER_CHANNELS: readonly GlobalChannel[] = [
+  "whatsapp",
+  "website",
+  "app",
+  "skipq",
+  "pos",
+];
+export const ORDER_PICKUPS: readonly GlobalPickup[] = ["dine_in", "takeaway", "delivery"];
 export const RETURN_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const FEEDBACK_PERIODS: readonly Period[] = PERIOD_ORDER;
 export const DASHBOARD_PERIODS: readonly Period[] = PERIOD_ORDER.filter((p) => p !== "all"); // the dashboard API needs a bounded range
@@ -201,6 +215,10 @@ const GlobalFilterContext = createContext<Value>({
 const isPeriod = (v: unknown): v is Period => typeof v === "string" && v in PERIOD_LABEL;
 const isPickup = (v: unknown): v is GlobalPickup => typeof v === "string" && v in PICKUP_LABEL;
 const isChannel = (v: unknown): v is GlobalChannel => typeof v === "string" && v in CHANNEL_LABEL;
+/** Channel names an older version of the portal stored. */
+const OLD_CHANNEL: Record<string, GlobalChannel> = { web: "website", skip_queue: "skipq" };
+const renamedChannels = (v: unknown): unknown =>
+  Array.isArray(v) ? v.map((c) => (typeof c === "string" && OLD_CHANNEL[c]) || c) : v;
 const pickList = <T,>(v: unknown, ok: (x: unknown) => x is T): T[] =>
   Array.isArray(v) ? [...new Set(v.filter(ok))] : [];
 
@@ -215,7 +233,7 @@ function readSaved(): Saved {
     return {
       // a period an older version stored may no longer exist
       period: isPeriod(saved.period) ? saved.period : fallback.period,
-      channels: pickList(saved.channels, isChannel),
+      channels: pickList(renamedChannels(saved.channels), isChannel),
       pickups: pickList(saved.pickups, isPickup),
       custom: {
         from: typeof custom?.from === "string" ? custom.from : "",

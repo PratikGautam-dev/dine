@@ -165,7 +165,7 @@ export function NotificationBell() {
             <ul className="max-h-96 divide-y divide-line overflow-y-auto">
               {orders.map((o) => (
                 <li key={`order-${o.id}`} className="px-space-4 py-space-3">
-                  <Link href="/portal/food-orders" onClick={() => setOpen(false)}>
+                  <Link href="/portal/orders" onClick={() => setOpen(false)}>
                     <p className="text-[13px] font-semibold text-ink-900">
                       Order {o.reference_id ?? `#${o.id}`} · {o.patient_name || o.phone}
                     </p>

@@ -450,6 +450,69 @@ Settled as they come up.
 - **Later, by decision (2026-11-26)**: the offline takeaway fallback (no hub and no internet), equal split and split by seat (split by
   item is built), and delivery partners (DAAP's own network; not per-restaurant riders).
 
+## Orders across channels, online orders on the till, skipQ (agreed 2026-11-28)
+
+**An order is not a bill.** `food_orders` holds every order that starts on the internet (WhatsApp, Website, App, skipQ); `pos_bills` holds
+every bill settled at the restaurant. **Money taken at the restaurant always goes through a till bill**: a skipQ order and a
+pay-at-restaurant online order are settled on a till bill that lists them (`pos_bills.food_order_ids`, `food_orders.pos_bill_id`); an
+order paid online never gets one. So revenue counts once, restaurant GST invoices come from the till's gap-free series, and the drawer
+adds up. Till orders do not go into `food_orders` (offline-first; ~30 readers apply online rules; a bill has ~20 more fields). A database
+view `sales_orders` joins both with one definition of an order and of revenue; the Orders page, Dashboard, Analytics and customer
+history read it.
+
+**Channels**: WhatsApp · Website · App · **skipQ** (own channel, user's choice) · POS; **order type** is a separate filter (dine-in,
+takeaway, delivery). `food_orders.source` becomes `whatsapp | website | app | skipq` (`web` → `website`, `skip_queue` → `skipq`), in two
+releases (expand: both allowed, code writes new and reads both; contract: rows updated, old values dropped). POS comes from the view.
+
+**skipQ** = ordering from the guest's phone at the table (the old "order ahead" description of `skip_queue` was wrong). Each table has a
+QR with a random, regenerable token (`/t/<token>`), printed from Tables. The menu opens in dine-in mode (dine-in prices, no delivery or
+packaging); the guest enters name and **phone (required)** and sends; the order waits for the cashier's **Confirm** on the till (or
+Reject with a reason), which adds it to the table's running order (**free tables allowed**: confirming opens the table) and prints the
+KOT marked skipQ. The guest's page shows waiting / confirmed / preparing / served and can order again. Paid at the end on the table's
+bill (paying from the phone: later). Guards: every order confirmed by a person, rate limits per table and IP, only while open, and
+"ordering unavailable, please call a waiter" when the hub has not checked in for 2 minutes.
+
+**Call waiter / Ask for bill**: `service_requests` (branch, table, type, open / on the way / done, times); one open request per table and
+type, 60-second cooldown; an alert on the till, **On the way** shows the guest "a waiter is coming"; response times in reports. Later
+the captain app receives them.
+
+**Till inbox**: `GET /terminal/inbox?after=<cursor>` returns what is new for the till's branch (from its sign-in, never from input):
+online orders (when the branch handles them on the till), skipQ orders and service requests. Only the hub polls, every 5 seconds; a
+per-branch change counter in Redis answers "nothing new" without touching Postgres (~200 req/s of Redis reads at 1,000 branches). Every
+action goes through one shared status function with the portal (same guards, 409 on a race, audit log, one WhatsApp message). New till
+permissions: `online.accept`, `online.update`, `skipq.confirm`, `service.respond`. Branch setting **Online orders are handled on: Portal /
+Till / Both** (skipQ always needs the till).
+
+**Portal**: Food orders is renamed **Orders** (server-paged, channel / order type / branch / status / date / search; till bills read-only,
+opened as printed). Dashboard gets a Sales row (revenue, orders, average bill by channel; by day; top 5 dishes; payment mix). Analytics
+gains the channels and order type; customer pages show every channel by phone. **Loyalty on till and skipQ sales: not yet** (user).
+
+**Phases**: (1) source rename (expand), `sales_orders` view and bill-order links, Orders page, Dashboard sales, Analytics, customer
+history; (2) inbox, shared status function, permissions, branch setting, online orders on the till, pay-at-restaurant on a till bill;
+(3) skipQ; (4) call waiter and ask for bill. Later: paying from the phone, captain app, kitchen display, WebSockets.
+**Default for "Online orders are handled on"**: Portal (user, 2026-11-28); when a branch pairs its first till the portal asks once
+whether to move them to the till.
+
+**Phase 1 built (2026-11-28)**
+- Migration **0136**: sources `whatsapp | website | app | skipq` (old `web` / `skip_queue` still allowed: the expand step; reads hand out
+  the new names; **contract step still to do**: rewrite the old rows and drop the old names in a later migration); `food_orders.pos_bill_id`
+  and `pos_bills.food_order_ids` (used from phase 2); the `sales_orders` view; `crm_orders` maps `website` to "online" like `web`.
+- Backend `sales/orders.py`: the merged list (server-paged, counts per view, filters by date / branch / channel / order type / search),
+  a till bill as printed, the sales summary (totals with the period before, by channel, order type, day and hour, top dishes, payment
+  mix, complimentary), sales per branch, the CSV rows and a customer's orders. Routes: `GET /api/portal/orders`,
+  `/api/portal/orders/summary`, `/api/portal/pos-bills/{id}` (need `food_orders:view`, not the online-ordering capability).
+- **One sale rule everywhere**: Dashboard (`sales` in `/api/portal/dashboard`), Analytics (`get_reports_summary`, branch comparison and
+  CSV exports now read the view), the Orders page. Analytics used to count carts and unpaid online checkouts as revenue, and showed an
+  *estimated* dine-in revenue; both are gone (every channel is measured).
+- A till bill's customer phone is stored like customer records (91 + the number); a customer's purchase history finds their till bills
+  by phone (also the bare 10 digits of older bills).
+- Portal: **Food orders is now Orders** at `/portal/orders` (`/portal/food-orders` redirects with its query); channel and order-type
+  filters in the header; online orders keep every action; a till bill opens read-only in a bill drawer; the Dashboard has a Sales row;
+  Analytics shows WhatsApp / Website / App / skipQ / POS; purchase-history rows open on the Orders page (they linked to a page that did
+  not exist).
+- Found: restaurants' `timezone` column defaults to `'UTC'` (both local restaurants have it), so day boundaries (the till's business
+  day, these reports) fall at 05:30 IST for them. Not changed; the provisioning path should set `Asia/Kolkata`.
+
 ## Verification
 
 - **Backend**:
