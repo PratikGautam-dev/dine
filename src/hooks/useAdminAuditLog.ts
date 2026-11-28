@@ -8,9 +8,9 @@ import { superAdminFetch } from "@/lib/superAdminAuth";
  * "platform_admin" (a super-admin's own change via admin/tenants_api.py) or
  * "portal" (a tenant's own staff-portal mutation). */
 export type AuditLogEntry = {
-  id: number;
+  id: string;
   actor_level: "platform_admin" | "portal";
-  restaurant_id: number | null;
+  restaurant_id: string | null;
   actor_label: string;
   action: string;
   entity_type: string | null;
@@ -28,7 +28,7 @@ export type PlatformAuditLogEntry = AuditLogEntry & { restaurant_name: string | 
 /** Loads /api/admin/tenants/{tenantId}/audit-log -- both audit levels for
  * ONE tenant, for the "Activity log" section at the bottom of its detail
  * page. */
-export function useTenantAuditLog(tenantId: number) {
+export function useTenantAuditLog(tenantId: string) {
   const router = useRouter();
   const [entries, setEntries] = useState<AuditLogEntry[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -56,7 +56,7 @@ export function useTenantAuditLog(tenantId: number) {
 }
 
 export type PlatformAuditLogFilters = {
-  restaurantId: number | null;
+  restaurantId: string | null;
   actorLevel: "platform_admin" | "portal" | null;
 };
 

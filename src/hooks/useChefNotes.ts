@@ -3,7 +3,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type ChefNote = {
-  id: number;
+  id: string;
   text: string;
   created_by_name: string;
   created_at: string;
@@ -53,7 +53,7 @@ export function useChefNotes(ready: boolean, branchId: string | null = null) {
     return true;
   }
 
-  async function deleteNote(id: number) {
+  async function deleteNote(id: string) {
     const result = await portalFetch(`/api/portal/chef-notes/${id}/delete`, { method: "POST" });
     if (!result.ok && !result.unauthorized) toast.error("Couldn't remove note", result.error);
     load();

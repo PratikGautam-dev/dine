@@ -4,7 +4,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type Automation = {
-  id: number;
+  id: string;
   name: string;
   trigger_event: string;
   message_text: string;

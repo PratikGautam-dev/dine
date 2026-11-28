@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 
 export type AuditEntry = {
-  id: number;
+  id: string;
   actor_level: string;
   // who did it, e.g. "Olive Owner <staff:1>"
   actor_label?: string;

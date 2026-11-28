@@ -10,11 +10,11 @@ type Props = {
    * button (there's no real target to act on). */
   appointment: Appointment | null;
   canWrite: boolean;
-  onConfirm: (id: number) => void;
-  onReschedule: (id: number) => void;
-  onReassign: (id: number) => void;
-  onSendReminder: (id: number) => void;
-  onCancel: (id: number) => void;
+  onConfirm: (id: string) => void;
+  onReschedule: (id: string) => void;
+  onReassign: (id: string) => void;
+  onSendReminder: (id: string) => void;
+  onCancel: (id: string) => void;
 };
 
 const ACTIONS: {
@@ -83,7 +83,7 @@ export function QuickActionsBar({
   onSendReminder,
   onCancel,
 }: Props) {
-  const handlers: Record<string, (id: number) => void> = {
+  const handlers: Record<string, (id: string) => void> = {
     confirm: onConfirm,
     reschedule: onReschedule,
     reassign: onReassign,

@@ -6,7 +6,7 @@ import { queryKeys } from "@/lib/erp/queryKeys";
 import type { PosRelease } from "@/lib/posReleases";
 
 export type TerminalEvent = {
-  id: number;
+  id: string;
   event: string;
   actor_type: string;
   ip: string | null;

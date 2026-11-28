@@ -23,7 +23,7 @@ import { roleLabel } from "@/lib/staffRoles";
 import { toast } from "@/lib/toast";
 
 type Me = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   role: string;

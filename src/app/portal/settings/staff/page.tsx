@@ -71,7 +71,7 @@ export default function TeamAccessPage() {
 
   const opened = merged.find((r) => r.key === openKey) ?? null;
   const selfId = session?.id ?? null;
-  const managersFor = (personId: number | null) =>
+  const managersFor = (personId: string | null) =>
     (staff ?? [])
       .filter((m) => m.is_active && m.id !== personId)
       .map((m) => ({ id: m.id, name: m.name }));

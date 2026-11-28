@@ -99,7 +99,7 @@ const CATEGORY_TABS = [
 ] as const;
 
 type Template = {
-  id: number;
+  id: number; // this page's own sample list, not a database id
   name: string;
   category: "booking" | "order" | "support" | "promotions";
   categoryLabel: string;

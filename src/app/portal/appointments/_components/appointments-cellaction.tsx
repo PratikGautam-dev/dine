@@ -20,19 +20,19 @@ import { usePermission } from "@/lib/staffAuth";
 
 type AppointmentCellActionProps = {
   appointment: Appointment;
-  cancelPanelId: number | null;
-  reschedulePanelId: number | null;
-  reassignPanelId: number | null;
-  onOpenReschedule: (id: number) => void;
-  onOpenCancel: (id: number) => void;
-  onOpenReassign: (id: number) => void;
-  deletingId: number | null;
-  onDelete: (id: number) => void;
+  cancelPanelId: string | null;
+  reschedulePanelId: string | null;
+  reassignPanelId: string | null;
+  onOpenReschedule: (id: string) => void;
+  onOpenCancel: (id: string) => void;
+  onOpenReassign: (id: string) => void;
+  deletingId: string | null;
+  onDelete: (id: string) => void;
   canWrite: boolean;
   /** "Did they come?" -- lives here (not inline in the Status column) to keep the table compact;
    * freely re-toggleable, not gated on the scheduled time having passed. */
-  markingAttendanceId: number | null;
-  onAttendance: (id: number, attended: boolean) => void;
+  markingAttendanceId: string | null;
+  onAttendance: (id: string, attended: boolean) => void;
 };
 
 /** The row's "..." menu -- Reschedule / Reassign table / Cancel for a still-'booked' row (hidden while any inline

@@ -46,7 +46,7 @@ export default function ReturnsPage() {
 
   const [tab, setTab] = useState<Tab>("cancelled");
   const [search, setSearch] = useState("");
-  const [openOrderId, setOpenOrderId] = useState<number | null>(null);
+  const [openOrderId, setOpenOrderId] = useState<string | null>(null);
 
   // the list is fetched by "days back"; trim it to the exact dates chosen in the header
   const inPeriod = useMemo(

@@ -8,7 +8,7 @@ import { rupees } from "@/lib/foodOrders";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 
 type AlertOrder = {
-  id: number;
+  id: string;
   reference_id: string | null;
   patient_name: string | null;
   phone: string;
@@ -24,7 +24,7 @@ export function NewOrderAlert() {
   const session = useStaffSession();
   const allowed = session !== null && hasPermission(session, "food_orders", "view");
   const [fresh, setFresh] = useState<AlertOrder[]>([]);
-  const seenIds = useRef<Set<number> | null>(null);
+  const seenIds = useRef<Set<string> | null>(null);
 
   useEffect(() => {
     if (!allowed) return;

@@ -18,7 +18,7 @@ type Props = {
   /** Their own account: role and active state can't be changed from here. */
   isSelf: boolean;
   /** Active teammates the person could report to (already excludes the person being edited). */
-  managers: { id: number; name: string }[];
+  managers: { id: string; name: string }[];
   /** Restaurant-created custom role_keys (Staff & Access's "Add Role") beyond the 3 built-in
    * ROLE_OPTIONS -- shown with a computed label (roleLabel()), no blurb. */
   customRoles?: string[];

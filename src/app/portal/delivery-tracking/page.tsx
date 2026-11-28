@@ -150,7 +150,7 @@ export default function PortalDeliveryTrackingPage() {
   const [query, setQuery] = useState("");
   const [source, setSource] = useState<"" | "web" | "whatsapp">("");
   const [status, setStatus] = useState("");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   // the order whose delivery partner is being entered / corrected
   const [dispatching, setDispatching] = useState<FoodOrder | null>(null);
 

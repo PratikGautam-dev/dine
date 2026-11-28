@@ -3,7 +3,7 @@ import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
 
 export type Handoff = {
-  id: number;
+  id: string;
   phone: string;
   // the guest's name from their profile at this restaurant; null when they never gave one
   patient_name: string | null;
@@ -22,7 +22,7 @@ export type Handoff = {
 // conversation, not just its trigger message -- direction distinguishes a
 // patient's own message (inbound) from a staff reply (outbound).
 export type HandoffMessage = {
-  id: number;
+  id: string;
   direction: "inbound" | "outbound";
   message_text: string;
   created_at: string;
@@ -55,19 +55,19 @@ export function useMessages(ready: boolean) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]["key"]>("open");
   const [handoffs, setHandoffs] = useState<Handoff[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [selectedId, setSelectedId] = useState<number | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState("");
   const [sending, setSending] = useState(false);
   const [thread, setThread] = useState<HandoffMessage[] | null>(null);
   const [threadError, setThreadError] = useState<string | null>(null);
-  const [resolvingId, setResolvingId] = useState<number | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
+  const [resolvingId, setResolvingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [quickActionId, setQuickActionId] = useState<string | null>(null);
   // Item 6 (Spec.md Section 0): status filtering already existed (the
   // Open/Resolved/All tabs above) -- this adds a date filter alongside it.
   const [dateFilter, setDateFilter] = useState("");
   // Messages page follow-up: multi-select + bulk resolve/delete.
-  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkActing, setBulkActing] = useState(false);
   const [bulkError, setBulkError] = useState<string | null>(null);
 
@@ -122,7 +122,7 @@ export function useMessages(ready: boolean) {
     setSelectedIds(new Set());
   }
 
-  function toggleSelected(id: number, checked: boolean) {
+  function toggleSelected(id: string, checked: boolean) {
     setSelectedIds((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -176,7 +176,7 @@ export function useMessages(ready: boolean) {
   const selected = handoffs?.find((h) => h.id === selectedId) || null;
 
   const loadThread = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       const result = await portalFetch(`/api/portal/handoffs/${id}/messages`);
       if (!result.ok) {
         if (result.unauthorized) router.push("/portal/login");
@@ -249,7 +249,7 @@ export function useMessages(ready: boolean) {
     return result.unauthorized ? "Session expired — please log in again." : result.error;
   }
 
-  async function handleResolve(id: number) {
+  async function handleResolve(id: string) {
     setResolvingId(id);
     const result = await portalFetch(`/api/portal/handoffs/${id}/resolve`, { method: "POST" });
     setResolvingId(null);
@@ -258,7 +258,7 @@ export function useMessages(ready: boolean) {
 
   // Item 3: soft-delete only (no restriction on status, unlike appointments
   // -- see db.soft_delete_handoff()'s own reasoning).
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     setDeletingId(id);
     const result = await portalFetch(`/api/portal/handoffs/${id}/delete`, { method: "POST" });
     setDeletingId(null);

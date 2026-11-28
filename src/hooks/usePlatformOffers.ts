@@ -7,7 +7,7 @@ import { toast } from "@/lib/toast";
  * /api/portal/offers -- a coupon that works across every restaurant (migration 0081), not just
  * one. No branch_ids (no branch concept at this level). */
 export type PlatformOffer = {
-  id: number;
+  id: string;
   name: string;
   discount_type: "percentage" | "flat";
   discount_value: number;
