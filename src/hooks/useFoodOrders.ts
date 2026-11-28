@@ -10,7 +10,7 @@ export type FoodOrderItem = {
 };
 
 export type FoodOrder = {
-  id: number;
+  id: string;
   phone: string;
   // the guest's name from their profile at this restaurant; null when they never gave one
   patient_name: string | null;
@@ -133,7 +133,7 @@ export function useFoodOrders(
 ) {
   const [orders, setOrders] = useState<FoodOrder[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [actingId, setActingId] = useState<number | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
   // Guards against an older, slower (e.g. unfiltered "All Branches") request resolving AFTER a
   // newer one and clobbering its correct data.
   const branchIdRef = useRef(branchId);
@@ -232,7 +232,7 @@ export type OrderStatusHistoryEntry = {
 };
 
 export type OrderPayment = {
-  id: number;
+  id: string;
   method: string;
   provider: string | null;
   status: "pending" | "paid" | "failed";
@@ -242,7 +242,7 @@ export type OrderPayment = {
 };
 
 export type OrderRefund = {
-  id: number;
+  id: string;
   amount_paise: number;
   reason: string | null;
   status: string;
@@ -260,7 +260,7 @@ export type FoodOrderDetail = {
 /** Loads a single order's full detail -- status timeline (migration 0057) and payment/refund
  * record (migration 0056) -- for the Food Orders page's detail drawer. Separate from the list
  * hook above since the list itself doesn't need this per-order detail, only the drawer does. */
-export function useFoodOrderDetail(orderId: number | null) {
+export function useFoodOrderDetail(orderId: string | null) {
   const [detail, setDetail] = useState<FoodOrderDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [refunding, setRefunding] = useState(false);

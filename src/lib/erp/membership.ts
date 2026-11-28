@@ -204,7 +204,7 @@ export type RulesResponse = {
 };
 
 export type HistoryEntry = {
-  id: number;
+  id: string;
   action: string;
   created_at: string;
   detail: Record<string, unknown>;

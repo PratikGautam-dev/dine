@@ -26,7 +26,7 @@ function subscribe(listener: () => void) {
 }
 
 export type SuperAdminSession = {
-  id: number;
+  id: string;
   name: string;
   email: string;
 };

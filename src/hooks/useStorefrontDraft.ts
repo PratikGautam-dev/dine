@@ -26,7 +26,7 @@ export function sectionLabel(key: SectionKey): string {
  * immediate save via useStorefrontSettings' saveIdentity() -- not part of this draft at all
  * anymore. announcement_text (migration 0097) is the top-of-page banner. */
 export type StorefrontDraft = {
-  restaurant_id: number;
+  restaurant_id: string;
   tagline: string | null;
   cuisine_tags: string | null;
   logo_url: string | null;

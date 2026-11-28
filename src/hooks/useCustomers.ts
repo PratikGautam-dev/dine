@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast";
 
 export type Customer = {
   public_id: string;
-  id: number;
+  id: string;
   phone: string;
   name: string | null;
   patient_display_id: string | null;
@@ -39,8 +39,8 @@ export type CustomerDetail = Customer & {
 };
 
 export type LoyaltyTransaction = {
-  id: number;
-  order_id: number | null;
+  id: string;
+  order_id: string | null;
   kind: string;
   points: number;
   created_at: string;
@@ -55,7 +55,7 @@ export type CustomerMessage = {
 };
 
 export type RecentOrder = {
-  id: number;
+  id: string;
   public_id: string | null;
   created_at: string;
   status: string;
@@ -67,7 +67,7 @@ async function fetchPatients(search: string) {
   return portalFetch(`/api/portal/customers?search=${encodeURIComponent(search)}`);
 }
 
-async function deletePatients(patientIds: number[]) {
+async function deletePatients(patientIds: string[]) {
   return portalFetch("/api/portal/customers/delete", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -86,11 +86,11 @@ export function useCustomers(ready: boolean) {
   const [directory, setDirectory] = useState<Customer[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<Customer[] | null>(null);
   const [deleting, setDeleting] = useState(false);
   // The "Customer Details" side panel's own selection -- distinct from `selected` above (row checkboxes).
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [profile, setProfile] = useState<CustomerDetail | null>(null);
   const [recentOrders, setRecentOrders] = useState<RecentOrder[] | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
@@ -133,7 +133,7 @@ export function useCustomers(ready: boolean) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
-  const toggleSelected = (id: number, checked: boolean) => {
+  const toggleSelected = (id: string, checked: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -159,7 +159,7 @@ export function useCustomers(ready: boolean) {
       }
       return;
     }
-    const deletedIds = new Set((result.data as { deleted: number[] }).deleted);
+    const deletedIds = new Set((result.data as { deleted: string[] }).deleted);
     toast.success(deletedIds.size > 1 ? `${deletedIds.size} guests deleted` : "Guest deleted");
     setPatients((prev) => (prev ? prev.filter((p) => !deletedIds.has(p.id)) : prev));
     setDirectory((prev) => (prev ? prev.filter((p) => !deletedIds.has(p.id)) : prev));
@@ -174,7 +174,7 @@ export function useCustomers(ready: boolean) {
   const allSelected = (patients?.length ?? 0) > 0 && selected.size === patients?.length;
 
   const openProfile = useCallback(
-    async (id: number) => {
+    async (id: string) => {
       setActiveId(id);
       setProfile(null);
       setRecentOrders(null);

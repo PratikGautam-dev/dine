@@ -6,7 +6,7 @@ import { superAdminFetch } from "@/lib/superAdminAuth";
  * /api/admin/tenants{,/\{id\}} -- admin/tenants_api.py's "correct an
  * already-onboarded restaurant" API, not the separate onboarding flow. */
 export type TenantSummary = {
-  id: number;
+  id: string;
   name: string;
   whatsapp_phone_number_id: string;
   data_tier: string;
@@ -26,7 +26,7 @@ export type TenantDaap = {
  * capability/feature catalogs the detail page renders its checkbox grids
  * from (all_capabilities, default_capabilities, feature_default_labels). */
 export type TenantDetail = {
-  id: number;
+  id: string;
   name: string;
   whatsapp_phone_number_id: string;
   access_token_masked: string;
@@ -97,7 +97,7 @@ export function useAdminTenantsList() {
 }
 
 /** Loads/updates /api/admin/tenants/{id} -- the full edit-tenant detail. */
-export function useAdminTenantDetail(tenantId: number) {
+export function useAdminTenantDetail(tenantId: string) {
   const router = useRouter();
   const [tenant, setTenant] = useState<TenantDetail | null>(null);
   const [loading, setLoading] = useState(true);

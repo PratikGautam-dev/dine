@@ -4,7 +4,7 @@ import { staffFetch } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
 export type StaffMember = {
-  id: number;
+  id: string;
   name: string;
   email: string;
   // A plain string, not the fixed StaffRole union -- Staff & Access's "Add Role" means this can
@@ -16,7 +16,7 @@ export type StaffMember = {
   employee_id: string | null;
   phone: string | null;
   address: string | null;
-  reports_to_id: number | null;
+  reports_to_id: string | null;
   reports_to_name: string | null;
   working_days: string[];
   shift_start: string | null;
@@ -213,7 +213,7 @@ export function useStaffManagement(canView: boolean) {
         role: f.role,
         phone: nullIfBlank(f.phone),
         address: nullIfBlank(f.address),
-        reports_to_id: f.reports_to_id ? Number(f.reports_to_id) : null,
+        reports_to_id: f.reports_to_id || null,
         working_days: f.working_days,
         shift_start: nullIfBlank(f.shift_start),
         shift_end: nullIfBlank(f.shift_end),
@@ -257,7 +257,7 @@ export function useStaffManagement(canView: boolean) {
       patch.phone = nullIfBlank(f.phone);
     if ((nullIfBlank(f.address) ?? null) !== (member.address ?? null))
       patch.address = nullIfBlank(f.address);
-    const reports = f.reports_to_id ? Number(f.reports_to_id) : null;
+    const reports = f.reports_to_id || null;
     if (reports !== (member.reports_to_id ?? null)) patch.reports_to_id = reports;
     const sameDays = f.working_days.join(",") === (member.working_days ?? []).join(",");
     if (!sameDays) patch.working_days = f.working_days;
@@ -324,7 +324,7 @@ export function useStaffManagement(canView: boolean) {
     if (!result.ok)
       return result.unauthorized ? "Session expired -- please sign in again." : result.error;
     if (f.branch_id) {
-      const id = (result.data as { id: number }).id;
+      const id = (result.data as { id: string }).id;
       const limited = await staffFetch(`/api/portal/staff/${id}/branches`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

@@ -4,7 +4,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type Offer = {
-  id: number;
+  id: string;
   name: string;
   discount_type: "percentage" | "flat";
   discount_value: number;
@@ -87,7 +87,7 @@ export function useOffers(ready: boolean) {
       else toast.error("Couldn't create offer", result.error);
       return false;
     }
-    const created = (result.data as { offer?: { id: number } }).offer;
+    const created = (result.data as { offer?: { id: string } }).offer;
     if (!active && created) {
       // the create endpoint always makes a live offer; a draft is switched off straight after
       await portalFetch(`/api/portal/offers/${created.id}`, {

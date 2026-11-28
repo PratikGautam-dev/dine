@@ -3,15 +3,15 @@ import { useRouter } from "next/navigation";
 import { portalFetch } from "@/lib/portalAuth";
 
 export type FeedbackEntry = {
-  id: number;
+  id: string;
   phone: string;
   rating: number;
   comment: string | null;
   source: string;
   created_at: string;
-  patient_id: number | null;
+  patient_id: string | null;
   patient_name: string | null;
-  order_id: number | null;
+  order_id: string | null;
 };
 
 export type FeedbackSummary = {

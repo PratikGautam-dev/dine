@@ -45,7 +45,7 @@ export type DaapStatus =
 export type FirstOpen = {
   done: boolean;
   outlet: {
-    id: number;
+    id: string;
     name: string;
     address_line: string;
     city: string;

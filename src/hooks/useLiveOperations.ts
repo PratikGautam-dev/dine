@@ -4,7 +4,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type LiveBooking = {
-  id: number;
+  id: string;
   scheduled_at: string;
   patient_name: string | null;
   phone: string;
@@ -15,7 +15,7 @@ export type LiveBooking = {
 };
 
 export type LiveOrder = {
-  id: number;
+  id: string;
   reference_id: string | null;
   status: string;
   patient_name: string | null;
@@ -27,7 +27,7 @@ export type LiveOrder = {
 };
 
 export type LiveHandoff = {
-  id: number;
+  id: string;
   phone: string;
   patient_name: string | null;
   reason: string;
@@ -140,13 +140,13 @@ export function useLiveOperations(ready: boolean, branchId: string | null = null
     actingId,
     setTableStatus: (tableId: string, action: "seat" | "clear" | "needs_cleaning") =>
       runAction(`table-${tableId}`, `/api/portal/tables/${tableId}/${action}`, "Table updated"),
-    advanceOrder: (orderId: number, action: string) =>
+    advanceOrder: (orderId: string, action: string) =>
       runAction(
         `order-${orderId}`,
         `/api/portal/food-orders/${orderId}/${action}`,
         "Order updated",
       ),
-    markArrived: (bookingId: number) =>
+    markArrived: (bookingId: string) =>
       runAction(
         `booking-${bookingId}`,
         `/api/portal/bookings/${bookingId}/attendance`,

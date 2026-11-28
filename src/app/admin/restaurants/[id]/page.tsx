@@ -48,7 +48,7 @@ type FormState = {
 export default function AdminRestaurantDetailPage() {
   const params = useParams();
   const router = useRouter();
-  const tenantId = Number(params.id);
+  const tenantId = String(params.id);
   const { tenant, loading, error, updateTenant } = useAdminTenantDetail(tenantId);
   const {
     entries: auditEntries,

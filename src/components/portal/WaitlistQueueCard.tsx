@@ -29,7 +29,7 @@ export function WaitlistQueueCard({ ready, canWrite }: { ready: boolean; canWrit
   const [guestName, setGuestName] = useState("");
   const [phone, setPhone] = useState("");
   const [partySize, setPartySize] = useState("2");
-  const [assigningEntryId, setAssigningEntryId] = useState<number | null>(null);
+  const [assigningEntryId, setAssigningEntryId] = useState<string | null>(null);
   const [freeTables, setFreeTables] = useState<FreeTable[] | null>(null);
 
   useEffect(() => {

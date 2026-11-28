@@ -63,7 +63,7 @@ const VIEW_TABS: { id: ViewFilter; label: string; always: boolean }[] = [
 export default function PortalAppointmentsPage() {
   const { restaurant, ready } = usePortalGuard();
   const canWrite = usePermission("appointments", "write");
-  const [activeId, setActiveId] = useState<number | null>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
   const [newReservationOpen, setNewReservationOpen] = useState(false);
   const {
     appointments,

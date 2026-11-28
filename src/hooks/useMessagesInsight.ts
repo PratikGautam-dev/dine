@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { portalFetch } from "@/lib/portalAuth";
 
 export type HandoffLite = {
-  id: number;
+  id: string;
   reason: "patient_requested" | "system_error";
   status: "open" | "resolved";
   created_at: string;
@@ -33,7 +33,7 @@ export function useHandoffOverview(ready: boolean, refreshKey: unknown): Handoff
 }
 
 export type GuestSummary = {
-  id: number;
+  id: string;
   public_id: string;
   name: string | null;
   phone: string;

@@ -21,7 +21,7 @@ const PAYMENT_STATUS_TONE: Record<string, "success" | "warning" | "clay"> = {
  * payment/refund record (migration 0056's payments/refunds). Not a full edit form: refunds here
  * are record-keeping only (no live gateway refund call), same scope db/repositories/payments.py's
  * create_refund() itself documents. */
-export function OrderDetailDrawer({ orderId, onClose }: { orderId: number; onClose: () => void }) {
+export function OrderDetailDrawer({ orderId, onClose }: { orderId: string; onClose: () => void }) {
   const { detail, loading, refunding, notifying, issueRefund, notifyCustomer } =
     useFoodOrderDetail(orderId);
   const [refundAmount, setRefundAmount] = useState("");

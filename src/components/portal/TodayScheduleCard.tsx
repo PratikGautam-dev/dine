@@ -25,14 +25,14 @@ type Props = {
   items: Appointment[];
   /** May this person mark attendance? View-only roles get the queue without the action button. */
   canWrite: boolean;
-  markingAttendanceId: number | null;
-  onAttendance: (id: number, attended: boolean) => void;
+  markingAttendanceId: string | null;
+  onAttendance: (id: string, attended: boolean) => void;
   /** Live Operations' real per-table occupancy -- a still-'booked' row whose table is in this set
    * shows "Seated" instead of "Confirmed", derived rather than a stored status. */
   occupiedTableIds?: Set<string>;
   /** Table Bookings follow-up: confirms a still-'pending' row (only ever populated when this
    * restaurant opted into require_booking_confirmation). Undefined hides the Confirm button entirely. */
-  onConfirm?: (id: number) => void;
+  onConfirm?: (id: string) => void;
 };
 
 /** Today's reservations as a live-style work queue -- one scannable row per booking, in time order, with the

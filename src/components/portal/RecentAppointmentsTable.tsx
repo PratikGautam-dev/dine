@@ -6,7 +6,7 @@ import { cn } from "@/lib/cn";
 import { formatShortDateTime } from "@/lib/formatDate";
 
 type Appointment = {
-  id: number;
+  id: string;
   phone: string;
   patient_name: string | null;
   patient_display_id: string | null;

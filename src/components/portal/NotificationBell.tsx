@@ -10,7 +10,7 @@ import { staffJson } from "@/lib/hr";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 
 type Notice = {
-  id: number;
+  id: string;
   kind: string;
   title: string;
   body: string | null;
@@ -19,7 +19,7 @@ type Notice = {
   created_at: string;
 };
 type OrderItem = {
-  id: number;
+  id: string;
   reference_id: string | null;
   patient_name: string | null;
   phone: string;
@@ -30,16 +30,23 @@ type OrderItem = {
 const POLL_MS = 15_000;
 const LAST_SEEN_ORDER_KEY = "bell_last_seen_order_id";
 
-function readLastSeen(): number | null {
+// Order ids are uuidv7: their text sorts in the order the orders were placed, so the newest is the greatest string.
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+
+function readLastSeen(): string | null {
   try {
     const raw = localStorage.getItem(LAST_SEEN_ORDER_KEY);
-    return raw === null ? null : Number(raw);
+    return raw !== null && UUID.test(raw) ? raw : null; // an old numeric id counts as never seen
   } catch {
     return null;
   }
 }
 
-function writeLastSeen(id: number) {
+function newest(ids: string[]): string {
+  return ids.reduce((a, b) => (b > a ? b : a));
+}
+
+function writeLastSeen(id: string) {
   try {
     localStorage.setItem(LAST_SEEN_ORDER_KEY, String(id));
   } catch {
@@ -80,7 +87,7 @@ export function NotificationBell() {
     setOrders(list);
     const lastSeen = readLastSeen();
     if (lastSeen === null) {
-      if (list.length) writeLastSeen(Math.max(...list.map((o) => o.id)));
+      if (list.length) writeLastSeen(newest(list.map((o) => o.id)));
       setOrderUnread(0);
       return;
     }
@@ -116,7 +123,7 @@ export function NotificationBell() {
         if (data) setUnread(data.unread);
       }
     }
-    if (orders.length) writeLastSeen(Math.max(...orders.map((o) => o.id)));
+    if (orders.length) writeLastSeen(newest(orders.map((o) => o.id)));
     setOrderUnread(0);
   }
 

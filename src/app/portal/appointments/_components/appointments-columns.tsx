@@ -41,27 +41,27 @@ function formatDay(iso: string) {
 type CreateAppointmentColumnsOptions = {
   /** May this person change reservations (mark attendance, reschedule, cancel)? View-only roles just read. */
   canWrite: boolean;
-  selected: Set<number>;
-  toggleSelected: (id: number, checked: boolean) => void;
+  selected: Set<string>;
+  toggleSelected: (id: string, checked: boolean) => void;
   toggleSelectAll: (checked: boolean) => void;
   allSelected: boolean;
   deletableCount: number;
-  markingAttendanceId: number | null;
-  onAttendance: (id: number, attended: boolean) => void;
+  markingAttendanceId: string | null;
+  onAttendance: (id: string, attended: boolean) => void;
   /** Live Operations' real per-table occupancy -- a still-'booked' row whose table is in this set
    * shows "Seated" instead of "Confirmed", derived rather than a stored status. */
   occupiedTableIds: Set<string>;
   /** Table Bookings follow-up: confirms a still-'pending' row (only ever populated when this
    * restaurant opted into require_booking_confirmation). */
-  onConfirm: (id: number) => void;
-  cancelPanelId: number | null;
-  reschedulePanelId: number | null;
-  reassignPanelId: number | null;
-  onOpenReschedule: (id: number) => void;
-  onOpenCancel: (id: number) => void;
-  onOpenReassign: (id: number) => void;
-  deletingId: number | null;
-  onDelete: (id: number) => void;
+  onConfirm: (id: string) => void;
+  cancelPanelId: string | null;
+  reschedulePanelId: string | null;
+  reassignPanelId: string | null;
+  onOpenReschedule: (id: string) => void;
+  onOpenCancel: (id: string) => void;
+  onOpenReassign: (id: string) => void;
+  deletingId: string | null;
+  onDelete: (id: string) => void;
 };
 
 /** Column definitions for the /portal/appointments DataTable -- same 13

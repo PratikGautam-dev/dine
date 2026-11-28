@@ -29,7 +29,7 @@ export type DashboardData = {
     at: string;
   }[];
   recent_appointments: {
-    id: number;
+    id: string;
     phone: string;
     patient_name: string | null;
     patient_display_id: string | null;

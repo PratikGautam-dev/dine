@@ -18,7 +18,7 @@ import {
 } from "@/lib/staffAuth";
 
 export type PortalRestaurant = {
-  id: number;
+  id: string;
   name: string;
   /** The business ID (e.g. TNT00004), shown in the account menu. */
   display_id?: string | null;

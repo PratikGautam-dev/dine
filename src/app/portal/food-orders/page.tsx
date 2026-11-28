@@ -133,7 +133,7 @@ export default function PortalFoodOrdersPage() {
   const [pendingCancel, setPendingCancel] = useState<FoodOrder | null>(null);
   // the delivery order being handed to DAAP Delivery (the rider form)
   const [dispatching, setDispatching] = useState<FoodOrder | null>(null);
-  const [detailOrderId, setDetailOrderId] = useState<number | null>(null);
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null);
 
   // Sidebar's Sales Channels group (Online/WhatsApp) deep-links here with ?source=web|whatsapp
   // instead of duplicating this whole page per channel -- read via window.location.search rather

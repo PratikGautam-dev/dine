@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { staffFetch } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-export type RestaurantPhoto = { id: number; image_url: string; sort_order: number };
+export type RestaurantPhoto = { id: string; image_url: string; sort_order: number };
 
 /** Loads + manages the storefront's photo gallery (migration 0089) -- interior/food/ambience
  * shots, separate from the single logo/cover fields useStorefrontSettings.ts already covers.
@@ -11,7 +11,7 @@ export type RestaurantPhoto = { id: number; image_url: string; sort_order: numbe
 export function useRestaurantPhotos(ready: boolean) {
   const [photos, setPhotos] = useState<RestaurantPhoto[] | null>(null);
   const [uploading, setUploading] = useState(false);
-  const [removingId, setRemovingId] = useState<number | null>(null);
+  const [removingId, setRemovingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     const result = await staffFetch("/api/portal/settings/storefront/photos");
@@ -57,7 +57,7 @@ export function useRestaurantPhotos(ready: boolean) {
     setPhotos((prev) => [...(prev ?? []), photo]);
   }
 
-  async function removePhoto(id: number) {
+  async function removePhoto(id: string) {
     setRemovingId(id);
     const result = await staffFetch(`/api/portal/settings/storefront/photos/${id}`, {
       method: "DELETE",

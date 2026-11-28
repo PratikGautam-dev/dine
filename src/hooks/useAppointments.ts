@@ -26,7 +26,7 @@ export function rescheduleMessageFor(date: string, time: string): string {
 }
 
 export type Appointment = {
-  id: number;
+  id: string;
   phone: string;
   // the guest's name from their profile at this restaurant; null when they never gave one
   patient_name: string | null;
@@ -56,7 +56,7 @@ export type Appointment = {
   // scheduled_at above is a PLACEHOLDER (request creation time) until
   // procedure_status reaches "CONFIRMED" -- don't display it as a real
   // slot before then.
-  procedure_id: number | null;
+  procedure_id: string | null;
   procedure_name: string | null;
   procedure_status: string | null;
   procedure_estimated_price_min: number | null;
@@ -138,12 +138,12 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   const router = useRouter();
   const [appointments, setAppointments] = useState<Appointment[] | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [cancellingId, setCancellingId] = useState<number | null>(null);
-  const [cancelPanelId, setCancelPanelId] = useState<number | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
+  const [cancelPanelId, setCancelPanelId] = useState<string | null>(null);
   const [cancelMessage, setCancelMessage] = useState(DEFAULT_CANCEL_MESSAGE);
 
-  const [reschedulePanelId, setReschedulePanelId] = useState<number | null>(null);
-  const [reschedulingId, setReschedulingId] = useState<number | null>(null);
+  const [reschedulePanelId, setReschedulePanelId] = useState<string | null>(null);
+  const [reschedulingId, setReschedulingId] = useState<string | null>(null);
   const [rescheduleCtx, setRescheduleCtx] = useState<NewBookingContext | null>(null);
   const [rescheduleErrors, setRescheduleErrors] = useState<string[]>([]);
   const [rescheduleMessage, setRescheduleMessage] = useState(DEFAULT_RESCHEDULE_MESSAGE);
@@ -155,8 +155,8 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   const [rTableSlots, setRTableSlots] = useState<
     { id: string; date: string; time: string; label: string }[] | null
   >(null);
-  const [reassignPanelId, setReassignPanelId] = useState<number | null>(null);
-  const [reassigningId, setReassigningId] = useState<number | null>(null);
+  const [reassignPanelId, setReassignPanelId] = useState<string | null>(null);
+  const [reassigningId, setReassigningId] = useState<string | null>(null);
   const [reassignTables, setReassignTables] = useState<
     | { id: string; name: string; department_id: string; capacity: number; is_active: boolean }[]
     | null
@@ -164,9 +164,9 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   const [reassignTableId, setReassignTableId] = useState("");
   const [reassignErrors, setReassignErrors] = useState<string[]>([]);
 
-  const [markingAttendanceId, setMarkingAttendanceId] = useState<number | null>(null);
-  const [deletingId, setDeletingId] = useState<number | null>(null);
-  const [selected, setSelected] = useState<Set<number>>(new Set());
+  const [markingAttendanceId, setMarkingAttendanceId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pendingDelete, setPendingDelete] = useState<Appointment[] | null>(null);
   const [bulkDeleting, setBulkDeleting] = useState(false);
 
@@ -219,12 +219,12 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     if (ready) load();
   }, [ready, load]);
 
-  async function confirmBooking(id: number) {
+  async function confirmBooking(id: string) {
     const result = await portalFetch(`/api/portal/bookings/${id}/confirm`, { method: "POST" });
     if (afterAction(result, "Reservation confirmed", "Couldn't confirm reservation")) load();
   }
 
-  async function sendReminder(id: number) {
+  async function sendReminder(id: string) {
     const result = await portalFetch(`/api/portal/bookings/${id}/send-reminder`, {
       method: "POST",
     });
@@ -316,7 +316,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   // real status" gap -- a still-'booked' appointment whose scheduled time
   // has already passed gets an inline "Did the patient visit?" prompt,
   // computed from fields the list already has (no separate fetch needed).
-  async function handleAttendance(id: number, attended: boolean) {
+  async function handleAttendance(id: string, attended: boolean) {
     setMarkingAttendanceId(id);
     const result = await portalFetch(`/api/portal/bookings/${id}/attendance`, {
       method: "POST",
@@ -338,8 +338,8 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   // an already-CONFIRMED procedure's status (CONFIRMED -> COMPLETED, or ->
   // CANCELLED) -- same "one action in flight per row" shape as the lab-status
   // advance above.
-  const [procedureActionId, setProcedureActionId] = useState<number | null>(null);
-  async function handleApproveProcedureRequest(id: number) {
+  const [procedureActionId, setProcedureActionId] = useState<string | null>(null);
+  async function handleApproveProcedureRequest(id: string) {
     setProcedureActionId(id);
     const result = await portalFetch(`/api/portal/bookings/${id}/procedure/approve`, {
       method: "POST",
@@ -347,7 +347,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setProcedureActionId(null);
     if (result.ok) load();
   }
-  async function handleRejectProcedureRequest(id: number, reason?: string) {
+  async function handleRejectProcedureRequest(id: string, reason?: string) {
     setProcedureActionId(id);
     const result = await portalFetch(`/api/portal/bookings/${id}/procedure/reject`, {
       method: "POST",
@@ -357,7 +357,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setProcedureActionId(null);
     if (result.ok) load();
   }
-  async function handleAdvanceProcedureStatus(id: number) {
+  async function handleAdvanceProcedureStatus(id: string) {
     setProcedureActionId(id);
     const result = await portalFetch(`/api/portal/bookings/${id}/procedure/advance-status`, {
       method: "POST",
@@ -367,7 +367,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setProcedureActionId(null);
     if (result.ok) load();
   }
-  async function handleApproveProcedureReschedule(id: number) {
+  async function handleApproveProcedureReschedule(id: string) {
     setProcedureActionId(id);
     const result = await portalFetch(
       `/api/portal/bookings/${id}/procedure/reschedule-request/approve`,
@@ -376,7 +376,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setProcedureActionId(null);
     if (result.ok) load();
   }
-  async function handleRejectProcedureReschedule(id: number) {
+  async function handleRejectProcedureReschedule(id: string) {
     setProcedureActionId(id);
     const result = await portalFetch(
       `/api/portal/bookings/${id}/procedure/reschedule-request/reject`,
@@ -390,7 +390,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   // never-hard-delete convention -- restricted server-side to non-'booked'
   // rows (cancel it first), same guard reflected here by only offering the
   // button once status !== "booked".
-  async function handleDelete(id: number) {
+  async function handleDelete(id: string) {
     if (!window.confirm("Delete this reservation record? This can't be undone from the portal."))
       return;
     setDeletingId(id);
@@ -404,7 +404,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
   // guard the single-row delete button (and the backend) already enforces;
   // a 'booked' appointment can't be selected at all rather than silently
   // failing once "Delete selected" is clicked.
-  const toggleSelected = (id: number, checked: boolean) => {
+  const toggleSelected = (id: string, checked: boolean) => {
     setSelected((prev) => {
       const next = new Set(prev);
       if (checked) next.add(id);
@@ -435,7 +435,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
       else setError(result.error);
       return;
     }
-    const deletedIds = new Set((result.data as { deleted: number[] }).deleted);
+    const deletedIds = new Set((result.data as { deleted: string[] }).deleted);
     setAppointments((prev) => (prev ? prev.filter((a) => !deletedIds.has(a.id)) : prev));
     setSelected((prev) => {
       const next = new Set(prev);
@@ -444,7 +444,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     });
   };
 
-  function openCancelPanel(id: number) {
+  function openCancelPanel(id: string) {
     setReschedulePanelId(null);
     setCancelPanelId(id);
     setCancelMessage(DEFAULT_CANCEL_MESSAGE);
@@ -454,7 +454,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setCancelPanelId(null);
   }
 
-  async function handleCancel(id: number) {
+  async function handleCancel(id: string) {
     setCancellingId(id);
     const result = await portalFetch(`/api/portal/bookings/${id}/cancel`, {
       method: "POST",
@@ -466,7 +466,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     if (result.ok) load();
   }
 
-  async function openReschedulePanel(id: number) {
+  async function openReschedulePanel(id: string) {
     setCancelPanelId(null);
     setReschedulePanelId(id);
     setRescheduleMessage(DEFAULT_RESCHEDULE_MESSAGE);
@@ -505,7 +505,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setReschedulePanelId(null);
   }
 
-  async function handleReschedule(id: number) {
+  async function handleReschedule(id: string) {
     setReschedulingId(id);
     setRescheduleErrors([]);
     const result = await portalFetch(`/api/portal/bookings/${id}/reschedule`, {
@@ -537,7 +537,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     load();
   }
 
-  async function openReassignPanel(id: number) {
+  async function openReassignPanel(id: string) {
     setCancelPanelId(null);
     setReschedulePanelId(null);
     setReassignPanelId(id);
@@ -553,7 +553,7 @@ export function useAppointments(ready: boolean, branchId: string | null = null) 
     setReassignPanelId(null);
   }
 
-  async function handleReassignTable(id: number) {
+  async function handleReassignTable(id: string) {
     setReassigningId(id);
     setReassignErrors([]);
     const result = await portalFetch(`/api/portal/bookings/${id}/reassign-table`, {

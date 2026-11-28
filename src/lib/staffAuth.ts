@@ -31,7 +31,7 @@ export type StaffRole = "admin" | "receptionist" | "kitchen" | "doctor";
 export type StaffPermissions = Record<string, { view: boolean; write: boolean; delete: boolean }>;
 
 export type StaffSession = {
-  id: number;
+  id: string;
   name: string;
   role: StaffRole;
   restaurant: PortalRestaurant;

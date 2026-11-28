@@ -26,8 +26,8 @@ export type CollectionDraft = Pick<
 
 export const CATEGORY_PREFIX = "cat:";
 
-const legacyKey = (restaurantId: number) => `dine_collections_${restaurantId}`;
-const legacyHeaderKey = (restaurantId: number) => `dine_collection_category_header_${restaurantId}`;
+const legacyKey = (restaurantId: string) => `dine_collections_${restaurantId}`;
+const legacyHeaderKey = (restaurantId: string) => `dine_collection_category_header_${restaurantId}`;
 
 type ApiList = { collections: Collection[]; category_header_flags: Record<string, boolean> };
 export type SaveResult = { ok: true } | { ok: false; error: string };
@@ -47,7 +47,7 @@ function readLegacy<T>(key: string, fallback: T): T {
  * from `items`). The link is one-way on purpose: a category always shows up here, but a collection
  * created here never writes to a menu item's category, so it never appears in the Menu's category
  * list. */
-export function useCollections(restaurantId: number | null, items: MenuItem[] | null) {
+export function useCollections(restaurantId: string | null, items: MenuItem[] | null) {
   const [custom, setCustom] = useState<Collection[] | null>(null);
   const [headerFlags, setHeaderFlags] = useState<Record<string, boolean>>({});
   const [loadError, setLoadError] = useState<string | null>(null);

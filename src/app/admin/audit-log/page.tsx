@@ -39,7 +39,7 @@ export default function AdminAuditLogPage() {
       <div className="mb-space-4 flex flex-wrap items-center gap-space-3">
         <Select
           value={filters.restaurantId ?? ""}
-          onValueChange={(v) => setFilters((f) => ({ ...f, restaurantId: v ? Number(v) : null }))}
+          onValueChange={(v) => setFilters((f) => ({ ...f, restaurantId: v || null }))}
         >
           <option value="">All restaurants</option>
           {tenantOptions.map((t) => (

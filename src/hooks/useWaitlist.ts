@@ -3,7 +3,7 @@ import { portalFetch } from "@/lib/portalAuth";
 import { toast } from "@/lib/toast";
 
 export type WaitlistEntry = {
-  id: number;
+  id: string;
   guest_name: string;
   phone: string | null;
   party_size: number;
@@ -17,7 +17,7 @@ const POLL_INTERVAL_MS = 15_000;
 
 export function useWaitlist(ready: boolean, branchId: string | null = null) {
   const [entries, setEntries] = useState<WaitlistEntry[] | null>(null);
-  const [actingId, setActingId] = useState<number | null>(null);
+  const [actingId, setActingId] = useState<string | null>(null);
   const [adding, setAdding] = useState(false);
   const branchIdRef = useRef(branchId);
   useEffect(() => {
@@ -56,7 +56,7 @@ export function useWaitlist(ready: boolean, branchId: string | null = null) {
     return true;
   }
 
-  async function assignEntry(id: number, tableId: string) {
+  async function assignEntry(id: string, tableId: string) {
     setActingId(id);
     const result = await portalFetch(`/api/portal/waitlist/${id}/assign`, {
       method: "POST",
@@ -73,7 +73,7 @@ export function useWaitlist(ready: boolean, branchId: string | null = null) {
     load();
   }
 
-  async function cancelEntry(id: number) {
+  async function cancelEntry(id: string) {
     setActingId(id);
     const result = await portalFetch(`/api/portal/waitlist/${id}/cancel`, { method: "POST" });
     setActingId(null);
