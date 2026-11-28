@@ -24,7 +24,9 @@ export default function AdminRestaurantsPage() {
     const q = search.trim().toLowerCase();
     const all = tenants ?? [];
     if (!q) return all;
-    return all.filter((t) => [t.name, t.whatsapp_phone_number_id].some((v) => v.toLowerCase().includes(q)));
+    return all.filter((t) =>
+      [t.name, t.whatsapp_phone_number_id].some((v) => v.toLowerCase().includes(q)),
+    );
   }, [tenants, search]);
 
   return (
@@ -52,8 +54,15 @@ export default function AdminRestaurantsPage() {
       </div>
 
       <div className="mb-space-4 flex flex-wrap items-center justify-between gap-space-3">
-        <h3 className="text-[15px] font-bold text-ink-900">Restaurants{tenants ? ` (${tenants.length})` : ""}</h3>
-        <Input placeholder="Search by name or WhatsApp phone ID…" value={search} onChange={(e) => setSearch(e.target.value)} className="max-w-[280px]" />
+        <h3 className="text-[15px] font-bold text-ink-900">
+          Restaurants{tenants ? ` (${tenants.length})` : ""}
+        </h3>
+        <Input
+          placeholder="Search by name or WhatsApp phone ID…"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="max-w-[280px]"
+        />
       </div>
 
       <Card className="overflow-x-auto p-space-2">
@@ -77,14 +86,21 @@ export default function AdminRestaurantsPage() {
               {filteredTenants.map((t) => (
                 <tr key={t.id} className="border-b border-line last:border-0">
                   <td className="px-space-3 py-space-2">
-                    <Link href={`/admin/restaurants/${t.id}`} className="font-semibold text-ink-900 hover:text-brand-700 hover:underline">
+                    <Link
+                      href={`/admin/restaurants/${t.id}`}
+                      className="font-semibold text-ink-900 hover:text-brand-700 hover:underline"
+                    >
                       {t.name}
                     </Link>
                   </td>
-                  <td className="px-space-3 py-space-2 font-mono text-[12px] text-ink-600">{t.whatsapp_phone_number_id}</td>
+                  <td className="px-space-3 py-space-2 font-mono text-[12px] text-ink-600">
+                    {t.whatsapp_phone_number_id}
+                  </td>
                   <td className="px-space-3 py-space-2 text-ink-600">{t.data_tier}</td>
                   <td className="px-space-3 py-space-2">
-                    <Badge tone={t.is_active ? "success" : "neutral"}>{t.is_active ? "Active" : "Inactive"}</Badge>
+                    <Badge tone={t.is_active ? "success" : "neutral"}>
+                      {t.is_active ? "Active" : "Inactive"}
+                    </Badge>
                   </td>
                 </tr>
               ))}

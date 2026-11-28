@@ -30,12 +30,12 @@ export default function EmailTemplatePage() {
       title={d?.label ?? "Customer notification"}
       description={d?.description ?? ""}
       actions={
-          <Link
-            href="/portal/settings/notifications"
-            className="flex items-center gap-space-1 text-[13px] font-semibold text-brand-700"
-          >
-            <ArrowLeft size={14} /> Notifications
-          </Link>
+        <Link
+          href="/portal/settings/notifications"
+          className="flex items-center gap-space-1 text-[13px] font-semibold text-brand-700"
+        >
+          <ArrowLeft size={14} /> Notifications
+        </Link>
       }
     >
       <div className="space-y-space-3">
@@ -44,9 +44,7 @@ export default function EmailTemplatePage() {
             <SkeletonLines rows={4} />
           </Card>
         ) : q.error ? (
-          <Card className="p-space-5 text-[14px] text-error">
-            {q.error.message}
-          </Card>
+          <Card className="p-space-5 text-[14px] text-error">{q.error.message}</Card>
         ) : d ? (
           <>
             <Card className="flex items-center justify-between gap-space-3 p-space-4">
@@ -69,17 +67,14 @@ export default function EmailTemplatePage() {
                     { key, enabled: !d.enabled },
                     {
                       onSuccess: () => q.refetch(),
-                      onError: (e) =>
-                        toast.error("Couldn't change it", e.message),
+                      onError: (e) => toast.error("Couldn't change it", e.message),
                     },
                   )
                 }
               />
             </Card>
             <Card className="p-space-5">
-              <h2 className="mb-space-3 text-[15px] font-semibold text-ink-900">
-                Preview
-              </h2>
+              <h2 className="mb-space-3 text-[15px] font-semibold text-ink-900">Preview</h2>
               <dl className="mb-space-4 grid gap-space-2 text-[13px] sm:grid-cols-2">
                 <div className="sm:col-span-2">
                   <dt className="text-ink-400">Subject</dt>
@@ -89,9 +84,7 @@ export default function EmailTemplatePage() {
                   <dt className="text-ink-400">From</dt>
                   <dd className="text-ink-900">
                     {d.from_name ?? "Your restaurant"}
-                    {d.from_address
-                      ? ` <${d.from_address}>`
-                      : " (our verified address)"}
+                    {d.from_address ? ` <${d.from_address}>` : " (our verified address)"}
                   </dd>
                 </div>
                 <div>
@@ -99,17 +92,14 @@ export default function EmailTemplatePage() {
                   <dd className="text-ink-900">
                     {d.from_address
                       ? d.from_address
-                      : (d.reply_to ??
-                        "Nobody yet: confirm a sender email first")}
+                      : (d.reply_to ?? "Nobody yet: confirm a sender email first")}
                   </dd>
                 </div>
                 <div className="sm:col-span-2">
                   <dt className="text-ink-400">Attachment</dt>
                   <dd className="text-ink-900">
                     {d.attachment ?? "None"}{" "}
-                    {d.attachment && (
-                      <span className="text-ink-400">({d.note})</span>
-                    )}
+                    {d.attachment && <span className="text-ink-400">({d.note})</span>}
                   </dd>
                 </div>
               </dl>

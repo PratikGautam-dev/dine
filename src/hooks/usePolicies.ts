@@ -18,7 +18,10 @@ export type StorePolicy = {
 const BASE = "/api/v1/store-admin/policies";
 
 export function usePolicies() {
-  return useQuery({ queryKey: queryKeys.storePolicies, queryFn: () => erpGet<StorePolicy[]>(BASE) });
+  return useQuery({
+    queryKey: queryKeys.storePolicies,
+    queryFn: () => erpGet<StorePolicy[]>(BASE),
+  });
 }
 
 export function useSavePolicy() {
@@ -40,13 +43,17 @@ export type ReturnRules = {
 };
 
 export function useReturnRules() {
-  return useQuery({ queryKey: queryKeys.returnPolicy, queryFn: () => erpGet<ReturnRules>("/api/v1/tenant/return-policy") });
+  return useQuery({
+    queryKey: queryKeys.returnPolicy,
+    queryFn: () => erpGet<ReturnRules>("/api/v1/tenant/return-policy"),
+  });
 }
 
 export function useSaveReturnRules() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<ReturnRules>) => erpSend<ReturnRules>("/api/v1/tenant/return-policy", "PUT", body),
+    mutationFn: (body: Partial<ReturnRules>) =>
+      erpSend<ReturnRules>("/api/v1/tenant/return-policy", "PUT", body),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.returnPolicy }),
   });
 }

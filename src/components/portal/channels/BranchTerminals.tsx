@@ -18,15 +18,18 @@ import {
   useRenameTerminal,
   useRevokeTerminal,
   useSetCashierPin,
+  usePosLatestRelease,
   useTerminal,
   type Issued,
   type Terminal,
 } from "@/hooks/useTerminals";
 import { formatDateTime, humanize } from "@/lib/erp/erp";
+import { compareVersions } from "@/lib/posReleases";
 import { hasPermission, useStaffSession } from "@/lib/erp/staffAuth";
 import { toast } from "@/lib/toast";
 import Link from "next/link";
 import { SkeletonLines } from "@/components/erp-ui/Skeleton";
+import { HandoverRecords } from "./HandoverRecords";
 
 const rowActionClass =
   "min-w-0 max-md:h-11 max-md:border max-md:border-line max-md:bg-card max-md:px-space-2 max-md:text-[12.5px]";
@@ -38,10 +41,7 @@ function isOld(iso: string | null): boolean {
 
 function ago(iso: string | null): string {
   if (!iso) return "never";
-  const s = Math.max(
-    0,
-    Math.round((Date.now() - new Date(iso).getTime()) / 1000),
-  );
+  const s = Math.max(0, Math.round((Date.now() - new Date(iso).getTime()) / 1000));
   if (s < 90) return "just now";
   if (s < 5400) return `${Math.round(s / 60)} min ago`;
   if (s < 129600) return `${Math.round(s / 3600)} h ago`;
@@ -49,23 +49,13 @@ function ago(iso: string | null): string {
 }
 
 const deviceLine = (t: Terminal) =>
-  [[t.manufacturer, t.model].filter(Boolean).join(" "), t.os_version]
-    .filter(Boolean)
-    .join(" · ") || humanize(t.platform);
+  [[t.manufacturer, t.model].filter(Boolean).join(" "), t.os_version].filter(Boolean).join(" · ") ||
+  humanize(t.platform);
 
 /** Shows a freshly generated pairing code once: large, with a QR for the terminal to scan and a countdown to expiry. */
-function CodeModal({
-  issued,
-  onClose,
-}: {
-  issued: Issued;
-  onClose: () => void;
-}) {
+function CodeModal({ issued, onClose }: { issued: Issued; onClose: () => void }) {
   const [left, setLeft] = useState(() =>
-    Math.max(
-      0,
-      Math.round((new Date(issued.expires_at).getTime() - Date.now()) / 1000),
-    ),
+    Math.max(0, Math.round((new Date(issued.expires_at).getTime() - Date.now()) / 1000)),
   );
   useEffect(() => {
     const id = setInterval(() => setLeft((s) => Math.max(0, s - 1)), 1000);
@@ -102,18 +92,14 @@ function CodeModal({
         >
           {issued.code}
         </p>
-        <p
-          className={`text-[13px] font-medium ${left > 0 ? "text-ink-600" : "text-error"}`}
-        >
+        <p className={`text-[13px] font-medium ${left > 0 ? "text-ink-600" : "text-error"}`}>
           {left > 0
             ? `Expires in ${Math.floor(left / 60)}:${String(left % 60).padStart(2, "0")}`
             : "Expired. Generate a new code."}
         </p>
         <p className="text-hint text-center">
           For security this code is shown only now.{" "}
-          {issued.terminal_name
-            ? `The terminal will be named “${issued.terminal_name}”.`
-            : ""}
+          {issued.terminal_name ? `The terminal will be named “${issued.terminal_name}”.` : ""}
         </p>
       </div>
     </Modal>
@@ -132,19 +118,15 @@ function Detail({ id, onClose }: { id: string; onClose: () => void }) {
         ["OS version", t.os_version],
         [
           "App version",
-          [t.app_version, t.app_build && `(build ${t.app_build})`]
-            .filter(Boolean)
-            .join(" ") || null,
+          [t.app_version, t.app_build && `(build ${t.app_build})`].filter(Boolean).join(" ") ||
+            null,
         ],
         ["Hardware ID", t.hardware_id],
         ["Serial number", t.serial_number],
         ["Install", t.install_id_hint],
         ["Locale", t.locale],
         ["Timezone", t.timezone],
-        [
-          "Paired",
-          `${formatDateTime(t.paired_at)}${t.paired_ip ? ` from ${t.paired_ip}` : ""}`,
-        ],
+        ["Paired", `${formatDateTime(t.paired_at)}${t.paired_ip ? ` from ${t.paired_ip}` : ""}`],
         [
           "Last seen",
           t.last_seen_at
@@ -205,24 +187,15 @@ function Detail({ id, onClose }: { id: string; onClose: () => void }) {
               </dl>
             </>
           )}
-          <h4 className="mt-space-4 text-[13px] font-semibold text-ink-900">
-            Recent activity
-          </h4>
+          <h4 className="mt-space-4 text-[13px] font-semibold text-ink-900">Recent activity</h4>
           <ul className="mt-space-2 divide-y divide-line">
             {(t.events ?? []).map((e) => (
-              <li
-                key={e.id}
-                className="flex justify-between gap-space-3 py-space-2 text-[13.5px]"
-              >
+              <li key={e.id} className="flex justify-between gap-space-3 py-space-2 text-[13.5px]">
                 <span className="text-ink-900">
                   {humanize(e.event)}
-                  {e.ip ? (
-                    <span className="text-ink-400"> · {e.ip}</span>
-                  ) : null}
+                  {e.ip ? <span className="text-ink-400"> · {e.ip}</span> : null}
                 </span>
-                <span className="shrink-0 text-ink-400">
-                  {formatDateTime(e.created_at)}
-                </span>
+                <span className="shrink-0 text-ink-400">{formatDateTime(e.created_at)}</span>
               </li>
             ))}
           </ul>
@@ -243,6 +216,12 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
   const session = useStaffSession();
   const canManage = hasPermission(session, "settings", "write");
   const list = useBranchTerminals(branchId);
+  const latest = usePosLatestRelease().data;
+  const outdated = (t: Terminal) =>
+    !!latest &&
+    t.status === "active" &&
+    !!t.app_version &&
+    compareVersions(t.app_version, latest.version) < 0;
   const [nextName, setNextName] = useState("");
   const [issued, setIssued] = useState<Issued | null>(null);
   const [detail, setDetail] = useState<string | null>(null);
@@ -268,8 +247,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
 
   function generate() {
     const checked = nextName.trim() ? nameSchema.safeParse(nextName) : null;
-    if (checked && !checked.success)
-      return toast.error(checked.error.issues[0].message);
+    if (checked && !checked.success) return toast.error(checked.error.issues[0].message);
     issueCode.mutate(nextName.trim() || null, {
       onSuccess: (code) => {
         setIssued(code);
@@ -348,13 +326,21 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
               onChange={(e) => setNextName(e.target.value)}
             />
           </Field>
-          <Button
-            className="mobile-page-action"
-            disabled={busy}
-            onClick={generate}
-          >
+          <Button className="mobile-page-action" disabled={busy} onClick={generate}>
             Generate pairing code
           </Button>
+          <p className="basis-full text-[12.5px] text-ink-600">
+            No app on the device yet?{" "}
+            <a
+              href="/download"
+              target="_blank"
+              rel="noopener"
+              className="font-semibold text-brand-700 underline"
+            >
+              Download Dine POS
+            </a>{" "}
+            for Windows, Android or Linux.
+          </p>
         </div>
       )}
       {(list.data?.pairing_codes ?? []).length > 0 && (
@@ -366,9 +352,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
             >
               <span>
                 Unused code{c.terminal_name ? ` for “${c.terminal_name}”` : ""}{" "}
-                <span className="text-ink-400">
-                  · expires {formatDateTime(c.expires_at)}
-                </span>
+                <span className="text-ink-400">· expires {formatDateTime(c.expires_at)}</span>
               </span>
               {canManage && (
                 <button
@@ -383,11 +367,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           ))}
         </ul>
       )}
-      {list.error && (
-        <p className="mb-space-3 text-[13px] text-error">
-          {list.error.message}
-        </p>
-      )}
+      {list.error && <p className="mb-space-3 text-[13px] text-error">{list.error.message}</p>}
       {terminals.length === 0 &&
         (list.isFetching ? (
           <SkeletonLines rows={2} />
@@ -412,10 +392,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                     {t.code}
                   </span>
                 </p>
-                <Badge
-                  className="shrink-0"
-                  tone={t.status === "active" ? "success" : "neutral"}
-                >
+                <Badge className="shrink-0" tone={t.status === "active" ? "success" : "neutral"}>
                   {t.status}
                 </Badge>
               </div>
@@ -428,21 +405,37 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
                   ? `Last seen ${ago(t.last_seen_at)}`
                   : `Revoked${t.revoke_reason ? `: ${t.revoke_reason}` : ""}`}
               </p>
+              {outdated(t) && (
+                <p className="mt-space-1">
+                  <Badge
+                    tone={
+                      latest?.min_version && compareVersions(t.app_version!, latest.min_version) < 0
+                        ? "error"
+                        : "info"
+                    }
+                  >
+                    Update available: {latest!.version}
+                  </Badge>
+                </p>
+              )}
+              {t.status === "revoked" && (t.handover_held ?? 0) > 0 && (
+                <p className="mt-space-1">
+                  <Badge tone="warning">
+                    {t.handover_held} handed over · waiting for your decision below
+                  </Badge>
+                </p>
+              )}
               {t.status === "active" && (t.queue_unsent ?? 0) > 0 && (
                 <p className="mt-space-1">
                   <Badge tone={isOld(t.queue_oldest_at) ? "error" : "warning"}>
-                    {t.queue_unsent} bill{t.queue_unsent === 1 ? "" : "s"}{" "}
-                    waiting on the till · oldest {ago(t.queue_oldest_at)}
+                    {t.queue_unsent} bill{t.queue_unsent === 1 ? "" : "s"} waiting on the till ·
+                    oldest {ago(t.queue_oldest_at)}
                   </Badge>
                 </p>
               )}
             </div>
             <div className="grid w-full grid-cols-2 gap-space-2 md:flex md:w-auto md:flex-wrap md:justify-end md:gap-space-1">
-              <Button
-                className={rowActionClass}
-                variant="ghost"
-                onClick={() => setDetail(t.id)}
-              >
+              <Button className={rowActionClass} variant="ghost" onClick={() => setDetail(t.id)}>
                 Details
               </Button>
               {canManage && t.status === "active" && (
@@ -482,6 +475,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           </li>
         ))}
       </ul>
+      <HandoverRecords branchId={branchId} canManage={canManage} />
       {issued && <CodeModal issued={issued} onClose={() => setIssued(null)} />}
       {detail && <Detail id={detail} onClose={() => setDetail(null)} />}
       <Modal
@@ -505,12 +499,9 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
           <p className="mb-space-3 rounded-md bg-warning-tint p-space-3 text-[13px] text-ink-900">
             This terminal reported {revoking?.queue_unsent} bill
             {revoking?.queue_unsent === 1 ? "" : "s"} it had not uploaded
-            {revoking?.queue_reported_at
-              ? ` (${ago(revoking.queue_reported_at)})`
-              : ""}
-            . They are kept: when it reconnects it hands them over, and you
-            approve or reject each one. If the device is lost and never
-            reconnects, those bills cannot be recovered.
+            {revoking?.queue_reported_at ? ` (${ago(revoking.queue_reported_at)})` : ""}. They are
+            kept: when it reconnects it hands them over, and you approve or reject each one. If the
+            device is lost and never reconnects, those bills cannot be recovered.
           </p>
         )}
         <Field
@@ -549,11 +540,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         }
       >
         {deleting && (
-          <Field
-            label={`Type “${deleting.name}” to confirm`}
-            htmlFor="t_delete"
-            required
-          >
+          <Field label={`Type “${deleting.name}” to confirm`} htmlFor="t_delete" required>
             <Input
               id="t_delete"
               autoComplete="off"
@@ -584,12 +571,7 @@ export function TerminalsPanel({ branchId }: { branchId: string }) {
         }
       >
         {renaming && (
-          <Field
-            label="Name"
-            htmlFor="t_rename"
-            required
-            error={renaming.error}
-          >
+          <Field label="Name" htmlFor="t_rename" required error={renaming.error}>
             <Input
               id="t_rename"
               invalid={!!renaming.error}
@@ -638,17 +620,14 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
     const parsed = pinSchema.safeParse(form);
     if (!parsed.success) {
       const e: typeof errors = {};
-      for (const i of parsed.error.issues)
-        e[i.path[0] as "pin" | "again"] ??= i.message;
+      for (const i of parsed.error.issues) e[i.path[0] as "pin" | "again"] ??= i.message;
       return setErrors(e);
     }
     setPin.mutate(
       { userId: target.id, pin: parsed.data.pin },
       {
         onSuccess: () => {
-          toast.success(
-            `PIN set for ${target.name}. The terminal gets it on its next sync.`,
-          );
+          toast.success(`PIN set for ${target.name}. The terminal gets it on its next sync.`);
           setTarget(null);
         },
         onError: (e) => setErrors({ pin: e.message }),
@@ -657,8 +636,7 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
   }
   function clear(c: Cashier) {
     clearPin.mutate(c.id, {
-      onSuccess: () =>
-        toast.success(`${c.name} can no longer sign in at the POS terminal.`),
+      onSuccess: () => toast.success(`${c.name} can no longer sign in at the POS terminal.`),
       onError: (e) => toast.error("Couldn't remove the PIN", e.message),
     });
   }
@@ -667,26 +645,19 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
   return (
     <div>
       <p className="mb-space-3 text-[13px] text-ink-600">
-        Cashiers are team members whose role lets them bill at this branch. Give
-        each a 6-digit PIN to sign in at the POS terminal. Add people and roles
-        under{" "}
+        Cashiers are team members whose role lets them bill at this branch. Give each a 6-digit PIN
+        to sign in at the POS terminal. Add people and roles under{" "}
         <Link className="underline" href="/portal/settings/staff">
           Team &amp; Access
         </Link>
         .
       </p>
-      {list.error && (
-        <p className="mb-space-3 text-[13px] text-error">
-          {list.error.message}
-        </p>
-      )}
+      {list.error && <p className="mb-space-3 text-[13px] text-error">{list.error.message}</p>}
       {cashiers.length === 0 &&
         (list.isFetching ? (
           <SkeletonLines rows={2} />
         ) : (
-          <p className="text-[13.5px] text-ink-400">
-            {"Nobody can bill at this branch yet."}
-          </p>
+          <p className="text-[13.5px] text-ink-400">{"Nobody can bill at this branch yet."}</p>
         ))}
       <ul className="divide-y divide-line">
         {cashiers.map((c) => (
@@ -697,28 +668,16 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
             <div className="flex min-w-0 flex-1 items-start justify-between gap-space-2">
               <span className="min-w-0 break-words">
                 <strong className="text-ink-900">{c.name}</strong>{" "}
-                <span className="block text-[12.5px] text-ink-400">
-                  {c.email}
-                </span>
+                <span className="block text-[12.5px] text-ink-400">{c.email}</span>
                 <span className="text-[12.5px] text-ink-600">
                   {c.roles.map(humanize).join(", ")}
                 </span>
               </span>
               <Badge
                 className="shrink-0"
-                tone={
-                  c.status === "disabled"
-                    ? "neutral"
-                    : c.has_pin
-                      ? "success"
-                      : "warning"
-                }
+                tone={c.status === "disabled" ? "neutral" : c.has_pin ? "success" : "warning"}
               >
-                {c.status === "disabled"
-                  ? "disabled"
-                  : c.has_pin
-                    ? "PIN set"
-                    : "No PIN"}
+                {c.status === "disabled" ? "disabled" : c.has_pin ? "PIN set" : "No PIN"}
               </Badge>
             </div>
             <div className="grid w-full grid-cols-2 gap-space-2 md:flex md:w-auto md:items-center">
@@ -784,12 +743,7 @@ export function CashiersPanel({ branchId }: { branchId: string }) {
             }}
           />
         </Field>
-        <Field
-          label="Repeat PIN"
-          htmlFor="c_pin2"
-          required
-          error={errors.again}
-        >
+        <Field label="Repeat PIN" htmlFor="c_pin2" required error={errors.again}>
           <Input
             id="c_pin2"
             type="password"

@@ -29,11 +29,7 @@ function RequestCard({
   onDecide,
 }: {
   r: LeaveRequest;
-  onDecide: (
-    id: string,
-    action: "approve" | "reject",
-    note: string,
-  ) => Promise<string | null>;
+  onDecide: (id: string, action: "approve" | "reject", note: string) => Promise<string | null>;
 }) {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -55,9 +51,7 @@ function RequestCard({
     >
       <div className="flex flex-wrap items-start justify-between gap-space-2">
         <div>
-          <p className="text-[14px] font-semibold text-ink-900">
-            {r.staff_name}
-          </p>
+          <p className="text-[14px] font-semibold text-ink-900">{r.staff_name}</p>
           <p className="text-[12px] text-ink-600">
             {[r.staff_role ? roleLabel(r.staff_role) : null, r.branch_name]
               .filter(Boolean)
@@ -67,8 +61,7 @@ function RequestCard({
         <Badge tone={LEAVE_STATUS_TONE[r.status]}>{r.status}</Badge>
       </div>
       <p className="mt-space-2 text-[13.5px] text-ink-900">
-        {LEAVE_TYPE_LABEL[r.leave_type] ?? r.leave_type} ·{" "}
-        {fmtDateRange(r.from_date, r.to_date)} ·{" "}
+        {LEAVE_TYPE_LABEL[r.leave_type] ?? r.leave_type} · {fmtDateRange(r.from_date, r.to_date)} ·{" "}
         {r.is_half_day ? "half day" : `${r.days} day${r.days === 1 ? "" : "s"}`}
       </p>
       <p className="text-[13px] text-ink-600">“{r.reason}”</p>
@@ -98,19 +91,12 @@ function RequestCard({
               <Button disabled={busy} onClick={() => decide("approve")}>
                 Approve
               </Button>
-              <Button
-                variant="secondary"
-                disabled={busy}
-                onClick={() => decide("reject")}
-              >
+              <Button variant="secondary" disabled={busy} onClick={() => decide("reject")}>
                 Decline
               </Button>
             </div>
             {error && (
-              <p
-                role="alert"
-                className="mt-space-2 text-[12.5px] font-medium text-error"
-              >
+              <p role="alert" className="mt-space-2 text-[12.5px] font-medium text-error">
                 {error}
               </p>
             )}
@@ -118,9 +104,7 @@ function RequestCard({
         </>
       )}
       {r.status !== "pending" && r.decision_note && (
-        <p className="mt-space-2 text-[12.5px] text-ink-600">
-          Note: {r.decision_note}
-        </p>
+        <p className="mt-space-2 text-[12.5px] text-ink-600">Note: {r.decision_note}</p>
       )}
     </Card>
   );
@@ -130,10 +114,7 @@ export default function LeaveRequestsPage() {
   const session = useStaffSession();
   const canView = usePermission("leave_requests", "view");
   const [status, setStatus] = useState("pending");
-  const { requests, summary, error, decide } = useLeaveRequests(
-    canView,
-    status,
-  );
+  const { requests, summary, error, decide } = useLeaveRequests(canView, status);
 
   if (!canView) {
     return (
@@ -147,10 +128,7 @@ export default function LeaveRequestsPage() {
 
   return (
     <PortalShell restaurant={session?.restaurant ?? null} active="leave-requests">
-      <PageHeader
-        title="Leave Requests"
-        description="Approve or decline your team's leave."
-      />
+      <PageHeader title="Leave Requests" description="Approve or decline your team's leave." />
       {error && <p className="mb-space-4 text-[13px] text-error">{error}</p>}
 
       <div className="mb-space-4 grid grid-cols-2 gap-space-3 xl:grid-cols-4">

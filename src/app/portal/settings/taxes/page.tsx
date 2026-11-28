@@ -82,8 +82,7 @@ export default function TaxesPage() {
   const regs = listing.data?.registrations ?? [];
   const active = regs.filter((r) => r.is_active);
   const unlinked = listing.data?.unlinked_branches ?? [];
-  const set = (patch: Partial<Draft>) =>
-    setDraft((d) => (d ? { ...d, ...patch } : d));
+  const set = (patch: Partial<Draft>) => setDraft((d) => (d ? { ...d, ...patch } : d));
   const gstin = draft?.gstin.trim().toUpperCase() ?? "";
   const gstinOk = GSTIN.test(gstin);
 
@@ -102,13 +101,10 @@ export default function TaxesPage() {
       { id: draft.id, body, is_active: draft.is_active },
       {
         onSuccess: () => {
-          toast.success(
-            editing ? "Registration updated" : "Registration added",
-          );
+          toast.success(editing ? "Registration updated" : "Registration added");
           setDraft(null);
         },
-        onError: (e) =>
-          toast.error("Couldn't save the registration", e.message),
+        onError: (e) => toast.error("Couldn't save the registration", e.message),
       },
     );
   }
@@ -183,22 +179,21 @@ export default function TaxesPage() {
       icon={<Percent size={20} />}
       description="GST registrations, how tax is split, and the rates in use."
       actions={
-        canWrite ? <Button onClick={() => setDraft({ ...EMPTY })}>Add registration</Button> : undefined
+        canWrite ? (
+          <Button onClick={() => setDraft({ ...EMPTY })}>Add registration</Button>
+        ) : undefined
       }
     >
       {listing.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {listing.error.message}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{listing.error.message}</p>
       )}
 
       <div className="flex flex-col gap-space-4">
         <Card className="p-space-4">
           <h2 className="text-[15px] font-bold text-ink-900">Prices</h2>
           <p className="mb-space-3 mt-0.5 text-[13px] text-ink-600">
-            Whether the price on a product already contains GST. This applies to
-            orders placed from now on; existing orders and invoices don&apos;t
-            change.
+            Whether the price on a product already contains GST. This applies to orders placed from
+            now on; existing orders and invoices don&apos;t change.
           </p>
           {tenantView.settings ? (
             <div className="grid gap-space-3 sm:grid-cols-2">
@@ -216,8 +211,7 @@ export default function TaxesPage() {
                   ],
                 ] as const
               ).map(([value, title, text]) => {
-                const selected =
-                  tenantView.settings!.tax_inclusive_prices === value;
+                const selected = tenantView.settings!.tax_inclusive_prices === value;
                 return (
                   <button
                     key={String(value)}
@@ -227,9 +221,7 @@ export default function TaxesPage() {
                     aria-pressed={selected}
                     className={`rounded-md border px-space-3 py-space-3 text-left ${selected ? "border-brand-400 bg-brand-50" : "border-line hover:bg-paper"} disabled:cursor-default`}
                   >
-                    <p className="text-[14px] font-semibold text-ink-900">
-                      {title}
-                    </p>
+                    <p className="text-[14px] font-semibold text-ink-900">{title}</p>
                     <p className="mt-0.5 text-[12.5px] text-ink-600">{text}</p>
                   </button>
                 );
@@ -241,12 +233,10 @@ export default function TaxesPage() {
         </Card>
 
         <Card className="p-space-4">
-          <h2 className="text-[15px] font-bold text-ink-900">
-            GST registrations
-          </h2>
+          <h2 className="text-[15px] font-bold text-ink-900">GST registrations</h2>
           <p className="mb-space-3 mt-0.5 text-[13px] text-ink-600">
-            A GSTIN is issued per state. Each branch trades under one
-            registration; invoices show it as the seller.
+            A GSTIN is issued per state. Each branch trades under one registration; invoices show it
+            as the seller.
           </p>
           {regs.length === 0 ? (
             <>
@@ -254,9 +244,7 @@ export default function TaxesPage() {
                 <SkeletonLines rows={2} />
               ) : (
                 <p className="rounded-md border border-line px-space-3 py-space-4 text-[13.5px] text-ink-400">
-                  {
-                    "No GST registration yet. Add your GSTIN so invoices show the seller's details."
-                  }
+                  {"No GST registration yet. Add your GSTIN so invoices show the seller's details."}
                 </p>
               )}
             </>
@@ -272,8 +260,7 @@ export default function TaxesPage() {
                       {r.gstin}
                     </p>
                     <p className="text-[13px] text-ink-600">
-                      {r.state_name ?? r.state_code} ({r.state_code}) ·{" "}
-                      {r.legal_name}
+                      {r.state_name ?? r.state_code} ({r.state_code}) · {r.legal_name}
                     </p>
                     <p className="text-[12px] text-ink-400">
                       PAN {r.pan} · {r.branch_count} active branch
@@ -325,8 +312,7 @@ export default function TaxesPage() {
           {unlinked.length > 0 && (
             <div className="mt-space-3 rounded-md border border-warning/30 bg-warning-tint px-space-3 py-space-3">
               <p className="flex items-center gap-space-2 text-[13.5px] font-semibold text-ink-900">
-                <AlertTriangle size={15} className="text-warning" />{" "}
-                {unlinked.length} branch
+                <AlertTriangle size={15} className="text-warning" /> {unlinked.length} branch
                 {unlinked.length === 1 ? " has" : "es have"} no GST registration
               </p>
               <ul className="mt-space-2 space-y-1">
@@ -336,8 +322,7 @@ export default function TaxesPage() {
                     className="mobile-page-action-row flex items-center justify-between text-[13.5px]"
                   >
                     <span>
-                      {b.branch_name}{" "}
-                      {b.state && <span className="text-ink-400">({b.state})</span>}
+                      {b.branch_name} {b.state && <span className="text-ink-400">({b.state})</span>}
                     </span>
                     {canWrite && active.length > 0 && (
                       <Button
@@ -366,15 +351,12 @@ export default function TaxesPage() {
 
         {active.length > 0 && (
           <Card className="p-space-4">
-            <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
-              How tax is split
-            </h2>
+            <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">How tax is split</h2>
             <div className="space-y-space-3 text-[13.5px] text-ink-600">
               {active.map((r) => (
                 <div key={r.id}>
                   <p className="font-semibold text-ink-900">
-                    Sold from the {r.state_name ?? r.state_code} registration (
-                    {r.state_code})
+                    Sold from the {r.state_name ?? r.state_code} registration ({r.state_code})
                   </p>
                   <ul className="list-disc pl-space-5">
                     <li>
@@ -395,16 +377,12 @@ export default function TaxesPage() {
         )}
 
         <Card className="p-space-4">
-          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
-            Tax rates
-          </h2>
+          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Tax rates</h2>
           {(rules.data ?? []).length === 0 ? (
             rules.isFetching ? (
               <SkeletonLines rows={2} />
             ) : (
-              <p className="text-[13.5px] text-ink-400">
-                {"No tax rates defined."}
-              </p>
+              <p className="text-[13.5px] text-ink-400">{"No tax rates defined."}</p>
             )
           ) : (
             <table className="w-full text-[14px]">
@@ -423,9 +401,7 @@ export default function TaxesPage() {
                     <tr key={t.id} className="border-t border-line align-top">
                       <td className="py-1.5 font-medium">{t.code}</td>
                       <td>{t.name}</td>
-                      <td className="text-right tabular-nums">
-                        {t.rate_bps / 100}%
-                      </td>
+                      <td className="text-right tabular-nums">{t.rate_bps / 100}%</td>
                       <td className="pl-space-3 text-[13px] text-ink-600">
                         {bands.length === 0 ? (
                           <span className="text-ink-400">None</span>
@@ -448,10 +424,7 @@ export default function TaxesPage() {
                                 code: t.code,
                                 rows: bands.length
                                   ? bands.map((b) => ({
-                                      limit:
-                                        b.up_to_minor === null
-                                          ? ""
-                                          : fromMinor(b.up_to_minor),
+                                      limit: b.up_to_minor === null ? "" : fromMinor(b.up_to_minor),
                                       rate: String(b.rate_bps / 100),
                                     }))
                                   : [
@@ -474,10 +447,10 @@ export default function TaxesPage() {
             </table>
           )}
           <p className="mt-space-2 text-[12.5px] text-ink-400">
-            Rates apply per product through its tax code. Price bands change the
-            rate by price per piece (for example clothing: one rate up to a
-            limit, another above). The band is chosen from the price per piece
-            as listed, before any discount. Confirm the limits with your CA.
+            Rates apply per product through its tax code. Price bands change the rate by price per
+            piece (for example clothing: one rate up to a limit, another above). The band is chosen
+            from the price per piece as listed, before any discount. Confirm the limits with your
+            CA.
           </p>
         </Card>
       </div>
@@ -492,10 +465,7 @@ export default function TaxesPage() {
             <Button variant="ghost" onClick={() => setDraft(null)}>
               Cancel
             </Button>
-            <Button
-              disabled={busy || !gstinOk || !draft?.legal_name.trim()}
-              onClick={save}
-            >
+            <Button disabled={busy || !gstinOk || !draft?.legal_name.trim()} onClick={save}>
               {draft?.id ? "Save changes" : "Add registration"}
             </Button>
           </>
@@ -509,9 +479,7 @@ export default function TaxesPage() {
               required
               className="sm:col-span-2"
               error={
-                draft.gstin.trim() && !gstinOk
-                  ? "15 characters, like 07AAAAA0000A1Z5."
-                  : undefined
+                draft.gstin.trim() && !gstinOk ? "15 characters, like 07AAAAA0000A1Z5." : undefined
               }
               hint={
                 gstinOk
@@ -555,11 +523,7 @@ export default function TaxesPage() {
                 <option value="composition">Composition</option>
               </Select>
             </Field>
-            <Field
-              label="Registered address"
-              htmlFor="g_addr"
-              className="sm:col-span-2"
-            >
+            <Field label="Registered address" htmlFor="g_addr" className="sm:col-span-2">
               <Textarea
                 id="g_addr"
                 rows={3}
@@ -573,9 +537,7 @@ export default function TaxesPage() {
                 onChange={() => set({ is_default: !draft.is_default })}
                 aria-label="Default registration"
               />
-              <span className="text-[14px] text-ink-900">
-                Default registration
-              </span>
+              <span className="text-[14px] text-ink-900">Default registration</span>
             </div>
             {draft.id && (
               <div className="mb-space-4 flex items-center gap-space-3 sm:col-span-2">
@@ -704,9 +666,7 @@ export default function TaxesPage() {
             <Select
               id="a_reg"
               value={assign.registrationId}
-              onValueChange={(value) =>
-                setAssign({ ...assign, registrationId: value })
-              }
+              onValueChange={(value) => setAssign({ ...assign, registrationId: value })}
             >
               {active.map((r) => (
                 <option key={r.id} value={r.id}>
@@ -721,11 +681,7 @@ export default function TaxesPage() {
       <ConfirmDialog
         open={removing !== null}
         title="Delete this GST registration?"
-        message={
-          removing
-            ? `${removing.gstin} will be removed. This can't be undone.`
-            : ""
-        }
+        message={removing ? `${removing.gstin} will be removed. This can't be undone.` : ""}
         confirmLabel="Delete"
         destructive
         onConfirm={remove}

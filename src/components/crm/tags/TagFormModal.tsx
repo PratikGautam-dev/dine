@@ -48,9 +48,7 @@ function Step({
         </span>
         {title}
       </h3>
-      {hint && (
-        <p className="-mt-1 mb-space-2 text-[12.5px] text-ink-600">{hint}</p>
-      )}
+      {hint && <p className="-mt-1 mb-space-2 text-[12.5px] text-ink-600">{hint}</p>}
       {children}
     </section>
   );
@@ -151,8 +149,7 @@ export function TagFormModal({
       ? await erp<CustomerTag>(`/api/v1/crm/tag-records/${tag.id}`, "PUT", body)
       : await erp<CustomerTag>("/api/v1/crm/tag-records", "POST", body);
     setBusy(false);
-    if (res.error || !res.data)
-      return toast.error("Couldn't save the tag", res.error ?? undefined);
+    if (res.error || !res.data) return toast.error("Couldn't save the tag", res.error ?? undefined);
     toast.success(
       tag ? "Tag saved" : `“${res.data.name}” created`,
       !tag && ruleBased ? "Now set the rule that gives it out." : undefined,
@@ -183,11 +180,7 @@ export function TagFormModal({
             </Button>
           )}
           <Button disabled={busy || !form.name.trim()} onClick={() => save()}>
-            {tag
-              ? "Save Tag"
-              : ruleBased
-                ? "Create Tag & Set Rule"
-                : "Create Tag"}
+            {tag ? "Save Tag" : ruleBased ? "Create Tag & Set Rule" : "Create Tag"}
           </Button>
         </>
       }
@@ -201,10 +194,7 @@ export function TagFormModal({
       >
         <div className="space-y-space-3">
           <Step n={1} title="Basic Information">
-            <label
-              className="mb-1 block text-[13px] font-semibold text-ink-900"
-              htmlFor="tag_name"
-            >
+            <label className="mb-1 block text-[13px] font-semibold text-ink-900" htmlFor="tag_name">
               Tag Name <span className="text-error">*</span>
             </label>
             <Input
@@ -214,13 +204,8 @@ export function TagFormModal({
               value={form.name}
               onChange={(e) => set({ name: e.target.value })}
             />
-            <p className="mt-0.5 text-right text-[11.5px] text-ink-400">
-              {form.name.length}/40
-            </p>
-            <label
-              className="mb-1 block text-[13px] font-semibold text-ink-900"
-              htmlFor="tag_desc"
-            >
+            <p className="mt-0.5 text-right text-[11.5px] text-ink-400">{form.name.length}/40</p>
+            <label className="mb-1 block text-[13px] font-semibold text-ink-900" htmlFor="tag_desc">
               Short Description
             </label>
             <textarea
@@ -231,21 +216,13 @@ export function TagFormModal({
               value={form.description}
               onChange={(e) => set({ description: e.target.value })}
             />
-            <p className="text-right text-[11.5px] text-ink-400">
-              {form.description.length}/200
-            </p>
+            <p className="text-right text-[11.5px] text-ink-400">{form.description.length}/200</p>
           </Step>
 
           {!tag && (
             <Step n={2} title="Tag Type" hint="How customers get this tag.">
-              <div
-                className="grid gap-space-2 sm:grid-cols-2"
-                role="radiogroup"
-              >
-                <Choice
-                  checked={!ruleBased}
-                  onClick={() => setRuleBased(false)}
-                >
+              <div className="grid gap-space-2 sm:grid-cols-2" role="radiogroup">
+                <Choice checked={!ruleBased} onClick={() => setRuleBased(false)}>
                   <span>
                     <span className="block">Manual tag</span>
                     <span className="block text-[12px] font-normal text-ink-600">
@@ -293,11 +270,7 @@ export function TagFormModal({
               </div>
               <div>
                 <p className="mb-1 text-[12.5px] text-ink-600">Tag Icon</p>
-                <div
-                  className="flex flex-wrap gap-1"
-                  role="radiogroup"
-                  aria-label="Tag icon"
-                >
+                <div className="flex flex-wrap gap-1" role="radiogroup" aria-label="Tag icon">
                   {TAG_ICONS.map((i) => (
                     <button
                       key={i}
@@ -342,9 +315,7 @@ export function TagFormModal({
           <Step
             n={tag ? 4 : 5}
             title={
-              form.applies_to === "tiers"
-                ? "Membership Tiers"
-                : "Membership Filter (Optional)"
+              form.applies_to === "tiers" ? "Membership Tiers" : "Membership Filter (Optional)"
             }
             hint="Only members of these tiers can carry this tag."
           >
@@ -369,9 +340,7 @@ export function TagFormModal({
 
         <div className="space-y-space-3">
           <section className="rounded-lg bg-purple-50/60 p-space-3">
-            <h3 className="text-[14.5px] font-bold text-ink-900">
-              Tag Preview
-            </h3>
+            <h3 className="text-[14.5px] font-bold text-ink-900">Tag Preview</h3>
             <p className="text-[12.5px] text-ink-600">
               How the tag appears in lists and customer details.
             </p>
@@ -386,11 +355,7 @@ export function TagFormModal({
           </section>
 
           {!tag && (
-            <Step
-              n={5}
-              title="Suggested Tag Purpose"
-              hint="Use a ready-made idea to get started."
-            >
+            <Step n={5} title="Suggested Tag Purpose" hint="Use a ready-made idea to get started.">
               <div className="grid grid-cols-2 gap-space-2">
                 {TAG_TEMPLATES.map((t) => (
                   <button
@@ -410,11 +375,7 @@ export function TagFormModal({
                       form.name === t.name && "ring-2 ring-current",
                     )}
                   >
-                    <HugeiconsIcon
-                      icon={TAG_ICON[t.icon]}
-                      size={14}
-                      className="shrink-0"
-                    />
+                    <HugeiconsIcon icon={TAG_ICON[t.icon]} size={14} className="shrink-0" />
                     <span className="truncate">{t.name}</span>
                   </button>
                 ))}
@@ -438,11 +399,7 @@ export function TagFormModal({
                 }
                 aria-label="Active"
               />
-              {form.status === "active"
-                ? "Active"
-                : form.status === "draft"
-                  ? "Draft"
-                  : "Inactive"}
+              {form.status === "active" ? "Active" : form.status === "draft" ? "Draft" : "Inactive"}
             </div>
           </Step>
 
@@ -455,9 +412,7 @@ export function TagFormModal({
               value={form.notes}
               onChange={(e) => set({ notes: e.target.value })}
             />
-            <p className="text-right text-[11.5px] text-ink-400">
-              {form.notes.length}/500
-            </p>
+            <p className="text-right text-[11.5px] text-ink-400">{form.notes.length}/500</p>
           </Step>
         </div>
       </form>

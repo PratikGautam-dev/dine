@@ -76,7 +76,9 @@ export function useRestaurantTables(ready: boolean, branchId: string | null = nu
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [statusActingId, setStatusActingId] = useState<string | null>(null);
   const branchIdRef = useRef(branchId);
-  branchIdRef.current = branchId;
+  useEffect(() => {
+    branchIdRef.current = branchId;
+  });
 
   const load = useCallback(async () => {
     const requestedBranchId = branchId;
@@ -99,6 +101,7 @@ export function useRestaurantTables(ready: boolean, branchId: string | null = nu
   }, [branchId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 

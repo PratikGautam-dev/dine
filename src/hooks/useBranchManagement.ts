@@ -112,6 +112,7 @@ export function useBranchManagement(ready: boolean) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 
@@ -147,7 +148,10 @@ export function useBranchManagement(ready: boolean) {
 
   /** Saves just some of a branch's fields (the branch page's cards each edit their own): anything not in `fields` is left as it is.
    * The contact fields (address_line, city, phone, email, state, pincode) take "" to clear a value. */
-  async function patchBranch(branch: Branch, fields: Record<string, unknown>): Promise<string | null> {
+  async function patchBranch(
+    branch: Branch,
+    fields: Record<string, unknown>,
+  ): Promise<string | null> {
     setSaving(true);
     const result = await staffFetch(`/api/portal/branches/${branch.id}`, {
       method: "PUT",

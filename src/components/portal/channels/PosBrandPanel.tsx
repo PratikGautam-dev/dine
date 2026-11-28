@@ -19,25 +19,23 @@ import { toast } from "@/lib/toast";
 
 const MAX_LOGO_BYTES = 1024 * 1024;
 
-export type BrandDraft = Required<
-  Pick<PosBrandingInput, "app_name" | "primary_color">
-> & { sidebar_color: string | null; logo_url: string | null };
+export type BrandDraft = Required<Pick<PosBrandingInput, "app_name" | "primary_color">> & {
+  sidebar_color: string | null;
+  logo_url: string | null;
+};
 
 /** What is wrong with the draft before it is sent (the server checks the same). */
 export function brandProblems(d: BrandDraft): Record<string, string> {
   const out: Record<string, string> = {};
   const name = d.app_name.trim();
-  if (!name || name.length > MAX_APP_NAME)
-    out.app_name = `Use 1 to ${MAX_APP_NAME} characters.`;
+  if (!name || name.length > MAX_APP_NAME) out.app_name = `Use 1 to ${MAX_APP_NAME} characters.`;
   if (!isHex(d.primary_color)) out.primary_color = "Use a colour like #2F6FED.";
   else if (contrast(d.primary_color, "#FFFFFF") < 3)
     out.primary_color = "Too light: white button text would be hard to read.";
   if (d.sidebar_color !== null) {
-    if (!isHex(d.sidebar_color))
-      out.sidebar_color = "Use a colour like #0B1739.";
+    if (!isHex(d.sidebar_color)) out.sidebar_color = "Use a colour like #0B1739.";
     else if (contrast(d.sidebar_color, "#FFFFFF") < 4.5)
-      out.sidebar_color =
-        "Too light: the sidebar's white text would be hard to read.";
+      out.sidebar_color = "Too light: the sidebar's white text would be hard to read.";
   }
   return out;
 }
@@ -105,9 +103,7 @@ export function PosBrandPanel({
             type="color"
             aria-label="Pick a custom colour"
             value={isHex(draft.primary_color) ? draft.primary_color : "#2f6fed"}
-            onChange={(e) =>
-              onChange({ primary_color: e.target.value.toUpperCase() })
-            }
+            onChange={(e) => onChange({ primary_color: e.target.value.toUpperCase() })}
             className={cn(
               "h-9 w-10 cursor-pointer rounded border border-line bg-card",
               custom && "ring-2 ring-ink-900",
@@ -144,12 +140,8 @@ export function PosBrandPanel({
             <input
               type="color"
               aria-label="Pick a sidebar colour"
-              value={
-                isHex(draft.sidebar_color) ? draft.sidebar_color : "#0b1739"
-              }
-              onChange={(e) =>
-                onChange({ sidebar_color: e.target.value.toUpperCase() })
-              }
+              value={isHex(draft.sidebar_color) ? draft.sidebar_color : "#0b1739"}
+              onChange={(e) => onChange({ sidebar_color: e.target.value.toUpperCase() })}
               className="h-9 w-10 cursor-pointer rounded border border-line bg-card"
             />
             <Input
@@ -157,9 +149,7 @@ export function PosBrandPanel({
               value={draft.sidebar_color}
               maxLength={7}
               invalid={!!problems.sidebar_color}
-              onChange={(e) =>
-                onChange({ sidebar_color: e.target.value.trim() })
-              }
+              onChange={(e) => onChange({ sidebar_color: e.target.value.trim() })}
             />
           </div>
         )}
@@ -173,11 +163,7 @@ export function PosBrandPanel({
           <div className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-lg border border-line bg-white">
             {draft.logo_url ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={draft.logo_url}
-                alt=""
-                className="size-full object-contain"
-              />
+              <img src={draft.logo_url} alt="" className="size-full object-contain" />
             ) : (
               <span className="text-[11px] text-ink-400">None</span>
             )}
@@ -223,8 +209,7 @@ export function PosBrandPanel({
       </Field>
 
       <p className="text-[13.5px] text-ink-900">
-        &quot;Powered by DAAP&quot; on the tills:{" "}
-        {poweredBy ? "shown" : "hidden"}
+        &quot;Powered by DAAP&quot; on the tills: {poweredBy ? "shown" : "hidden"}
       </p>
       <p className="mt-1 text-[12.5px] text-ink-600">
         Set by DAAP for your business. Contact DAAP support to change it.

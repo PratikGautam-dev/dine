@@ -85,18 +85,42 @@ export function ContactDetailsModal({
     >
       <div className="grid gap-x-space-4 sm:grid-cols-2">
         <Field label="Email" htmlFor="c_email">
-          <Input id="c_email" type="email" value={draft.email} onChange={(e) => set({ email: e.target.value })} />
+          <Input
+            id="c_email"
+            type="email"
+            value={draft.email}
+            onChange={(e) => set({ email: e.target.value })}
+          />
         </Field>
-        <Field label="Phone" htmlFor="c_phone" hint="Mobile, or a landline with its STD code." error={phoneProblem ?? undefined}>
-          <PhoneInput id="c_phone" kind="any" value={draft.phone} onChange={(phone) => set({ phone })} />
+        <Field
+          label="Phone"
+          htmlFor="c_phone"
+          hint="Mobile, or a landline with its STD code."
+          error={phoneProblem ?? undefined}
+        >
+          <PhoneInput
+            id="c_phone"
+            kind="any"
+            value={draft.phone}
+            onChange={(phone) => set({ phone })}
+          />
         </Field>
         <Field label="Address" htmlFor="c_addr" className="sm:col-span-2">
-          <Textarea id="c_addr" rows={2} value={draft.address_line} onChange={(e) => set({ address_line: e.target.value })} />
+          <Textarea
+            id="c_addr"
+            rows={2}
+            value={draft.address_line}
+            onChange={(e) => set({ address_line: e.target.value })}
+          />
         </Field>
         <Field
           label="Pincode"
           htmlFor="c_pin"
-          error={unknown ? "India Post doesn't list this pincode. Check it, or choose the state yourself." : undefined}
+          error={
+            unknown
+              ? "India Post doesn't list this pincode. Check it, or choose the state yourself."
+              : undefined
+          }
           hint={
             checking
               ? "Looking up…"
@@ -134,7 +158,13 @@ export function ContactDetailsModal({
         <Field
           label="State"
           htmlFor="c_state"
-          hint={border ? "This pincode reaches two states. Choose the right one." : place ? "From the pincode" : undefined}
+          hint={
+            border
+              ? "This pincode reaches two states. Choose the right one."
+              : place
+                ? "From the pincode"
+                : undefined
+          }
         >
           <Select
             id="c_state"

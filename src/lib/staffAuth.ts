@@ -133,8 +133,10 @@ async function doRefresh(): Promise<string | null> {
 function responseErrorMessage(res: { status: number; data?: unknown }): string {
   const data = (res.data ?? {}) as { error?: unknown; detail?: unknown };
   if (typeof data.error === "string" && data.error) return data.error;
-  if (typeof data.detail === "string" && data.detail) return res.status === 404 ? `Not found (404): ${data.detail}` : data.detail;
-  if (res.status === 404) return "Not found (404): the server doesn't have this endpoint — it may be running an older build.";
+  if (typeof data.detail === "string" && data.detail)
+    return res.status === 404 ? `Not found (404): ${data.detail}` : data.detail;
+  if (res.status === 404)
+    return "Not found (404): the server doesn't have this endpoint — it may be running an older build.";
   if (res.status >= 500) return `Server error (${res.status}). Try again in a moment.`;
   return "Something went wrong.";
 }

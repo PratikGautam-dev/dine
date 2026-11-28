@@ -37,24 +37,19 @@ function run<T>(
   });
 }
 
-const b64 = (buf: ArrayBuffer) =>
-  btoa(String.fromCharCode(...new Uint8Array(buf)));
+const b64 = (buf: ArrayBuffer) => btoa(String.fromCharCode(...new Uint8Array(buf)));
 
 /** False where WebCrypto or IndexedDB is missing (an http:// address other than localhost, very old browsers). */
 export function deviceKeysSupported(): boolean {
   return (
-    typeof window !== "undefined" &&
-    !!window.crypto?.subtle &&
-    typeof indexedDB !== "undefined"
+    typeof window !== "undefined" && !!window.crypto?.subtle && typeof indexedDB !== "undefined"
   );
 }
 
 async function keyFor(userId: string): Promise<CryptoKeyPair> {
   const db = await openDb();
   try {
-    const saved = await run<CryptoKeyPair | undefined>(db, "readonly", (s) =>
-      s.get(userId),
-    );
+    const saved = await run<CryptoKeyPair | undefined>(db, "readonly", (s) => s.get(userId));
     if (saved?.privateKey && saved.publicKey) return saved;
     const pair = await crypto.subtle.generateKey(
       { name: "ECDSA", namedCurve: "P-256" },
@@ -71,10 +66,7 @@ async function keyFor(userId: string): Promise<CryptoKeyPair> {
 }
 
 /** Sign the server's challenge with this person's key on this browser (made on first use). Null when the browser can't. */
-export async function proveDevice(
-  userId: string,
-  challenge: string,
-): Promise<DeviceProof | null> {
+export async function proveDevice(userId: string, challenge: string): Promise<DeviceProof | null> {
   if (!deviceKeysSupported()) return null;
   try {
     const pair = await keyFor(userId);

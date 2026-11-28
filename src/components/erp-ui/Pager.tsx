@@ -24,9 +24,7 @@ export function Pager({
   const pages = Math.max(1, Math.ceil(total / pageSize));
   const from = total === 0 ? 0 : page * pageSize + 1;
   const to = Math.min(total, (page + 1) * pageSize);
-  const shown = [0, 1, 2]
-    .map((i) => (page < 2 ? i : page - 1 + i))
-    .filter((i) => i < pages);
+  const shown = [0, 1, 2].map((i) => (page < 2 ? i : page - 1 + i)).filter((i) => i < pages);
   const last = pages - 1;
   return (
     <div className="flex flex-wrap items-center justify-between gap-space-2 px-space-3 py-space-3">
@@ -50,10 +48,7 @@ export function Pager({
             type="button"
             aria-current={i === page ? "page" : undefined}
             onClick={() => onPage(i)}
-            className={cn(
-              box,
-              i === page && "border-brand-800 bg-brand-800 text-white",
-            )}
+            className={cn(box, i === page && "border-brand-800 bg-brand-800 text-white")}
           >
             {i + 1}
           </button>

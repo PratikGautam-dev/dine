@@ -47,9 +47,7 @@ export function MembershipTab({
           }}
         />
       )}
-      {view === "benefits" && (
-        <BenefitsView canConfigure={canConfigure} onChanged={onChanged} />
-      )}
+      {view === "benefits" && <BenefitsView canConfigure={canConfigure} onChanged={onChanged} />}
       {view === "members" && (
         <MembersView
           currency={currency}
@@ -67,11 +65,7 @@ export function MembershipTab({
         />
       )}
       {view === "rules" && (
-        <RulesView
-          currency={currency}
-          canConfigure={canConfigure}
-          onChanged={onChanged}
-        />
+        <RulesView currency={currency} canConfigure={canConfigure} onChanged={onChanged} />
       )}
     </div>
   );

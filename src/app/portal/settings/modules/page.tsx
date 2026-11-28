@@ -31,10 +31,7 @@ import { formatMoney } from "@/lib/erp/erp";
 import { usePermission } from "@/lib/staffAuth";
 import { toast } from "@/lib/toast";
 
-const INFO: Record<
-  ModuleKey,
-  { icon: React.ReactNode; adds: string; off: string }
-> = {
+const INFO: Record<ModuleKey, { icon: React.ReactNode; adds: string; off: string }> = {
   dining: {
     icon: <UtensilsCrossed size={20} />,
     adds: "Table bookings, kitchen orders and delivery tracking under one switch, in the portal. Each also has its own switch below.",
@@ -103,10 +100,7 @@ export default function ModulesSettingsPage() {
           setConfirm(null);
         },
         onError: (e) => {
-          toast.error(
-            `Couldn't switch ${m.label} ${enabled ? "on" : "off"}`,
-            e.message,
-          );
+          toast.error(`Couldn't switch ${m.label} ${enabled ? "on" : "off"}`, e.message);
           setConfirm(null);
         },
       },
@@ -133,9 +127,7 @@ export default function ModulesSettingsPage() {
       description="Switch on only what your business uses, here for the portal and your tills alike. Switching a module off hides it for everyone and deletes nothing: switch it back on and everything is as you left it."
     >
       {modules.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {modules.error.message}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{modules.error.message}</p>
       )}
       <div className="grid gap-space-4">
         {!modules.data ? (
@@ -199,12 +191,7 @@ function ModuleRow({
   const busy = m.enabled && m.open_work.length > 0;
   const locked = !canEdit || blocked || busy || pending;
   return (
-    <div
-      className={cn(
-        "flex items-start gap-space-4",
-        nested && "py-space-4 last:pb-0",
-      )}
-    >
+    <div className={cn("flex items-start gap-space-4", nested && "py-space-4 last:pb-0")}>
       <span
         className={cn(
           "flex shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600",
@@ -215,12 +202,7 @@ function ModuleRow({
       </span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-space-2">
-          <h2
-            className={cn(
-              "font-bold text-ink-900",
-              nested ? "text-[14px]" : "text-[15px]",
-            )}
-          >
+          <h2 className={cn("font-bold text-ink-900", nested ? "text-[14px]" : "text-[15px]")}>
             {m.label}
           </h2>
           {blocked ? (
@@ -237,10 +219,7 @@ function ModuleRow({
         {blocked && (
           <p className="mt-space-2 text-[13px] font-medium text-error">
             This module has been disabled for your business. Please{" "}
-            <Link
-              href="/portal/support"
-              className="underline hover:no-underline"
-            >
+            <Link href="/portal/support" className="underline hover:no-underline">
               contact support
             </Link>{" "}
             to turn it back on.
@@ -248,22 +227,18 @@ function ModuleRow({
         )}
         {!blocked && m.reason === "parent" && (
           <p className="mt-space-2 text-[12.5px] text-ink-400">
-            Dining operations is off, so this is off too. Its own switch is kept for
-            when Dining operations is back on.
+            Dining operations is off, so this is off too. Its own switch is kept for when Dining
+            operations is back on.
           </p>
         )}
         {m.open_work.length > 0 && (
           <div className="mt-space-2 rounded-md bg-warning-tint px-space-3 py-space-2 text-[12.5px] text-ink-900">
-            <p className="font-semibold">
-              Open work — finish or cancel it before switching off:
-            </p>
+            <p className="font-semibold">Open work — finish or cancel it before switching off:</p>
             <ul className="mt-1 list-disc pl-space-4">
               {m.open_work.map((w) => (
                 <li key={w.key}>
                   {w.count} {w.label}
-                  {w.amount_minor
-                    ? ` (${formatMoney(w.amount_minor, currency)})`
-                    : ""}
+                  {w.amount_minor ? ` (${formatMoney(w.amount_minor, currency)})` : ""}
                 </li>
               ))}
             </ul>

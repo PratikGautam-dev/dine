@@ -2,9 +2,10 @@
 
 import { useApplyBranding } from "@/hooks/useBranding";
 import { Menu } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { DaapGate } from "@/components/portal/DaapGate";
 import { GlobalFilter, type GlobalFilterOptions } from "@/components/portal/GlobalFilter";
 import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
@@ -78,10 +79,13 @@ export function PortalShell({ restaurant, active, children }: Props) {
 
   // A nav Link tap already calls onClose directly, but this also covers
   // back/forward navigation and any other route change that isn't a click
-  // on the sidebar itself.
-  useEffect(() => {
+  // on the sidebar itself. Done while rendering, when the path changes (React's
+  // "adjust state when a prop changes"), so the drawer never paints open on the new page.
+  const [drawerPath, setDrawerPath] = useState(pathname);
+  if (drawerPath !== pathname) {
+    setDrawerPath(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">
@@ -134,11 +138,13 @@ export function PortalShell({ restaurant, active, children }: Props) {
                 <SettingsNav />
               </div>
               <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:p-space-6">
-                <div className="mx-auto max-w-[1040px]">{children}</div>
+                <div className="mx-auto max-w-[1040px]">
+                  <DaapGate>{children}</DaapGate>
+                </div>
               </div>
             </div>
           ) : (
-            children
+            <DaapGate>{children}</DaapGate>
           )}
         </main>
       </div>

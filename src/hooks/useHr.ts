@@ -1,9 +1,4 @@
-import {
-  keepPreviousData,
-  useMutation,
-  useQuery,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { proveDevice, type DeviceProof } from "@/lib/deviceKey";
 import { staffJson, type AttendanceRecord } from "@/lib/hr";
@@ -18,9 +13,7 @@ export class HrError extends Error {
     this.details = details ?? {};
   }
   get reason(): string | undefined {
-    return typeof this.details.reason === "string"
-      ? this.details.reason
-      : undefined;
+    return typeof this.details.reason === "string" ? this.details.reason : undefined;
   }
 }
 
@@ -112,10 +105,7 @@ export function useMyLeave(canView: boolean) {
     ]);
   const applyMutation = useMutation({
     mutationFn: (form: LeaveForm) =>
-      hrSend<{ over_allowance: boolean; request: LeaveRequest }>(
-        `${LEAVE}/mine`,
-        form,
-      ),
+      hrSend<{ over_allowance: boolean; request: LeaveRequest }>(`${LEAVE}/mine`, form),
     onSuccess: reload,
   });
   const cancelMutation = useMutation({
@@ -178,9 +168,7 @@ export function useLeaveRequests(canView: boolean, status: string) {
         requests: LeaveRequest[];
         summary: LeaveSummary;
         annual_leave_days: number;
-      }>(
-        `${LEAVE}/requests${status ? `?status=${encodeURIComponent(status)}` : ""}`,
-      ),
+      }>(`${LEAVE}/requests${status ? `?status=${encodeURIComponent(status)}` : ""}`),
     enabled: canView,
     placeholderData: keepPreviousData,
   });
@@ -190,11 +178,7 @@ export function useLeaveRequests(canView: boolean, status: string) {
       qc.invalidateQueries({ queryKey: queryKeys.hrAttendance }),
     ]);
   const decideMutation = useMutation({
-    mutationFn: (input: {
-      id: string;
-      action: "approve" | "reject";
-      note: string;
-    }) =>
+    mutationFn: (input: { id: string; action: "approve" | "reject"; note: string }) =>
       hrSend(`${LEAVE}/requests/${input.id}/${input.action}`, {
         note: input.note,
       }),
@@ -297,12 +281,7 @@ export function useHolidays(enabled: boolean, year: number) {
       qc.invalidateQueries({ queryKey: queryKeys.hrLeave }),
     ]);
   const save = useMutation({
-    mutationFn: (input: {
-      id?: string;
-      date: string;
-      name: string;
-      branch_id: string | null;
-    }) =>
+    mutationFn: (input: { id?: string; date: string; name: string; branch_id: string | null }) =>
       input.id
         ? hrSend(
             `${ATTENDANCE}/holidays/${input.id}`,
@@ -317,8 +296,7 @@ export function useHolidays(enabled: boolean, year: number) {
     onSettled: reload,
   });
   const remove = useMutation({
-    mutationFn: (id: string) =>
-      hrSend(`${ATTENDANCE}/holidays/${id}`, undefined, "DELETE"),
+    mutationFn: (id: string) => hrSend(`${ATTENDANCE}/holidays/${id}`, undefined, "DELETE"),
     onSettled: reload,
   });
   const copy = useMutation({
@@ -342,18 +320,9 @@ export function useHolidays(enabled: boolean, year: number) {
   return {
     holidays: query.data ?? null,
     error: messageOf(query.error),
-    save: (h: {
-      id?: string;
-      date: string;
-      name: string;
-      branch_id: string | null;
-    }) =>
-      run(
-        () => save.mutateAsync(h),
-        h.id ? "Holiday updated" : "Holiday added",
-      ),
-    remove: (id: string) =>
-      run(() => remove.mutateAsync(id), "Holiday removed"),
+    save: (h: { id?: string; date: string; name: string; branch_id: string | null }) =>
+      run(() => save.mutateAsync(h), h.id ? "Holiday updated" : "Holiday added"),
+    remove: (id: string) => run(() => remove.mutateAsync(id), "Holiday removed"),
     copyYear: async (from: number, to: number) => {
       try {
         const r = await copy.mutateAsync({ from, to });
@@ -501,10 +470,8 @@ export const LOCATION_HINT: Record<string, string> = {
   denied:
     "Location access is blocked for this site. Allow it in your browser's site settings and try again.",
   timeout: "Your location took too long to find. Try again near a window.",
-  unavailable:
-    "Your device couldn't find its location. Turn on location and try again.",
-  unsupported:
-    "This browser can't share its location. Use your phone's browser.",
+  unavailable: "Your device couldn't find its location. Turn on location and try again.",
+  unsupported: "This browser can't share its location. Use your phone's browser.",
 };
 
 /** A signed challenge for the device lock, or undefined when the business doesn't lock devices (or the browser can't sign: the server
@@ -514,9 +481,7 @@ async function deviceProof(
   userId: string | undefined,
 ): Promise<DeviceProof | undefined> {
   if (!today?.device.locked || !userId) return undefined;
-  const r = await hrSend<{ challenge: string }>(
-    `${ATTENDANCE}/device/challenge`,
-  );
+  const r = await hrSend<{ challenge: string }>(`${ATTENDANCE}/device/challenge`);
   if (!r) return undefined;
   return (await proveDevice(userId, r.challenge)) ?? undefined;
 }
@@ -531,13 +496,12 @@ export function useClock(canView: boolean, userId?: string) {
   const [problem, setProblem] = useState<ClockProblem | null>(null);
   const [busy, setBusy] = useState(false);
   const [locating, setLocating] = useState(false);
-  const [lastLocation, setLastLocation] = useState<
-    Partial<Position> & { location_error?: string }
-  >({});
+  const [lastLocation, setLastLocation] = useState<Partial<Position> & { location_error?: string }>(
+    {},
+  );
   const today = query.data ?? null;
   const step = useMutation({
-    mutationFn: (input: { path: string; body: unknown }) =>
-      hrSend(input.path, input.body),
+    mutationFn: (input: { path: string; body: unknown }) => hrSend(input.path, input.body),
   });
 
   /** One action: the buttons stay disabled until the server answered AND today's state has been reloaded, so a second tap can never
@@ -574,9 +538,7 @@ export function useClock(canView: boolean, userId?: string) {
     }
   }
 
-  async function locate(): Promise<
-    Partial<Position> & { location_error?: string }
-  > {
+  async function locate(): Promise<Partial<Position> & { location_error?: string }> {
     if (!today?.location_required) return {};
     setLocating(true);
     const r = await bestPosition();
@@ -633,13 +595,7 @@ export function useClock(canView: boolean, userId?: string) {
     checkIn,
     checkOut: async () => {
       // never blocked for location: record it only when it is quick to get
-      await act(
-        `${ATTENDANCE}/check-out`,
-        {},
-        "Clocked out",
-        "check_out",
-        true,
-      );
+      await act(`${ATTENDANCE}/check-out`, {}, "Clocked out", "check_out", true);
     },
     breakStart: () => act(`${ATTENDANCE}/break/start`, {}, "Break started"),
     breakEnd: () => act(`${ATTENDANCE}/break/end`, {}, "Break ended"),
@@ -685,9 +641,7 @@ export function useMyMonthlyAttendance(canView: boolean, month: string | null) {
   const query = useQuery({
     queryKey: queryKeys.hrMyMonth(month ?? ""),
     queryFn: () =>
-      hrGet<MonthBody & { first_month: string }>(
-        `${ATTENDANCE}/my-summary?month=${month}`,
-      ),
+      hrGet<MonthBody & { first_month: string }>(`${ATTENDANCE}/my-summary?month=${month}`),
     enabled: canView && Boolean(month),
     placeholderData: keepPreviousData,
   });
@@ -700,17 +654,13 @@ export function useMyMonthlyAttendance(canView: boolean, month: string | null) {
   };
 }
 
-export function useStaffMonth(
-  enabled: boolean,
-  userId: string | null,
-  month: string,
-) {
+export function useStaffMonth(enabled: boolean, userId: string | null, month: string) {
   const query = useQuery({
     queryKey: queryKeys.hrStaffMonth(userId ?? "", month),
     queryFn: () =>
-      hrGet<
-        MonthBody & { staff: { id: string; name: string; branch_name: string } }
-      >(`${ATTENDANCE}/staff/${userId}?month=${month}`),
+      hrGet<MonthBody & { staff: { id: string; name: string; branch_name: string } }>(
+        `${ATTENDANCE}/staff/${userId}?month=${month}`,
+      ),
     enabled: enabled && Boolean(userId),
     placeholderData: keepPreviousData,
   });
@@ -748,12 +698,7 @@ export type SummaryRow = {
   missing_clock_outs: number;
 };
 
-export function useTeamAttendance(
-  canView: boolean,
-  date: string,
-  month: string,
-  branchId: string,
-) {
+export function useTeamAttendance(canView: boolean, date: string, month: string, branchId: string) {
   const qc = useQueryClient();
   const branch = branchId ? `&branch_id=${branchId}` : "";
   const day = useQuery({
@@ -767,15 +712,11 @@ export function useTeamAttendance(
   });
   const summary = useQuery({
     queryKey: queryKeys.hrTeamMonth(month, branchId),
-    queryFn: () =>
-      hrGet<{ rows: SummaryRow[] }>(
-        `${ATTENDANCE}/summary?month=${month}${branch}`,
-      ),
+    queryFn: () => hrGet<{ rows: SummaryRow[] }>(`${ATTENDANCE}/summary?month=${month}${branch}`),
     enabled: canView && Boolean(month),
     placeholderData: keepPreviousData,
   });
-  const reload = () =>
-    qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
+  const reload = () => qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
   const correction = useMutation({
     mutationFn: (input: {
       recordId: string;
@@ -853,27 +794,19 @@ export function useCheckinRequests(canView: boolean) {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: queryKeys.hrCheckinRequests,
-    queryFn: () =>
-      hrGet<{ requests: CheckinRequest[] }>(
-        `${ATTENDANCE}/requests?status=pending`,
-      ),
+    queryFn: () => hrGet<{ requests: CheckinRequest[] }>(`${ATTENDANCE}/requests?status=pending`),
     enabled: canView,
     refetchInterval: 60_000, // a person is waiting at the door: keep the queue fresh while the page is open
   });
   const decideMutation = useMutation({
     mutationFn: (input: { id: string; approve: boolean; note: string }) =>
-      hrSend(
-        `${ATTENDANCE}/requests/${input.id}/${input.approve ? "approve" : "reject"}`,
-        { note: input.note || null },
-      ),
+      hrSend(`${ATTENDANCE}/requests/${input.id}/${input.approve ? "approve" : "reject"}`, {
+        note: input.note || null,
+      }),
     onSettled: () => qc.invalidateQueries({ queryKey: queryKeys.hrAttendance }),
   });
 
-  async function decide(
-    id: string,
-    approve: boolean,
-    note = "",
-  ): Promise<string | null> {
+  async function decide(id: string, approve: boolean, note = ""): Promise<string | null> {
     try {
       await decideMutation.mutateAsync({ id, approve, note });
     } catch (e) {
@@ -895,8 +828,7 @@ export function useMyRequests(canView: boolean) {
   const qc = useQueryClient();
   const query = useQuery({
     queryKey: queryKeys.hrMyRequests,
-    queryFn: () =>
-      hrGet<{ requests: CheckinRequest[] }>(`${ATTENDANCE}/my-requests`),
+    queryFn: () => hrGet<{ requests: CheckinRequest[] }>(`${ATTENDANCE}/my-requests`),
     enabled: canView,
   });
   async function askPastDay(input: {
@@ -933,18 +865,11 @@ export function usePersonDevice(userId: string) {
   });
   async function reset(): Promise<string | null> {
     try {
-      await hrSend(
-        `${ATTENDANCE}/people/${userId}/device`,
-        undefined,
-        "DELETE",
-      );
+      await hrSend(`${ATTENDANCE}/people/${userId}/device`, undefined, "DELETE");
     } catch (e) {
       return (e as Error).message;
     }
-    toast.success(
-      "Device reset",
-      "Their next clock-in registers the device they use.",
-    );
+    toast.success("Device reset", "Their next clock-in registers the device they use.");
     await qc.invalidateQueries({ queryKey: queryKeys.hrPersonDevice(userId) });
     return null;
   }
@@ -1002,8 +927,7 @@ export function useAttendanceSettings(canView: boolean) {
     enabled: canView,
   });
   // The shift and check rules decide what "late" and "in range" mean on every attendance screen.
-  const reload = () =>
-    qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
+  const reload = () => qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
   const defaultsMutation = useMutation({
     mutationFn: (patch: Partial<AttendanceDefaults>) =>
       hrSend<AttendanceDefaults>(`${ATTENDANCE}/settings`, patch, "PATCH"),
@@ -1011,11 +935,7 @@ export function useAttendanceSettings(canView: boolean) {
   });
   const branchMutation = useMutation({
     mutationFn: (input: { branchId: string; patch: Partial<BranchRule> }) =>
-      hrSend<BranchRule>(
-        `${ATTENDANCE}/branches/${input.branchId}/rules`,
-        input.patch,
-        "PATCH",
-      ),
+      hrSend<BranchRule>(`${ATTENDANCE}/branches/${input.branchId}/rules`, input.patch, "PATCH"),
     onSuccess: reload,
   });
 
@@ -1028,16 +948,10 @@ export function useAttendanceSettings(canView: boolean) {
       ),
     // the same spot ranks branches for online orders and shows on the branch page
     onSuccess: () =>
-      Promise.all([
-        reload(),
-        qc.invalidateQueries({ queryKey: queryKeys.branches }),
-      ]),
+      Promise.all([reload(), qc.invalidateQueries({ queryKey: queryKeys.branches })]),
   });
 
-  async function saveLocation(
-    branchId: string,
-    location: ShopLocation,
-  ): Promise<string | null> {
+  async function saveLocation(branchId: string, location: ShopLocation): Promise<string | null> {
     try {
       await locationMutation.mutateAsync({ branchId, location });
     } catch (e) {
@@ -1046,9 +960,7 @@ export function useAttendanceSettings(canView: boolean) {
     return null;
   }
 
-  async function saveDefaults(
-    patch: Partial<AttendanceDefaults>,
-  ): Promise<string | null> {
+  async function saveDefaults(patch: Partial<AttendanceDefaults>): Promise<string | null> {
     try {
       await defaultsMutation.mutateAsync(patch);
     } catch (e) {
@@ -1058,10 +970,7 @@ export function useAttendanceSettings(canView: boolean) {
     return null;
   }
 
-  async function saveBranch(
-    branchId: string,
-    patch: Partial<BranchRule>,
-  ): Promise<string | null> {
+  async function saveBranch(branchId: string, patch: Partial<BranchRule>): Promise<string | null> {
     try {
       await branchMutation.mutateAsync({ branchId, patch });
     } catch (e) {
@@ -1100,20 +1009,14 @@ export function useWorkPattern(enabled: boolean, userId: string | null) {
   });
   const mutation = useMutation({
     mutationFn: (next: Omit<WorkPattern, "user_id">) =>
-      hrSend<WorkPattern>(
-        `${ATTENDANCE}/people/${userId}/pattern`,
-        next,
-        "PUT",
-      ),
+      hrSend<WorkPattern>(`${ATTENDANCE}/people/${userId}/pattern`, next, "PUT"),
     onSuccess: (saved) => {
       if (saved) qc.setQueryData(queryKeys.hrPattern(userId ?? ""), saved);
       return qc.invalidateQueries({ queryKey: queryKeys.hrAttendance });
     },
   });
 
-  async function save(
-    next: Omit<WorkPattern, "user_id">,
-  ): Promise<string | null> {
+  async function save(next: Omit<WorkPattern, "user_id">): Promise<string | null> {
     try {
       await mutation.mutateAsync(next);
     } catch (e) {

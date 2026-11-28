@@ -6,12 +6,9 @@ import { Input } from "@/components/erp-ui/Input";
 export const isoToLocalInput = (iso: string | null) => {
   if (!iso) return "";
   const d = new Date(iso);
-  return new Date(d.getTime() - d.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
+  return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
 };
-export const localInputToIso = (v: string) =>
-  v ? new Date(v).toISOString() : null;
+export const localInputToIso = (v: string) => (v ? new Date(v).toISOString() : null);
 
 /** A date and a time on one line, under one label. `value` is "YYYY-MM-DDTHH:mm" (what a datetime-local input uses), "" when unset;
  * picking a date fills in `defaultTime` when no time was chosen yet. */
@@ -29,8 +26,7 @@ export function DateTimeField({
   defaultTime?: string;
 }) {
   const [date = "", time = ""] = value.split("T");
-  const change = (d: string, t: string) =>
-    onChange(d ? `${d}T${t || defaultTime}` : "");
+  const change = (d: string, t: string) => onChange(d ? `${d}T${t || defaultTime}` : "");
   return (
     <div>
       <label htmlFor={id} className="text-label mb-space-1 block">

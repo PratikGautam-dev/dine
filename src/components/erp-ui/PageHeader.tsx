@@ -39,10 +39,7 @@ export function PageHeader({
         )}
         <div className="min-w-0">
           <h1 className="text-display">{title}</h1>
-          {description && (
-            <p className="mt-0.5 text-[13.5px] text-ink-600">{description}</p>
-          )}
-          
+          {description && <p className="mt-0.5 text-[13.5px] text-ink-600">{description}</p>}
         </div>
       </div>
       {actions && (

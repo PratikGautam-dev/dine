@@ -1,10 +1,6 @@
 "use client";
 
-import {
-  keepPreviousData,
-  useQuery,
-  type QueryKey,
-} from "@tanstack/react-query";
+import { keepPreviousData, useQuery, type QueryKey } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { erpGet, qs } from "@/lib/erp/erp";
 import { useCursorPager } from "@/lib/erp/useCursorPager";
@@ -32,12 +28,8 @@ export function usePagedQuery<T>(
     enabled,
     placeholderData: keepPreviousData,
   });
-  const rows = useMemo(
-    () => (query.data ?? []).slice(0, pager.size),
-    [query.data, pager.size],
-  );
-  const last = (rows[rows.length - 1] as { cursor?: string } | undefined)
-    ?.cursor; // stamped by the server on every row
+  const rows = useMemo(() => (query.data ?? []).slice(0, pager.size), [query.data, pager.size]);
+  const last = (rows[rows.length - 1] as { cursor?: string } | undefined)?.cursor; // stamped by the server on every row
   return {
     rows,
     isLoading: query.isLoading,

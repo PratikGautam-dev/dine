@@ -15,11 +15,7 @@ import { PermissionGate } from "@/components/portal/PermissionGate";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { StatTile } from "@/components/portal/StatTile";
 import { usePermission, useStaffSession } from "@/lib/staffAuth";
-import {
-  emptyBranchForm,
-  useBranchManagement,
-  type BranchForm,
-} from "@/hooks/useBranchManagement";
+import { emptyBranchForm, useBranchManagement, type BranchForm } from "@/hooks/useBranchManagement";
 import type { Branch } from "@/lib/branchContext";
 import { formatPhone } from "@/lib/erp/phone";
 
@@ -36,12 +32,7 @@ export default function BranchesSettingsPage() {
   const router = useRouter();
   const session = useStaffSession();
   const canView = usePermission("settings", "view");
-  const {
-    branches,
-    error,
-    saving,
-    createBranch,
-  } = useBranchManagement(canView);
+  const { branches, error, saving, createBranch } = useBranchManagement(canView);
 
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState<BranchForm>(emptyBranchForm());
@@ -86,7 +77,9 @@ export default function BranchesSettingsPage() {
               )}
             </p>
             <p className="text-[12px] text-ink-400">
-              {[row.original.address_line, formatPhone(row.original.phone)].filter(Boolean).join(" · ")}
+              {[row.original.address_line, formatPhone(row.original.phone)]
+                .filter(Boolean)
+                .join(" · ")}
             </p>
           </div>
         ),
@@ -105,7 +98,11 @@ export default function BranchesSettingsPage() {
           const does = branchDoes(row.original);
           return (
             <span className="whitespace-nowrap">
-              {does.length ? does.join(" · ") : <span className="text-ink-400">Nothing switched on</span>}
+              {does.length ? (
+                does.join(" · ")
+              ) : (
+                <span className="text-ink-400">Nothing switched on</span>
+              )}
             </span>
           );
         },
@@ -123,7 +120,10 @@ export default function BranchesSettingsPage() {
         id: "actions",
         cell: ({ row }) => (
           <div className="flex justify-end" onClick={(e) => e.stopPropagation()}>
-            <Link href={`/portal/settings/branches/${row.original.id}`} aria-label={`View ${row.original.name}`}>
+            <Link
+              href={`/portal/settings/branches/${row.original.id}`}
+              aria-label={`View ${row.original.name}`}
+            >
               <Button variant="ghost" tabIndex={-1}>
                 <Eye size={15} /> View
               </Button>

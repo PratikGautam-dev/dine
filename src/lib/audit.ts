@@ -5,12 +5,10 @@ const neutralise = (v: string) => (/^[=+\-@\t\r]/.test(v) ? `'${v}` : v);
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 /** A uuid is unreadable in a table: show its first block. Anything else (a settings key) is shown whole. */
-export const shortRef = (ref: string | null) =>
-  ref && UUID.test(ref) ? ref.slice(0, 8) : ref;
+export const shortRef = (ref: string | null) => (ref && UUID.test(ref) ? ref.slice(0, 8) : ref);
 
 /** "order.status_changed" -> "Order Status Changed" (used where a sentence reads better than the code). */
-export const actionLabel = (action: string) =>
-  action.split(".").map(humanize).join(" ");
+export const actionLabel = (action: string) => action.split(".").map(humanize).join(" ");
 
 /** One change of an entry, as the API words it (names instead of ids, ₹ amounts, readable field labels). */
 export type AuditChange =
@@ -79,22 +77,13 @@ export type AuditEntry = {
 const cell = (v: string) => `"${neutralise(v).replace(/"/g, '""')}"`;
 /** CSV of the rows as shown (one line per entry, changes joined with "; "), ready to download. */
 export function auditCsv(rows: AuditEntry[]): string {
-  const head = [
-    "Date",
-    "Action",
-    "Actor",
-    "Entity",
-    "Summary",
-    "Changes",
-  ];
+  const head = ["Date", "Action", "Actor", "Entity", "Summary", "Changes"];
   const lines = rows.map((r) =>
     [
       new Date(r.created_at).toISOString(),
       r.action,
       r.actor_label ?? humanize(r.actor_type),
-      [r.entity_type, r.entity_label, r.entity_id && `#${r.entity_id}`]
-        .filter(Boolean)
-        .join(" "),
+      [r.entity_type, r.entity_label, r.entity_id && `#${r.entity_id}`].filter(Boolean).join(" "),
       r.summary,
       r.changes.map(changeText).join("; "),
     ]

@@ -10,11 +10,17 @@ export type TaxRule = { id: string; code: string; name: string; rate_bps: number
 export type TaxBands = Record<string, { up_to_minor: number | null; rate_bps: number }[]>;
 
 export function useTaxRules() {
-  return useQuery({ queryKey: queryKeys.taxRules, queryFn: () => erpGet<TaxRule[]>("/api/v1/tax-rules") });
+  return useQuery({
+    queryKey: queryKeys.taxRules,
+    queryFn: () => erpGet<TaxRule[]>("/api/v1/tax-rules"),
+  });
 }
 
 export function useTaxBands() {
-  return useQuery({ queryKey: queryKeys.taxBands, queryFn: () => erpGet<TaxBands>("/api/v1/tax-rule-bands") });
+  return useQuery({
+    queryKey: queryKeys.taxBands,
+    queryFn: () => erpGet<TaxBands>("/api/v1/tax-rule-bands"),
+  });
 }
 
 export type GstRegistration = {
@@ -35,7 +41,12 @@ export type GstRegistration = {
 /** The business's GST registrations (one per state), and the branches not linked to any. */
 export type GstListing = {
   registrations: GstRegistration[];
-  unlinked_branches: { id: string; branch_code: string; branch_name: string; state: string | null }[];
+  unlinked_branches: {
+    id: string;
+    branch_code: string;
+    branch_name: string;
+    state: string | null;
+  }[];
 };
 
 /** `enabled: false` (e.g. without permission to see them) fetches nothing. */
@@ -67,7 +78,10 @@ export function useSaveGstRegistration() {
   return useMutation({
     mutationFn: (input: { id?: string; body: GstRegistrationInput; is_active?: boolean }) =>
       input.id
-        ? erpSend(`/api/v1/tenant/gst-registrations/${input.id}`, "PATCH", { ...input.body, is_active: input.is_active })
+        ? erpSend(`/api/v1/tenant/gst-registrations/${input.id}`, "PATCH", {
+            ...input.body,
+            is_active: input.is_active,
+          })
         : erpSend("/api/v1/tenant/gst-registrations", "POST", input.body),
     onSuccess: refresh,
   });
@@ -86,7 +100,9 @@ export function useLinkBranchGst() {
   const refresh = useRefreshGst();
   return useMutation({
     mutationFn: (input: { branchId: string; gstRegistrationId: string | null }) =>
-      erpSend(`/api/v1/branches/${input.branchId}/gst-registration`, "PUT", { gst_registration_id: input.gstRegistrationId }),
+      erpSend(`/api/v1/branches/${input.branchId}/gst-registration`, "PUT", {
+        gst_registration_id: input.gstRegistrationId,
+      }),
     onSuccess: refresh,
   });
 }
@@ -95,8 +111,13 @@ export function useLinkBranchGst() {
 export function useSaveTaxBands() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (input: { code: string; bands: { up_to_minor: number | null; rate_bps: number }[] }) =>
-      erpSend(`/api/v1/tax-rules/${encodeURIComponent(input.code)}/bands`, "PUT", { bands: input.bands }),
+    mutationFn: (input: {
+      code: string;
+      bands: { up_to_minor: number | null; rate_bps: number }[];
+    }) =>
+      erpSend(`/api/v1/tax-rules/${encodeURIComponent(input.code)}/bands`, "PUT", {
+        bands: input.bands,
+      }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.taxes }),
   });
 }

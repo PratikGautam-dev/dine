@@ -1,12 +1,6 @@
 "use client";
 
-import {
-  Children,
-  Fragment,
-  isValidElement,
-  type ComponentProps,
-  type ReactNode,
-} from "react";
+import { Children, Fragment, isValidElement, type ComponentProps, type ReactNode } from "react";
 import { AnchoredSelect } from "@/components/erp-ui/AnchoredSelect";
 
 type Option = { value: string; label: ReactNode; disabled?: boolean };
@@ -47,19 +41,12 @@ type SelectProps = Omit<
   defaultValue?: string | number;
 };
 
-export function Select({
-  children,
-  value,
-  defaultValue,
-  ...props
-}: SelectProps) {
+export function Select({ children, value, defaultValue, ...props }: SelectProps) {
   return (
     <AnchoredSelect
       {...props}
       value={value === undefined ? undefined : String(value)}
-      defaultValue={
-        defaultValue === undefined ? undefined : String(defaultValue)
-      }
+      defaultValue={defaultValue === undefined ? undefined : String(defaultValue)}
       options={collectOptions(children)}
     />
   );

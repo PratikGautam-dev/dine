@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { CircleCheck, ListChecks, Tag } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { PhoneMockup } from "@/components/marketing/PhoneMockup";
@@ -31,9 +32,9 @@ export default function LandingPage() {
       {/* Top nav: brand mark left, restaurant login as a real button top-right
         -- previously just a small text link buried under the hero CTAs. */}
       <header className="flex flex-wrap items-center justify-between gap-space-3 px-space-4 py-space-4 md:px-space-7 lg:px-space-9">
-        <a href="/" aria-label="Dine Connect home">
+        <Link href="/" aria-label="Dine Connect home">
           <BrandMark size="sm" />
-        </a>
+        </Link>
         <div className="flex items-center gap-space-2">
           <Button href="/portal/login" variant="secondary" size="md">
             Restaurant login
@@ -136,14 +137,14 @@ export default function LandingPage() {
                 <p className="text-eyebrow mb-space-2">Product</p>
                 <ul className="space-y-space-2 text-[13.5px] text-ink-600">
                   <li>
-                    <a href="/auth" className="hover:text-brand-600 hover:underline">
+                    <Link href="/auth" className="hover:text-brand-600 hover:underline">
                       Set up your restaurant
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="/portal/login" className="hover:text-brand-600 hover:underline">
+                    <Link href="/portal/login" className="hover:text-brand-600 hover:underline">
                       Restaurant login
-                    </a>
+                    </Link>
                   </li>
                   <li>
                     <a
@@ -174,14 +175,14 @@ export default function LandingPage() {
                 <p className="text-eyebrow mb-space-2">Legal</p>
                 <ul className="space-y-space-2 text-[13.5px] text-ink-600">
                   <li>
-                    <a href="/privacy" className="hover:text-brand-600 hover:underline">
+                    <Link href="/privacy" className="hover:text-brand-600 hover:underline">
                       Privacy Policy
-                    </a>
+                    </Link>
                   </li>
                   <li>
-                    <a href="/terms" className="hover:text-brand-600 hover:underline">
+                    <Link href="/terms" className="hover:text-brand-600 hover:underline">
                       Terms of Service
-                    </a>
+                    </Link>
                   </li>
                 </ul>
               </div>

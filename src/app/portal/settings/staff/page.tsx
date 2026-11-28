@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { KeyRound, Plus, ShieldCheck, UserPlus, Users } from "lucide-react";
+import { KeyRound, ShieldCheck, UserPlus, Users } from "lucide-react";
 import { Badge } from "@/components/erp-ui/Badge";
 import { Button } from "@/components/erp-ui/Button";
 import { DataTable } from "@/components/erp-ui/DataTable";
@@ -312,9 +312,7 @@ export default function TeamAccessPage() {
       >
         {opened && !person && !opened.has_login && (
           <div className="space-y-space-3">
-            <p className="text-[13px] text-ink-600">
-              On the roster, but not able to sign in.
-            </p>
+            <p className="text-[13px] text-ink-600">On the roster, but not able to sign in.</p>
             {canManage && (
               <div className="flex flex-wrap gap-space-2">
                 <Button

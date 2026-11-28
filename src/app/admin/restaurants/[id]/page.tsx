@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Store } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -21,7 +21,7 @@ import { Select } from "@/components/erp-ui/Select";
 // TenantUpdatePayload field-for-field (see that file's update_tenant() handler
 // for the exact "blank = keep current" / "omit key = keep current,
 // send even [] = set it" semantics this form has to respect on submit).
-// Creating a NEW restaurant is a separate onboarding flow, out of scope here.
+// Restaurants are created only by DAAP Core (erp-dine-backend daap/sync.py), and their owners sign in with DAAP.
 
 const VALID_TIERS = ["tier1", "tier2", "tier3"] as const;
 const TIER_LABELS: Record<string, string> = {
@@ -38,11 +38,9 @@ type FormState = {
   api_key: string;
   access_token: string;
   app_secret: string;
-  portal_password: string;
   welcome_message_text: string;
   reminder_offsets_hours: string;
   reminder_template_name: string;
-  tenant_type: string;
   admin_capabilities: string[];
   enabled_features: string[];
 };
@@ -51,7 +49,7 @@ export default function AdminRestaurantDetailPage() {
   const params = useParams();
   const router = useRouter();
   const tenantId = Number(params.id);
-  const { tenant, loading, error, updateTenant, assignOwner } = useAdminTenantDetail(tenantId);
+  const { tenant, loading, error, updateTenant } = useAdminTenantDetail(tenantId);
   const {
     entries: auditEntries,
     loading: auditLoading,
@@ -63,16 +61,13 @@ export default function AdminRestaurantDetailPage() {
   const [formErrors, setFormErrors] = useState<string[]>([]);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const [ownerEmail, setOwnerEmail] = useState("");
-  const [assigningOwner, setAssigningOwner] = useState(false);
-  const [ownerErrors, setOwnerErrors] = useState<string[]>([]);
-
   // Seed the editable form from the loaded tenant -- only once per load, so
   // a background reload() after a successful save doesn't clobber in-flight
   // edits (there isn't one right now, but matches the rest of this app's
   // detail-page convention of re-seeding only off the source data changing).
-  useEffect(() => {
-    if (!tenant) return;
+  const [seededFrom, setSeededFrom] = useState<typeof tenant>(null);
+  if (tenant && tenant !== seededFrom) {
+    setSeededFrom(tenant);
     setForm({
       name: tenant.name,
       whatsapp_phone_number_id: tenant.whatsapp_phone_number_id,
@@ -81,15 +76,13 @@ export default function AdminRestaurantDetailPage() {
       api_key: tenant.external_api_key,
       access_token: "",
       app_secret: "",
-      portal_password: "",
       welcome_message_text: tenant.welcome_message_text,
       reminder_offsets_hours: tenant.reminder_offsets_hours,
       reminder_template_name: tenant.reminder_template_name,
-      tenant_type: tenant.tenant_type,
       admin_capabilities: tenant.admin_capabilities,
       enabled_features: tenant.enabled_features,
     });
-  }, [tenant]);
+  }
 
   if (loading || !form || !tenant) {
     return (
@@ -137,12 +130,8 @@ export default function AdminRestaurantDetailPage() {
     });
   }
 
-  function resetCapabilitiesToTypeDefaults() {
-    setForm((f) => {
-      if (!f) return f;
-      const defaults = tenant?.default_capabilities_by_type[f.tenant_type] ?? [];
-      return { ...f, admin_capabilities: defaults };
-    });
+  function resetCapabilitiesToDefaults() {
+    setForm((f) => (f ? { ...f, admin_capabilities: tenant?.default_capabilities ?? [] } : f));
   }
 
   async function handleSave(e: React.FormEvent) {
@@ -160,13 +149,11 @@ export default function AdminRestaurantDetailPage() {
       api_key: form.data_tier === "tier2" ? form.api_key : "",
       access_token: form.access_token,
       app_secret: form.app_secret,
-      portal_password: form.portal_password,
       welcome_message_text: form.welcome_message_text,
       reminder_offsets_hours: form.reminder_offsets_hours,
       reminder_template_name: form.reminder_template_name,
       // Explicitly sent (even when empty) -- this form is always a deliberate
-      // edit of these three, never a "didn't touch it" partial call.
-      tenant_type: form.tenant_type,
+      // edit of these two, never a "didn't touch it" partial call.
       admin_capabilities: form.admin_capabilities,
       enabled_features: form.enabled_features,
     };
@@ -178,31 +165,10 @@ export default function AdminRestaurantDetailPage() {
       toast.error("Couldn't save changes", errors[0]);
       return;
     }
-    setForm((f) => (f ? { ...f, access_token: "", app_secret: "", portal_password: "" } : f));
+    setForm((f) => (f ? { ...f, access_token: "", app_secret: "" } : f));
     setSuccessMessage("Changes saved.");
     toast.success("Restaurant updated");
   }
-
-  async function handleAssignOwner(e: React.FormEvent) {
-    e.preventDefault();
-    setOwnerErrors([]);
-    if (!ownerEmail.trim()) {
-      setOwnerErrors(["A valid email address is required."]);
-      return;
-    }
-    setAssigningOwner(true);
-    const errors = await assignOwner(ownerEmail.trim());
-    setAssigningOwner(false);
-    if (errors) {
-      setOwnerErrors(errors);
-      toast.error("Couldn't assign owner", errors[0]);
-      return;
-    }
-    setOwnerEmail("");
-    toast.success("Owner assigned");
-  }
-
-  const tenantTypes = Object.keys(tenant.default_capabilities_by_type);
 
   return (
     <>
@@ -310,22 +276,6 @@ export default function AdminRestaurantDetailPage() {
               />
             </Field>
           </div>
-          <Field
-            label="Portal Password"
-            htmlFor="t-portal-password"
-            hint={
-              tenant.has_portal_password
-                ? "A password is set — leave blank to keep it, or enter a new one to reset it."
-                : "No password set — enter one to set it."
-            }
-          >
-            <Input
-              id="t-portal-password"
-              type="password"
-              value={form.portal_password}
-              onChange={(e) => setForm({ ...form, portal_password: e.target.value })}
-            />
-          </Field>
         </Card>
 
         <Card className="mb-space-4 p-space-5">
@@ -360,31 +310,15 @@ export default function AdminRestaurantDetailPage() {
         </Card>
 
         <Card className="mb-space-4 p-space-5">
-          <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">
-            Tenant Type &amp; Capabilities
-          </h3>
-          <Field label="Tenant Type" htmlFor="t-type">
-            <Select
-              value={form.tenant_type}
-              onValueChange={(v) => setForm({ ...form, tenant_type: v })}
-              className="w-full"
-              id="t-type"
-            >
-              {tenantTypes.map((type) => (
-                <option key={type} value={type}>
-                  {type}
-                </option>
-              ))}
-            </Select>
-          </Field>
+          <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Capabilities</h3>
           <div className="mb-space-2 flex items-center justify-between">
             <p className="text-label">Admin Capabilities</p>
             <button
               type="button"
-              onClick={resetCapabilitiesToTypeDefaults}
+              onClick={resetCapabilitiesToDefaults}
               className="text-[12px] font-semibold text-brand-600 hover:underline"
             >
-              Reset to {form.tenant_type} defaults
+              Reset to defaults
             </button>
           </div>
           <div className="grid grid-cols-1 gap-space-2 sm:grid-cols-2 md:grid-cols-3">
@@ -416,55 +350,30 @@ export default function AdminRestaurantDetailPage() {
         </Card>
 
         <Card className="mb-space-4 p-space-5">
-          <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">Owners</h3>
-          {tenant.owners.length === 0 ? (
-            <p className="text-[13px] text-ink-400">No owner assigned yet.</p>
+          <h3 className="mb-space-4 text-[15px] font-bold text-ink-900">DAAP business</h3>
+          {tenant.daap ? (
+            <dl className="grid grid-cols-[140px_1fr] gap-y-space-2 text-[13.5px]">
+              <dt className="text-ink-500">Owner</dt>
+              <dd className="text-ink-900">
+                {tenant.daap.owner_name || "—"}{" "}
+                <span className="text-ink-500">{tenant.daap.owner_email}</span>
+              </dd>
+              <dt className="text-ink-500">Business ID</dt>
+              <dd className="font-mono text-ink-900">
+                {tenant.daap.business_id || "Not verified yet"}
+              </dd>
+              <dt className="text-ink-500">Verification</dt>
+              <dd>
+                <Badge tone={tenant.daap.verification === "verified" ? "success" : "neutral"}>
+                  {(tenant.daap.verification || "unknown").replace(/_/g, " ")}
+                </Badge>
+              </dd>
+            </dl>
           ) : (
-            <ul className="space-y-space-2">
-              {tenant.owners.map((owner) => (
-                <li
-                  key={owner.id}
-                  className="flex items-center gap-space-2 text-[13.5px] text-ink-900"
-                >
-                  <Badge tone="neutral">Owner</Badge>
-                  <span className="font-medium">{owner.name || owner.email}</span>
-                  <span className="text-ink-500">{owner.email}</span>
-                </li>
-              ))}
-            </ul>
-          )}
-
-          <div className="mt-space-4 flex flex-wrap items-end gap-space-2">
-            <Field
-              label="Assign owner by email"
-              htmlFor="t-owner-email"
-              className="mb-0 flex-1 min-w-[220px]"
-            >
-              <Input
-                id="t-owner-email"
-                type="email"
-                placeholder="owner@example.com"
-                value={ownerEmail}
-                onChange={(e) => setOwnerEmail(e.target.value)}
-              />
-            </Field>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={handleAssignOwner}
-              disabled={assigningOwner}
-            >
-              {assigningOwner ? "Assigning…" : "Assign owner"}
-            </Button>
-          </div>
-          {ownerErrors.length > 0 && (
-            <div className="mt-space-2">
-              {ownerErrors.map((err, i) => (
-                <p key={i} className="text-[12.5px] font-medium text-error">
-                  {err}
-                </p>
-              ))}
-            </div>
+            <p className="text-[13px] text-ink-400">
+              Not linked to a DAAP business (made before DAAP). Its owner and plan are managed in
+              DAAP Admin once linked.
+            </p>
           )}
         </Card>
 

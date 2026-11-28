@@ -4,8 +4,7 @@ import { Card } from "@/components/erp-ui/Card";
 import { Skeleton } from "@/components/erp-ui/Skeleton";
 import { cn } from "@/lib/cn";
 
-type Tone =
-  "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
+type Tone = "brand" | "success" | "clay" | "neutral" | "warning" | "info" | "violet";
 
 // Icon-square background/text per tone -- brand (the default, used everywhere else) plus the app's existing
 // success/clay/warning/neutral tokens, reused here rather than one-off hex values, so a page that wants
@@ -89,8 +88,7 @@ export function StatTile({
   const isGoodDirection = (isUp && upIsGood) || (isDown && !upIsGood);
   const isBadDirection = (isUp && !upIsGood) || (isDown && upIsGood);
   // "vs last week" only means something next to a real delta; a custom hint (e.g. "Currently booked") always shows.
-  const showHint =
-    Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
+  const showHint = Boolean(hint) && (deltaPct !== null || hint !== "vs last week");
 
   return (
     <Card
@@ -132,15 +130,12 @@ export function StatTile({
           )}
         >
           {loading ? (
-            <Skeleton
-              className={cn("h-[30px] w-24", stackOnMobile && "max-w-full")}
-            />
+            <Skeleton className={cn("h-[30px] w-24", stackOnMobile && "max-w-full")} />
           ) : (
             <span
               className={cn(
                 "leading-none font-bold text-ink-900",
-                typeof value === "string" &&
-                  value.length + (prefix?.length ?? 0) > 9
+                typeof value === "string" && value.length + (prefix?.length ?? 0) > 9
                   ? "text-[24px]"
                   : "text-[30px]",
                 stackOnMobile &&
@@ -172,8 +167,7 @@ export function StatTile({
           <p
             className={cn(
               "text-hint mt-1",
-              stackOnMobile &&
-                "[overflow-wrap:anywhere] md:[overflow-wrap:normal]",
+              stackOnMobile && "[overflow-wrap:anywhere] md:[overflow-wrap:normal]",
             )}
           >
             {hint}

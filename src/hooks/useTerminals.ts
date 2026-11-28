@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { erpGet, erpSend } from "@/lib/erp/erp";
 import { queryKeys } from "@/lib/erp/queryKeys";
+import type { PosRelease } from "@/lib/posReleases";
 
 export type TerminalEvent = {
   id: number;
@@ -41,7 +42,28 @@ export type Terminal = {
   queue_reported_at: string | null;
   revoked_at: string | null;
   revoke_reason: string | null;
+  /** Records this (revoked) terminal handed over that wait for a decision. */
+  handover_held?: number;
   events?: TerminalEvent[];
+};
+
+/** A bill, shift or day close a revoked terminal handed over (erp-dine-backend pos/handover.py): held until a manager decides. */
+export type HandoverRecord = {
+  id: string;
+  terminal_id: string;
+  terminal_code: string;
+  terminal_name: string;
+  kind: "bill" | "shift" | "day_close";
+  reference: string | null;
+  occurred_at: string | null;
+  received_at: string;
+  total_paise: number | null;
+  cashier_name: string | null;
+  status: "held" | "approved" | "rejected" | "refused";
+  decided_by: string | null;
+  decided_at: string | null;
+  decision_note: string | null;
+  error_message: string | null;
 };
 export type PairingCode = {
   id: string;
@@ -106,8 +128,7 @@ export function useIssuePairingCode(branchId: string) {
 export function useCancelPairingCode() {
   const refresh = useRefreshTerminals();
   return useMutation({
-    mutationFn: (id: string) =>
-      erpSend(`/api/v1/terminals/pairing-codes/${id}`, "DELETE"),
+    mutationFn: (id: string) => erpSend(`/api/v1/terminals/pairing-codes/${id}`, "DELETE"),
     onSuccess: refresh,
   });
 }
@@ -145,6 +166,45 @@ export function useRenameTerminal() {
   });
 }
 
+/** The newest published till release (null before the first one), to flag terminals running an older version. Read through
+ * /api/pos/latest: the browser can't read R2 directly. */
+export function usePosLatestRelease() {
+  return useQuery({
+    queryKey: queryKeys.posLatestRelease,
+    queryFn: async (): Promise<PosRelease | null> => {
+      const res = await fetch("/api/pos/latest");
+      return res.ok ? ((await res.json()) as PosRelease | null) : null;
+    },
+    staleTime: 10 * 60_000,
+  });
+}
+
+/** What revoked terminals of a branch handed over and still wait for a decision. */
+export function useHandoverRecords(branchId: string) {
+  return useQuery({
+    queryKey: [...queryKeys.terminals, "handover", branchId],
+    queryFn: () =>
+      erpGet<{ total: number; records: HandoverRecord[] }>(
+        `/api/v1/terminals/handover-records?status=held&branch_id=${encodeURIComponent(branchId)}`,
+      ),
+    enabled: Boolean(branchId),
+  });
+}
+
+/** Approve (booked like any upload, flagged as handed over) or reject (a note is required) one handed-over record. */
+export function useDecideHandover() {
+  const refresh = useRefreshTerminals();
+  return useMutation({
+    mutationFn: (input: { id: string; decision: "approve" | "reject"; note: string | null }) =>
+      erpSend<{ id: string; status: string; error?: string }>(
+        `/api/v1/terminals/handover-records/${input.id}/${input.decision}`,
+        "POST",
+        { note: input.note },
+      ),
+    onSuccess: refresh,
+  });
+}
+
 /** The people who can bill at a branch and whether each has a terminal PIN. */
 export function useBranchCashiers(branchId: string) {
   return useQuery({
@@ -171,18 +231,27 @@ export function useSetCashierPin() {
 export function useClearCashierPin() {
   const refresh = useRefreshCashiers();
   return useMutation({
-    mutationFn: (userId: string) =>
-      erpSend(`/api/v1/users/${userId}/pin`, "DELETE"),
+    mutationFn: (userId: string) => erpSend(`/api/v1/users/${userId}/pin`, "DELETE"),
     onSuccess: refresh,
   });
 }
 
-
 /** What the Sales channels pages need of a branch: its name and whether it takes POS sales (GET /api/v1/channels/branches). */
-export type ChannelBranch = { id: string; branch_code: string; branch_name: string; status: string; accepts_pos: boolean; accepts_online: boolean; accepts_whatsapp: boolean };
+export type ChannelBranch = {
+  id: string;
+  branch_code: string;
+  branch_name: string;
+  status: string;
+  accepts_pos: boolean;
+  accepts_online: boolean;
+  accepts_whatsapp: boolean;
+};
 
 export function useChannelBranches() {
-  return useQuery({ queryKey: queryKeys.channelBranches, queryFn: () => erpGet<ChannelBranch[]>("/api/v1/channels/branches") });
+  return useQuery({
+    queryKey: queryKeys.channelBranches,
+    queryFn: () => erpGet<ChannelBranch[]>("/api/v1/channels/branches"),
+  });
 }
 
 export type ChannelSwitch = "accepts_pos" | "accepts_online" | "accepts_whatsapp";
@@ -192,8 +261,14 @@ export function useToggleChannelBranch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: { branchId: string; field: ChannelSwitch; value: boolean }) =>
-      erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", { [input.field]: input.value }),
-    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: queryKeys.channelBranches }), qc.invalidateQueries({ queryKey: queryKeys.channels })]),
+      erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", {
+        [input.field]: input.value,
+      }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.channelBranches }),
+        qc.invalidateQueries({ queryKey: queryKeys.channels }),
+      ]),
   });
 }
 
@@ -203,7 +278,11 @@ export function useTogglePosBranch() {
   return useMutation({
     mutationFn: (input: { branchId: string; value: boolean }) =>
       erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", { accepts_pos: input.value }),
-    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: queryKeys.channels }), qc.invalidateQueries({ queryKey: queryKeys.terminals })]),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.channels }),
+        qc.invalidateQueries({ queryKey: queryKeys.terminals }),
+      ]),
   });
 }
 
@@ -218,6 +297,8 @@ export type TerminalSummary = {
 
 /** Paired and online terminals for every branch, in one request. */
 export function useTerminalSummary() {
-  return useQuery({ queryKey: queryKeys.terminalSummary, queryFn: () => erpGet<TerminalSummary[]>("/api/v1/terminals/summary") });
+  return useQuery({
+    queryKey: queryKeys.terminalSummary,
+    queryFn: () => erpGet<TerminalSummary[]>("/api/v1/terminals/summary"),
+  });
 }
-

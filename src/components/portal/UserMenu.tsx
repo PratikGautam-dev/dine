@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, ChevronDown, Copy, LogOut, UserRound } from "lucide-react";
+import { Check, ChevronDown, Copy, CreditCard, LogOut, UserRound } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   DropdownMenu,
@@ -10,7 +10,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { clearPortalSession } from "@/lib/portalAuth";
-import { useStaffSession } from "@/lib/staffAuth";
+import { useDaapStatus } from "@/hooks/useDaapStatus";
+import { usePermission, useStaffSession } from "@/lib/staffAuth";
 import { roleLabel } from "@/lib/staffRoles";
 
 /** The signed-in person, top right: their initial, name and role, with the business name and ID, Profile and Log out in the menu. All from the real
@@ -18,7 +19,11 @@ import { roleLabel } from "@/lib/staffRoles";
 export function UserMenu() {
   const router = useRouter();
   const session = useStaffSession();
+  const { data: daap } = useDaapStatus();
+  // the plan is the owner's business (DAAP Account); shown to whoever manages settings here
+  const canSeePlan = usePermission("settings", "write");
   if (!session) return null;
+  const billingUrl = daap?.linked && canSeePlan ? daap.billing_url : null;
 
   const businessName = session.restaurant?.name;
   const businessId = session.restaurant?.display_id;
@@ -53,6 +58,13 @@ export function UserMenu() {
         <DropdownMenuItem onClick={() => router.push("/portal/profile")}>
           <UserRound size={15} /> Profile
         </DropdownMenuItem>
+        {billingUrl && (
+          <DropdownMenuItem
+            onClick={() => window.open(billingUrl, "_blank", "noopener,noreferrer")}
+          >
+            <CreditCard size={15} /> Plan &amp; billing
+          </DropdownMenuItem>
+        )}
         <DropdownMenuItem
           onClick={() => {
             clearPortalSession();

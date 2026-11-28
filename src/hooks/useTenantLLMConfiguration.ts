@@ -21,6 +21,7 @@ export function useTenantLLMConfiguration(ready: boolean) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) void reload();
   }, [ready, reload]);
 
@@ -32,7 +33,8 @@ export function useTenantLLMConfiguration(ready: boolean) {
       body: JSON.stringify(payload),
     });
     setLoading(false);
-    if (!result.ok) return result.unauthorized ? "Session expired — please sign in again." : result.error;
+    if (!result.ok)
+      return result.unauthorized ? "Session expired — please sign in again." : result.error;
     setConfiguration(result.data as TenantLLMConfiguration);
     toast.success("AI model connected");
     return null;
@@ -42,7 +44,8 @@ export function useTenantLLMConfiguration(ready: boolean) {
     setLoading(true);
     const result = await staffFetch("/api/portal/settings/llm", { method: "DELETE" });
     setLoading(false);
-    if (!result.ok) return result.unauthorized ? "Session expired — please sign in again." : result.error;
+    if (!result.ok)
+      return result.unauthorized ? "Session expired — please sign in again." : result.error;
     setConfiguration(result.data as TenantLLMConfiguration);
     toast.success("AI model configuration removed");
     return null;

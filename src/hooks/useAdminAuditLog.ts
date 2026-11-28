@@ -48,6 +48,7 @@ export function useTenantAuditLog(tenantId: number) {
   }, [router, tenantId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
   }, [load]);
 
@@ -86,6 +87,7 @@ export function usePlatformAuditLog(filters: PlatformAuditLogFilters) {
   }, [router, filters.restaurantId, filters.actorLevel]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
   }, [load]);
 

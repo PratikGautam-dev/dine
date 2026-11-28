@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Bot, CheckCircle2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,7 +11,11 @@ import type { TenantLLMConfiguration } from "@/hooks/useTenantLLMConfiguration";
 type Props = {
   configuration: TenantLLMConfiguration | null;
   loading: boolean;
-  onSave: (values: { model_name: string; api_key: string; base_url: string }) => Promise<string | null>;
+  onSave: (values: {
+    model_name: string;
+    api_key: string;
+    base_url: string;
+  }) => Promise<string | null>;
   onClear: () => Promise<string | null>;
 };
 
@@ -22,12 +26,14 @@ export function TenantLLMSettings({ configuration, loading, onSave, onClear }: P
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!configuration) return;
+  // Refill the fields whenever a new configuration arrives, while rendering (not in an effect).
+  const [filledFrom, setFilledFrom] = useState<TenantLLMConfiguration | null>(null);
+  if (configuration && configuration !== filledFrom) {
+    setFilledFrom(configuration);
     setModelName(configuration.model_name ?? "");
     setBaseUrl(configuration.base_url ?? "");
     setApiKey("");
-  }, [configuration]);
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -60,33 +66,81 @@ export function TenantLLMSettings({ configuration, loading, onSave, onClear }: P
         <div>
           <h2 className="text-[15px] font-bold text-ink-900">Auto LLM Configuration</h2>
           <p className="mt-1 text-[12.5px] text-ink-600">
-            Connect a chat model for AI assisted menu matching. Common model names are detected automatically;
-            other LangChain providers use provider:model (for example, groq:llama-3.3-70b-versatile or ollama:codellama).
-            The API key is encrypted on the backend and never sent back to this page.
+            Connect a chat model for AI assisted menu matching. Common model names are detected
+            automatically; other LangChain providers use provider:model (for example,
+            groq:llama-3.3-70b-versatile or ollama:codellama). The API key is encrypted on the
+            backend and never sent back to this page.
           </p>
         </div>
       </div>
 
       {configuration?.configured && (
         <div className="mb-space-4 flex items-center gap-space-2 rounded-md bg-success-tint p-space-3 text-[13px] text-success">
-          <CheckCircle2 size={16} /> Connected to {configuration.provider} · {configuration.model_name}
+          <CheckCircle2 size={16} /> Connected to {configuration.provider} ·{" "}
+          {configuration.model_name}
         </div>
       )}
 
       <form onSubmit={submit} className="space-y-space-3">
-        <Field label="Model name" htmlFor="llm-model" hint="Examples: gpt-4o-mini, claude-sonnet-4-5, gemini-2.5-flash">
-          <Input id="llm-model" value={modelName} onChange={(event) => setModelName(event.target.value)} required autoComplete="off" />
+        <Field
+          label="Model name"
+          htmlFor="llm-model"
+          hint="Examples: gpt-4o-mini, claude-sonnet-4-5, gemini-2.5-flash"
+        >
+          <Input
+            id="llm-model"
+            value={modelName}
+            onChange={(event) => setModelName(event.target.value)}
+            required
+            autoComplete="off"
+          />
         </Field>
-        <Field label="API key" htmlFor="llm-api-key" hint={configuration?.configured ? "Leave blank to keep the saved key, or enter a replacement. Local Ollama models do not need a key." : "Required by hosted providers. Local Ollama models do not need a key."}>
-          <Input id="llm-api-key" type="password" value={apiKey} onChange={(event) => setApiKey(event.target.value)} autoComplete="new-password" placeholder={configuration?.api_key_mask || "Enter provider API key"} />
+        <Field
+          label="API key"
+          htmlFor="llm-api-key"
+          hint={
+            configuration?.configured
+              ? "Leave blank to keep the saved key, or enter a replacement. Local Ollama models do not need a key."
+              : "Required by hosted providers. Local Ollama models do not need a key."
+          }
+        >
+          <Input
+            id="llm-api-key"
+            type="password"
+            value={apiKey}
+            onChange={(event) => setApiKey(event.target.value)}
+            autoComplete="new-password"
+            placeholder={configuration?.api_key_mask || "Enter provider API key"}
+          />
         </Field>
-        <Field label="Base URL (optional)" htmlFor="llm-base-url" hint="For an OpenAI-compatible provider or custom endpoint. Leave blank for the provider default.">
-          <Input id="llm-base-url" type="url" value={baseUrl} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://api.example.com/v1" autoComplete="url" />
+        <Field
+          label="Base URL (optional)"
+          htmlFor="llm-base-url"
+          hint="For an OpenAI-compatible provider or custom endpoint. Leave blank for the provider default."
+        >
+          <Input
+            id="llm-base-url"
+            type="url"
+            value={baseUrl}
+            onChange={(event) => setBaseUrl(event.target.value)}
+            placeholder="https://api.example.com/v1"
+            autoComplete="url"
+          />
         </Field>
-        {error && <p role="alert" className="text-[12.5px] font-medium text-error">{error}</p>}
-        {notice && <p role="status" className="text-[12.5px] font-medium text-success">{notice}</p>}
+        {error && (
+          <p role="alert" className="text-[12.5px] font-medium text-error">
+            {error}
+          </p>
+        )}
+        {notice && (
+          <p role="status" className="text-[12.5px] font-medium text-success">
+            {notice}
+          </p>
+        )}
         <div className="flex flex-wrap gap-space-2 pt-space-2">
-          <Button type="submit" disabled={loading}>{loading ? "Checking model…" : "Verify and save"}</Button>
+          <Button type="submit" disabled={loading}>
+            {loading ? "Checking model…" : "Verify and save"}
+          </Button>
           {configuration?.configured && (
             <Button type="button" variant="secondary" disabled={loading} onClick={remove}>
               <Trash2 size={14} /> Remove configuration

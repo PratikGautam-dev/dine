@@ -5,7 +5,10 @@ export function Counter({ used, max, unit }: { used: number; max: number; unit: 
   return (
     <p
       aria-live="polite"
-      className={cn("mt-1 text-right text-[12px] tabular-nums", used > max ? "font-semibold text-error" : "text-ink-400")}
+      className={cn(
+        "mt-1 text-right text-[12px] tabular-nums",
+        used > max ? "font-semibold text-error" : "text-ink-400",
+      )}
     >
       {used} / {max} {unit}
     </p>

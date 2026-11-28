@@ -115,6 +115,7 @@ export function useStaffManagement(canView: boolean) {
 
   useEffect(() => {
     if (!canView) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
     loadRoster();
   }, [canView, load, loadRoster]);
@@ -145,12 +146,7 @@ export function useStaffManagement(canView: boolean) {
       if (statusFilter === "inactive" && isActive) return false;
       if (!q) return true;
       const haystack = row.has_login
-        ? [
-            row.staff.name,
-            row.staff.email,
-            row.staff.phone ?? "",
-            row.staff.employee_id ?? "",
-          ]
+        ? [row.staff.name, row.staff.email, row.staff.phone ?? "", row.staff.employee_id ?? ""]
         : [row.roster.name];
       return haystack.some((v) => v.toLowerCase().includes(q));
     });
@@ -325,7 +321,8 @@ export function useStaffManagement(canView: boolean) {
         phone: nullIfBlank(f.phone),
       }),
     });
-    if (!result.ok) return result.unauthorized ? "Session expired -- please sign in again." : result.error;
+    if (!result.ok)
+      return result.unauthorized ? "Session expired -- please sign in again." : result.error;
     if (f.branch_id) {
       const id = (result.data as { id: number }).id;
       const limited = await staffFetch(`/api/portal/staff/${id}/branches`, {

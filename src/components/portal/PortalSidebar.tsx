@@ -18,7 +18,6 @@ import {
   LogIn,
   MessageCircle,
   MessageSquareText,
-  Monitor,
   Radio,
   Settings,
   ClipboardList,
@@ -42,6 +41,7 @@ import type { PortalRestaurant } from "@/lib/portalAuth";
 import { hasPermission, useStaffSession } from "@/lib/staffAuth";
 import { visibleSettingsItems } from "@/components/portal/SettingsNavMenu";
 import { useInactiveModules, type ModuleKey } from "@/hooks/useModules";
+import { serviceOn, useDaapStatus, type DaapService } from "@/hooks/useDaapStatus";
 
 // Staff/Branches/Reports/Calendar/Departments were removed (not just hidden)
 // -- Calendar had no backend and no near-term plan to build one; Departments
@@ -77,6 +77,8 @@ const NAV_ITEMS: {
   parent?: string;
   /** Hidden while this optional module is switched off (Settings > Modules). */
   module?: ModuleKey;
+  /** Hidden while the restaurant's DAAP plan doesn't include this service (the server refuses it anyway). */
+  service?: DaapService;
 }[] = [
   {
     key: "dashboard",
@@ -93,14 +95,7 @@ const NAV_ITEMS: {
     href: "/portal/channels/online",
     pageKey: "settings",
     group: "Sales Channels",
-  },
-  {
-    key: "sales-daap-website",
-    label: "App",
-    icon: Monitor,
-    href: "/portal/channels/daap-website",
-    pageKey: "food_orders",
-    group: "Sales Channels",
+    service: "website",
   },
   {
     key: "channel-whatsapp",
@@ -109,6 +104,7 @@ const NAV_ITEMS: {
     href: "/portal/channels/whatsapp",
     pageKey: "settings",
     group: "Sales Channels",
+    service: "whatsapp",
   },
   {
     key: "channel-pos",
@@ -117,6 +113,7 @@ const NAV_ITEMS: {
     href: "/portal/channels/pos",
     pageKey: "settings",
     group: "Sales Channels",
+    service: "pos",
   },
   {
     key: "live-operations",
@@ -395,6 +392,7 @@ export function PortalSidebar({ restaurant, active, logoUrl, open = false, onClo
   // then the real session an instant later.
   const session = useStaffSession();
   const inactiveModules = useInactiveModules();
+  const { data: daap } = useDaapStatus();
   const navRef = useRef<HTMLElement>(null);
 
   // The nav items only render once the session has loaded, so restore after that (before paint).
@@ -411,19 +409,24 @@ export function PortalSidebar({ restaurant, active, logoUrl, open = false, onClo
   // "Settings" is a single entry: its pages live in the settings menu (SettingsNav). It shows when the person
   // may open any of them and leads to the first one they can use (e.g. someone with only Team & Access).
   const settingsPages = visibleSettingsItems(session, inactiveModules);
-  const liveItems = NAV_ITEMS.filter((item) => !(item.module && inactiveModules.has(item.module)));
+  const liveItems = NAV_ITEMS.filter(
+    (item) =>
+      !(item.module && inactiveModules.has(item.module)) &&
+      !(item.service && !serviceOn(daap, item.service)),
+  );
   const visible = session
-    ? liveItems.filter((item) =>
-        item.key === "settings"
-          ? settingsPages.length > 0
-          : liveItems.some((child) => child.parent === item.key)
-            ? // a parent row shows when the person may open any of its sub-pages
-              liveItems.some(
-                (child) =>
-                  child.parent === item.key && hasPermission(session, child.pageKey, "view"),
-              )
-            : hasPermission(session, item.pageKey, "view"),
-      )
+    ? liveItems
+        .filter((item) =>
+          item.key === "settings"
+            ? settingsPages.length > 0
+            : liveItems.some((child) => child.parent === item.key)
+              ? // a parent row shows when the person may open any of its sub-pages
+                liveItems.some(
+                  (child) =>
+                    child.parent === item.key && hasPermission(session, child.pageKey, "view"),
+                )
+              : hasPermission(session, item.pageKey, "view"),
+        )
         .map((item) =>
           item.key === "settings" && settingsPages[0]
             ? { ...item, href: settingsPages[0].href }

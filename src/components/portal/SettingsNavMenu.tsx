@@ -19,7 +19,10 @@ const initials = (s: string) =>
     .join("") || "?";
 
 /** The settings pages this person may open (permission, restaurant capability, optional module switched on). */
-export function visibleSettingsItems(session: StaffSession | null, inactiveModules: ReadonlySet<string> = new Set()): SettingsNavItem[] {
+export function visibleSettingsItems(
+  session: StaffSession | null,
+  inactiveModules: ReadonlySet<string> = new Set(),
+): SettingsNavItem[] {
   return SETTINGS_NAV.filter(
     (i) =>
       !(i.module && inactiveModules.has(i.module)) &&
@@ -35,9 +38,13 @@ export function SettingsNav({ onNavigate }: { onNavigate?: () => void }) {
   const inactiveModules = useInactiveModules();
   const [q, setQ] = useState("");
   const query = q.trim().toLowerCase();
-  const items = visibleSettingsItems(session, inactiveModules).filter((i) => i.label.toLowerCase().includes(query));
+  const items = visibleSettingsItems(session, inactiveModules).filter((i) =>
+    i.label.toLowerCase().includes(query),
+  );
   const isActive = (href: string) =>
-    href === "/portal/settings" ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
+    href === "/portal/settings"
+      ? pathname === href
+      : pathname === href || pathname.startsWith(`${href}/`);
   const name = session?.restaurant.name ?? "Settings";
 
   return (
@@ -86,21 +93,26 @@ export function SettingsNav({ onNavigate }: { onNavigate?: () => void }) {
               aria-current={isActive(href) ? "page" : undefined}
               className={cn(
                 "flex shrink-0 items-center gap-space-3 rounded-md px-space-3 py-2 text-[13px] font-medium text-ink-600 hover:bg-paper hover:text-ink-900",
-                isActive(href) && "bg-brand-50 font-semibold text-brand-700 hover:bg-brand-50 hover:text-brand-700",
+                isActive(href) &&
+                  "bg-brand-50 font-semibold text-brand-700 hover:bg-brand-50 hover:text-brand-700",
               )}
             >
               <Icon size={16} className="shrink-0" />
               {label}
             </Link>
           ))}
-          {items.length === 0 && <p className="px-space-3 py-2 text-[13px] text-ink-400">No match</p>}
+          {items.length === 0 && (
+            <p className="px-space-3 py-2 text-[13px] text-ink-400">No match</p>
+          )}
         </nav>
         {session && (
           <div className="flex shrink-0 items-center gap-space-3 border-t border-line px-space-3 py-space-3">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-brand-100 text-[11px] font-bold text-brand-700">
               {initials(session.name)}
             </span>
-            <p className="min-w-0 truncate text-[13px] font-semibold text-ink-900">{session.name}</p>
+            <p className="min-w-0 truncate text-[13px] font-semibold text-ink-900">
+              {session.name}
+            </p>
           </div>
         )}
       </div>

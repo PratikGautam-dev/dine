@@ -35,16 +35,12 @@ export function ViewHeader({
           {icon ?? <HugeiconsIcon icon={CrownIcon} size={22} />}
         </span>
         <div className="min-w-0">
-          <h2 className="text-[19px] font-bold leading-tight text-ink-900">
-            {title}
-          </h2>
+          <h2 className="text-[19px] font-bold leading-tight text-ink-900">{title}</h2>
           <p className="text-[13px] text-ink-600">{description}</p>
         </div>
       </div>
       {/* a phone gives the main action the whole row, like the other pages' Add buttons */}
-      {action && (
-        <div className="w-full max-md:[&>*]:w-full md:w-auto">{action}</div>
-      )}
+      {action && <div className="w-full max-md:[&>*]:w-full md:w-auto">{action}</div>}
     </div>
   );
 }
@@ -75,9 +71,7 @@ export function StatCard({
         <p className="text-[12px] break-words text-ink-600 max-md:min-h-9 md:truncate md:break-normal">
           {label}
         </p>
-        <p className="text-[21px] font-bold leading-tight text-ink-900">
-          {value}
-        </p>
+        <p className="text-[21px] font-bold leading-tight text-ink-900">{value}</p>
         {text && (
           <p
             className={cn(
@@ -95,9 +89,7 @@ export function StatCard({
           </p>
         )}
         {hint && (
-          <p className="text-[12px] break-words text-ink-600 md:truncate md:break-normal">
-            {hint}
-          </p>
+          <p className="text-[12px] break-words text-ink-600 md:truncate md:break-normal">{hint}</p>
         )}
       </div>
     </Card>
@@ -107,10 +99,7 @@ export function StatCard({
 export function TierCrown({ tier, size = 32 }: { tier: Tier; size?: number }) {
   return (
     <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-full",
-        TIER_STYLE[tier],
-      )}
+      className={cn("flex shrink-0 items-center justify-center rounded-full", TIER_STYLE[tier])}
       style={{ width: size, height: size }}
     >
       <HugeiconsIcon icon={CrownIcon} size={Math.round(size * 0.55)} />
@@ -229,12 +218,8 @@ export function HistoryList({
           className="flex flex-wrap items-center justify-between gap-space-2 px-space-3 py-space-3 text-[13px]"
         >
           <span className="min-w-0">
-            <span className="font-semibold text-ink-900">
-              {ACTION_LABEL[e.action] ?? e.action}
-            </span>
-            {describe(e) && (
-              <span className="text-ink-600"> — {describe(e)}</span>
-            )}
+            <span className="font-semibold text-ink-900">{ACTION_LABEL[e.action] ?? e.action}</span>
+            {describe(e) && <span className="text-ink-600"> — {describe(e)}</span>}
           </span>
           <span className="text-ink-400">
             {e.actor} · {formatDateTime(e.created_at)}

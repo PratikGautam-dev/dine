@@ -87,12 +87,8 @@ export function OptionCard({
     <>
       {tile ? (
         <>
-          <span className={selected ? "text-brand-700" : "text-ink-900"}>
-            {icon}
-          </span>
-          <span className="text-[13px] font-semibold text-ink-900">
-            {title}
-          </span>
+          <span className={selected ? "text-brand-700" : "text-ink-900"}>{icon}</span>
+          <span className="text-[13px] font-semibold text-ink-900">{title}</span>
           <span className="text-[12px] text-ink-400">{hint}</span>
         </>
       ) : (
@@ -103,9 +99,7 @@ export function OptionCard({
             {selected && <span className="h-2 w-2 rounded-full bg-brand-700" />}
           </span>
           <span>
-            <span className="block text-[13.5px] font-semibold text-ink-900">
-              {title}
-            </span>
+            <span className="block text-[13.5px] font-semibold text-ink-900">{title}</span>
             <span className="block text-[12.5px] text-ink-600">{hint}</span>
           </span>
         </div>
@@ -147,9 +141,7 @@ export function CheckList({
   placeholder: string;
 }) {
   if (!items.length)
-    return (
-      <p className="text-[13px] text-ink-600">{loading ? "Loading…" : empty}</p>
-    );
+    return <p className="text-[13px] text-ink-600">{loading ? "Loading…" : empty}</p>;
   return (
     <MultiSelect
       options={items.map((item) => ({ value: item.id, label: item.label }))}

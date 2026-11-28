@@ -10,15 +10,7 @@ import {
 
 export function ChannelBadge({ channel }: { channel: Channel }) {
   return (
-    <Badge
-      tone={
-        channel === "pos"
-          ? "brand"
-          : channel === "online"
-            ? "violet"
-            : "success"
-      }
-    >
+    <Badge tone={channel === "pos" ? "brand" : channel === "online" ? "violet" : "success"}>
       {CHANNELS[channel].label}
     </Badge>
   );
@@ -32,10 +24,6 @@ export function OrderStatusBadge({ status }: { status: Order["status"] }) {
   );
 }
 
-export function PaymentStatusBadge({
-  status,
-}: {
-  status: Order["payment_status"];
-}) {
+export function PaymentStatusBadge({ status }: { status: Order["payment_status"] }) {
   return <Badge tone={PAYMENT_STATUS_TONE[status]}>{humanize(status)}</Badge>;
 }

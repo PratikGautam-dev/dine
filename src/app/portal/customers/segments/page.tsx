@@ -9,14 +9,8 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useState } from "react";
 import { SegmentBuilder } from "@/components/crm/rules/SegmentBuilder";
-import {
-  CustomersInSegment,
-  SegmentAnalytics,
-} from "@/components/crm/rules/SegmentInsights";
-import {
-  SegmentsOverview,
-  SegmentsView,
-} from "@/components/crm/rules/SegmentsView";
+import { CustomersInSegment, SegmentAnalytics } from "@/components/crm/rules/SegmentInsights";
+import { SegmentsOverview, SegmentsView } from "@/components/crm/rules/SegmentsView";
 import { PortalShell } from "@/components/portal/PortalShell";
 import { usePortalGuard } from "@/components/portal/usePortalGuard";
 import { PageHeader } from "@/components/erp-ui/PageHeader";

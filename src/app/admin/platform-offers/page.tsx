@@ -98,6 +98,7 @@ export default function PlatformOffersPage() {
   useEffect(() => {
     // AdminLayout already redirects to /admin/login when unauthenticated; this just gates this
     // page's own data fetch until that check has had a chance to run.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mount (the server render has none)
     if (getSuperAdminAccessToken()) setReady(true);
   }, []);
 

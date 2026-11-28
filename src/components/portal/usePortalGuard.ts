@@ -23,6 +23,7 @@ export function usePortalGuard() {
       router.push("/portal/login");
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mount (the server render has none)
     setRestaurant(getPortalRestaurant());
     setReady(true);
   }, [router]);

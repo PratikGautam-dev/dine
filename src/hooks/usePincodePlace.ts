@@ -46,7 +46,13 @@ export function usePincodePlace(pincode: string) {
     };
   }, [pin, complete]);
 
-  const known = complete ? (cache.has(pin) ? cache.get(pin)! : result?.pin === pin ? result.place : undefined) : undefined;
+  const known = complete
+    ? cache.has(pin)
+      ? cache.get(pin)!
+      : result?.pin === pin
+        ? result.place
+        : undefined
+    : undefined;
   return {
     place: known ?? undefined,
     unknown: complete && known === null,

@@ -29,10 +29,7 @@ export function LoyaltyTab({
   async function save() {
     const n = Number.parseInt(rate ?? "", 10);
     if (!Number.isFinite(n) || n < 0)
-      return toast.error(
-        "Enter a number",
-        "Points per ₹100 must be zero or more.",
-      );
+      return toast.error("Enter a number", "Points per ₹100 must be zero or more.");
     setBusy(true);
     const res = await erp("/api/v1/crm/settings", "PUT", { points_per_100: n });
     setBusy(false);
@@ -64,20 +61,13 @@ export function LoyaltyTab({
         />
       </div>
       <Card className="p-space-4">
-        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
-          How points are earned
-        </h2>
+        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">How points are earned</h2>
         <p className="mb-space-4 max-w-3xl text-[13px] leading-relaxed text-ink-600">
-          Customers earn points when orders are placed. Cancelled orders earn no
-          points, and refunds reduce earned points. Staff can adjust points from
-          the customer&apos;s profile.
+          Customers earn points when orders are placed. Cancelled orders earn no points, and refunds
+          reduce earned points. Staff can adjust points from the customer&apos;s profile.
         </p>
         <div className="flex w-full max-w-sm items-end gap-space-3">
-          <Field
-            label="Points per ₹100 spent"
-            htmlFor="ppr"
-            className="!mb-0 min-w-0 flex-1"
-          >
+          <Field label="Points per ₹100 spent" htmlFor="ppr" className="!mb-0 min-w-0 flex-1">
             <Input
               id="ppr"
               className="block"
@@ -88,11 +78,7 @@ export function LoyaltyTab({
             />
           </Field>
           {canConfigure && (
-            <Button
-              className="h-11 shrink-0"
-              disabled={busy || rate === null}
-              onClick={save}
-            >
+            <Button className="h-11 shrink-0" disabled={busy || rate === null} onClick={save}>
               {busy ? "Saving…" : "Save"}
             </Button>
           )}
@@ -100,9 +86,7 @@ export function LoyaltyTab({
       </Card>
       <div className="grid gap-space-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
         <Card className="min-w-0 p-space-4">
-          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
-            Top members
-          </h2>
+          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Top members</h2>
           <DataTable
             data={d.top}
             getRowId={(member) => member.id}
@@ -135,9 +119,7 @@ export function LoyaltyTab({
               },
               {
                 header: "Membership",
-                cell: ({ row }) => (
-                  <SegmentBadge segment={row.original.segment} />
-                ),
+                cell: ({ row }) => <SegmentBadge segment={row.original.segment} />,
               },
               {
                 id: "loyalty_points",
@@ -150,9 +132,7 @@ export function LoyaltyTab({
               },
               {
                 id: "credit_balance",
-                header: () => (
-                  <div className="text-right">Credit balance (₹)</div>
-                ),
+                header: () => <div className="text-right">Credit balance (₹)</div>,
                 cell: ({ row }) => (
                   <span className="block text-right font-semibold tabular-nums">
                     {formatMoney(row.original.credit_balance_minor, "INR")}
@@ -162,31 +142,19 @@ export function LoyaltyTab({
             ]}
           />
           <p className="mt-space-2 text-[12px] text-ink-600">
-            Credit balance is the value of loyalty points at the current
-            conversion rate. Checkout redemption limits apply.
+            Credit balance is the value of loyalty points at the current conversion rate. Checkout
+            redemption limits apply.
           </p>
         </Card>
         <Card className="min-w-0 p-space-4">
-          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">
-            Recent adjustments
-          </h2>
-          {d.recent.length === 0 && (
-            <p className="text-[13px] text-ink-400">No adjustments yet.</p>
-          )}
+          <h2 className="mb-space-2 text-[15px] font-bold text-ink-900">Recent adjustments</h2>
+          {d.recent.length === 0 && <p className="text-[13px] text-ink-400">No adjustments yet.</p>}
           <ul className="divide-y divide-line">
             {d.recent.map((r) => (
               <li key={r.id} className="py-space-2 text-[13.5px]">
                 <div className="flex justify-between">
-                  <span className="font-medium text-ink-900">
-                    {r.customer_name}
-                  </span>
-                  <span
-                    className={
-                      r.delta < 0
-                        ? "font-bold text-error"
-                        : "font-bold text-success"
-                    }
-                  >
+                  <span className="font-medium text-ink-900">{r.customer_name}</span>
+                  <span className={r.delta < 0 ? "font-bold text-error" : "font-bold text-success"}>
                     {r.delta > 0 ? "+" : ""}
                     {r.delta}
                   </span>

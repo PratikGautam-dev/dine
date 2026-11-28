@@ -30,8 +30,7 @@ export function CodeInput({
     current.current = next;
     onChange(next);
   };
-  const focus = (i: number) =>
-    boxes.current[Math.max(0, Math.min(i, length - 1))]?.focus();
+  const focus = (i: number) => boxes.current[Math.max(0, Math.min(i, length - 1))]?.focus();
 
   // Writes `typed` (digits only) starting at box i, then moves to the box after it.
   function put(i: number, typed: string) {
@@ -42,12 +41,7 @@ export function CodeInput({
       return focus(length - 1);
     }
     const code = current.current;
-    change(
-      (code.slice(0, i) + digits + code.slice(i + digits.length)).slice(
-        0,
-        length,
-      ),
-    );
+    change((code.slice(0, i) + digits + code.slice(i + digits.length)).slice(0, length));
     focus(i + digits.length);
   }
 
@@ -58,11 +52,7 @@ export function CodeInput({
   }
 
   return (
-    <div
-      role="group"
-      aria-label={label}
-      className="flex justify-between gap-space-2"
-    >
+    <div role="group" aria-label={label} className="flex justify-between gap-space-2">
       {Array.from({ length }, (_, i) => (
         <input
           key={i}

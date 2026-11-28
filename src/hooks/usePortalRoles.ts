@@ -33,6 +33,7 @@ export function usePortalRoles(canView: boolean) {
   }, [router]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (canView) load();
   }, [canView, load]);
 

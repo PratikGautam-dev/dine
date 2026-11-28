@@ -39,8 +39,7 @@ type DayInfo = {
 /** date -> what that day is for me, from the calendar call. */
 function dayMap(cal: LeaveCalendar): Map<string, DayInfo> {
   const map = new Map<string, DayInfo>();
-  for (const h of cal.holidays)
-    map.set(h.date, { ...map.get(h.date), holiday: h.name });
+  for (const h of cal.holidays) map.set(h.date, { ...map.get(h.date), holiday: h.name });
   for (const lv of cal.leave) {
     const d = new Date(`${lv.from_date}T00:00:00`);
     const end = new Date(`${lv.to_date}T00:00:00`);
@@ -78,9 +77,7 @@ function Month({
   const count = new Date(year, month + 1, 0).getDate();
   return (
     <Card className="min-w-0 p-space-3">
-      <h3 className="mb-space-2 text-[13.5px] font-bold text-ink-900">
-        {MONTHS[month]}
-      </h3>
+      <h3 className="mb-space-2 text-[13.5px] font-bold text-ink-900">{MONTHS[month]}</h3>
       <div className="grid grid-cols-7 gap-0.5 text-center text-[11.5px]">
         {HEAD.map((h, i) => (
           <span key={i} className="py-0.5 font-semibold text-ink-400">
@@ -138,14 +135,9 @@ export default function HolidaysPage() {
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
   const { calendar, error } = useLeaveCalendar(Boolean(session), year);
-  const days = useMemo(
-    () => (calendar ? dayMap(calendar) : new Map()),
-    [calendar],
-  );
+  const days = useMemo(() => (calendar ? dayMap(calendar) : new Map()), [calendar]);
   const todayIso = iso(now.getFullYear(), now.getMonth(), now.getDate());
-  const upcoming = (calendar?.holidays ?? [])
-    .filter((h) => h.date >= todayIso)
-    .slice(0, 6);
+  const upcoming = (calendar?.holidays ?? []).filter((h) => h.date >= todayIso).slice(0, 6);
   const leaveDays = (calendar?.leave ?? [])
     .filter((l) => l.status === "approved")
     .reduce((n, l) => n + l.days, 0);
@@ -169,9 +161,7 @@ export default function HolidaysPage() {
             >
               <ChevronLeft size={16} />
             </Button>
-            <span className="min-w-14 text-center text-[15px] font-bold text-ink-900">
-              {year}
-            </span>
+            <span className="min-w-14 text-center text-[15px] font-bold text-ink-900">{year}</span>
             <Button
               variant="secondary"
               aria-label="Next year"
@@ -201,9 +191,7 @@ export default function HolidaysPage() {
           </div>
           <div className="space-y-space-4">
             <Card className="p-space-4">
-              <h3 className="mb-space-2 text-[14px] font-bold text-ink-900">
-                Key
-              </h3>
+              <h3 className="mb-space-2 text-[14px] font-bold text-ink-900">Key</h3>
               <ul className="space-y-space-2 text-[13px] text-ink-700">
                 <li className="flex items-center gap-space-2">
                   <span className="h-4 w-4 rounded bg-warning" /> Holiday
@@ -212,44 +200,32 @@ export default function HolidaysPage() {
                   <span className="h-4 w-4 rounded bg-brand-600" /> My leave
                 </li>
                 <li className="flex items-center gap-space-2">
-                  <span className="h-4 w-4 rounded border border-dashed border-brand-600" />{" "}
-                  Leave waiting for approval
+                  <span className="h-4 w-4 rounded border border-dashed border-brand-600" /> Leave
+                  waiting for approval
                 </li>
                 <li className="flex items-center gap-space-2">
-                  <span className="h-4 w-4 rounded bg-black/[0.06]" /> Weekly
-                  off
+                  <span className="h-4 w-4 rounded bg-black/[0.06]" /> Weekly off
                 </li>
               </ul>
               <p className="mt-space-3 text-hint">
-                {leaveDays} day{leaveDays === 1 ? "" : "s"} of approved leave in{" "}
-                {year}.
+                {leaveDays} day{leaveDays === 1 ? "" : "s"} of approved leave in {year}.
               </p>
             </Card>
             <Card className="p-space-4">
-              <h3 className="mb-space-2 text-[14px] font-bold text-ink-900">
-                Coming up
-              </h3>
+              <h3 className="mb-space-2 text-[14px] font-bold text-ink-900">Coming up</h3>
               {upcoming.length === 0 ? (
-                <p className="text-[13px] text-ink-400">
-                  No more holidays this year.
-                </p>
+                <p className="text-[13px] text-ink-400">No more holidays this year.</p>
               ) : (
                 <ul className="space-y-space-2">
                   {upcoming.map((h) => (
                     <li key={h.id}>
-                      <p className="text-[13.5px] font-semibold text-ink-900">
-                        {h.name}
-                      </p>
+                      <p className="text-[13.5px] font-semibold text-ink-900">{h.name}</p>
                       <p className="text-hint">{fmtDate(h.date)}</p>
                     </li>
                   ))}
                 </ul>
               )}
-              <Button
-                href="/portal/leave"
-                variant="secondary"
-                className="mt-space-3 w-full"
-              >
+              <Button href="/portal/leave" variant="secondary" className="mt-space-3 w-full">
                 Apply for leave
               </Button>
             </Card>

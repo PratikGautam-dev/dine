@@ -37,7 +37,11 @@ export default function ReturnsPage() {
   const { selectedBranchId } = useBranchFilter();
   // the period comes from the header's global filter
   const { days: windowDays, range, label: periodLabel } = usePagePeriod(RETURN_PERIODS);
-  const { orders, error, load: reload } = useFoodOrders(ready, "", windowDays, undefined, selectedBranchId);
+  const {
+    orders,
+    error,
+    load: reload,
+  } = useFoodOrders(ready, "", windowDays, undefined, selectedBranchId);
   const windowLabel = `${periodLabel} (${formatRange(range)})`;
 
   const [tab, setTab] = useState<Tab>("cancelled");
@@ -57,7 +61,10 @@ export default function ReturnsPage() {
       completed: all.filter((o) => o.status === "completed").length,
       // only an order that was actually paid can need money back (an online order cancelled before the guest paid has nothing to refund)
       paidCancelled: all.filter(
-        (o) => o.status === "cancelled" && o.payment_status === "paid" && (o.refunded_paise ?? 0) < (o.paid_paise ?? 0),
+        (o) =>
+          o.status === "cancelled" &&
+          o.payment_status === "paid" &&
+          (o.refunded_paise ?? 0) < (o.paid_paise ?? 0),
       ).length,
     };
   }, [inPeriod]);
@@ -111,7 +118,8 @@ export default function ReturnsPage() {
           if (refunded_paise > 0)
             return (
               <span className="text-[12.5px] text-ink-900">
-                {rupees(refunded_paise)} <span className="text-ink-400">of {rupees(paid_paise)}</span>
+                {rupees(refunded_paise)}{" "}
+                <span className="text-ink-400">of {rupees(paid_paise)}</span>
               </span>
             );
           return <span className="text-ink-400">Not yet</span>;

@@ -37,6 +37,7 @@ export function useTenantSettings(ready: boolean) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 

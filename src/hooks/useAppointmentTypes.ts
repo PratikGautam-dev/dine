@@ -23,7 +23,9 @@ export function useAppointmentTypes(branchId: string | null) {
 
   const load = useCallback(async () => {
     if (!branchId) return;
-    const result = await portalFetch(`/api/portal/appointment-types?branch_id=${encodeURIComponent(branchId)}`);
+    const result = await portalFetch(
+      `/api/portal/appointment-types?branch_id=${encodeURIComponent(branchId)}`,
+    );
     if (!result.ok) {
       setTypes(null);
       return;

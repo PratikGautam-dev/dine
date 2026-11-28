@@ -1,7 +1,22 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronRight, Eye, EyeOff, ImagePlus, Images, Image as ImageIcon, Megaphone, Star, Type, UtensilsCrossed, X, type LucideIcon } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronRight,
+  Eye,
+  EyeOff,
+  ImagePlus,
+  Images,
+  Image as ImageIcon,
+  Megaphone,
+  Star,
+  Type,
+  UtensilsCrossed,
+  X,
+  type LucideIcon,
+} from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +28,12 @@ import { FormSkeleton } from "@/components/ui/Skeleton";
 import { PermissionGate } from "@/components/portal/PermissionGate";
 import { usePermission } from "@/lib/staffAuth";
 import { useStorefrontSettings } from "@/hooks/useStorefrontSettings";
-import { useStorefrontDraft, sectionLabel, type DraftFields, type SectionKey } from "@/hooks/useStorefrontDraft";
+import {
+  useStorefrontDraft,
+  sectionLabel,
+  type DraftFields,
+  type SectionKey,
+} from "@/hooks/useStorefrontDraft";
 import { useRestaurantPhotos } from "@/hooks/useRestaurantPhotos";
 
 /** Where each section's chevron goes -- gallery scrolls to this same page's Photo gallery card,
@@ -30,12 +50,21 @@ const SECTION_CHEVRON_HREF: Record<SectionKey, string> = {
  * uses the deployed one. Without the localhost rule a local portal previewed the deployed storefront, which reads the production database and says
  * "Restaurant not found" for a restaurant that only exists locally. A function, not a constant, because it reads `window`. */
 export function storefrontUrl(): string {
-  if (process.env.NEXT_PUBLIC_STOREFRONT_URL) return process.env.NEXT_PUBLIC_STOREFRONT_URL.replace(/\/$/, "");
-  if (typeof window !== "undefined" && ["localhost", "127.0.0.1"].includes(window.location.hostname)) return "http://localhost:3001";
+  if (process.env.NEXT_PUBLIC_STOREFRONT_URL)
+    return process.env.NEXT_PUBLIC_STOREFRONT_URL.replace(/\/$/, "");
+  if (
+    typeof window !== "undefined" &&
+    ["localhost", "127.0.0.1"].includes(window.location.hostname)
+  )
+    return "http://localhost:3001";
   return "https://dine-storefront.vercel.app";
 }
 
-const SECTION_ICON: Record<SectionKey, LucideIcon> = { gallery: Images, menu: UtensilsCrossed, reviews: Star };
+const SECTION_ICON: Record<SectionKey, LucideIcon> = {
+  gallery: Images,
+  menu: UtensilsCrossed,
+  reviews: Star,
+};
 
 /** A draft form mirrors StorefrontDraft -- min_order_paise/avg_prep_minutes moved to the Branches
  * settings page (migration 0096 cleanup), name/address_line/city moved to General settings
@@ -85,7 +114,9 @@ export function SitePreview({ src, title }: { src: string | null; title: string 
   useEffect(() => {
     const el = box.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setSize({ w: e.contentRect.width, h: e.contentRect.height }));
+    const ro = new ResizeObserver(([e]) =>
+      setSize({ w: e.contentRect.width, h: e.contentRect.height }),
+    );
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
@@ -111,12 +142,29 @@ export function SitePreview({ src, title }: { src: string | null; title: string 
 export function DineThemeEditor() {
   const canView = usePermission("settings", "view");
   const canWrite = usePermission("settings", "write");
-  const { storefront, error, uploadingLogo, uploadingCover, uploadImage } = useStorefrontSettings(canView);
+  const { storefront, error, uploadingLogo, uploadingCover, uploadImage } =
+    useStorefrontSettings(canView);
   const {
-    draft, error: draftError, saving: savingDraft, publishing, discarding,
-    saveDraft, saveSections, publish, discardDraft, previewToken, fetchPreviewToken, hasUnpublishedChanges,
+    draft,
+    error: draftError,
+    saving: savingDraft,
+    publishing,
+    discarding,
+    saveDraft,
+    saveSections,
+    publish,
+    discardDraft,
+    previewToken,
+    fetchPreviewToken,
+    hasUnpublishedChanges,
   } = useStorefrontDraft(canView);
-  const { photos, uploading: uploadingPhoto, removingId, addPhoto, removePhoto } = useRestaurantPhotos(canView);
+  const {
+    photos,
+    uploading: uploadingPhoto,
+    removingId,
+    addPhoto,
+    removePhoto,
+  } = useRestaurantPhotos(canView);
 
   const [draftForm, setDraftForm] = useState<DraftForm | null>(null);
   const [draftFormError, setDraftFormError] = useState<string | null>(null);
@@ -191,16 +239,18 @@ export function DineThemeEditor() {
 
   function toggleSection(key: SectionKey) {
     if (!draft || key === "menu") return;
-    void saveSections(draft.sections.map((s) => (s.key === key ? { ...s, enabled: !s.enabled } : s)));
+    void saveSections(
+      draft.sections.map((s) => (s.key === key ? { ...s, enabled: !s.enabled } : s)),
+    );
   }
 
-  if (!canView) return <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>;
+  if (!canView)
+    return <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>;
 
   const previewSrc =
     storefront?.slug && previewToken
       ? `${storefrontUrl()}/${storefront.slug}?preview_token=${previewToken}&v=${encodeURIComponent(draft?.draft_updated_at ?? "")}`
       : null;
-
 
   return (
     <>
@@ -217,11 +267,16 @@ export function DineThemeEditor() {
                 {hasUnpublishedChanges && <Badge tone="warning">Unpublished changes</Badge>}
               </div>
               <p className="text-hint mb-space-4">
-                Changes here save as a draft first -- preview them on the right, then Publish when ready. Shoppers keep
-                seeing today&apos;s live version until you do.
+                Changes here save as a draft first -- preview them on the right, then Publish when
+                ready. Shoppers keep seeing today&apos;s live version until you do.
               </p>
               <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-                <Field label="Cuisines" htmlFor="sf-cuisines" hint="Comma-separated" className="sm:col-span-2">
+                <Field
+                  label="Cuisines"
+                  htmlFor="sf-cuisines"
+                  hint="Comma-separated"
+                  className="sm:col-span-2"
+                >
                   <Input
                     id="sf-cuisines"
                     value={activeDraft.cuisine_tags}
@@ -262,7 +317,9 @@ export function DineThemeEditor() {
                       onChange={(e) => handleImageFile(e, "logo")}
                       className="text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
                     />
-                    {uploadingLogo && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
+                    {uploadingLogo && (
+                      <span className="text-[12.5px] text-ink-500">Uploading…</span>
+                    )}
                   </div>
                   <Input
                     id="sf-logo"
@@ -284,7 +341,9 @@ export function DineThemeEditor() {
                       onChange={(e) => handleImageFile(e, "cover")}
                       className="text-[13px] text-ink-700 file:mr-space-3 file:rounded-md file:border-0 file:bg-brand-50 file:px-space-3 file:py-space-2 file:text-[12.5px] file:font-semibold file:text-brand-700 hover:file:bg-brand-100"
                     />
-                    {uploadingCover && <span className="text-[12.5px] text-ink-500">Uploading…</span>}
+                    {uploadingCover && (
+                      <span className="text-[12.5px] text-ink-500">Uploading…</span>
+                    )}
                   </div>
                   <Input
                     id="sf-cover"
@@ -299,23 +358,36 @@ export function DineThemeEditor() {
               </div>
               <p className="text-hint mt-space-2">
                 Minimum order and average prep time are set per-branch on the{" "}
-                <a href="/portal/settings/branches" className="font-semibold text-brand-700 hover:underline">
+                <Link
+                  href="/portal/settings/branches"
+                  className="font-semibold text-brand-700 hover:underline"
+                >
                   Branches settings page
-                </a>
+                </Link>
                 . Restaurant name and address are set on the{" "}
-                <a href="/portal/settings" className="font-semibold text-brand-700 hover:underline">
+                <Link
+                  href="/portal/settings"
+                  className="font-semibold text-brand-700 hover:underline"
+                >
                   General settings page
-                </a>
+                </Link>
                 .
               </p>
-              {draftFormError && <p className="mt-space-2 text-[13px] font-medium text-error">{draftFormError}</p>}
+              {draftFormError && (
+                <p className="mt-space-2 text-[13px] font-medium text-error">{draftFormError}</p>
+              )}
               <PermissionGate page="settings" action="write">
                 <div className="mt-space-4 flex flex-wrap gap-space-2">
                   <Button type="submit" disabled={savingDraft || !draftForm}>
                     {savingDraft ? "Saving…" : "Save draft"}
                   </Button>
                   {draftForm && (
-                    <Button type="button" variant="secondary" onClick={() => setDraftForm(null)} disabled={savingDraft}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setDraftForm(null)}
+                      disabled={savingDraft}
+                    >
                       Discard changes
                     </Button>
                   )}
@@ -347,32 +419,60 @@ export function DineThemeEditor() {
             <Card className="p-space-5 lg:self-start">
               <h2 className="text-[16px] font-bold text-ink-900">Page sections</h2>
               <p className="mb-space-4 mt-1 text-[13px] leading-relaxed text-ink-600">
-                Reorder or hide sections on your restaurant&apos;s page. The menu can&apos;t be hidden.
+                Reorder or hide sections on your restaurant&apos;s page. The menu can&apos;t be
+                hidden.
               </p>
 
-              <p className="mb-space-2 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-400">Top of every page</p>
+              <p className="mb-space-2 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-400">
+                Top of every page
+              </p>
               <ul className="mb-space-5 divide-y divide-line overflow-hidden rounded-lg border border-line bg-card">
                 {[
-                  { label: "Name", hint: "Set in General settings", href: "/portal/settings", icon: Type },
-                  { label: "Logo", hint: "Upload in the profile above", href: "#storefront-profile", icon: ImageIcon },
-                  { label: "Announcement bar", hint: "A thin banner above the page", href: "#storefront-profile", icon: Megaphone },
+                  {
+                    label: "Name",
+                    hint: "Set in General settings",
+                    href: "/portal/settings",
+                    icon: Type,
+                  },
+                  {
+                    label: "Logo",
+                    hint: "Upload in the profile above",
+                    href: "#storefront-profile",
+                    icon: ImageIcon,
+                  },
+                  {
+                    label: "Announcement bar",
+                    hint: "A thin banner above the page",
+                    href: "#storefront-profile",
+                    icon: Megaphone,
+                  },
                 ].map(({ label, hint, href, icon: Icon }) => (
                   <li key={label}>
-                    <Link href={href} className="group flex items-center gap-space-3 px-space-3 py-space-3 transition-colors hover:bg-paper">
+                    <Link
+                      href={href}
+                      className="group flex items-center gap-space-3 px-space-3 py-space-3 transition-colors hover:bg-paper"
+                    >
                       <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-brand-50 text-brand-600">
                         <Icon size={17} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-semibold text-ink-900">{label}</span>
+                        <span className="block text-[14px] font-semibold text-ink-900">
+                          {label}
+                        </span>
                         <span className="block truncate text-[12px] text-ink-500">{hint}</span>
                       </span>
-                      <ChevronRight size={16} className="shrink-0 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-ink-900" />
+                      <ChevronRight
+                        size={16}
+                        className="shrink-0 text-ink-400 transition-transform group-hover:translate-x-0.5 group-hover:text-ink-900"
+                      />
                     </Link>
                   </li>
                 ))}
               </ul>
 
-              <p className="mb-space-2 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-400">Your page, top to bottom</p>
+              <p className="mb-space-2 text-[11px] font-bold uppercase tracking-[0.08em] text-ink-400">
+                Your page, top to bottom
+              </p>
               <ul className="space-y-space-2">
                 {(draft?.sections ?? []).map((section, i) => {
                   const Icon = SECTION_ICON[section.key];
@@ -407,15 +507,25 @@ export function DineThemeEditor() {
                         <Icon size={17} />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-semibold text-ink-900">{sectionLabel(section.key)}</span>
-                        <span className="block text-[12px] text-ink-500">{hidden ? "Hidden" : section.key === "menu" ? "Required" : "Visible"}</span>
+                        <span className="block text-[14px] font-semibold text-ink-900">
+                          {sectionLabel(section.key)}
+                        </span>
+                        <span className="block text-[12px] text-ink-500">
+                          {hidden ? "Hidden" : section.key === "menu" ? "Required" : "Visible"}
+                        </span>
                       </span>
                       {section.key === "menu" ? (
-                        <span className="shrink-0 rounded-full bg-paper px-space-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-500">Always on</span>
+                        <span className="shrink-0 rounded-full bg-paper px-space-2 py-0.5 text-[10.5px] font-bold uppercase tracking-wide text-ink-500">
+                          Always on
+                        </span>
                       ) : (
                         <button
                           type="button"
-                          aria-label={section.enabled ? `Hide ${sectionLabel(section.key)}` : `Show ${sectionLabel(section.key)}`}
+                          aria-label={
+                            section.enabled
+                              ? `Hide ${sectionLabel(section.key)}`
+                              : `Show ${sectionLabel(section.key)}`
+                          }
                           title={section.enabled ? "Hide section" : "Show section"}
                           disabled={!canWrite}
                           onClick={() => toggleSection(section.key)}
@@ -443,21 +553,29 @@ export function DineThemeEditor() {
                 {hasUnpublishedChanges && <Badge tone="warning">Unpublished changes</Badge>}
               </div>
               <p className="text-hint mb-space-4">
-                Your real storefront, with the saved draft above overlaid -- shoppers keep seeing the published version
-                until you Publish.
+                Your real storefront, with the saved draft above overlaid -- shoppers keep seeing
+                the published version until you Publish.
               </p>
-              <SitePreview key={draft?.draft_updated_at ?? "initial"} src={previewSrc} title="Storefront preview" />
+              <SitePreview
+                key={draft?.draft_updated_at ?? "initial"}
+                src={previewSrc}
+                title="Storefront preview"
+              />
             </Card>
           </div>
 
           <Card id="photo-gallery" className="scroll-mt-24 p-space-5 lg:col-span-2">
             <h2 className="mb-1 text-[15px] font-bold text-ink-900">Photo gallery</h2>
             <p className="text-hint mb-space-4">
-              Interior, food and ambience shots shown on your restaurant&apos;s page, alongside the logo and cover photo above.
+              Interior, food and ambience shots shown on your restaurant&apos;s page, alongside the
+              logo and cover photo above.
             </p>
             <div className="flex flex-wrap gap-space-3">
               {(photos ?? []).map((photo) => (
-                <div key={photo.id} className="group relative h-24 w-32 overflow-hidden rounded-md border border-line">
+                <div
+                  key={photo.id}
+                  className="group relative h-24 w-32 overflow-hidden rounded-md border border-line"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={photo.image_url} alt="" className="h-full w-full object-cover" />
                   {canWrite && (
@@ -483,12 +601,13 @@ export function DineThemeEditor() {
                     onChange={handlePhotoFile}
                   />
                   <ImagePlus size={20} />
-                  <span className="text-[12px] font-semibold">{uploadingPhoto ? "Uploading…" : "Add photo"}</span>
+                  <span className="text-[12px] font-semibold">
+                    {uploadingPhoto ? "Uploading…" : "Add photo"}
+                  </span>
                 </label>
               )}
             </div>
           </Card>
-
         </div>
       )}
       <ConfirmDialog

@@ -16,11 +16,7 @@ export function ChipSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <div
-      role="radiogroup"
-      aria-label={label}
-      className="flex flex-wrap gap-space-2"
-    >
+    <div role="radiogroup" aria-label={label} className="flex flex-wrap gap-space-2">
       {options.map(([option, text]) => {
         const on = option === value;
         return (

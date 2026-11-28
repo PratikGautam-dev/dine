@@ -70,6 +70,7 @@ export function useBranchComparison(ready: boolean, days: number, channel: Repor
   }, [router, days, channel]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 
@@ -91,7 +92,9 @@ export function useReports(
   const [data, setData] = useState<ReportsSummary | null>(null);
   const [error, setError] = useState<string | null>(null);
   const branchIdRef = useRef(branchId);
-  branchIdRef.current = branchId;
+  useEffect(() => {
+    branchIdRef.current = branchId;
+  });
 
   const load = useCallback(async () => {
     const requestedBranchId = branchId;
@@ -110,6 +113,7 @@ export function useReports(
   }, [router, days, channel, branchId, range]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 

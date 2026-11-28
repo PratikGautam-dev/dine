@@ -62,9 +62,7 @@ function useDomainMutation<T, R>(fn: (arg: T) => Promise<R>) {
 }
 
 export const useConnectDomain = () =>
-  useDomainMutation((host: string) =>
-    erpSend<{ domains: StoreDomain[] }>(BASE, "POST", { host }),
-  );
+  useDomainMutation((host: string) => erpSend<{ domains: StoreDomain[] }>(BASE, "POST", { host }));
 
 export const useCheckDomain = () =>
   useDomainMutation((id: string) =>
@@ -78,6 +76,4 @@ export const useSetPrimaryDomain = () =>
   );
 
 export const useRemoveDomain = () =>
-  useDomainMutation((id: string) =>
-    erpSend<DomainList>(`${BASE}/${id}`, "DELETE"),
-  );
+  useDomainMutation((id: string) => erpSend<DomainList>(`${BASE}/${id}`, "DELETE"));

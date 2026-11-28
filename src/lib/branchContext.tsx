@@ -90,11 +90,12 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   const [multiBranchEnabled, setMultiBranchEnabled] = useState(false);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [staffBranchIds, setStaffBranchIds] = useState<string[]>([]);
-  const [selectedBranchId, setSelectedBranchIdState] = useState<string | null>(null);
+  const [storedBranchId, setSelectedBranchIdState] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mount (the server render has none)
       if (stored) setSelectedBranchIdState(stored);
     } catch {
       // private window / blocked storage -- falls back to "All Branches", same as a fresh viewer
@@ -131,6 +132,7 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (session) load();
   }, [session, load]);
 
@@ -140,13 +142,13 @@ export function BranchProvider({ children }: { children: React.ReactNode }) {
     [branches, isRestricted, staffBranchIds],
   );
 
-  // A restricted caller can't use "All Branches" (null) -- default them straight to their one
-  // accessible branch instead of leaving the switcher in a state the backend will 403 on.
-  useEffect(() => {
-    if (isRestricted && selectedBranchId === null && accessibleBranches.length > 0) {
-      setSelectedBranchId(accessibleBranches[0].id);
-    }
-  }, [isRestricted, selectedBranchId, accessibleBranches, setSelectedBranchId]);
+  // A restricted caller can't use "All Branches" (null) -- default them straight to their first
+  // accessible branch instead of leaving the switcher in a state the backend will 403 on. Derived,
+  // not stored: picking a branch in the switcher stores that choice as before.
+  const selectedBranchId =
+    isRestricted && storedBranchId === null && accessibleBranches.length > 0
+      ? accessibleBranches[0].id
+      : storedBranchId;
 
   const value = useMemo(
     () => ({

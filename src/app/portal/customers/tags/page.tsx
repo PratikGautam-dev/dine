@@ -29,13 +29,9 @@ export default function CustomerTagsPage() {
   const session = useStaffSession();
   const [view, setView] = useState<View>("tags");
   const [tagFilter, setTagFilter] = useState("");
-  const [editing, setEditing] = useState<CustomerTag | null | undefined>(
-    undefined,
-  );
+  const [editing, setEditing] = useState<CustomerTag | null | undefined>(undefined);
   const [version, setVersion] = useState(0);
-  const [creatingRule, setCreatingRule] = useState<false | { tag_id?: string }>(
-    false,
-  );
+  const [creatingRule, setCreatingRule] = useState<false | { tag_id?: string }>(false);
   const summary = useErpQuery<TagSummary>("/api/v1/crm/tags/summary");
   const tags = useErpQuery<CustomerTag[]>("/api/v1/crm/tags");
   const canEdit = hasPermission(session, "tags", "write");
@@ -56,19 +52,14 @@ export default function CustomerTagsPage() {
         description="Create and manage tags to segment customers for campaigns and analysis."
         actions={
           canConfigure && (
-            <Button
-              onClick={() => setEditing(null)}
-              className="shrink-0 whitespace-nowrap"
-            >
+            <Button onClick={() => setEditing(null)} className="shrink-0 whitespace-nowrap">
               <HugeiconsIcon icon={PlusSignIcon} size={16} /> Add tag
             </Button>
           )
         }
       />
       {summary.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {summary.error}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{summary.error}</p>
       )}
       <Tabs tabs={VIEWS} value={view} onChange={setView} />
       {view === "tags" && (

@@ -29,5 +29,7 @@ export function BranchField({
       </Field>
     );
   }
-  return branch ? <p className="mb-space-3 text-[13px] font-medium text-ink-900">Branch: {branch.name}</p> : null;
+  return branch ? (
+    <p className="mb-space-3 text-[13px] font-medium text-ink-900">Branch: {branch.name}</p>
+  ) : null;
 }

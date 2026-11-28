@@ -49,7 +49,10 @@ export function useThemeSettings(ready: boolean) {
     let cancelled = false;
     staffFetch("/api/portal/settings/tenant").then((r) => {
       if (cancelled || !r.ok) return;
-      const b = ((r.data as { branding?: Record<string, unknown> }).branding ?? {}) as Record<string, unknown>;
+      const b = ((r.data as { branding?: Record<string, unknown> }).branding ?? {}) as Record<
+        string,
+        unknown
+      >;
       setRawBranding(b);
       setSaved({
         primary_color: (b.primary_color as string) || null,
@@ -68,15 +71,20 @@ export function useThemeSettings(ready: boolean) {
   async function save(next: Branding): Promise<string | null> {
     setSaving(true);
     const merged: Record<string, unknown> = { ...rawBranding, ...next };
-    for (const k of Object.keys(merged)) if (merged[k] === null || merged[k] === "") delete merged[k];
+    for (const k of Object.keys(merged))
+      if (merged[k] === null || merged[k] === "") delete merged[k];
     const result = await staffFetch("/api/portal/settings/tenant", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ branding: merged }),
     });
     setSaving(false);
-    if (!result.ok) return result.unauthorized ? "Session expired -- please sign in again." : result.error;
-    const b = ((result.data as { branding?: Record<string, unknown> }).branding ?? {}) as Record<string, unknown>;
+    if (!result.ok)
+      return result.unauthorized ? "Session expired -- please sign in again." : result.error;
+    const b = ((result.data as { branding?: Record<string, unknown> }).branding ?? {}) as Record<
+      string,
+      unknown
+    >;
     setRawBranding(b);
     const normalized: Branding = {
       primary_color: (b.primary_color as string) || null,
@@ -95,10 +103,16 @@ export function useThemeSettings(ready: boolean) {
     setUploading(true);
     const body = new FormData();
     body.append("file", file);
-    const result = await staffFetch("/api/portal/settings/storefront/upload-image", { method: "POST", body });
+    const result = await staffFetch("/api/portal/settings/storefront/upload-image", {
+      method: "POST",
+      body,
+    });
     setUploading(false);
     if (!result.ok) {
-      toast.error("Couldn't upload logo", result.unauthorized ? "Session expired — please log in again." : result.error);
+      toast.error(
+        "Couldn't upload logo",
+        result.unauthorized ? "Session expired — please log in again." : result.error,
+      );
       return null;
     }
     return (result.data as { image_url: string }).image_url;

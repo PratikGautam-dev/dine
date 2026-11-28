@@ -8,6 +8,8 @@ export type BranchOption = { id: string; branch_name: string; branch_code: strin
 export function useBranches() {
   const { branches } = useBranchFilter();
   return {
-    data: (branches ?? []).filter((b) => b.is_active).map((b): BranchOption => ({ id: b.id, branch_name: b.name, branch_code: b.id })),
+    data: (branches ?? [])
+      .filter((b) => b.is_active)
+      .map((b): BranchOption => ({ id: b.id, branch_name: b.name, branch_code: b.id })),
   };
 }

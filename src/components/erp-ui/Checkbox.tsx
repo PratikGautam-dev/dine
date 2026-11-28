@@ -7,12 +7,7 @@ type CheckboxRowProps = {
   className?: string;
 };
 
-export function CheckboxRow({
-  checked,
-  onChange,
-  children,
-  className,
-}: CheckboxRowProps) {
+export function CheckboxRow({ checked, onChange, children, className }: CheckboxRowProps) {
   return (
     <label
       className={cn(

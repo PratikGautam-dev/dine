@@ -7,12 +7,7 @@ type CardProps = React.HTMLAttributes<HTMLDivElement> & {
   elevation?: "resting" | "interactive" | "active";
 };
 
-export function Card({
-  elevation = "resting",
-  className,
-  children,
-  ...props
-}: CardProps) {
+export function Card({ elevation = "resting", className, children, ...props }: CardProps) {
   return (
     <div
       className={cn(

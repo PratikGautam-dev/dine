@@ -13,16 +13,18 @@ export type TenantSummary = {
   is_active: boolean;
 };
 
-export type TenantOwner = {
-  id: number;
-  email: string;
-  name: string | null;
+/** The DAAP business behind a restaurant (restaurants come only from DAAP Core; the owner signs in with DAAP). */
+export type TenantDaap = {
+  business_id: string | null;
+  verification: string | null;
+  owner_email: string | null;
+  owner_name: string | null;
 };
 
 /** Mirrors admin/tenants_api.py's _tenant_detail() exactly -- field-for-field,
  * including the "masked, never round-tripped" credential fields and the
  * capability/feature catalogs the detail page renders its checkbox grids
- * from (all_capabilities, default_capabilities_by_type, feature_default_labels). */
+ * from (all_capabilities, default_capabilities, feature_default_labels). */
 export type TenantDetail = {
   id: number;
   name: string;
@@ -35,20 +37,19 @@ export type TenantDetail = {
   data_tier: string;
   external_api_base_url: string;
   external_api_key: string;
-  has_portal_password: boolean;
   is_active: boolean;
-  owners: TenantOwner[];
+  /** null for a restaurant made before DAAP */
+  daap: TenantDaap | null;
   enabled_features: string[];
   feature_default_labels: Record<string, string>;
-  tenant_type: string;
   admin_capabilities: string[];
   all_capabilities: string[];
-  default_capabilities_by_type: Record<string, string[]>;
+  default_capabilities: string[];
   appointment_types: unknown[];
 };
 
 /** Body shape for POST /api/admin/tenants/{id}, matching TenantUpdatePayload.
- * enabled_features/admin_capabilities/tenant_type are "omit the key entirely
+ * enabled_features/admin_capabilities are "omit the key entirely
  * to leave unchanged, send it (even []) to set it" per the backend's
  * model_fields_set distinction -- hence they're optional here, and callers
  * that want to touch them must include the key even when empty. */
@@ -60,12 +61,10 @@ export type TenantUpdatePayload = {
   welcome_message_text?: string;
   reminder_offsets_hours?: string;
   reminder_template_name?: string;
-  portal_password?: string;
   data_tier?: string;
   api_base_url?: string;
   api_key?: string;
   enabled_features?: string[];
-  tenant_type?: string;
   admin_capabilities?: string[];
 };
 
@@ -90,6 +89,7 @@ export function useAdminTenantsList() {
   }, [router]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
   }, [load]);
 
@@ -117,6 +117,7 @@ export function useAdminTenantDetail(tenantId: number) {
   }, [router, tenantId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
   }, [load]);
 
@@ -141,66 +142,7 @@ export function useAdminTenantDetail(tenantId: number) {
     return null;
   }
 
-  /** POSTs the assign-owner call; returns null on success (and refreshes
-   * `tenant` from the response), or the backend's single `error` string on
-   * a 400/404 failure -- wrapped in an array so callers can treat it the
-   * same way updateTenant's `errors: string[]` is treated. */
-  async function assignOwner(email: string): Promise<string[] | null> {
-    const result = await superAdminFetch(`/api/admin/tenants/${tenantId}/assign-owner`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email }),
-    });
-    if (!result.ok) {
-      if (result.unauthorized) {
-        router.push("/admin/login");
-        return null;
-      }
-      return [result.error];
-    }
-    const data = result.data as { tenant?: TenantDetail };
-    if (data.tenant) setTenant(data.tenant);
-    return null;
-  }
-
-  return { tenant, loading, error, reload: load, updateTenant, assignOwner };
-}
-
-/** A Google-signed-in user who never finished onboarding a restaurant --
- * admin/tenants_api.py's list_stalled_signups(). Read-only: the natural next
- * action ("help them onboard") is out of scope for this dashboard. */
-export type StalledSignup = {
-  id: number;
-  email: string;
-  name: string | null;
-  created_at: string;
-};
-
-/** Loads /api/admin/stalled-signups. */
-export function useAdminStalledSignups() {
-  const router = useRouter();
-  const [users, setUsers] = useState<StalledSignup[] | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const load = useCallback(async () => {
-    setLoading(true);
-    const result = await superAdminFetch("/api/admin/stalled-signups");
-    setLoading(false);
-    if (!result.ok) {
-      if (result.unauthorized) router.push("/admin/login");
-      else setError(result.error);
-      return;
-    }
-    setError(null);
-    setUsers((result.data as { users: StalledSignup[] }).users);
-  }, [router]);
-
-  useEffect(() => {
-    load();
-  }, [load]);
-
-  return { users, loading, error, reload: load };
+  return { tenant, loading, error, reload: load, updateTenant };
 }
 
 /** Loads /api/admin/stats/total-bookings -- a single platform-wide lifetime

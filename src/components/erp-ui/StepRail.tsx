@@ -21,10 +21,7 @@ export function StepRail({
   className,
 }: StepRailProps) {
   return (
-    <nav
-      className={cn("flex flex-col gap-space-1", className)}
-      aria-label="Onboarding steps"
-    >
+    <nav className={cn("flex flex-col gap-space-1", className)} aria-label="Onboarding steps">
       {steps.map((step, i) => {
         const isDone = i < maxUnlockedStep;
         const isActive = i === currentStep;
@@ -55,11 +52,7 @@ export function StepRail({
             <span
               className={cn(
                 "font-medium",
-                isActive
-                  ? "text-white"
-                  : isDone
-                    ? "text-ink-900"
-                    : "text-ink-600",
+                isActive ? "text-white" : isDone ? "text-ink-900" : "text-ink-600",
               )}
             >
               {step.title}

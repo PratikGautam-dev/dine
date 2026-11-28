@@ -81,7 +81,12 @@ export default function AdminLoginPage() {
               onChange={(e) => setPassword(e.target.value)}
             />
           </Field>
-          <Button type="submit" disabled={submitting || !email || !password} className="mt-space-2 w-full" size="lg">
+          <Button
+            type="submit"
+            disabled={submitting || !email || !password}
+            className="mt-space-2 w-full"
+            size="lg"
+          >
             {submitting ? "Signing in…" : "Sign in"}
           </Button>
         </form>

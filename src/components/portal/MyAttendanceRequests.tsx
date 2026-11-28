@@ -66,13 +66,7 @@ function AskMissedDay({
           </Button>
           <Button
             onClick={send}
-            disabled={
-              sending ||
-              !day ||
-              !checkIn ||
-              !checkOut ||
-              reason.trim().length < 5
-            }
+            disabled={sending || !day || !checkIn || !checkOut || reason.trim().length < 5}
           >
             {sending ? "Sending…" : "Send request"}
           </Button>
@@ -139,12 +133,8 @@ export function MyAttendanceRequests({ enabled }: { enabled: boolean }) {
     <Card className="mb-space-4 min-w-0 p-space-3 md:p-space-4">
       <div className="flex flex-wrap items-center justify-between gap-space-2">
         <div className="min-w-0">
-          <h3 className="text-[15px] font-bold text-ink-900">
-            Requests to your manager
-          </h3>
-          <p className="text-hint">
-            Forgot to clock in on a day you worked? Ask for it here.
-          </p>
+          <h3 className="text-[15px] font-bold text-ink-900">Requests to your manager</h3>
+          <p className="text-hint">Forgot to clock in on a day you worked? Ask for it here.</p>
         </div>
         <PermissionGate page="check_in_out" action="write">
           <Button variant="secondary" onClick={() => setAsking(true)}>
@@ -177,16 +167,12 @@ export function MyAttendanceRequests({ enabled }: { enabled: boolean }) {
                   </p>
                 )}
               </div>
-              <Badge tone={STATUS[q.status].tone}>
-                {STATUS[q.status].label}
-              </Badge>
+              <Badge tone={STATUS[q.status].tone}>{STATUS[q.status].label}</Badge>
             </li>
           ))}
         </ul>
       )}
-      {asking && (
-        <AskMissedDay onClose={() => setAsking(false)} onSend={askPastDay} />
-      )}
+      {asking && <AskMissedDay onClose={() => setAsking(false)} onSend={askPastDay} />}
     </Card>
   );
 }

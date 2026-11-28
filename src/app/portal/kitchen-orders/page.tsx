@@ -12,7 +12,6 @@ import {
   Settings2,
   ShoppingBag,
   Timer,
-  X,
 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { PageHeader } from "@/components/ui/PageHeader";

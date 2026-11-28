@@ -80,11 +80,15 @@ export function useLiveOperations(ready: boolean, branchId: string | null = null
   const [error, setError] = useState<string | null>(null);
   const [actingId, setActingId] = useState<string | null>(null);
   const routerRef = useRef(router);
-  routerRef.current = router;
+  useEffect(() => {
+    routerRef.current = router;
+  });
   // Guards against an unfiltered "All Branches" fetch (slower -- more rows to aggregate)
   // resolving AFTER a newer, faster filtered one and clobbering its correct data.
   const branchIdRef = useRef(branchId);
-  branchIdRef.current = branchId;
+  useEffect(() => {
+    branchIdRef.current = branchId;
+  });
 
   const load = useCallback(async () => {
     const requestedBranchId = branchId;
@@ -101,6 +105,7 @@ export function useLiveOperations(ready: boolean, branchId: string | null = null
 
   useEffect(() => {
     if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(interval);

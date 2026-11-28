@@ -1,14 +1,6 @@
 "use client";
 
-import {
-  CalendarClock,
-  Copy,
-  LocateFixed,
-  MapPin,
-  Pencil,
-  Trash2,
-  Wifi,
-} from "lucide-react";
+import { CalendarClock, Copy, LocateFixed, MapPin, Pencil, Trash2, Wifi } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "@/components/erp-ui/Badge";
 import { Button } from "@/components/erp-ui/Button";
@@ -81,11 +73,7 @@ function WeekdayPicker({
   disabled?: boolean;
 }) {
   return (
-    <div
-      className="flex flex-wrap gap-space-1"
-      role="group"
-      aria-label="Weekly off"
-    >
+    <div className="flex flex-wrap gap-space-1" role="group" aria-label="Weekly off">
       {WEEKDAY_NUMBERS.map((d) => {
         const on = value.includes(d.n);
         return (
@@ -94,9 +82,7 @@ function WeekdayPicker({
             type="button"
             disabled={disabled}
             aria-pressed={on}
-            onClick={() =>
-              onChange(on ? value.filter((x) => x !== d.n) : [...value, d.n])
-            }
+            onClick={() => onChange(on ? value.filter((x) => x !== d.n) : [...value, d.n])}
             className={cn(
               "touch-target rounded-md border px-space-3 py-space-1 text-[13px] font-semibold transition-colors",
               on
@@ -127,12 +113,8 @@ function BusinessRules({
   const [shiftEnd, setShiftEnd] = useState(initial.shift_end ?? "");
   const [weeklyOff, setWeeklyOff] = useState<number[]>(initial.weekly_off);
   const [grace, setGrace] = useState(String(initial.late_grace_minutes));
-  const [early, setEarly] = useState(
-    initial.early_clock_in_minutes?.toString() ?? "",
-  );
-  const [autoClose, setAutoClose] = useState(
-    initial.auto_close_after_minutes?.toString() ?? "",
-  );
+  const [early, setEarly] = useState(initial.early_clock_in_minutes?.toString() ?? "");
+  const [autoClose, setAutoClose] = useState(initial.auto_close_after_minutes?.toString() ?? "");
   const [deviceLock, setDeviceLock] = useState(initial.device_lock);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -155,19 +137,12 @@ function BusinessRules({
   }
 
   return (
-    <form
-      onSubmit={submit}
-      aria-label="Business attendance rules"
-      className="max-w-2xl"
-    >
+    <form onSubmit={submit} aria-label="Business attendance rules" className="max-w-2xl">
       <Card className="mb-space-4 p-space-5">
-        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
-          Working hours
-        </h2>
+        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Working hours</h2>
         <p className="mb-space-4 text-[13px] text-ink-600">
-          The default for everyone. A branch can have its own hours (Branches
-          tab), and a person their own (Settings &gt; Users). A shift that ends
-          before it starts runs past midnight.
+          The default for everyone. A branch can have its own hours (Branches tab), and a person
+          their own (Settings &gt; Users). A shift that ends before it starts runs past midnight.
         </p>
         <div className="grid grid-cols-2 gap-space-3">
           <Field label="Shift starts" htmlFor="ar-start">
@@ -189,22 +164,13 @@ function BusinessRules({
             />
           </Field>
         </div>
-        <Field
-          label="Weekly off"
-          hint="These days are never counted as absent."
-        >
-          <WeekdayPicker
-            value={weeklyOff}
-            onChange={setWeeklyOff}
-            disabled={!canEdit}
-          />
+        <Field label="Weekly off" hint="These days are never counted as absent.">
+          <WeekdayPicker value={weeklyOff} onChange={setWeeklyOff} disabled={!canEdit} />
         </Field>
       </Card>
 
       <Card className="mb-space-4 p-space-5">
-        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
-          Lateness and clock-out
-        </h2>
+        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Lateness and clock-out</h2>
         <div className="grid grid-cols-1 gap-space-3 md:grid-cols-3">
           <Field
             label="Late after (minutes)"
@@ -249,9 +215,7 @@ function BusinessRules({
       </Card>
 
       <Card className="mb-space-4 p-space-5">
-        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-          Devices
-        </h2>
+        <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Devices</h2>
         <div className={canEdit ? undefined : "pointer-events-none opacity-60"}>
           <SwitchRow
             label="Lock attendance to one device per person"
@@ -266,10 +230,7 @@ function BusinessRules({
         </div>
       </Card>
       {error && (
-        <p
-          role="alert"
-          className="mb-space-3 text-[13px] font-medium text-error"
-        >
+        <p role="alert" className="mb-space-3 text-[13px] font-medium text-error">
           {error}
         </p>
       )}
@@ -298,8 +259,7 @@ function LeaveAllowance() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     const value = Number(draft);
-    if (!Number.isInteger(value) || value < 0)
-      return setError("Enter a whole number of days.");
+    if (!Number.isInteger(value) || value < 0) return setError("Enter a whole number of days.");
     setSaving(true);
     const problem = await save(value);
     setSaving(false);
@@ -308,27 +268,16 @@ function LeaveAllowance() {
   }
 
   return (
-    <form
-      onSubmit={submit}
-      aria-label="Yearly leave allowance"
-      className="max-w-2xl"
-    >
+    <form onSubmit={submit} aria-label="Yearly leave allowance" className="max-w-2xl">
       <Card className="mb-space-4 p-space-5">
-        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">
-          Yearly leave allowance
-        </h2>
+        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Yearly leave allowance</h2>
         <p className="mb-space-3 text-[13px] text-ink-600">
-          Everyone gets{" "}
-          <strong data-testid="allowance-current">{allowance ?? "—"}</strong>{" "}
-          days a year (unpaid leave doesn&apos;t count against it).
+          Everyone gets <strong data-testid="allowance-current">{allowance ?? "—"}</strong> days a
+          year (unpaid leave doesn&apos;t count against it).
         </p>
         {canEdit ? (
           <div className="flex flex-wrap items-end gap-space-3">
-            <Field
-              label="New allowance (days)"
-              htmlFor="allowance"
-              error={error ?? undefined}
-            >
+            <Field label="New allowance (days)" htmlFor="allowance" error={error ?? undefined}>
               <Input
                 id="allowance"
                 inputMode="numeric"
@@ -359,11 +308,9 @@ function LeaveAllowance() {
 // ============================================================================================ branches
 const CAPTURE_ACCURACY_M = 50; // the server's limit for a reading taken at the shop
 const MAX_RADIUS_M = 500;
-const usesGeo = (m: VerifyMode) =>
-  m === "location" || m === "either" || m === "both";
+const usesGeo = (m: VerifyMode) => m === "location" || m === "either" || m === "both";
 const exactLocation = (r: BranchRule) =>
-  r.latitude !== null &&
-  (r.location_source === "device" || r.location_source === "manual");
+  r.latitude !== null && (r.location_source === "device" || r.location_source === "manual");
 
 /** Where a branch's position came from, in a few words. */
 function locationLabel(r: BranchRule): string {
@@ -430,9 +377,7 @@ function ShopLocationSection({
     <div className="mb-space-4 rounded-md border border-line p-space-3">
       <div className="flex flex-wrap items-start justify-between gap-space-2">
         <div className="min-w-0">
-          <p className="text-[13.5px] font-semibold text-ink-900">
-            Shop location
-          </p>
+          <p className="text-[13.5px] font-semibold text-ink-900">Shop location</p>
           <p
             className={cn(
               "text-[13px]",
@@ -467,8 +412,8 @@ function ShopLocationSection({
       </div>
       {!pending && !exactLocation(rule) && (
         <p className="mt-space-1 text-hint">
-          A pincode&apos;s centre can be kilometres from the shop, so location
-          checks need the exact spot.
+          A pincode&apos;s centre can be kilometres from the shop, so location checks need the exact
+          spot.
         </p>
       )}
       <div className="mt-space-3 flex flex-wrap gap-space-2">
@@ -538,9 +483,7 @@ function SwitchRow({
   return (
     <div className="mb-space-3 flex items-start justify-between gap-space-3">
       <span className="min-w-0">
-        <span className="block text-[13.5px] font-semibold text-ink-900">
-          {label}
-        </span>
+        <span className="block text-[13.5px] font-semibold text-ink-900">{label}</span>
         <span className="text-hint block">{hint}</span>
       </span>
       <Switch checked={checked} onChange={onChange} aria-label={label} />
@@ -576,10 +519,8 @@ function BranchEditor({
   const [saving, setSaving] = useState(false);
   const usesLocation = usesGeo(mode);
   // location checks need the exact spot; one already switched on stays selectable so saving other changes still works
-  const geoAllowed =
-    location !== null || exactLocation(rule) || usesGeo(rule.verify_mode);
-  const usesNetwork =
-    mode === "network" || mode === "either" || mode === "both";
+  const geoAllowed = location !== null || exactLocation(rule) || usesGeo(rule.verify_mode);
+  const usesNetwork = mode === "network" || mode === "either" || mode === "both";
   const ipList = ips
     .split(/[\n,]/)
     .map((s) => s.trim())
@@ -646,11 +587,7 @@ function BranchEditor({
       />
       <Field
         label="Clock-in check"
-        hint={
-          geoAllowed
-            ? undefined
-            : "Set the shop location above to use a location check."
-        }
+        hint={geoAllowed ? undefined : "Set the shop location above to use a location check."}
       >
         <div className="space-y-space-2">
           {MODES.map((m) => {
@@ -661,9 +598,7 @@ function BranchEditor({
                 className={cn(
                   "flex gap-space-2 rounded-md border p-space-2",
                   blocked ? "cursor-not-allowed opacity-50" : "cursor-pointer",
-                  mode === m.value
-                    ? "border-brand-600 bg-brand-50"
-                    : "border-line",
+                  mode === m.value ? "border-brand-600 bg-brand-50" : "border-line",
                 )}
               >
                 <input
@@ -674,9 +609,7 @@ function BranchEditor({
                   onChange={() => setMode(m.value)}
                 />
                 <span>
-                  <span className="block text-[13.5px] font-semibold text-ink-900">
-                    {m.label}
-                  </span>
+                  <span className="block text-[13.5px] font-semibold text-ink-900">{m.label}</span>
                   <span className="text-hint">{m.hint}</span>
                 </span>
               </label>
@@ -708,21 +641,12 @@ function BranchEditor({
           htmlFor="br-ips"
           hint="One per line: an address like 49.36.12.7 or a range like 49.36.0.0/16. Browsers can't read the Wi-Fi's name, only the internet address it uses, so add it while on the shop's Wi-Fi (not mobile data). Home broadband addresses can change when the router restarts; if staff suddenly can't clock in, add the new one."
         >
-          <Textarea
-            id="br-ips"
-            rows={3}
-            value={ips}
-            onChange={(e) => setIps(e.target.value)}
-          />
+          <Textarea id="br-ips" rows={3} value={ips} onChange={(e) => setIps(e.target.value)} />
           {detectedIp && !ipList.includes(detectedIp) && (
             <Button
               variant="secondary"
               className="mt-space-2"
-              onClick={() =>
-                setIps((v) =>
-                  v.trim() ? `${v.trim()}\n${detectedIp}` : detectedIp,
-                )
-              }
+              onClick={() => setIps((v) => (v.trim() ? `${v.trim()}\n${detectedIp}` : detectedIp))}
             >
               <Wifi size={14} /> Add this network ({detectedIp})
             </Button>
@@ -750,12 +674,7 @@ function BranchEditor({
             />
           </Field>
           <Field label="Ends" htmlFor="br-end">
-            <Input
-              id="br-end"
-              type="time"
-              value={end}
-              onChange={(e) => setEnd(e.target.value)}
-            />
+            <Input id="br-end" type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
           </Field>
         </div>
       )}
@@ -770,15 +689,12 @@ function BranchEditor({
         onChange={() => setOwnOff((v) => !v)}
       />
       <p className="text-hint mb-space-3">
-        Hours set for a person (Team &amp; Access) come before the
-        branch&apos;s, and the branch&apos;s before the business&apos;s.
+        Hours set for a person (Team &amp; Access) come before the branch&apos;s, and the
+        branch&apos;s before the business&apos;s.
       </p>
       {ownOff && <WeekdayPicker value={off} onChange={setOff} />}
       {error && (
-        <p
-          role="alert"
-          className="mt-space-3 text-[13px] font-medium text-error"
-        >
+        <p role="alert" className="mt-space-3 text-[13px] font-medium text-error">
           {error}
         </p>
       )}
@@ -798,22 +714,16 @@ function Branches({
   defaults: AttendanceDefaults;
   detectedIp: string | null;
   canEdit: boolean;
-  onSave: (
-    branchId: string,
-    patch: Partial<BranchRule>,
-  ) => Promise<string | null>;
-  onSaveLocation: (
-    branchId: string,
-    location: ShopLocation,
-  ) => Promise<string | null>;
+  onSave: (branchId: string, patch: Partial<BranchRule>) => Promise<string | null>;
+  onSaveLocation: (branchId: string, location: ShopLocation) => Promise<string | null>;
 }) {
   const [editing, setEditing] = useState<BranchRule | null>(null);
   return (
     <>
       <p className="mb-space-3 max-w-2xl text-[13px] text-ink-600">
-        Each branch decides how its clock-ins are checked. Staff clock in at
-        whichever of their branches they&apos;re at. Location can be faked by a
-        determined person; Wi-Fi is harder -- use both where it matters.
+        Each branch decides how its clock-ins are checked. Staff clock in at whichever of their
+        branches they&apos;re at. Location can be faked by a determined person; Wi-Fi is harder --
+        use both where it matters.
       </p>
       <Card className="no-scrollbar min-w-0 max-w-full overflow-x-auto p-space-2">
         <table className="w-full text-left text-[13px] max-md:min-w-[640px]">
@@ -827,10 +737,7 @@ function Branches({
           </thead>
           <tbody>
             {rules.map((b) => (
-              <tr
-                key={b.branch_id}
-                className="border-b border-line last:border-0"
-              >
+              <tr key={b.branch_id} className="border-b border-line last:border-0">
                 <td className="px-space-3 py-space-2">
                   <p className="font-semibold text-ink-900">{b.branch_name}</p>
                   <p
@@ -846,18 +753,12 @@ function Branches({
                   <Badge tone={b.verify_mode === "off" ? "neutral" : "success"}>
                     {MODES.find((m) => m.value === b.verify_mode)?.label}
                   </Badge>
-                  {b.verify_mode !== "off" &&
-                    b.radius_meters &&
-                    b.verify_mode !== "network" && (
-                      <span className="ml-1 text-hint">
-                        {b.radius_meters} m
-                      </span>
-                    )}
+                  {b.verify_mode !== "off" && b.radius_meters && b.verify_mode !== "network" && (
+                    <span className="ml-1 text-hint">{b.radius_meters} m</span>
+                  )}
                 </td>
                 <td className="px-space-3 py-space-2">
-                  {b.shift_start
-                    ? `${b.shift_start}–${b.shift_end}`
-                    : "Business default"}
+                  {b.shift_start ? `${b.shift_start}–${b.shift_end}` : "Business default"}
                 </td>
                 <td className="px-space-3 py-space-2 text-right">
                   {canEdit && (
@@ -907,8 +808,7 @@ function HolidayDialog({
   const [date, setDate] = useState(initial?.date ?? "");
   const [name, setName] = useState(initial?.name ?? "");
   const [branch, setBranch] = useState(
-    initial?.branch_id ??
-      (canEditBusiness ? "" : (branches[0]?.branch_id ?? "")),
+    initial?.branch_id ?? (canEditBusiness ? "" : (branches[0]?.branch_id ?? "")),
   );
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -942,20 +842,10 @@ function HolidayDialog({
       }
     >
       <Field label="Date" htmlFor="hd-date" required>
-        <Input
-          id="hd-date"
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-        />
+        <Input id="hd-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
       <Field label="Name" htmlFor="hd-name" required>
-        <Input
-          id="hd-name"
-          maxLength={80}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
+        <Input id="hd-name" maxLength={80} value={name} onChange={(e) => setName(e.target.value)} />
       </Field>
       {!initial && (
         <Field label="Applies to">
@@ -1027,9 +917,7 @@ function Holidays({
         {!holidays ? (
           <SkeletonLines rows={3} />
         ) : holidays.length === 0 ? (
-          <p className="p-space-4 text-[13px] text-ink-400">
-            No holidays in {year} yet.
-          </p>
+          <p className="p-space-4 text-[13px] text-ink-400">No holidays in {year} yet.</p>
         ) : (
           <ul className="divide-y divide-line">
             {holidays.map((h) => (
@@ -1038,9 +926,7 @@ function Holidays({
                 className="flex flex-wrap items-center justify-between gap-space-2 px-space-3 py-space-2"
               >
                 <div className="min-w-0">
-                  <p className="text-[13.5px] font-semibold text-ink-900">
-                    {h.name}
-                  </p>
+                  <p className="text-[13.5px] font-semibold text-ink-900">{h.name}</p>
                   <p className="text-hint">
                     {fmtDate(h.date)} · {h.branch_name ?? "Every branch"}
                   </p>

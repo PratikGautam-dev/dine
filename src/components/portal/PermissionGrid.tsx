@@ -42,7 +42,9 @@ export function PermissionGrid({
 
   function setColumnForAll(group: string, column: Column, on: boolean) {
     const next = { ...value };
-    rows.filter((r) => r.group === group).forEach((r) => (next[r.key] = tick(cell(r.key), column, on)));
+    rows
+      .filter((r) => r.group === group)
+      .forEach((r) => (next[r.key] = tick(cell(r.key), column, on)));
     onChange(next);
   }
 
@@ -72,7 +74,9 @@ export function PermissionGrid({
             return (
               <tbody key={g}>
                 <tr>
-                  <td className="bg-paper px-space-2 py-space-1 text-[11px] font-bold tracking-wide text-ink-600 uppercase">{g}</td>
+                  <td className="bg-paper px-space-2 py-space-1 text-[11px] font-bold tracking-wide text-ink-600 uppercase">
+                    {g}
+                  </td>
                   {COLUMNS.map((c) => {
                     const all = inGroup.every((r) => cell(r.key)[c.key]);
                     const some = inGroup.some((r) => cell(r.key)[c.key]);
@@ -106,7 +110,12 @@ export function PermissionGrid({
                           aria-label={`${p.label}: ${c.label}`}
                           checked={cell(p.key)[c.key]}
                           disabled={readOnly}
-                          onChange={(e) => onChange({ ...value, [p.key]: tick(cell(p.key), c.key, e.target.checked) })}
+                          onChange={(e) =>
+                            onChange({
+                              ...value,
+                              [p.key]: tick(cell(p.key), c.key, e.target.checked),
+                            })
+                          }
                           className="h-4 w-4 accent-brand-600 disabled:cursor-not-allowed disabled:opacity-40"
                         />
                       </td>

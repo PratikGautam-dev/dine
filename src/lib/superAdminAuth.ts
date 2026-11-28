@@ -89,7 +89,11 @@ export async function superAdminFetch(path: string, init?: RequestInit): Promise
       clearSuperAdminSession();
       return { ok: false, unauthorized: true };
     }
-    return { ok: false, unauthorized: false, error: err.response.data?.error || "Something went wrong." };
+    return {
+      ok: false,
+      unauthorized: false,
+      error: err.response.data?.error || "Something went wrong.",
+    };
   }
 }
 
