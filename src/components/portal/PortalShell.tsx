@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
+import { DaapGate } from "@/components/portal/DaapGate";
 import { GlobalFilter, type GlobalFilterOptions } from "@/components/portal/GlobalFilter";
 import { NewOrderAlert } from "@/components/portal/NewOrderAlert";
 import { NotificationBell } from "@/components/portal/NotificationBell";
@@ -134,11 +135,13 @@ export function PortalShell({ restaurant, active, children }: Props) {
                 <SettingsNav />
               </div>
               <div className="min-w-0 flex-1 lg:min-h-0 lg:overflow-y-auto lg:p-space-6">
-                <div className="mx-auto max-w-[1040px]">{children}</div>
+                <div className="mx-auto max-w-[1040px]">
+                  <DaapGate>{children}</DaapGate>
+                </div>
               </div>
             </div>
           ) : (
-            children
+            <DaapGate>{children}</DaapGate>
           )}
         </main>
       </div>

@@ -2,9 +2,13 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ScrollText, Store, Tag, UserX } from "lucide-react";
+import { ScrollText, Store, Tag } from "lucide-react";
 import { cn } from "@/lib/cn";
-import { clearSuperAdminSession, getSuperAdminAccessToken, useSuperAdminSession } from "@/lib/superAdminAuth";
+import {
+  clearSuperAdminSession,
+  getSuperAdminAccessToken,
+  useSuperAdminSession,
+} from "@/lib/superAdminAuth";
 
 // Own minimal shell, distinct from PortalShell (that's the restaurant-staff /portal/* shell) --
 // a thin sidebar growing from just "Platform Coupons" into "Restaurants" (tenant management) now,
@@ -12,7 +16,6 @@ import { clearSuperAdminSession, getSuperAdminAccessToken, useSuperAdminSession 
 const NAV_ITEMS = [
   { href: "/admin/restaurants", label: "Restaurants", icon: Store },
   { href: "/admin/platform-offers", label: "Platform Coupons", icon: Tag },
-  { href: "/admin/signups", label: "Stalled Signups", icon: UserX },
   { href: "/admin/audit-log", label: "Audit Log", icon: ScrollText },
 ];
 
@@ -41,7 +44,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   return (
     <div className="flex min-h-screen bg-paper">
       <aside className="flex w-[220px] flex-col border-r border-line bg-card px-space-4 py-space-5">
-        <p className="mb-space-5 text-[13px] font-bold uppercase tracking-wide text-ink-400">Super Admin</p>
+        <p className="mb-space-5 text-[13px] font-bold uppercase tracking-wide text-ink-400">
+          Super Admin
+        </p>
         <nav className="flex-1 space-y-1">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -52,7 +57,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 href={item.href}
                 className={cn(
                   "flex items-center gap-space-2 rounded-md px-space-3 py-space-2 text-[13.5px] font-medium",
-                  active ? "bg-brand-50 text-brand-700" : "text-ink-600 hover:bg-black/4 hover:text-ink-900",
+                  active
+                    ? "bg-brand-50 text-brand-700"
+                    : "text-ink-600 hover:bg-black/4 hover:text-ink-900",
                 )}
               >
                 <Icon size={16} />

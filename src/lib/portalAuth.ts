@@ -6,9 +6,8 @@
 // delegate to the staff session (staffAuth.ts) underneath -- same
 // "preserve the interface, change what's underneath" discipline the
 // backend's db/repositories/*.py already applies throughout this rework.
-// This is what makes staff login (and Google sign-in, since
-// auth/google_oauth.py's callback issues a staff session too) actually
-// take effect on dashboard/appointments/messages/settings/doctors/etc.,
+// This is what makes staff login (and Sign in with DAAP, which issues a
+// staff session too) actually take effect on dashboard/appointments/messages/settings/doctors/etc.,
 // which all guard themselves via usePortalGuard() -> getPortalToken() ->
 // here.
 import {
@@ -25,7 +24,6 @@ export type PortalRestaurant = {
   display_id?: string | null;
   data_tier: string;
   enabled_features: string[];
-  tenant_type: string;
   admin_capabilities: string[];
 };
 

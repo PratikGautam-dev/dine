@@ -5,10 +5,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
-import { GoogleIcon } from "@/components/ui/GoogleIcon";
 import { Input } from "@/components/ui/Input";
 import { saveStaffSession } from "@/lib/staffAuth";
-import { googleLoginUrl } from "@/lib/userAuth";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8000";
 
@@ -18,12 +16,15 @@ export default function PortalLoginPage() {
   const [staffEmail, setStaffEmail] = useState("");
   const [staffPassword, setStaffPassword] = useState("");
   const [staffError, setStaffError] = useState<string | null>(null);
+  // the restaurant's owner signs in with their DAAP account, never a password here (erp-dine-backend daap/access.py)
+  const [useDaap, setUseDaap] = useState(false);
   const [staffSubmitting, setStaffSubmitting] = useState(false);
 
   async function handleStaffSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStaffSubmitting(true);
     setStaffError(null);
+    setUseDaap(false);
     try {
       const res = await fetch(`${API_BASE_URL}/api/portal/staff/login`, {
         method: "POST",
@@ -33,6 +34,7 @@ export default function PortalLoginPage() {
       const data = await res.json();
       if (!res.ok) {
         setStaffError(data.error || "Incorrect email or password.");
+        setUseDaap(data.reason === "use_daap");
         return;
       }
       saveStaffSession(data.access_token, data.refresh_token, {
@@ -160,12 +162,12 @@ export default function PortalLoginPage() {
             <h1 className="text-display mb-space-1 !text-[26px]">Staff sign in</h1>
             <p className="text-body mb-space-5">Use your individual DineConnect login.</p>
 
+            {/* the restaurant's owner signs in with their DAAP account (/auth), never a password here */}
             <a
-              href={googleLoginUrl()}
+              href="/auth"
               className="inline-flex h-12 w-full items-center justify-center gap-space-3 rounded-md border border-line bg-card text-[15px] font-semibold text-ink-900 shadow-[var(--shadow-sm)] transition-colors duration-150 hover:border-brand-300 hover:bg-brand-50 active:bg-brand-100"
             >
-              <GoogleIcon size={20} />
-              Continue with Google
+              Restaurant owner? Sign in with DAAP
             </a>
 
             <div className="my-space-5 flex items-center gap-space-3 text-[12px] font-medium text-ink-400">
@@ -203,6 +205,16 @@ export default function PortalLoginPage() {
               >
                 {staffSubmitting ? "Signing in…" : "Sign in"}
               </Button>
+              {useDaap && (
+                <Button
+                  href={`${API_BASE_URL}/api/auth/daap/login`}
+                  variant="secondary"
+                  className="w-full"
+                  size="lg"
+                >
+                  Sign in with DAAP
+                </Button>
+              )}
             </form>
 
             <p className="mt-space-5 text-center text-[12.5px] text-ink-400">
