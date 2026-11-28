@@ -38,7 +38,10 @@ export type StorefrontDraft = {
 };
 
 export type DraftFields = Partial<
-  Pick<StorefrontDraft, "tagline" | "cuisine_tags" | "logo_url" | "cover_image_url" | "announcement_text">
+  Pick<
+    StorefrontDraft,
+    "tagline" | "cuisine_tags" | "logo_url" | "cover_image_url" | "announcement_text"
+  >
 >;
 
 /** Loads/saves the storefront's draft/publish appearance fields, plus a one-time preview token
@@ -64,6 +67,7 @@ export function useStorefrontDraft(ready: boolean) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 
@@ -95,7 +99,10 @@ export function useStorefrontDraft(ready: boolean) {
       body: JSON.stringify({ sections }),
     });
     if (!result.ok) {
-      toast.error("Couldn't save section order", result.unauthorized ? "Session expired -- please sign in again." : result.error);
+      toast.error(
+        "Couldn't save section order",
+        result.unauthorized ? "Session expired -- please sign in again." : result.error,
+      );
       await load();
       return;
     }
@@ -107,7 +114,10 @@ export function useStorefrontDraft(ready: boolean) {
     const result = await staffFetch("/api/portal/settings/storefront/publish", { method: "POST" });
     setPublishing(false);
     if (!result.ok) {
-      toast.error("Couldn't publish", result.unauthorized ? "Session expired -- please sign in again." : result.error);
+      toast.error(
+        "Couldn't publish",
+        result.unauthorized ? "Session expired -- please sign in again." : result.error,
+      );
       return false;
     }
     toast.success("Published", "Your storefront is now live with these changes.");
@@ -117,10 +127,15 @@ export function useStorefrontDraft(ready: boolean) {
 
   async function discardDraft(): Promise<boolean> {
     setDiscarding(true);
-    const result = await staffFetch("/api/portal/settings/storefront/discard-draft", { method: "POST" });
+    const result = await staffFetch("/api/portal/settings/storefront/discard-draft", {
+      method: "POST",
+    });
     setDiscarding(false);
     if (!result.ok) {
-      toast.error("Couldn't discard draft", result.unauthorized ? "Session expired -- please sign in again." : result.error);
+      toast.error(
+        "Couldn't discard draft",
+        result.unauthorized ? "Session expired -- please sign in again." : result.error,
+      );
       return false;
     }
     setDraft(result.data as StorefrontDraft);
@@ -131,7 +146,9 @@ export function useStorefrontDraft(ready: boolean) {
   /** Fetched once, lazily -- a simple "get it when the preview panel is first shown" is fine
    * given the token's 20-minute lifetime; refreshed only if a preview load fails/expires. */
   const fetchPreviewToken = useCallback(async () => {
-    const result = await staffFetch("/api/portal/settings/storefront/preview-token", { method: "POST" });
+    const result = await staffFetch("/api/portal/settings/storefront/preview-token", {
+      method: "POST",
+    });
     if (result.ok) {
       setPreviewToken((result.data as { token: string }).token);
     }

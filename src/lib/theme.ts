@@ -26,7 +26,12 @@ const SCALE = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900] as const;
 
 export function normalizeHex(input: string): string | null {
   const v = input.trim().replace(/^#/, "");
-  if (/^[0-9a-fA-F]{3}$/.test(v)) return `#${v.split("").map((c) => c + c).join("").toLowerCase()}`;
+  if (/^[0-9a-fA-F]{3}$/.test(v))
+    return `#${v
+      .split("")
+      .map((c) => c + c)
+      .join("")
+      .toLowerCase()}`;
   if (/^[0-9a-fA-F]{6}$/.test(v)) return `#${v.toLowerCase()}`;
   return null;
 }
@@ -37,7 +42,13 @@ function toRgb(hex: string): [number, number, number] {
 }
 
 function toHex([r, g, b]: [number, number, number]): string {
-  return `#${[r, g, b].map((x) => Math.round(Math.max(0, Math.min(255, x))).toString(16).padStart(2, "0")).join("")}`;
+  return `#${[r, g, b]
+    .map((x) =>
+      Math.round(Math.max(0, Math.min(255, x)))
+        .toString(16)
+        .padStart(2, "0"),
+    )
+    .join("")}`;
 }
 
 function mix(hex: string, target: [number, number, number], amount: number): string {

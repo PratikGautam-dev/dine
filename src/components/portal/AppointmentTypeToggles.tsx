@@ -10,7 +10,13 @@ import { useAppointmentTypes } from "@/hooks/useAppointmentTypes";
  * whitelist -- e.g. turning Daycare on after the platform admin has allowed
  * it). A type the platform admin hasn't allowed shows greyed out with no
  * switch at all, rather than one that would just 400 on click. */
-export function AppointmentTypeToggles({ canManage, branchId }: { canManage: boolean; branchId: string | null }) {
+export function AppointmentTypeToggles({
+  canManage,
+  branchId,
+}: {
+  canManage: boolean;
+  branchId: string | null;
+}) {
   const { types, error, pendingId, toggleActive } = useAppointmentTypes(branchId);
 
   if (types === null) return null;
@@ -34,7 +40,9 @@ export function AppointmentTypeToggles({ canManage, branchId }: { canManage: boo
             >
               {type.label}
               {type.is_allowed && type.own === false && (
-                <span className="ml-space-2 text-[11.5px] font-normal text-ink-400">Same as restaurant default</span>
+                <span className="ml-space-2 text-[11.5px] font-normal text-ink-400">
+                  Same as restaurant default
+                </span>
               )}
             </p>
             {!type.is_allowed ? (

@@ -37,10 +37,9 @@ export function WhatsAppWalkthrough({
       },
       body: (
         <>
-          Go to <strong>business.facebook.com</strong> and choose{" "}
-          <strong>Create account</strong>. Enter your business name, your name
-          and your work email, then click the link Meta emails you. Already have
-          an account? Skip to the next step.
+          Go to <strong>business.facebook.com</strong> and choose <strong>Create account</strong>.
+          Enter your business name, your name and your work email, then click the link Meta emails
+          you. Already have an account? Skip to the next step.
         </>
       ),
     },
@@ -54,13 +53,12 @@ export function WhatsAppWalkthrough({
       },
       body: (
         <>
-          Log in at <strong>developers.facebook.com</strong> with the same
-          account. Choose <strong>My Apps → Create App</strong>, pick the type{" "}
-          <strong>Business</strong>, give it a name and email. Then under{" "}
-          <strong>Add Products to Your App</strong> find{" "}
+          Log in at <strong>developers.facebook.com</strong> with the same account. Choose{" "}
+          <strong>My Apps → Create App</strong>, pick the type <strong>Business</strong>, give it a
+          name and email. Then under <strong>Add Products to Your App</strong> find{" "}
           <strong>WhatsApp</strong> and click <strong>Set up</strong>. The{" "}
-          <strong>WhatsApp → API Setup</strong> page it opens is where you will
-          come back for your IDs.
+          <strong>WhatsApp → API Setup</strong> page it opens is where you will come back for your
+          IDs.
         </>
       ),
     },
@@ -75,12 +73,10 @@ export function WhatsAppWalkthrough({
       body: (
         <>
           In the app go to <strong>WhatsApp → Production setup</strong>. Start{" "}
-          <strong>business verification</strong> (Meta reviews it, which can
-          take hours to days),{" "}
-          <strong>register your WhatsApp phone number</strong> with the code
-          Meta sends, and add a <strong>payment method</strong> so you can send
-          business-initiated messages. You can carry on with the next steps
-          while Meta reviews.
+          <strong>business verification</strong> (Meta reviews it, which can take hours to days),{" "}
+          <strong>register your WhatsApp phone number</strong> with the code Meta sends, and add a{" "}
+          <strong>payment method</strong> so you can send business-initiated messages. You can carry
+          on with the next steps while Meta reviews.
         </>
       ),
     },
@@ -94,15 +90,12 @@ export function WhatsAppWalkthrough({
       },
       body: (
         <>
-          In Business settings go to <strong>Users → System users → Add</strong>
-          , with the <strong>Admin</strong> role. Choose{" "}
-          <strong>Assign assets → Apps</strong> and give it{" "}
-          <strong>Full control</strong> of your app. Then{" "}
-          <strong>Generate token</strong>: select the app, tick{" "}
-          <strong>whatsapp_business_messaging</strong> and{" "}
-          <strong>whatsapp_business_management</strong>, set expiry to{" "}
-          <strong>Never</strong>. <strong>Copy the token at once</strong>; Meta
-          shows it only once.
+          In Business settings go to <strong>Users → System users → Add</strong>, with the{" "}
+          <strong>Admin</strong> role. Choose <strong>Assign assets → Apps</strong> and give it{" "}
+          <strong>Full control</strong> of your app. Then <strong>Generate token</strong>: select
+          the app, tick <strong>whatsapp_business_messaging</strong> and{" "}
+          <strong>whatsapp_business_management</strong>, set expiry to <strong>Never</strong>.{" "}
+          <strong>Copy the token at once</strong>; Meta shows it only once.
         </>
       ),
     },
@@ -117,11 +110,10 @@ export function WhatsAppWalkthrough({
       body: (
         <>
           In your app open <strong>WhatsApp → API Setup</strong> and copy the{" "}
-          <strong>Phone number ID</strong> and the{" "}
-          <strong>WhatsApp Business Account ID</strong>. Then open{" "}
-          <strong>Settings → Basic</strong> and click <strong>Show</strong> next
-          to <strong>App secret</strong> and copy it. You now have everything:
-          the two IDs, the token and the secret.
+          <strong>Phone number ID</strong> and the <strong>WhatsApp Business Account ID</strong>.
+          Then open <strong>Settings → Basic</strong> and click <strong>Show</strong> next to{" "}
+          <strong>App secret</strong> and copy it. You now have everything: the two IDs, the token
+          and the secret.
         </>
       ),
     },
@@ -130,24 +122,19 @@ export function WhatsAppWalkthrough({
       body: (
         <>
           <p>
-            Paste the four values into the connect form. We check them with Meta
-            before saving, and your token and secret are stored encrypted.
+            Paste the four values into the connect form. We check them with Meta before saving, and
+            your token and secret are stored encrypted.
           </p>
           {webhook ? (
             <p className="mt-space-2 font-semibold text-success">
               Connected. Use Edit details above if you need to change anything.
             </p>
           ) : canConnect ? (
-            <Button
-              className="mobile-page-action mt-space-3"
-              onClick={onConnect}
-            >
+            <Button className="mobile-page-action mt-space-3" onClick={onConnect}>
               Connect WhatsApp
             </Button>
           ) : (
-            <p className="mt-space-2 text-ink-400">
-              Ask an administrator to connect WhatsApp.
-            </p>
+            <p className="mt-space-2 text-ink-400">Ask an administrator to connect WhatsApp.</p>
           )}
         </>
       ),
@@ -156,23 +143,19 @@ export function WhatsAppWalkthrough({
       title: "Add the webhook in Meta",
       body: (
         <>
-          <p>
-            This is how Meta tells us a customer has sent a message. In your
-            Meta app:
-          </p>
+          <p>This is how Meta tells us a customer has sent a message. In your Meta app:</p>
           <ol className="my-space-2 list-decimal space-y-1 pl-space-5">
             <li>
-              Open <strong>WhatsApp → Configuration</strong>, and in the{" "}
-              <strong>Webhook</strong> section choose <strong>Edit</strong>.
+              Open <strong>WhatsApp → Configuration</strong>, and in the <strong>Webhook</strong>{" "}
+              section choose <strong>Edit</strong>.
             </li>
             <li>
-              Paste the <strong>Callback URL</strong> and the{" "}
-              <strong>Verify token</strong> below, then choose{" "}
-              <strong>Verify and save</strong>.
+              Paste the <strong>Callback URL</strong> and the <strong>Verify token</strong> below,
+              then choose <strong>Verify and save</strong>.
             </li>
             <li>
-              Under <strong>Webhook fields</strong>, <strong>Subscribe</strong>{" "}
-              to <strong>messages</strong>.
+              Under <strong>Webhook fields</strong>, <strong>Subscribe</strong> to{" "}
+              <strong>messages</strong>.
             </li>
           </ol>
           {webhook ? (
@@ -182,8 +165,8 @@ export function WhatsAppWalkthrough({
             </div>
           ) : (
             <p className="mt-space-2 rounded-md bg-paper px-space-3 py-space-2 text-[13px] text-ink-600">
-              Your Callback URL and Verify token appear here as soon as you
-              connect in the previous step.
+              Your Callback URL and Verify token appear here as soon as you connect in the previous
+              step.
             </p>
           )}
         </>
@@ -200,8 +183,8 @@ export function WhatsAppWalkthrough({
               Connect your WhatsApp Business number
             </h2>
             <p className="text-[13px] text-ink-600">
-              Your business uses its own Meta account and number. Follow the
-              steps in order; each shows where to click in Meta.
+              Your business uses its own Meta account and number. Follow the steps in order; each
+              shows where to click in Meta.
             </p>
           </div>
           {!webhook && canConnect && (
@@ -210,10 +193,7 @@ export function WhatsAppWalkthrough({
             </Button>
           )}
         </div>
-        <ol
-          className="mt-space-3 flex flex-wrap gap-space-2"
-          aria-label="Steps"
-        >
+        <ol className="mt-space-3 flex flex-wrap gap-space-2" aria-label="Steps">
           {steps.map((st, n) => (
             <li key={st.title}>
               <button
@@ -240,12 +220,8 @@ export function WhatsAppWalkthrough({
         <p className="text-[12px] font-semibold text-ink-400">
           Step {i + 1} of {steps.length}
         </p>
-        <h3 className="mb-space-2 text-[16px] font-bold text-ink-900">
-          {s.title}
-        </h3>
-        <div className="max-w-3xl text-[14px] leading-relaxed text-ink-600">
-          {s.body}
-        </div>
+        <h3 className="mb-space-2 text-[16px] font-bold text-ink-900">{s.title}</h3>
+        <div className="max-w-3xl text-[14px] leading-relaxed text-ink-600">{s.body}</div>
         {s.image && (
           <Image
             src={s.image.src}
@@ -257,18 +233,10 @@ export function WhatsAppWalkthrough({
           />
         )}
         <div className="mt-space-4 flex justify-between">
-          <Button
-            variant="ghost"
-            disabled={i === 0}
-            onClick={() => setI(i - 1)}
-          >
+          <Button variant="ghost" disabled={i === 0} onClick={() => setI(i - 1)}>
             Back
           </Button>
-          <Button
-            variant="secondary"
-            disabled={i === steps.length - 1}
-            onClick={() => setI(i + 1)}
-          >
+          <Button variant="secondary" disabled={i === steps.length - 1} onClick={() => setI(i + 1)}>
             Next
           </Button>
         </div>

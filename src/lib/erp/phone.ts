@@ -21,13 +21,7 @@ export const PHONE_MESSAGES = {
 } as const;
 
 const MOBILE_TYPES = new Set(["MOBILE", "FIXED_LINE_OR_MOBILE"]);
-const ANY_TYPES = new Set([
-  ...MOBILE_TYPES,
-  "FIXED_LINE",
-  "VOIP",
-  "TOLL_FREE",
-  "UAN",
-]);
+const ANY_TYPES = new Set([...MOBILE_TYPES, "FIXED_LINE", "VOIP", "TOLL_FREE", "UAN"]);
 
 /** `raw` as E.164 when it is a valid number of this kind, else the reason to show. */
 export function checkPhone(
@@ -43,11 +37,9 @@ export function checkPhone(
   const type = number.getType() ?? "";
   if (kind === "mobile" && !MOBILE_TYPES.has(type))
     return {
-      error:
-        type === "FIXED_LINE" ? PHONE_MESSAGES.landline : PHONE_MESSAGES.mobile,
+      error: type === "FIXED_LINE" ? PHONE_MESSAGES.landline : PHONE_MESSAGES.mobile,
     };
-  if (kind === "any" && !ANY_TYPES.has(type))
-    return { error: PHONE_MESSAGES.any };
+  if (kind === "any" && !ANY_TYPES.has(type)) return { error: PHONE_MESSAGES.any };
   return { e164: number.number };
 }
 
@@ -71,8 +63,7 @@ export function phoneForInput(value: string | null | undefined): string {
 export function phoneField(kind: PhoneKind, { required = true } = {}) {
   return z.string().transform((value, ctx) => {
     if (!value.trim()) {
-      if (required)
-        ctx.addIssue({ code: "custom", message: PHONE_MESSAGES.required });
+      if (required) ctx.addIssue({ code: "custom", message: PHONE_MESSAGES.required });
       return null as unknown as string;
     }
     const result = checkPhone(value, kind);
@@ -95,9 +86,6 @@ export function phoneError(
 }
 
 /** E.164 for sending, or null for blank. Call only after phoneError said it is fine. */
-export function toE164(
-  value: string,
-  kind: PhoneKind = "mobile",
-): string | null {
+export function toE164(value: string, kind: PhoneKind = "mobile"): string | null {
   return value.trim() ? (checkPhone(value, kind).e164 ?? value.trim()) : null;
 }

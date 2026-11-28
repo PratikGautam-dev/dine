@@ -33,8 +33,7 @@ const HEX = /^#[0-9a-f]{6}$/i;
 export const isHex = (v: string) => HEX.test(v);
 
 type Rgb = [number, number, number];
-const toRgb = (hex: string): Rgb =>
-  [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
+const toRgb = (hex: string): Rgb => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16)) as Rgb;
 const toHex = ([r, g, b]: Rgb) =>
   "#" +
   [r, g, b]
@@ -113,10 +112,6 @@ export function readableOn(color: string, bg: string) {
 export function tillColors(primary: string, sidebar: string | null) {
   const p = isHex(primary) ? primary : "#2F6FED";
   const daap = p.toUpperCase() === "#2F6FED" && !sidebar;
-  const bg = daap
-    ? "#0B1739"
-    : sidebar && isHex(sidebar)
-      ? sidebar
-      : deriveSidebar(p);
+  const bg = daap ? "#0B1739" : sidebar && isHex(sidebar) ? sidebar : deriveSidebar(p);
   return { primary: p, sidebar: bg, accent: daap ? p : readableOn(p, bg) };
 }

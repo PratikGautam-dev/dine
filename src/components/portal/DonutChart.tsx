@@ -80,10 +80,7 @@ export function DonutChart({
                   strokeWidth={0}
                 >
                   {data.map((entry, i) => (
-                    <Cell
-                      key={entry.name}
-                      fill={SLOT_COLORS[i % SLOT_COLORS.length]}
-                    />
+                    <Cell key={entry.name} fill={SLOT_COLORS[i % SLOT_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip content={<DonutTooltip unit={unit} />} />
@@ -98,10 +95,7 @@ export function DonutChart({
           </div>
           <ul className="w-full min-w-0 flex-1 space-y-space-2">
             {data.map((d, i) => (
-              <li
-                key={d.name}
-                className="flex items-center gap-space-2 text-[12.5px]"
-              >
+              <li key={d.name} className="flex items-center gap-space-2 text-[12.5px]">
                 <span
                   className="h-2.5 w-2.5 shrink-0 rounded-full"
                   style={{

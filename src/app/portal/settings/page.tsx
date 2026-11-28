@@ -10,7 +10,10 @@ import { usePermission } from "@/lib/staffAuth";
 import { useTenantSettings } from "@/hooks/useTenantSettings";
 import { useStorefrontSettings } from "@/hooks/useStorefrontSettings";
 import { useBusinessProfile } from "@/hooks/useBusinessProfile";
-import { ContactDetailsModal, type ContactDraft } from "@/components/portal/settings/ContactDetailsModal";
+import {
+  ContactDetailsModal,
+  type ContactDraft,
+} from "@/components/portal/settings/ContactDetailsModal";
 import { formatPhone } from "@/lib/erp/phone";
 
 function DetailRow({
@@ -38,7 +41,9 @@ function DetailRow({
       <span className="text-ink-600">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block truncate text-[14px] font-medium text-ink-900">{title}</span>
-        <span className={`block text-[13px] ${text ? "text-ink-600" : "text-ink-400"}`}>{text || empty}</span>
+        <span className={`block text-[13px] ${text ? "text-ink-600" : "text-ink-400"}`}>
+          {text || empty}
+        </span>
       </span>
       {canWrite && <span className="text-[12.5px] font-semibold text-brand-700">Edit</span>}
     </button>
@@ -132,7 +137,9 @@ function ProfileField({ label, value }: { label: string; value?: string | null }
   return (
     <div>
       <p className="text-[11px] font-semibold uppercase tracking-wide text-ink-400">{label}</p>
-      <div className="mt-1 text-[14px] font-medium text-ink-900">{value ? value : <NotProvided />}</div>
+      <div className="mt-1 text-[14px] font-medium text-ink-900">
+        {value ? value : <NotProvided />}
+      </div>
     </div>
   );
 }
@@ -181,8 +188,12 @@ function BusinessDetailsCard({
           <Store size={16} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[14px] font-semibold text-ink-900">{profile?.name ?? storefront?.name ?? "—"}</p>
-          <p className="text-[13px] text-ink-600">{currency === "INR" || !currency ? "India" : currency}</p>
+          <p className="truncate text-[14px] font-semibold text-ink-900">
+            {profile?.name ?? storefront?.name ?? "—"}
+          </p>
+          <p className="text-[13px] text-ink-600">
+            {currency === "INR" || !currency ? "India" : currency}
+          </p>
         </div>
         {businessId && (
           <div className="flex items-center gap-space-2 text-[13px] text-ink-600">
@@ -216,7 +227,10 @@ function BusinessDetailsCard({
         <ProfileField label="Owner email" value={profile?.owner_email} />
         <ProfileField label="PAN" />
         <ProfileField label="GSTIN" />
-        <ProfileField label="Status" value={profile ? profile.status.charAt(0).toUpperCase() + profile.status.slice(1) : null} />
+        <ProfileField
+          label="Status"
+          value={profile ? profile.status.charAt(0).toUpperCase() + profile.status.slice(1) : null}
+        />
         <ProfileField label="Member since" value={formatMemberSince(profile?.created_at)} />
         <ProfileField label="Verified on" />
       </div>
@@ -247,7 +261,11 @@ function StoreDefaultsCard({ ready, currency }: { ready: boolean; currency?: str
         Fixed when your business was set up. Contact support if one is wrong.
       </p>
       <div className="divide-y divide-line rounded-lg border border-line">
-        {row("Currency", "Every price and amount on your website, till and portal", currency ?? "INR")}
+        {row(
+          "Currency",
+          "Every price and amount on your website, till and portal",
+          currency ?? "INR",
+        )}
         {row(
           "Time zone",
           "When a day starts and ends for reports, attendance, return windows and the till's day close",
@@ -257,7 +275,6 @@ function StoreDefaultsCard({ ready, currency }: { ready: boolean; currency?: str
     </Card>
   );
 }
-
 
 /** Settings > General: the business profile and store defaults. */
 export default function PortalSettingsGeneralPage() {

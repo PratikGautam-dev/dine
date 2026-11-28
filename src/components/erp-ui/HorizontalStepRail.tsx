@@ -48,9 +48,7 @@ export function HorizontalStepRail({
                 className={cn(
                   "flex h-7 w-7 shrink-0 items-center justify-center rounded-full border-2 bg-card text-[11px] font-bold transition-colors duration-150 md:h-8 md:w-8 md:text-[12px]",
                   isActive && "border-ink-900 bg-ink-900 text-white",
-                  !isActive &&
-                    isDone &&
-                    "border-brand-600 bg-brand-600 text-white",
+                  !isActive && isDone && "border-brand-600 bg-brand-600 text-white",
                   !isActive && !isDone && "border-line bg-card text-ink-400",
                 )}
               >

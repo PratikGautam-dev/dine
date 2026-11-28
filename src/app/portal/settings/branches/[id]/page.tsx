@@ -60,11 +60,14 @@ function Section({
 }
 
 function Row({ label, children }: { label: string; children?: React.ReactNode }) {
-  const empty = children === null || children === undefined || children === "" || children === false;
+  const empty =
+    children === null || children === undefined || children === "" || children === false;
   return (
     <div className="grid grid-cols-[160px_1fr] items-start gap-space-3 px-space-3 py-space-3 text-[13px] sm:grid-cols-[200px_1fr]">
       <span className="text-ink-600">{label}</span>
-      <span className={empty ? "text-ink-400" : "font-medium text-ink-900"}>{empty ? "Not set" : children}</span>
+      <span className={empty ? "text-ink-400" : "font-medium text-ink-900"}>
+        {empty ? "Not set" : children}
+      </span>
     </div>
   );
 }
@@ -101,21 +104,37 @@ export default function BranchPage() {
   const session = useStaffSession();
   const canView = usePermission("settings", "view");
   const canWrite = usePermission("settings", "write");
-  const { branches, error, saving, togglingId, updateBranch, patchBranch, setBranchActive, reload } =
-    useBranchManagement(canView);
+  const {
+    branches,
+    error,
+    saving,
+    togglingId,
+    updateBranch,
+    patchBranch,
+    setBranchActive,
+    reload,
+  } = useBranchManagement(canView);
   const branch = useMemo(() => (branches ?? []).find((b) => b.id === id) ?? null, [branches, id]);
 
   const registrations = useGstRegistrations(canView);
   const linkGst = useLinkBranchGst();
   const linking = linkGst.isPending;
   const activeRegistrations = (registrations.data?.registrations ?? []).filter((r) => r.is_active);
-  const registration = (registrations.data?.registrations ?? []).find((r) => r.id === branch?.gst_registration_id) ?? null;
-  const [dialog, setDialog] = useState<"contact" | "does" | "orders" | "tax" | "receipt" | null>(null);
+  const registration =
+    (registrations.data?.registrations ?? []).find((r) => r.id === branch?.gst_registration_id) ??
+    null;
+  const [dialog, setDialog] = useState<"contact" | "does" | "orders" | "tax" | "receipt" | null>(
+    null,
+  );
   const [registrationId, setRegistrationId] = useState("");
   const [receipt, setReceipt] = useState({ receipt_header: "", receipt_footer: "" });
   const [formError, setFormError] = useState<string | null>(null);
   const [form, setForm] = useState<BranchForm>(emptyBranchForm());
-  const [does, setDoes] = useState({ accepts_online: true, accepts_whatsapp: true, tables_enabled: false });
+  const [does, setDoes] = useState({
+    accepts_online: true,
+    accepts_whatsapp: true,
+    tables_enabled: false,
+  });
 
   const hours = useBranchBookingHours(canView, branch?.id ?? null);
   const types = useAppointmentTypes(branch?.id ?? null);
@@ -123,7 +142,11 @@ export default function BranchPage() {
   function open(kind: "contact" | "does" | "orders" | "tax" | "receipt", b: Branch) {
     setFormError(null);
     if (kind === "tax") setRegistrationId(b.gst_registration_id ?? "");
-    if (kind === "receipt") setReceipt({ receipt_header: b.receipt_header ?? "", receipt_footer: b.receipt_footer ?? "" });
+    if (kind === "receipt")
+      setReceipt({
+        receipt_header: b.receipt_header ?? "",
+        receipt_footer: b.receipt_footer ?? "",
+      });
     if (kind === "orders") setForm(toBranchForm(b));
     if (kind === "does")
       setDoes({
@@ -143,7 +166,10 @@ export default function BranchPage() {
   }
 
   const back = (
-    <Link href="/portal/settings/branches" className="mb-space-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-600 hover:text-ink-900">
+    <Link
+      href="/portal/settings/branches"
+      className="mb-space-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ink-600 hover:text-ink-900"
+    >
       <ArrowLeft size={14} /> All branches
     </Link>
   );
@@ -154,14 +180,20 @@ export default function BranchPage() {
         <div className="mx-auto max-w-[880px]">
           {back}
           {error && <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>}
-          {!branches ? <FormSkeleton fields={4} /> : <p className="text-[13px] text-ink-600">That branch doesn&apos;t exist.</p>}
+          {!branches ? (
+            <FormSkeleton fields={4} />
+          ) : (
+            <p className="text-[13px] text-ink-600">That branch doesn&apos;t exist.</p>
+          )}
         </div>
       </PortalShell>
     );
   }
 
   const phone = formatPhone(branch.phone);
-  const activeTypes = (types.types ?? []).filter((t) => t.is_allowed && t.is_active && t.id !== "followup" && t.id !== "procedure");
+  const activeTypes = (types.types ?? []).filter(
+    (t) => t.is_allowed && t.is_active && t.id !== "followup" && t.id !== "procedure",
+  );
 
   return (
     <PortalShell restaurant={session?.restaurant || null} active="branches">
@@ -173,7 +205,9 @@ export default function BranchPage() {
           description={
             <span className="flex items-center gap-space-2">
               {branch.is_default && <Badge tone="brand">Default</Badge>}
-              <Badge tone={branch.is_active ? "success" : "neutral"}>{branch.is_active ? "active" : "inactive"}</Badge>
+              <Badge tone={branch.is_active ? "success" : "neutral"}>
+                {branch.is_active ? "active" : "inactive"}
+              </Badge>
             </span>
           }
           actions={
@@ -214,11 +248,16 @@ export default function BranchPage() {
 
         <Section title="Tax" action={<EditButton onClick={() => open("tax", branch)} />}>
           <Row label="GST registration">
-            {registration ? [registration.gstin, registration.state_name].filter(Boolean).join(" · ") : null}
+            {registration
+              ? [registration.gstin, registration.state_name].filter(Boolean).join(" · ")
+              : null}
           </Row>
         </Section>
 
-        <Section title="What this branch does" action={<EditButton onClick={() => open("does", branch)} />}>
+        <Section
+          title="What this branch does"
+          action={<EditButton onClick={() => open("does", branch)} />}
+        >
           <Row label="Website orders">
             <OnOff on={branch.accepts_online !== false} />
           </Row>
@@ -237,12 +276,25 @@ export default function BranchPage() {
           )}
         </Section>
 
-        <Section title="Orders and fees" action={<EditButton onClick={() => open("orders", branch)} />}>
-          <Row label="Minimum order">{branch.min_order_paise != null ? rupees(branch.min_order_paise) : null}</Row>
-          <Row label="Service charge">{branch.service_charge_pct != null ? `${branch.service_charge_pct}%` : null}</Row>
-          <Row label="Delivery radius">{branch.delivery_radius_km != null ? `${branch.delivery_radius_km} km` : null}</Row>
-          <Row label="Delivery fee">{branch.delivery_fee_paise != null ? rupees(branch.delivery_fee_paise) : null}</Row>
-          <Row label="Average prep time">{branch.avg_prep_time_min != null ? `${branch.avg_prep_time_min} min` : null}</Row>
+        <Section
+          title="Orders and fees"
+          action={<EditButton onClick={() => open("orders", branch)} />}
+        >
+          <Row label="Minimum order">
+            {branch.min_order_paise != null ? rupees(branch.min_order_paise) : null}
+          </Row>
+          <Row label="Service charge">
+            {branch.service_charge_pct != null ? `${branch.service_charge_pct}%` : null}
+          </Row>
+          <Row label="Delivery radius">
+            {branch.delivery_radius_km != null ? `${branch.delivery_radius_km} km` : null}
+          </Row>
+          <Row label="Delivery fee">
+            {branch.delivery_fee_paise != null ? rupees(branch.delivery_fee_paise) : null}
+          </Row>
+          <Row label="Average prep time">
+            {branch.avg_prep_time_min != null ? `${branch.avg_prep_time_min} min` : null}
+          </Row>
         </Section>
 
         <Section title="Receipt" action={<EditButton onClick={() => open("receipt", branch)} />}>
@@ -272,9 +324,15 @@ export default function BranchPage() {
         <Section
           title="Reservation types"
           note="Which reservation types this branch offers in the WhatsApp booking menu."
-          action={<LinkButton href={`/portal/settings/reservation-types?branch=${branch.id}`}>Edit</LinkButton>}
+          action={
+            <LinkButton href={`/portal/settings/reservation-types?branch=${branch.id}`}>
+              Edit
+            </LinkButton>
+          }
         >
-          <Row label="Offered">{types.types === null ? null : activeTypes.map((t) => t.label).join(", ") || null}</Row>
+          <Row label="Offered">
+            {types.types === null ? null : activeTypes.map((t) => t.label).join(", ") || null}
+          </Row>
         </Section>
 
         <Card className="mb-space-4 p-space-4">
@@ -312,8 +370,13 @@ export default function BranchPage() {
               />
             </Field>
           </div>
-          {hours.error && <p className="mb-space-2 text-[12.5px] font-medium text-error">{hours.error}</p>}
-          <Button disabled={!canWrite || hours.saving || !hours.dirty} onClick={() => hours.handleSave()}>
+          {hours.error && (
+            <p className="mb-space-2 text-[12.5px] font-medium text-error">{hours.error}</p>
+          )}
+          <Button
+            disabled={!canWrite || hours.saving || !hours.dirty}
+            onClick={() => hours.handleSave()}
+          >
             {hours.saving ? "Saving…" : "Save booking rules"}
           </Button>
         </Card>
@@ -401,7 +464,9 @@ export default function BranchPage() {
                 : `Registered in ${picked.state_name ?? picked.state_code}.`;
             })()}
           </p>
-          {formError && <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>}
+          {formError && (
+            <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>
+          )}
         </Modal>
       )}
 
@@ -439,7 +504,9 @@ export default function BranchPage() {
             value={receipt.receipt_header}
             onChange={(e) => setReceipt({ ...receipt, receipt_header: e.target.value })}
           />
-          <p className="mb-space-3 mt-space-1 text-[12.5px] text-ink-400">Printed at the top of this branch&apos;s receipts.</p>
+          <p className="mb-space-3 mt-space-1 text-[12.5px] text-ink-400">
+            Printed at the top of this branch&apos;s receipts.
+          </p>
           <label htmlFor="br-rcpt-footer" className="text-label mb-space-1 block">
             Footer
           </label>
@@ -450,8 +517,12 @@ export default function BranchPage() {
             value={receipt.receipt_footer}
             onChange={(e) => setReceipt({ ...receipt, receipt_footer: e.target.value })}
           />
-          <p className="mt-space-1 text-[12.5px] text-ink-400">Printed at the bottom, e.g. a thank-you or return policy.</p>
-          {formError && <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>}
+          <p className="mt-space-1 text-[12.5px] text-ink-400">
+            Printed at the bottom, e.g. a thank-you or return policy.
+          </p>
+          {formError && (
+            <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>
+          )}
         </Modal>
       )}
 
@@ -489,11 +560,17 @@ export default function BranchPage() {
             ).map(([key, label]) => (
               <div key={key} className="flex items-center justify-between py-space-3">
                 <span className="text-[14px] text-ink-900">{label}</span>
-                <Switch checked={does[key]} onChange={() => setDoes({ ...does, [key]: !does[key] })} aria-label={label} />
+                <Switch
+                  checked={does[key]}
+                  onChange={() => setDoes({ ...does, [key]: !does[key] })}
+                  aria-label={label}
+                />
               </div>
             ))}
           </div>
-          {formError && <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>}
+          {formError && (
+            <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>
+          )}
         </Modal>
       )}
 

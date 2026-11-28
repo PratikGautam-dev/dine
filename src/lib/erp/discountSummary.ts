@@ -6,8 +6,7 @@ const CHANNEL_NAME: Record<Channel, string> = {
   whatsapp: "WhatsApp",
 };
 
-const rupees = (minor: number) =>
-  `₹${Number(fromMinor(minor)).toLocaleString("en-IN")}`;
+const rupees = (minor: number) => `₹${Number(fromMinor(minor)).toLocaleString("en-IN")}`;
 const day = (iso: string) =>
   new Date(iso).toLocaleDateString("en-IN", {
     day: "numeric",

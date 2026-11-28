@@ -16,7 +16,11 @@ export function useSettingsBranch() {
     if (fromUrl) setPickedId(fromUrl);
   }, []);
   const branchId =
-    pickedId ?? selectedBranchId ?? accessibleBranches.find((b) => b.is_default)?.id ?? accessibleBranches[0]?.id ?? null;
+    pickedId ??
+    selectedBranchId ??
+    accessibleBranches.find((b) => b.is_default)?.id ??
+    accessibleBranches[0]?.id ??
+    null;
   const branch = accessibleBranches.find((b) => b.id === branchId) ?? null;
   return { branches: accessibleBranches, branchId, branch, setBranchId: setPickedId };
 }

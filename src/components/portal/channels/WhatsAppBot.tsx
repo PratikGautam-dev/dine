@@ -8,7 +8,12 @@ import { Card } from "@/components/erp-ui/Card";
 import { Field } from "@/components/erp-ui/Field";
 import { Input, Textarea } from "@/components/erp-ui/Input";
 import { Switch } from "@/components/erp-ui/Switch";
-import { useSaveWhatsAppBot, useWhatsAppAccount, useWhatsAppBot, type WhatsAppBotSettings } from "@/hooks/useWhatsApp";
+import {
+  useSaveWhatsAppBot,
+  useWhatsAppAccount,
+  useWhatsAppBot,
+  type WhatsAppBotSettings,
+} from "@/hooks/useWhatsApp";
 import { hasPermission, useStaffSession } from "@/lib/erp/staffAuth";
 import { toast } from "@/lib/toast";
 
@@ -24,8 +29,9 @@ export function WhatsAppBot() {
   if (bot.error)
     return (
       <Card className="p-space-4 text-[13.5px] text-error">
-        Couldn&apos;t load the ordering bot settings: {bot.error.message}. If this says &quot;Not found (404)&quot;, the backend is running an older build without the
-        Sales channels API — restart it from <code>erp-dine-backend</code>.
+        Couldn&apos;t load the ordering bot settings: {bot.error.message}. If this says &quot;Not
+        found (404)&quot;, the backend is running an older build without the Sales channels API —
+        restart it from <code>erp-dine-backend</code>.
       </Card>
     );
   if (!bot.data) return <Card className="p-space-4 text-[13.5px] text-ink-400">Loading…</Card>;
@@ -39,10 +45,20 @@ export function WhatsAppBot() {
   );
 }
 
-function BotCard({ settings, connected, canEdit }: { settings: WhatsAppBotSettings; connected: boolean; canEdit: boolean }) {
+function BotCard({
+  settings,
+  connected,
+  canEdit,
+}: {
+  settings: WhatsAppBotSettings;
+  connected: boolean;
+  canEdit: boolean;
+}) {
   const enabled = settings.whatsapp_bot_enabled;
   const [min, max] = settings.timeout_range;
-  const [timeout, setTimeoutValue] = useState(settings.whatsapp_bot_timeout_minutes ? String(settings.whatsapp_bot_timeout_minutes) : "");
+  const [timeout, setTimeoutValue] = useState(
+    settings.whatsapp_bot_timeout_minutes ? String(settings.whatsapp_bot_timeout_minutes) : "",
+  );
   const [welcome, setWelcome] = useState(settings.whatsapp_welcome_message);
   const [template, setTemplate] = useState(settings.whatsapp_order_update_template);
   const [language, setLanguage] = useState(settings.whatsapp_order_update_template_language);
@@ -55,19 +71,31 @@ function BotCard({ settings, connected, canEdit }: { settings: WhatsAppBotSettin
       onError: (e) => toast.error("Couldn't save", e.message),
     });
 
-  const saveWelcome = () => run({ whatsapp_welcome_message: welcome.trim() }, "Welcome message saved");
+  const saveWelcome = () =>
+    run({ whatsapp_welcome_message: welcome.trim() }, "Welcome message saved");
   const saveTemplate = () =>
-    run({ whatsapp_order_update_template: template.trim(), whatsapp_order_update_template_language: language.trim() || "en" }, "Settings saved");
+    run(
+      {
+        whatsapp_order_update_template: template.trim(),
+        whatsapp_order_update_template_language: language.trim() || "en",
+      },
+      "Settings saved",
+    );
   const toggle = () =>
     run(
       { whatsapp_bot_enabled: !enabled },
       enabled ? "Ordering bot switched off" : "Ordering bot switched on",
-      enabled ? "Customer messages are still recorded, but the bot won't reply." : "Customers who message your number can now order in the chat.",
+      enabled
+        ? "Customer messages are still recorded, but the bot won't reply."
+        : "Customers who message your number can now order in the chat.",
     );
   function saveTimeout() {
     const minutes = parseInt(timeout, 10);
     if (!minutes || minutes < min || minutes > max)
-      return toast.error("Check the value", `Enter a whole number of minutes between ${min} and ${max}.`);
+      return toast.error(
+        "Check the value",
+        `Enter a whole number of minutes between ${min} and ${max}.`,
+      );
     run({ whatsapp_bot_timeout_minutes: minutes }, "Settings saved");
   }
 
@@ -77,15 +105,13 @@ function BotCard({ settings, connected, canEdit }: { settings: WhatsAppBotSettin
         <div className="min-w-0 max-w-[60ch]">
           <h2 className="text-[15px] font-bold text-ink-900">Ordering bot</h2>
           <p className="text-[13px] text-ink-600">
-            Customers who message your WhatsApp number can browse your menu, build
-            an order and book a table without leaving the chat. Switch it off and
-            messages are still recorded, but nobody replies automatically.
+            Customers who message your WhatsApp number can browse your menu, build an order and book
+            a table without leaving the chat. Switch it off and messages are still recorded, but
+            nobody replies automatically.
           </p>
         </div>
         <div className="flex items-center gap-space-2">
-          <Badge tone={enabled ? "success" : "neutral"}>
-            {enabled ? "On" : "Off"}
-          </Badge>
+          <Badge tone={enabled ? "success" : "neutral"}>{enabled ? "On" : "Off"}</Badge>
           <Switch
             checked={enabled}
             onChange={toggle}
@@ -160,18 +186,15 @@ function BotCard({ settings, connected, canEdit }: { settings: WhatsAppBotSettin
       </Field>
 
       <div className="border-t border-line pt-space-3">
-        <h3 className="text-[14px] font-semibold text-ink-900">
-          Order updates
-        </h3>
+        <h3 className="text-[14px] font-semibold text-ink-900">Order updates</h3>
         <p className="mb-space-3 text-[13px] text-ink-600">
-          Customers get a message when their order is accepted, being prepared,
-          ready or out for delivery, and complete. If they haven&apos;t messaged you
-          in the last 24 hours, WhatsApp only allows an approved template.
-          Create one in WhatsApp Manager whose text uses{" "}
-          <code className="text-[12px]">{"{{1}}"}</code> for the order number
-          and <code className="text-[12px]">{"{{2}}"}</code> for the status, for
-          example: &ldquo;Your order {"{{1}}"} is {"{{2}}"}.&rdquo; Without
-          a template, updates outside that window are skipped.
+          Customers get a message when their order is accepted, being prepared, ready or out for
+          delivery, and complete. If they haven&apos;t messaged you in the last 24 hours, WhatsApp
+          only allows an approved template. Create one in WhatsApp Manager whose text uses{" "}
+          <code className="text-[12px]">{"{{1}}"}</code> for the order number and{" "}
+          <code className="text-[12px]">{"{{2}}"}</code> for the status, for example: &ldquo;Your
+          order {"{{1}}"} is {"{{2}}"}.&rdquo; Without a template, updates outside that window are
+          skipped.
         </p>
         <div className="flex flex-wrap items-end gap-space-2">
           <Field

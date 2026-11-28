@@ -19,6 +19,7 @@ export function useRestaurantPhotos(ready: boolean) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 
@@ -26,10 +27,16 @@ export function useRestaurantPhotos(ready: boolean) {
     setUploading(true);
     const body = new FormData();
     body.append("file", file);
-    const uploaded = await staffFetch("/api/portal/settings/storefront/upload-image", { method: "POST", body });
+    const uploaded = await staffFetch("/api/portal/settings/storefront/upload-image", {
+      method: "POST",
+      body,
+    });
     if (!uploaded.ok) {
       setUploading(false);
-      toast.error("Couldn't upload photo", uploaded.unauthorized ? "Session expired — please log in again." : uploaded.error);
+      toast.error(
+        "Couldn't upload photo",
+        uploaded.unauthorized ? "Session expired — please log in again." : uploaded.error,
+      );
       return;
     }
     const { image_url } = uploaded.data as { image_url: string };
@@ -40,7 +47,10 @@ export function useRestaurantPhotos(ready: boolean) {
     });
     setUploading(false);
     if (!result.ok) {
-      toast.error("Couldn't add photo", result.unauthorized ? "Session expired — please log in again." : result.error);
+      toast.error(
+        "Couldn't add photo",
+        result.unauthorized ? "Session expired — please log in again." : result.error,
+      );
       return;
     }
     const { photo } = result.data as { photo: RestaurantPhoto };
@@ -49,10 +59,15 @@ export function useRestaurantPhotos(ready: boolean) {
 
   async function removePhoto(id: number) {
     setRemovingId(id);
-    const result = await staffFetch(`/api/portal/settings/storefront/photos/${id}`, { method: "DELETE" });
+    const result = await staffFetch(`/api/portal/settings/storefront/photos/${id}`, {
+      method: "DELETE",
+    });
     setRemovingId(null);
     if (!result.ok) {
-      toast.error("Couldn't remove photo", result.unauthorized ? "Session expired — please log in again." : result.error);
+      toast.error(
+        "Couldn't remove photo",
+        result.unauthorized ? "Session expired — please log in again." : result.error,
+      );
       return;
     }
     setPhotos((prev) => (prev ?? []).filter((p) => p.id !== id));

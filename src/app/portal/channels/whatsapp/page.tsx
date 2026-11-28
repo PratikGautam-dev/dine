@@ -16,7 +16,11 @@ export default function WhatsAppChannelPage() {
   if (!ready) return null;
   return (
     <PortalShell restaurant={restaurant} active="channel-whatsapp">
-      <PageHeader icon={<WhatsAppIcon size={20} />} title={CHANNELS.whatsapp.label} description="Orders and customer chats over WhatsApp." />
+      <PageHeader
+        icon={<WhatsAppIcon size={20} />}
+        title={CHANNELS.whatsapp.label}
+        description="Orders and customer chats over WhatsApp."
+      />
       <ChannelStatusStrip channel="whatsapp" />
       <div className="flex flex-col gap-space-4">
         <WhatsAppBot />

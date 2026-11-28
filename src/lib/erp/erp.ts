@@ -9,10 +9,7 @@ export type Channel = "online" | "pos" | "whatsapp";
 
 /** How each sales channel is shown in the UI. The API codes are fixed (and immutable on an order); only the labels
  * are presentational. */
-export const CHANNELS: Record<
-  Channel,
-  { label: string; slug: string; blurb: string }
-> = {
+export const CHANNELS: Record<Channel, { label: string; slug: string; blurb: string }> = {
   online: {
     label: "Website",
     slug: "online",
@@ -146,9 +143,7 @@ export async function erp<T = unknown>(
     ...(body !== undefined || headers
       ? {
           headers: {
-            ...(body !== undefined
-              ? { "Content-Type": "application/json" }
-              : {}),
+            ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
             ...headers,
           },
           ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
@@ -170,7 +165,6 @@ export async function erp<T = unknown>(
   }
   return { data: result.data as T, error: null, unauthorized: false };
 }
-
 
 /** A failed ERP call, for TanStack Query: queries and mutations fail by throwing. `message` is the server's message, ready to show. */
 export class ErpError extends Error {
@@ -256,17 +250,13 @@ export function useErpQuery<T>(path: string | null) {
   return { data, error, loading, reload };
 }
 
-export function qs(
-  params: Record<string, string | number | boolean | null | undefined>,
-): string {
+export function qs(params: Record<string, string | number | boolean | null | undefined>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params))
-    if (v !== null && v !== undefined && v !== "" && v !== false)
-      sp.set(k, String(v));
+    if (v !== null && v !== undefined && v !== "" && v !== false) sp.set(k, String(v));
   const s = sp.toString();
   return s ? `?${s}` : "";
 }
-
 
 // ---------------------------------------------------------------------------------------------- types copied from the ERP
 export type Order = {
@@ -290,13 +280,7 @@ export type Order = {
     | "completed"
     | "cancelled"
     | "refunded";
-  payment_status:
-    | "pending"
-    | "authorized"
-    | "paid"
-    | "failed"
-    | "partially_refunded"
-    | "refunded";
+  payment_status: "pending" | "authorized" | "paid" | "failed" | "partially_refunded" | "refunded";
   order_type: "takeaway" | "pickup" | "delivery" | "shipping";
   currency: string;
   subtotal_minor: number;
@@ -374,8 +358,7 @@ export type Discount = {
   times_used: number;
 };
 
-export type Tone =
-  "brand" | "clay" | "success" | "neutral" | "warning" | "violet";
+export type Tone = "brand" | "clay" | "success" | "neutral" | "warning" | "violet";
 
 export const ORDER_STATUS_TONE: Record<Order["status"], Tone> = {
   pending: "warning",

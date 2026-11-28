@@ -137,7 +137,9 @@ export function useFoodOrders(
   // Guards against an older, slower (e.g. unfiltered "All Branches") request resolving AFTER a
   // newer one and clobbering its correct data.
   const branchIdRef = useRef(branchId);
-  branchIdRef.current = branchId;
+  useEffect(() => {
+    branchIdRef.current = branchId;
+  });
 
   const load = useCallback(async () => {
     const requestedBranchId = branchId;
@@ -154,6 +156,7 @@ export function useFoodOrders(
 
   useEffect(() => {
     if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
     // Optional -- the Kitchen Orders display wants this live (no websocket/SSE infra in this app,
     // same reasoning every other "live" page this session polls for); the main Food Orders page
@@ -263,7 +266,9 @@ export function useFoodOrderDetail(orderId: number | null) {
   const [refunding, setRefunding] = useState(false);
   const [notifying, setNotifying] = useState(false);
   const idRef = useRef(orderId);
-  idRef.current = orderId;
+  useEffect(() => {
+    idRef.current = orderId;
+  });
 
   const load = useCallback(async () => {
     if (orderId == null) {
@@ -283,6 +288,7 @@ export function useFoodOrderDetail(orderId: number | null) {
   }, [orderId]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
   }, [load]);
 

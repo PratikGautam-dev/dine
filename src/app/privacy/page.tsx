@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import Link from "next/link";
 import { Mail, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
@@ -26,7 +27,7 @@ const SECTIONS = [
 
 function BrandMark() {
   return (
-    <a href="/" aria-label="Dine Connect home" className="flex items-center">
+    <Link href="/" aria-label="Dine Connect home" className="flex items-center">
       <Image
         src="/logo.png"
         alt="DAAP DineConnect — Better Dining. Stronger Connection."
@@ -35,7 +36,7 @@ function BrandMark() {
         className="w-auto"
         style={{ height: 60 }}
       />
-    </a>
+    </Link>
   );
 }
 
@@ -64,9 +65,9 @@ export default function PrivacyPolicyPage() {
     <>
       <header className="sticky top-0 z-10 flex items-center justify-between gap-space-3 border-b border-line bg-paper/90 px-space-4 py-space-4 backdrop-blur-sm md:px-space-7 lg:px-space-9">
         <BrandMark />
-        <a href="/" className="text-[13.5px] font-semibold text-brand-600 hover:underline">
+        <Link href="/" className="text-[13.5px] font-semibold text-brand-600 hover:underline">
           Back to home
-        </a>
+        </Link>
       </header>
 
       <main className="mx-auto max-w-[1080px] px-space-4 py-space-8 md:px-space-7 lg:px-space-9">

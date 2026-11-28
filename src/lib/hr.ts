@@ -24,9 +24,7 @@ export async function staffJson<T = unknown>(
   if (!result.ok)
     return {
       data: null,
-      error: result.unauthorized
-        ? "Session expired -- please sign in again."
-        : result.error,
+      error: result.unauthorized ? "Session expired -- please sign in again." : result.error,
       unauthorized: result.unauthorized,
       details: result.unauthorized ? undefined : result.details,
     };

@@ -44,16 +44,13 @@ export function MultiSelect({
           >
             <SelectPrimitive.Value className="sr-only">
               {(selected: string[]) =>
-                selected.map((v) => labels.get(v) ?? v).join(", ") ||
-                placeholder
+                selected.map((v) => labels.get(v) ?? v).join(", ") || placeholder
               }
             </SelectPrimitive.Value>
           </SelectPrimitive.Trigger>
           {/* What is chosen is drawn inside the box, over the (invisible) button that opens the list; only the chips' ✕ take clicks. */}
           <div className="pointer-events-none relative flex min-h-11 flex-wrap items-center gap-space-1 py-1.5 pl-space-3 pr-9 text-[14px] text-ink-900">
-            {chosen.length === 0 && (
-              <span className="text-ink-400">{placeholder}</span>
-            )}
+            {chosen.length === 0 && <span className="text-ink-400">{placeholder}</span>}
             {chosen.map((v) => (
               <span
                 key={v}

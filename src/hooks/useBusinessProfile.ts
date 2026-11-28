@@ -32,8 +32,17 @@ export function useBusinessProfile(ready: boolean) {
       const session = getStaffSession();
       const access = getStaffAccessToken();
       const refresh = getStaffRefreshToken();
-      if (session && access && refresh && next.display_id && session.restaurant.display_id !== next.display_id) {
-        saveStaffSession(access, refresh, { ...session, restaurant: { ...session.restaurant, display_id: next.display_id } });
+      if (
+        session &&
+        access &&
+        refresh &&
+        next.display_id &&
+        session.restaurant.display_id !== next.display_id
+      ) {
+        saveStaffSession(access, refresh, {
+          ...session,
+          restaurant: { ...session.restaurant, display_id: next.display_id },
+        });
       }
     });
     return () => {

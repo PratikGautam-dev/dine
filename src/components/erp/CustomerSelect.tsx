@@ -33,10 +33,7 @@ export function CustomerSelect({
         <span className="min-w-0 truncate text-ink-900">
           {value.name}
           {value.phone && (
-            <span className="text-[12px] text-ink-400">
-              {" "}
-              · {formatPhone(value.phone)}
-            </span>
+            <span className="text-[12px] text-ink-400"> · {formatPhone(value.phone)}</span>
           )}
         </span>
         <button
@@ -63,9 +60,7 @@ export function CustomerSelect({
       emptyLabel="No customers match."
       renderItem={(customer) => (
         <>
-          <span className="block text-[14px] font-medium text-ink-900">
-            {customer.name}
-          </span>
+          <span className="block text-[14px] font-medium text-ink-900">{customer.name}</span>
           <span className="block text-[12px] text-ink-400">
             {[customer.phone, customer.email].filter(Boolean).join(" · ")}
           </span>

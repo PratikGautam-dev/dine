@@ -59,8 +59,7 @@ function CorrectDialog({
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const changedIn = checkIn && checkIn !== rec.check_in_local ? checkIn : null;
-  const changedOut =
-    checkOut && checkOut !== rec.check_out_local ? checkOut : null;
+  const changedOut = checkOut && checkOut !== rec.check_out_local ? checkOut : null;
   async function submit() {
     setSaving(true);
     const problem = await onSubmit(changedIn, changedOut, note.trim());
@@ -86,9 +85,7 @@ function CorrectDialog({
           </Button>
           <Button
             onClick={submit}
-            disabled={
-              saving || (!changedIn && !changedOut) || note.trim().length < 3
-            }
+            disabled={saving || (!changedIn && !changedOut) || note.trim().length < 3}
           >
             {saving ? "Saving…" : "Save correction"}
           </Button>
@@ -104,11 +101,7 @@ function CorrectDialog({
             onChange={(e) => setCheckIn(e.target.value)}
           />
         </Field>
-        <Field
-          label="Clock-out"
-          htmlFor="co-out"
-          hint="Earlier than clock-in = after midnight."
-        >
+        <Field label="Clock-out" htmlFor="co-out" hint="Earlier than clock-in = after midnight.">
           <Input
             id="co-out"
             type="time"
@@ -143,11 +136,7 @@ function MarkPresentDialog({
 }: {
   row: OverviewRow;
   date: string;
-  onSubmit: (
-    checkIn: string,
-    checkOut: string | null,
-    note: string,
-  ) => Promise<string | null>;
+  onSubmit: (checkIn: string, checkOut: string | null, note: string) => Promise<string | null>;
   onClose: () => void;
 }) {
   const [checkIn, setCheckIn] = useState(row.shift_start ?? "");
@@ -174,10 +163,7 @@ function MarkPresentDialog({
           <Button variant="secondary" onClick={onClose} disabled={saving}>
             Cancel
           </Button>
-          <Button
-            onClick={submit}
-            disabled={saving || !checkIn || note.trim().length < 3}
-          >
+          <Button onClick={submit} disabled={saving || !checkIn || note.trim().length < 3}>
             {saving ? "Saving…" : "Mark present"}
           </Button>
         </div>
@@ -297,17 +283,10 @@ function PersonMonth({
           </thead>
           <tbody>
             {data.records.map((r) => (
-              <tr
-                key={r.work_date}
-                className="border-b border-line last:border-0"
-              >
-                <td className="py-space-2 font-semibold text-ink-900">
-                  {fmtDate(r.work_date)}
-                </td>
+              <tr key={r.work_date} className="border-b border-line last:border-0">
+                <td className="py-space-2 font-semibold text-ink-900">{fmtDate(r.work_date)}</td>
                 <td className="py-space-2">
-                  {r.check_in_local
-                    ? `${r.check_in_local} – ${r.check_out_local ?? "…"}`
-                    : "—"}
+                  {r.check_in_local ? `${r.check_in_local} – ${r.check_out_local ?? "…"}` : "—"}
                 </td>
                 <td className="py-space-2">
                   {r.working_minutes ? fmtMinutes(r.working_minutes) : "—"}
@@ -317,9 +296,7 @@ function PersonMonth({
                     {DAY_STATE[r.status]?.label ?? r.status}
                   </Badge>
                   {(r.holiday_name || r.leave_type) && (
-                    <span className="ml-space-2 text-hint">
-                      {r.holiday_name ?? r.leave_type}
-                    </span>
+                    <span className="ml-space-2 text-hint">{r.holiday_name ?? r.leave_type}</span>
                   )}
                 </td>
               </tr>
@@ -366,8 +343,7 @@ function RequestsPanel({ enabled }: { enabled: boolean }) {
               </p>
               {q.failure_code === "new_device" && (
                 <p className="flex items-center gap-1 text-hint">
-                  <Smartphone size={12} /> From a device that isn&apos;t their
-                  registered one
+                  <Smartphone size={12} /> From a device that isn&apos;t their registered one
                 </p>
               )}
               <p className="text-[12.5px] text-ink-600">“{q.reason}”</p>
@@ -387,10 +363,7 @@ function RequestsPanel({ enabled }: { enabled: boolean }) {
                 >
                   Decline
                 </Button>
-                <Button
-                  disabled={busy === q.id}
-                  onClick={() => act(q.id, true)}
-                >
+                <Button disabled={busy === q.id} onClick={() => act(q.id, true)}>
                   Approve
                 </Button>
               </div>
@@ -427,9 +400,7 @@ export default function TeamAttendancePage() {
   if (!canView) {
     return (
       <PortalShell restaurant={session?.restaurant ?? null} active="team-attendance">
-        <p className="text-[13px] text-ink-400">
-          You don&apos;t have access to team attendance.
-        </p>
+        <p className="text-[13px] text-ink-400">You don&apos;t have access to team attendance.</p>
       </PortalShell>
     );
   }
@@ -572,15 +543,9 @@ export default function TeamAttendancePage() {
                   <tr className="text-label border-b border-line text-ink-600">
                     <th className="px-space-3 py-space-2 font-medium">Name</th>
                     <th className="px-space-3 py-space-2 font-medium">Shift</th>
-                    <th className="px-space-3 py-space-2 font-medium">
-                      Status
-                    </th>
-                    <th className="px-space-3 py-space-2 font-medium">
-                      In / out
-                    </th>
-                    <th className="px-space-3 py-space-2 font-medium">
-                      Worked
-                    </th>
+                    <th className="px-space-3 py-space-2 font-medium">Status</th>
+                    <th className="px-space-3 py-space-2 font-medium">In / out</th>
+                    <th className="px-space-3 py-space-2 font-medium">Worked</th>
                     <th className="px-space-3 py-space-2 font-medium" />
                   </tr>
                 </thead>
@@ -606,9 +571,7 @@ export default function TeamAttendancePage() {
                           </p>
                         </td>
                         <td className="px-space-3 py-space-2">
-                          {r.shift_start
-                            ? `${r.shift_start}–${r.shift_end}`
-                            : "—"}
+                          {r.shift_start ? `${r.shift_start}–${r.shift_end}` : "—"}
                         </td>
                         <td className="px-space-3 py-space-2">
                           <Badge tone={st.tone}>{st.label}</Badge>
@@ -619,9 +582,7 @@ export default function TeamAttendancePage() {
                             </span>
                           )}
                           {(r.holiday_name || r.leave_type) && (
-                            <span className="ml-1 text-hint">
-                              {r.holiday_name ?? r.leave_type}
-                            </span>
+                            <span className="ml-1 text-hint">{r.holiday_name ?? r.leave_type}</span>
                           )}
                           {rec?.needs_review && (
                             <span
@@ -637,8 +598,7 @@ export default function TeamAttendancePage() {
                             <>
                               {`${rec.check_in_local} – ${rec.check_out_local ?? "…"}`}
                               <span className="block text-hint">
-                                {CHECK_METHOD[rec.check_in_method] ??
-                                  rec.check_in_method}
+                                {CHECK_METHOD[rec.check_in_method] ?? rec.check_in_method}
                                 {rec.corrected && " · corrected"}
                               </span>
                             </>
@@ -647,9 +607,7 @@ export default function TeamAttendancePage() {
                           )}
                         </td>
                         <td className="px-space-3 py-space-2">
-                          {rec?.check_out_at
-                            ? fmtMinutes(rec.working_minutes)
-                            : "—"}
+                          {rec?.check_out_at ? fmtMinutes(rec.working_minutes) : "—"}
                           {rec && rec.overtime_minutes > 0 && (
                             <span className="ml-1 text-[12px] font-semibold text-brand-700">
                               +{fmtMinutes(rec.overtime_minutes)}
@@ -660,22 +618,13 @@ export default function TeamAttendancePage() {
                           <PermissionGate page="attendance" action="write">
                             {rec ? (
                               <Button
-                                variant={
-                                  r.state === "missing_clock_out"
-                                    ? "primary"
-                                    : "ghost"
-                                }
+                                variant={r.state === "missing_clock_out" ? "primary" : "ghost"}
                                 onClick={() => setFixing(r)}
                               >
-                                {r.state === "missing_clock_out"
-                                  ? "Correct clock-out"
-                                  : "Correct"}
+                                {r.state === "missing_clock_out" ? "Correct clock-out" : "Correct"}
                               </Button>
                             ) : r.state === "absent" || r.state === "not_in" ? (
-                              <Button
-                                variant="ghost"
-                                onClick={() => setMarking(r)}
-                              >
+                              <Button variant="ghost" onClick={() => setMarking(r)}>
                                 Mark present
                               </Button>
                             ) : null}
@@ -733,17 +682,11 @@ export default function TeamAttendancePage() {
                     <td className="px-space-3 py-space-2">{s.late_days}</td>
                     <td className="px-space-3 py-space-2">{s.absent_days}</td>
                     <td className="px-space-3 py-space-2">{s.leave_days}</td>
+                    <td className="px-space-3 py-space-2">{fmtMinutes(s.working_minutes)}</td>
                     <td className="px-space-3 py-space-2">
-                      {fmtMinutes(s.working_minutes)}
+                      {s.overtime_minutes ? fmtMinutes(s.overtime_minutes) : "—"}
                     </td>
-                    <td className="px-space-3 py-space-2">
-                      {s.overtime_minutes
-                        ? fmtMinutes(s.overtime_minutes)
-                        : "—"}
-                    </td>
-                    <td className="px-space-3 py-space-2">
-                      {s.missing_clock_outs || "—"}
-                    </td>
+                    <td className="px-space-3 py-space-2">{s.missing_clock_outs || "—"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -771,13 +714,7 @@ export default function TeamAttendancePage() {
           onClose={() => setMarking(null)}
         />
       )}
-      {person && (
-        <PersonMonth
-          userId={person}
-          month={month}
-          onClose={() => setPerson(null)}
-        />
-      )}
+      {person && <PersonMonth userId={person} month={month} onClose={() => setPerson(null)} />}
     </PortalShell>
   );
 }

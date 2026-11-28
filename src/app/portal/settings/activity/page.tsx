@@ -12,12 +12,7 @@ import { CursorPager } from "@/components/erp-ui/CursorPager";
 import { DataTable } from "@/components/erp-ui/DataTable";
 import { Input } from "@/components/erp-ui/Input";
 import { Modal } from "@/components/erp-ui/Modal";
-import {
-  auditCsv,
-  formatTimestamp,
-  shortRef,
-  type AuditEntry,
-} from "@/lib/audit";
+import { auditCsv, formatTimestamp, shortRef, type AuditEntry } from "@/lib/audit";
 import { fetchActivityForExport, useActivityLog } from "@/hooks/useActivity";
 import { humanize } from "@/lib/erp/erp";
 import { toast } from "@/lib/toast";
@@ -25,9 +20,7 @@ import { useDebounced } from "@/lib/erp/useDebounced";
 
 const filterClass = "h-10 text-[13px]";
 
-const buildColumns = (
-  view: (e: AuditEntry) => void,
-): ColumnDef<AuditEntry, unknown>[] => [
+const buildColumns = (view: (e: AuditEntry) => void): ColumnDef<AuditEntry, unknown>[] => [
   {
     header: "Date",
     cell: ({ row }) => (
@@ -39,9 +32,7 @@ const buildColumns = (
   {
     header: "Action",
     cell: ({ row }) => (
-      <span className="font-semibold whitespace-nowrap text-ink-900">
-        {row.original.action}
-      </span>
+      <span className="font-semibold whitespace-nowrap text-ink-900">{row.original.action}</span>
     ),
   },
   {
@@ -61,10 +52,7 @@ const buildColumns = (
           <span className="text-ink-600"> {row.original.entity_label}</span>
         ) : (
           row.original.entity_id && (
-            <span className="text-ink-600">
-              {" "}
-              #{shortRef(row.original.entity_id)}
-            </span>
+            <span className="text-ink-600"> #{shortRef(row.original.entity_id)}</span>
           )
         )}
       </span>
@@ -108,9 +96,7 @@ export default function ActivityPage() {
     } catch (e) {
       return toast.error("Couldn't export", (e as Error).message);
     }
-    const url = URL.createObjectURL(
-      new Blob([auditCsv(all)], { type: "text/csv" }),
-    );
+    const url = URL.createObjectURL(new Blob([auditCsv(all)], { type: "text/csv" }));
     const a = Object.assign(document.createElement("a"), {
       href: url,
       download: `activity-${new Date().toISOString().slice(0, 10)}.csv`,
@@ -175,9 +161,7 @@ export default function ActivityPage() {
         />
       </Card>
       {log.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {log.error.message}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{log.error.message}</p>
       )}
       <DataTable
         columns={columns}
@@ -193,13 +177,7 @@ export default function ActivityPage() {
 }
 
 /** One entry in full: who, what, where and when as labelled details, then every change it made. */
-function EntryModal({
-  entry,
-  onClose,
-}: {
-  entry: AuditEntry | null;
-  onClose: () => void;
-}) {
+function EntryModal({ entry, onClose }: { entry: AuditEntry | null; onClose: () => void }) {
   if (!entry) return null;
   const details: [string, React.ReactNode][] = [
     ["Date", formatTimestamp(entry.created_at)],
@@ -214,27 +192,15 @@ function EntryModal({
     ["Record", entry.entity_label ?? "—"],
     [
       "Entity id",
-      entry.entity_id ? (
-        <span className="font-mono break-all">{entry.entity_id}</span>
-      ) : (
-        "—"
-      ),
+      entry.entity_id ? <span className="font-mono break-all">{entry.entity_id}</span> : "—",
     ],
   ];
   return (
-    <Modal
-      open
-      title="Activity details"
-      description={entry.summary}
-      onClose={onClose}
-      width="lg"
-    >
+    <Modal open title="Activity details" description={entry.summary} onClose={onClose} width="lg">
       <dl className="grid grid-cols-1 gap-x-space-4 gap-y-space-3 sm:grid-cols-2">
         {details.map(([k, v]) => (
           <div key={k} className="min-w-0">
-            <dt className="text-[11px] font-semibold tracking-wide text-ink-400 uppercase">
-              {k}
-            </dt>
+            <dt className="text-[11px] font-semibold tracking-wide text-ink-400 uppercase">{k}</dt>
             <dd className="mt-0.5 text-[13px] text-ink-900">{v}</dd>
           </div>
         ))}

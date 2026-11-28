@@ -23,7 +23,10 @@ export default function ThemeEditorPage({ params }: { params: Promise<{ key: str
         title="Customize theme"
         description="Change the look and text of your website, preview it, then publish."
         actions={
-          <Link href="/portal/channels/online" className="text-[13px] font-semibold text-brand-700 hover:underline">
+          <Link
+            href="/portal/channels/online"
+            className="text-[13px] font-semibold text-brand-700 hover:underline"
+          >
             ← Back to Website
           </Link>
         }

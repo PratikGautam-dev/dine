@@ -17,7 +17,12 @@ export function WhatsAppTemplates() {
   const templates = list.data ?? null;
   const a = account.data;
   if (!allowed) return null;
-  if (account.error) return <Card className="p-space-4 text-[13.5px] text-error">Couldn&apos;t load WhatsApp: {account.error.message}</Card>;
+  if (account.error)
+    return (
+      <Card className="p-space-4 text-[13.5px] text-error">
+        Couldn&apos;t load WhatsApp: {account.error.message}
+      </Card>
+    );
   if (!a) return null;
 
   async function load() {
@@ -29,12 +34,10 @@ export function WhatsAppTemplates() {
     <Card className="p-space-4">
       <div className="mb-space-2 flex flex-wrap items-center justify-between gap-space-2">
         <div>
-          <h2 className="text-[15px] font-bold text-ink-900">
-            Message templates
-          </h2>
+          <h2 className="text-[15px] font-bold text-ink-900">Message templates</h2>
           <p className="text-[13px] text-ink-600">
-            Anything you send outside the 24-hour customer window must be an
-            approved template. Create them in Meta&apos;s WhatsApp Manager.
+            Anything you send outside the 24-hour customer window must be an approved template.
+            Create them in Meta&apos;s WhatsApp Manager.
           </p>
         </div>
         {a.connected && (
@@ -55,11 +58,7 @@ export function WhatsAppTemplates() {
           .
         </p>
       ) : templates === null ? (
-        <Button
-          className="mobile-page-action"
-          variant="secondary"
-          onClick={load}
-        >
+        <Button className="mobile-page-action" variant="secondary" onClick={load}>
           Show templates
         </Button>
       ) : templates.length === 0 ? (

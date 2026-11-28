@@ -53,7 +53,9 @@ export function OpeningHoursEditor({
   const [problem, setProblem] = useState<string | null>(null);
 
   const ordered = [...schedule].sort(
-    (a, b) => DAYS.findIndex((d) => d.key === a.day) - DAYS.findIndex((d) => d.key === b.day) || a.open.localeCompare(b.open),
+    (a, b) =>
+      DAYS.findIndex((d) => d.key === a.day) - DAYS.findIndex((d) => d.key === b.day) ||
+      a.open.localeCompare(b.open),
   );
 
   return (
@@ -63,9 +65,14 @@ export function OpeningHoursEditor({
       ) : (
         <ul className="mb-space-3 divide-y divide-line rounded-md border border-line">
           {ordered.map((e) => (
-            <li key={`${e.day}-${e.open}-${e.close}`} className="flex items-center justify-between gap-space-3 px-space-3 py-space-2 text-[13px]">
+            <li
+              key={`${e.day}-${e.open}-${e.close}`}
+              className="flex items-center justify-between gap-space-3 px-space-3 py-space-2 text-[13px]"
+            >
               <span className="flex gap-space-4">
-                <span className="w-24 font-medium text-ink-900">{DAYS.find((d) => d.key === e.day)?.label}</span>
+                <span className="w-24 font-medium text-ink-900">
+                  {DAYS.find((d) => d.key === e.day)?.label}
+                </span>
                 <span className="text-ink-600">
                   {clock(e.open)} – {clock(e.close)}
                 </span>
@@ -97,10 +104,20 @@ export function OpeningHoursEditor({
             </Select>
           </div>
           <div className="w-36">
-            <Input aria-label="Opens at" type="time" value={open} onChange={(e) => setOpen(e.target.value)} />
+            <Input
+              aria-label="Opens at"
+              type="time"
+              value={open}
+              onChange={(e) => setOpen(e.target.value)}
+            />
           </div>
           <div className="w-36">
-            <Input aria-label="Closes at" type="time" value={close} onChange={(e) => setClose(e.target.value)} />
+            <Input
+              aria-label="Closes at"
+              type="time"
+              value={close}
+              onChange={(e) => setClose(e.target.value)}
+            />
           </div>
           <Button
             type="button"
@@ -111,7 +128,9 @@ export function OpeningHoursEditor({
           </Button>
         </div>
       )}
-      {(problem || error) && <p className="mt-space-2 text-[12.5px] font-medium text-error">{problem ?? error}</p>}
+      {(problem || error) && (
+        <p className="mt-space-2 text-[12.5px] font-medium text-error">{problem ?? error}</p>
+      )}
 
       {!hideSave && !disabled && (
         <Button type="button" className="mt-space-3" disabled={!dirty || saving} onClick={onSave}>

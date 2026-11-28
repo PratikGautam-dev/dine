@@ -67,7 +67,8 @@ export function StorefrontSettings() {
     else setForm(null);
   }
 
-  if (!canView) return <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>;
+  if (!canView)
+    return <p className="text-[13px] text-ink-400">You don&apos;t have access to Settings.</p>;
 
   return (
     <>
@@ -96,7 +97,11 @@ export function StorefrontSettings() {
 
             <Card className="mb-space-4 p-space-5">
               <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">Store link</h2>
-              <Field label="Store link" htmlFor="sf-slug" hint="/<this> -- changes go live immediately">
+              <Field
+                label="Store link"
+                htmlFor="sf-slug"
+                hint="/<this> -- changes go live immediately"
+              >
                 <Input
                   id="sf-slug"
                   value={active.storefront_slug}
@@ -105,14 +110,21 @@ export function StorefrontSettings() {
                   disabled={!canWrite}
                 />
               </Field>
-              {formError && <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>}
+              {formError && (
+                <p className="mt-space-2 text-[13px] font-medium text-error">{formError}</p>
+              )}
               <PermissionGate page="settings" action="write">
                 <div className="mt-space-4 flex gap-space-2">
                   <Button type="submit" disabled={saving || !form}>
                     {saving ? "Saving…" : "Save"}
                   </Button>
                   {form && (
-                    <Button type="button" variant="secondary" onClick={() => setForm(null)} disabled={saving}>
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => setForm(null)}
+                      disabled={saving}
+                    >
                       Discard changes
                     </Button>
                   )}
@@ -120,7 +132,6 @@ export function StorefrontSettings() {
               </PermissionGate>
             </Card>
           </form>
-
 
           <div>
             <Card className="overflow-hidden p-0">
@@ -154,8 +165,12 @@ export function StorefrontSettings() {
                     )}
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate text-[13.5px] font-bold text-ink-900">{storefront?.name}</p>
-                    {storefront?.city && <p className="text-[11.5px] text-ink-600">{storefront.city}</p>}
+                    <p className="truncate text-[13.5px] font-bold text-ink-900">
+                      {storefront?.name}
+                    </p>
+                    {storefront?.city && (
+                      <p className="text-[11.5px] text-ink-600">{storefront.city}</p>
+                    )}
                   </div>
                   <span className="ml-auto shrink-0">
                     <Badge tone={active.web_ordering_enabled ? "success" : "neutral"}>
@@ -163,7 +178,9 @@ export function StorefrontSettings() {
                     </Badge>
                   </span>
                 </div>
-                {activeDraft.tagline && <p className="mb-space-2 text-[12px] text-ink-600">{activeDraft.tagline}</p>}
+                {activeDraft.tagline && (
+                  <p className="mb-space-2 text-[12px] text-ink-600">{activeDraft.tagline}</p>
+                )}
                 {activeDraft.cuisine_tags && (
                   <p className="mb-space-2 flex flex-wrap gap-1">
                     {activeDraft.cuisine_tags
@@ -171,7 +188,10 @@ export function StorefrontSettings() {
                       .map((c) => c.trim())
                       .filter(Boolean)
                       .map((c) => (
-                        <span key={c} className="rounded-full bg-paper px-space-2 py-0.5 text-[11px] font-semibold text-ink-600">
+                        <span
+                          key={c}
+                          className="rounded-full bg-paper px-space-2 py-0.5 text-[11px] font-semibold text-ink-600"
+                        >
                           {c}
                         </span>
                       ))}

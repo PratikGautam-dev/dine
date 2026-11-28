@@ -37,9 +37,7 @@ export function AnchoredSelect<Value extends string | number>({
   return (
     <SelectPrimitive.Root
       value={value}
-      defaultValue={
-        defaultValue ?? options.find((option) => !option.disabled)?.value
-      }
+      defaultValue={defaultValue ?? options.find((option) => !option.disabled)?.value}
       items={options}
       onValueChange={(next) => {
         if (next !== null) onValueChange?.(next);

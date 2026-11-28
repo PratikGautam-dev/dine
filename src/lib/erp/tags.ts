@@ -15,8 +15,7 @@ import {
 import type { Segment } from "@/lib/erp/crm";
 
 /** Customers > Tags (backend: services/customer_tags.py). */
-export type TagColor =
-  "purple" | "blue" | "green" | "amber" | "red" | "pink" | "teal" | "grey";
+export type TagColor = "purple" | "blue" | "green" | "amber" | "red" | "pink" | "teal" | "grey";
 export type TagIcon =
   | "tag"
   | "crown"
@@ -116,10 +115,7 @@ export const EMPTY_TAG: TagForm = {
 };
 
 /** Chip (tint + text), swatch and solid tile per colour. */
-export const TAG_COLOR: Record<
-  TagColor,
-  { chip: string; swatch: string; tile: string }
-> = {
+export const TAG_COLOR: Record<TagColor, { chip: string; swatch: string; tile: string }> = {
   purple: {
     chip: "bg-purple-50 text-purple-700",
     swatch: "bg-purple-500",

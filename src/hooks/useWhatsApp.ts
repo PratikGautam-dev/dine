@@ -119,7 +119,8 @@ export function useWhatsAppBot(enabled = true) {
 export function useSaveWhatsAppBot() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: Partial<Omit<WhatsAppBotSettings, "timeout_range">>) => erpSend<WhatsAppBotSettings>(BOT, "PUT", body),
+    mutationFn: (body: Partial<Omit<WhatsAppBotSettings, "timeout_range">>) =>
+      erpSend<WhatsAppBotSettings>(BOT, "PUT", body),
     onSuccess: (d) => qc.setQueryData([...queryKeys.whatsapp, "bot"], d),
   });
 }

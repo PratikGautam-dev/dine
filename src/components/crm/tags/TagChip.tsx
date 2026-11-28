@@ -42,10 +42,7 @@ export function TagTile({
 }) {
   return (
     <span
-      className={cn(
-        "flex shrink-0 items-center justify-center rounded-lg",
-        TAG_COLOR[color].tile,
-      )}
+      className={cn("flex shrink-0 items-center justify-center rounded-lg", TAG_COLOR[color].tile)}
       style={{ width: size, height: size }}
     >
       <HugeiconsIcon icon={TAG_ICON[icon]} size={Math.round(size * 0.55)} />

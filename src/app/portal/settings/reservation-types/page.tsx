@@ -25,16 +25,21 @@ export default function ReservationTypesSettingsPage() {
       description="Which reservation types each branch offers in the WhatsApp booking menu."
     >
       {canManageAppointmentTypes && (
-      <Card className="p-space-5">
-        <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Reservation types</h2>
-        <p className="mb-space-3 text-[12.5px] text-ink-400">
-          Turn on/off which of your allowed reservation types this branch shows in the
-          WhatsApp booking menu. A type greyed out below hasn&apos;t been enabled for your
-          account by the platform — contact support to request it.
-        </p>
-        <BranchField branches={branches} branchId={branchId} branch={branch} onChange={setBranchId} />
-        <AppointmentTypeToggles canManage={canManageAppointmentTypes} branchId={branchId} />
-      </Card>
+        <Card className="p-space-5">
+          <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Reservation types</h2>
+          <p className="mb-space-3 text-[12.5px] text-ink-400">
+            Turn on/off which of your allowed reservation types this branch shows in the WhatsApp
+            booking menu. A type greyed out below hasn&apos;t been enabled for your account by the
+            platform — contact support to request it.
+          </p>
+          <BranchField
+            branches={branches}
+            branchId={branchId}
+            branch={branch}
+            onChange={setBranchId}
+          />
+          <AppointmentTypeToggles canManage={canManageAppointmentTypes} branchId={branchId} />
+        </Card>
       )}
     </SettingsPageFrame>
   );

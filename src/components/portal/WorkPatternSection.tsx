@@ -15,22 +15,14 @@ type Branch = { id: string; branch_name: string };
 
 /** A person's own hours on the Users page: their home branch (whose rules their day is judged by), their own shift and weekly off
  * (empty = the branch's / business's), and whether their attendance is tracked at all (an owner or accountant may not be). */
-export function WorkPatternSection({
-  userId,
-  branches,
-}: {
-  userId: string;
-  branches: Branch[];
-}) {
+export function WorkPatternSection({ userId, branches }: { userId: string; branches: Branch[] }) {
   const canView = usePermission("attendance", "view");
   const canEdit = usePermission("attendance", "write");
   const { pattern, error, save } = useWorkPattern(canView, userId);
   if (!canView) return null;
   return (
     <div className="border-t border-line pt-space-3">
-      <h3 className="mb-space-2 text-[14px] font-bold text-ink-900">
-        Work pattern
-      </h3>
+      <h3 className="mb-space-2 text-[14px] font-bold text-ink-900">Work pattern</h3>
       {error && <p className="text-[13px] text-error">{error}</p>}
       {pattern && (
         <PatternForm
@@ -144,9 +136,7 @@ function PatternForm({
                 type="button"
                 disabled={!canEdit}
                 aria-pressed={on}
-                onClick={() =>
-                  setOff(on ? off.filter((x) => x !== d.n) : [...off, d.n])
-                }
+                onClick={() => setOff(on ? off.filter((x) => x !== d.n) : [...off, d.n])}
                 className={cn(
                   "touch-target rounded-md border px-space-3 py-space-1 text-[13px] font-semibold",
                   on

@@ -21,12 +21,10 @@ export type ConditionField =
   | "city"
   | "gender"
   | "has_tag";
-export type ConditionOp =
-  "gt" | "gte" | "lt" | "lte" | "eq" | "ne" | "in" | "nin" | "is";
+export type ConditionOp = "gt" | "gte" | "lt" | "lte" | "eq" | "ne" | "in" | "nin" | "is";
 /** The period an order figure is counted over: the last `days`, or `start` to `end` (YYYY-MM-DD, both included). No window = all time. */
 export type ConditionWindow =
-  | { kind: "days"; days: number }
-  | { kind: "between"; start: string; end: string };
+  { kind: "days"; days: number } | { kind: "between"; start: string; end: string };
 export type Condition = {
   field: ConditionField;
   op: ConditionOp;
@@ -38,8 +36,7 @@ export type Match = "all" | "any";
 /** A segment's group of conditions, matched as one ("any of these"); one level only. */
 export type ConditionGroup = { group: Condition[]; match: Match };
 export type SegmentCondition = Condition | ConditionGroup;
-export const isGroup = (c: SegmentCondition): c is ConditionGroup =>
-  "group" in c;
+export const isGroup = (c: SegmentCondition): c is ConditionGroup => "group" in c;
 export type RuleFrequency = "real_time" | "daily" | "weekly";
 export type RuleStatus = "active" | "draft" | "paused";
 export type RuleScope = "tag" | "membership";
@@ -109,15 +106,7 @@ export type SavedSegment = {
 };
 
 type Input =
-  | "money"
-  | "number"
-  | "none"
-  | "tiers"
-  | "channels"
-  | "customer_type"
-  | "text"
-  | "gender"
-  | "tags";
+  "money" | "number" | "none" | "tiers" | "channels" | "customer_type" | "text" | "gender" | "tags";
 
 export const FIELD_META: Record<
   ConditionField,
@@ -274,12 +263,7 @@ export function defaultCondition(field: ConditionField): Condition {
       return {
         field,
         op,
-        value:
-          field === "days_since_last_purchase"
-            ? 60
-            : field === "orders"
-              ? 3
-              : 30,
+        value: field === "days_since_last_purchase" ? 60 : field === "orders" ? 3 : 30,
       };
     case "none":
       return { field, op, value: true };
@@ -300,27 +284,20 @@ export function defaultCondition(field: ConditionField): Condition {
 
 /** Whether a condition has a value the server will accept the shape of (the server checks ranges). */
 /** Whether a segment has a condition on `field`, in a group or not. */
-export function segmentUsesField(
-  conditions: SegmentCondition[],
-  field: ConditionField,
-): boolean {
+export function segmentUsesField(conditions: SegmentCondition[], field: ConditionField): boolean {
   return conditions.some((c) =>
     isGroup(c) ? c.group.some((x) => x.field === field) : c.field === field,
   );
 }
 
 export function segmentConditionReady(c: SegmentCondition): boolean {
-  return isGroup(c)
-    ? c.group.length > 0 && c.group.every(conditionReady)
-    : conditionReady(c);
+  return isGroup(c) ? c.group.length > 0 && c.group.every(conditionReady) : conditionReady(c);
 }
 
 export function conditionReady(c: Condition): boolean {
   const w = c.window;
-  if (w?.kind === "days" && !(Number.isInteger(w.days) && w.days >= 1))
-    return false;
-  if (w?.kind === "between" && !(w.start && w.end && w.start <= w.end))
-    return false;
+  if (w?.kind === "days" && !(Number.isInteger(w.days) && w.days >= 1)) return false;
+  if (w?.kind === "between" && !(w.start && w.end && w.start <= w.end)) return false;
   const input = FIELD_META[c.field].input;
   if (input === "none") return true;
   if (Array.isArray(c.value)) return c.value.length > 0;

@@ -21,21 +21,34 @@ export type ShopEmail = {
 const BASE = "/api/v1/store-admin/email-sender";
 
 export function useShopEmail(options: { enabled?: boolean } = {}) {
-  return useQuery({ queryKey: queryKeys.shopEmail, queryFn: () => erpGet<ShopEmail>(BASE), enabled: options.enabled ?? true });
+  return useQuery({
+    queryKey: queryKeys.shopEmail,
+    queryFn: () => erpGet<ShopEmail>(BASE),
+    enabled: options.enabled ?? true,
+  });
 }
 
 function useShopEmailMutation<T, R>(fn: (arg: T) => Promise<R>) {
   const qc = useQueryClient();
-  return useMutation({ mutationFn: fn, onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.shopEmail }) });
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.shopEmail }),
+  });
 }
 
 /** Saves the address (unconfirmed) and emails it a code; the answer's `challenge` goes back with the code. */
 export const useStartShopEmail = () =>
-  useShopEmailMutation((email: string) => erpSend<{ challenge: string; expires_in: number }>(`${BASE}/start`, "POST", { email }));
+  useShopEmailMutation((email: string) =>
+    erpSend<{ challenge: string; expires_in: number }>(`${BASE}/start`, "POST", { email }),
+  );
 
 export const useVerifyShopEmail = () =>
-  useShopEmailMutation((v: { code: string; challenge: string }) => erpSend<ShopEmail>(`${BASE}/verify`, "POST", v));
+  useShopEmailMutation((v: { code: string; challenge: string }) =>
+    erpSend<ShopEmail>(`${BASE}/verify`, "POST", v),
+  );
 
-export const useRemoveShopEmail = () => useShopEmailMutation(() => erpSend<ShopEmail>(BASE, "DELETE"));
+export const useRemoveShopEmail = () =>
+  useShopEmailMutation(() => erpSend<ShopEmail>(BASE, "DELETE"));
 
-export const useTestShopEmail = () => useMutation({ mutationFn: () => erpSend<{ sent: boolean }>(`${BASE}/test`, "POST") });
+export const useTestShopEmail = () =>
+  useMutation({ mutationFn: () => erpSend<{ sent: boolean }>(`${BASE}/test`, "POST") });

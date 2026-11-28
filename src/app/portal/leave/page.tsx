@@ -3,12 +3,7 @@
 import { Select } from "@/components/erp-ui/Select";
 
 import { useState } from "react";
-import {
-  CalendarClock,
-  CalendarDays,
-  CircleCheck,
-  Hourglass,
-} from "lucide-react";
+import { CalendarClock, CalendarDays, CircleCheck, Hourglass } from "lucide-react";
 import { Badge } from "@/components/erp-ui/Badge";
 import { Button } from "@/components/erp-ui/Button";
 import { Card } from "@/components/erp-ui/Card";
@@ -33,29 +28,22 @@ const blank = (): LeaveForm => ({
   reason: "",
 });
 
-const days = (n: number) =>
-  `${n % 1 === 0 ? n : n.toFixed(1)} day${n === 1 ? "" : "s"}`;
+const days = (n: number) => `${n % 1 === 0 ? n : n.toFixed(1)} day${n === 1 ? "" : "s"}`;
 
 export default function MyLeavePage() {
   const session = useStaffSession();
   const canView = usePermission("my_leave", "view");
-  const { balance, requests, types, error, apply, cancel } =
-    useMyLeave(canView);
+  const { balance, requests, types, error, apply, cancel } = useMyLeave(canView);
   const [form, setForm] = useState<LeaveForm>(blank());
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const set = (patch: Partial<LeaveForm>) =>
-    setForm((f) => ({ ...f, ...patch }));
-  const sameDay =
-    form.from_date !== "" &&
-    (form.to_date === "" || form.to_date === form.from_date);
+  const set = (patch: Partial<LeaveForm>) => setForm((f) => ({ ...f, ...patch }));
+  const sameDay = form.from_date !== "" && (form.to_date === "" || form.to_date === form.from_date);
 
   if (!canView) {
     return (
       <PortalShell restaurant={session?.restaurant ?? null} active="leave">
-        <p className="text-[13px] text-ink-400">
-          You don&apos;t have access to leave.
-        </p>
+        <p className="text-[13px] text-ink-400">You don&apos;t have access to leave.</p>
       </PortalShell>
     );
   }
@@ -131,9 +119,7 @@ export default function MyLeavePage() {
 
       <div className="grid min-w-0 grid-cols-1 gap-space-4 xl:grid-cols-[380px_minmax(0,1fr)]">
         <Card className="@container min-w-0 h-fit p-space-3 md:p-space-5">
-          <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">
-            Ask for leave
-          </h2>
+          <h2 className="mb-space-4 text-[15px] font-bold text-ink-900">Ask for leave</h2>
           <form onSubmit={submit} aria-label="Ask for leave">
             <Field label="Type" htmlFor="lv-type">
               <Select
@@ -142,13 +128,11 @@ export default function MyLeavePage() {
                 value={form.leave_type}
                 onValueChange={(value) => set({ leave_type: value })}
               >
-                {(types.length ? types : Object.keys(LEAVE_TYPE_LABEL)).map(
-                  (t) => (
-                    <option key={t} value={t}>
-                      {LEAVE_TYPE_LABEL[t] ?? t}
-                    </option>
-                  ),
-                )}
+                {(types.length ? types : Object.keys(LEAVE_TYPE_LABEL)).map((t) => (
+                  <option key={t} value={t}>
+                    {LEAVE_TYPE_LABEL[t] ?? t}
+                  </option>
+                ))}
               </Select>
             </Field>
             <div className="grid grid-cols-1 gap-space-3 @min-[300px]:grid-cols-2">
@@ -188,12 +172,7 @@ export default function MyLeavePage() {
                 Half day only
               </CheckboxRow>
             )}
-            <Field
-              label="Reason"
-              htmlFor="lv-reason"
-              required
-              className="mt-space-3"
-            >
+            <Field label="Reason" htmlFor="lv-reason" required className="mt-space-3">
               <Textarea
                 id="lv-reason"
                 rows={3}
@@ -203,10 +182,7 @@ export default function MyLeavePage() {
               />
             </Field>
             {formError && (
-              <p
-                role="alert"
-                className="mb-space-3 text-[12.5px] font-medium text-error"
-              >
+              <p role="alert" className="mb-space-3 text-[12.5px] font-medium text-error">
                 {formError}
               </p>
             )}
@@ -221,15 +197,11 @@ export default function MyLeavePage() {
         </Card>
 
         <Card className="min-w-0 p-space-3 md:p-space-5">
-          <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-            My requests
-          </h2>
+          <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">My requests</h2>
           {!requests ? (
             <SkeletonLines rows={3} />
           ) : requests.length === 0 ? (
-            <p className="text-[13px] text-ink-400">
-              You haven&apos;t asked for any leave yet.
-            </p>
+            <p className="text-[13px] text-ink-400">You haven&apos;t asked for any leave yet.</p>
           ) : (
             <ul className="divide-y divide-line">
               {requests.map((r) => (
@@ -254,11 +226,7 @@ export default function MyLeavePage() {
                   <div className="mobile-page-actions flex shrink-0 items-center gap-space-2">
                     <Badge tone={LEAVE_STATUS_TONE[r.status]}>{r.status}</Badge>
                     {r.status === "pending" && (
-                      <Button
-                        variant="secondary"
-                        size="md"
-                        onClick={() => cancel(r.id)}
-                      >
+                      <Button variant="secondary" size="md" onClick={() => cancel(r.id)}>
                         Withdraw
                       </Button>
                     )}

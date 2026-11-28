@@ -37,14 +37,19 @@ export function useEmailTemplates(options: { enabled?: boolean } = {}) {
 }
 
 export function useEmailTemplate(key: string, enabled = true) {
-  return useQuery({ queryKey: queryKeys.emailTemplate(key), queryFn: () => erpGet<EmailTemplatePreview>(`${BASE}/${key}`), enabled });
+  return useQuery({
+    queryKey: queryKeys.emailTemplate(key),
+    queryFn: () => erpGet<EmailTemplatePreview>(`${BASE}/${key}`),
+    enabled,
+  });
 }
 
 /** Switch one customer email on or off for this restaurant. */
 export function useSwitchEmailTemplate() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (v: { key: string; enabled: boolean }) => erpSend<{ key: string; enabled: boolean }>(`${BASE}/${v.key}`, "PUT", { enabled: v.enabled }),
+    mutationFn: (v: { key: string; enabled: boolean }) =>
+      erpSend<{ key: string; enabled: boolean }>(`${BASE}/${v.key}`, "PUT", { enabled: v.enabled }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.emailTemplates }),
   });
 }

@@ -34,7 +34,12 @@ type Me = {
 
 const MIN_PASSWORD = 10;
 
-function PasswordInput({ id, value, onChange, autoComplete }: {
+function PasswordInput({
+  id,
+  value,
+  onChange,
+  autoComplete,
+}: {
   id: string;
   value: string;
   onChange: (v: string) => void;
@@ -64,7 +69,15 @@ function PasswordInput({ id, value, onChange, autoComplete }: {
   );
 }
 
-function EditProfileDialog({ me, onClose, onSaved }: { me: Me; onClose: () => void; onSaved: (m: Me) => void }) {
+function EditProfileDialog({
+  me,
+  onClose,
+  onSaved,
+}: {
+  me: Me;
+  onClose: () => void;
+  onSaved: (m: Me) => void;
+}) {
   const [name, setName] = useState(me.name);
   const [phone, setPhone] = useState(me.phone ?? "");
   const [error, setError] = useState<string | null>(null);
@@ -95,10 +108,22 @@ function EditProfileDialog({ me, onClose, onSaved }: { me: Me; onClose: () => vo
       </h2>
       <form onSubmit={submit} className="mt-space-4">
         <Field label="Name" htmlFor="pf-name" required>
-          <Input id="pf-name" value={name} onChange={(e) => setName(e.target.value)} required minLength={2} />
+          <Input
+            id="pf-name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+            minLength={2}
+          />
         </Field>
         <Field label="Phone" htmlFor="pf-phone">
-          <Input id="pf-phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} autoComplete="tel" />
+          <Input
+            id="pf-phone"
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            autoComplete="tel"
+          />
         </Field>
         <p className="mb-space-3 text-[12.5px] text-ink-600">
           Your email and role are managed by an Owner / Manager.
@@ -137,10 +162,12 @@ export default function ProfilePage() {
   const load = useCallback(async () => {
     const res = await staffFetch("/api/portal/staff/me");
     if (res.ok) setMe(res.data as Me);
-    else setLoadError(res.unauthorized ? "Your session has ended. Please sign in again." : res.error);
+    else
+      setLoadError(res.unauthorized ? "Your session has ended. Please sign in again." : res.error);
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) void load();
   }, [ready, load]);
 
@@ -150,7 +177,8 @@ export default function ProfilePage() {
     const session = getStaffSession();
     const access = getStaffAccessToken();
     const refresh = getStaffRefreshToken();
-    if (session && access && refresh) saveStaffSession(access, refresh, { ...session, name: updated.name });
+    if (session && access && refresh)
+      saveStaffSession(access, refresh, { ...session, name: updated.name });
     toast.success("Profile updated.");
   }
 
@@ -225,10 +253,25 @@ export default function ProfilePage() {
           </h2>
           <form onSubmit={changePassword}>
             <Field label="Current password" htmlFor="pw-current" required>
-              <PasswordInput id="pw-current" value={current} onChange={setCurrent} autoComplete="current-password" />
+              <PasswordInput
+                id="pw-current"
+                value={current}
+                onChange={setCurrent}
+                autoComplete="current-password"
+              />
             </Field>
-            <Field label="New password" htmlFor="pw-new" required hint={`At least ${MIN_PASSWORD} characters.`}>
-              <PasswordInput id="pw-new" value={next} onChange={setNext} autoComplete="new-password" />
+            <Field
+              label="New password"
+              htmlFor="pw-new"
+              required
+              hint={`At least ${MIN_PASSWORD} characters.`}
+            >
+              <PasswordInput
+                id="pw-new"
+                value={next}
+                onChange={setNext}
+                autoComplete="new-password"
+              />
             </Field>
             <Field
               label="Confirm new password"
@@ -236,9 +279,16 @@ export default function ProfilePage() {
               required
               error={mismatch ? "The two passwords don't match." : undefined}
             >
-              <PasswordInput id="pw-confirm" value={confirm} onChange={setConfirm} autoComplete="new-password" />
+              <PasswordInput
+                id="pw-confirm"
+                value={confirm}
+                onChange={setConfirm}
+                autoComplete="new-password"
+              />
             </Field>
-            <p className="mb-space-3 text-[13px] text-ink-600">Changing your password signs you out on all devices.</p>
+            <p className="mb-space-3 text-[13px] text-ink-600">
+              Changing your password signs you out on all devices.
+            </p>
             {pwError && (
               <p role="alert" className="mb-space-3 text-[12.5px] font-medium text-error">
                 {pwError}
@@ -250,7 +300,9 @@ export default function ProfilePage() {
           </form>
         </Card>
       </div>
-      {editing && me && <EditProfileDialog me={me} onClose={() => setEditing(false)} onSaved={onSaved} />}
+      {editing && me && (
+        <EditProfileDialog me={me} onClose={() => setEditing(false)} onSaved={onSaved} />
+      )}
     </PortalShell>
   );
 }

@@ -16,8 +16,16 @@ import { WhatsAppIcon } from "@/components/portal/WhatsAppIcon";
 import { CHANNELS, CHANNEL_ORDER, type Channel } from "@/lib/erp/erp";
 
 const ICONS = { online: Globe, pos: Store, whatsapp: WhatsAppIcon } as const;
-const PANELS = { online: OnlineChannelPanel, pos: PosChannelPanel, whatsapp: WhatsAppChannelPanel } as const;
-const WORKING_PAGE: Record<Channel, string> = { online: "/portal/channels/online", pos: "/portal/channels/pos", whatsapp: "/portal/channels/whatsapp" };
+const PANELS = {
+  online: OnlineChannelPanel,
+  pos: PosChannelPanel,
+  whatsapp: WhatsAppChannelPanel,
+} as const;
+const WORKING_PAGE: Record<Channel, string> = {
+  online: "/portal/channels/online",
+  pos: "/portal/channels/pos",
+  whatsapp: "/portal/channels/whatsapp",
+};
 
 export default function ChannelSettingsPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = use(params);

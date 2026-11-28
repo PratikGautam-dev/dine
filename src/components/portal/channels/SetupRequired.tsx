@@ -21,19 +21,11 @@ const SETUP: Record<Channel, { href: string; doc: string }> = {
 
 /** Shown at the point of use when a channel can't work yet: says what is missing and links straight to it. Renders nothing once the
  * channel is ready, while loading, and for people without the channels permission (the readiness request is skipped for them). */
-export function SetupRequired({
-  channel,
-  what,
-}: {
-  channel: Channel;
-  what: string;
-}) {
+export function SetupRequired({ channel, what }: { channel: Channel; what: string }) {
   const { data } = useReadiness(channel);
   if (!data || data.ready) return null;
   const label = CHANNELS[channel].label;
-  const missing = data.items
-    .filter((i) => i.required && !i.done && i.available)
-    .slice(0, 3);
+  const missing = data.items.filter((i) => i.required && !i.done && i.available).slice(0, 3);
   return (
     <Card className="mb-space-4 flex flex-wrap items-start gap-space-3 border-brand-200 bg-brand-50 p-space-4">
       <span className="mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-full bg-card text-brand-600">
@@ -64,13 +56,7 @@ export function SetupRequired({
         >
           How to
         </Link>
-        <Button
-          href={
-            data.in_plan
-              ? SETUP[channel].href
-              : `/portal/settings/billing#${channel}`
-          }
-        >
+        <Button href={data.in_plan ? SETUP[channel].href : `/portal/settings/billing#${channel}`}>
           {data.in_plan ? "Set up" : data.ended ? "Renew" : "Buy a plan"}
         </Button>
       </div>

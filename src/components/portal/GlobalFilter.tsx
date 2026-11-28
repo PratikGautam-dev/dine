@@ -55,7 +55,8 @@ export function GlobalFilter({ periods, channels, pickups }: GlobalFilterOptions
     () => false,
   );
   const stored = hydrated ? savedPeriod : DEFAULT_PERIOD;
-  const chosenChannels = hydrated && channels ? savedChannels.filter((c) => channels.includes(c)) : [];
+  const chosenChannels =
+    hydrated && channels ? savedChannels.filter((c) => channels.includes(c)) : [];
   const chosenPickups = hydrated && pickups ? savedPickups.filter((p) => pickups.includes(p)) : [];
   const custom = hydrated ? savedCustom : NO_CUSTOM;
   const period = resolvePeriod(stored, periods);
@@ -77,9 +78,15 @@ export function GlobalFilter({ periods, channels, pickups }: GlobalFilterOptions
           <CalendarDays size={15} className="text-ink-400" />
           <span className="font-semibold text-ink-900">{PERIOD_LABEL[period]}</span>
           <span className="text-ink-600">· {rangeText}</span>
-          {[...chosenChannels.map((c) => CHANNEL_LABEL[c]), ...chosenPickups.map((p) => PICKUP_LABEL[p])].length > 0 && (
+          {[
+            ...chosenChannels.map((c) => CHANNEL_LABEL[c]),
+            ...chosenPickups.map((p) => PICKUP_LABEL[p]),
+          ].length > 0 && (
             <span className="rounded-full bg-brand-50 px-space-2 py-0.5 text-[11.5px] font-semibold text-brand-700">
-              {[...chosenChannels.map((c) => CHANNEL_LABEL[c]), ...chosenPickups.map((p) => PICKUP_LABEL[p])].join(", ")}
+              {[
+                ...chosenChannels.map((c) => CHANNEL_LABEL[c]),
+                ...chosenPickups.map((p) => PICKUP_LABEL[p]),
+              ].join(", ")}
             </span>
           )}
           <ChevronDown
@@ -172,8 +179,7 @@ export function GlobalFilter({ periods, channels, pickups }: GlobalFilterOptions
   );
 }
 
-const CHIP =
-  "rounded-full border px-space-3 py-1.5 text-[13px] font-semibold transition-colors";
+const CHIP = "rounded-full border px-space-3 py-1.5 text-[13px] font-semibold transition-colors";
 const CHIP_ON = "border-brand-600 bg-brand-600 text-white";
 const CHIP_OFF = "border-line bg-card text-ink-600 hover:border-brand-300 hover:bg-brand-50";
 

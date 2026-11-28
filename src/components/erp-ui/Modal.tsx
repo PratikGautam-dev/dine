@@ -88,9 +88,7 @@ export function Modal({
               {title}
             </h2>
             {description && (
-              <p
-                className={`mt-0.5 text-[13px] ${bannerIcon ? "text-white/80" : "text-ink-600"}`}
-              >
+              <p className={`mt-0.5 text-[13px] ${bannerIcon ? "text-white/80" : "text-ink-600"}`}>
                 {description}
               </p>
             )}

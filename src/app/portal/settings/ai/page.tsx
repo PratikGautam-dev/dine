@@ -18,12 +18,12 @@ export default function AiSettingsPage() {
       description="Which language model answers your guests."
     >
       <div className="max-w-2xl">
-      <TenantLLMSettings
-        configuration={tenantLLM.configuration}
-        loading={tenantLLM.loading}
-        onSave={tenantLLM.save}
-        onClear={tenantLLM.clear}
-      />
+        <TenantLLMSettings
+          configuration={tenantLLM.configuration}
+          loading={tenantLLM.loading}
+          onSave={tenantLLM.save}
+          onClear={tenantLLM.clear}
+        />
       </div>
     </SettingsPageFrame>
   );

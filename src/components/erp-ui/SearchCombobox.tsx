@@ -40,10 +40,7 @@ export function SearchCombobox<Item extends { id: string }>({
       inputValue={query}
       onInputValueChange={(next, details) => {
         // Dismissing results preserves the query; only typing edits it.
-        if (
-          details.reason === "input-change" ||
-          details.reason === "clear-press"
-        )
+        if (details.reason === "input-change" || details.reason === "clear-press")
           onQueryChange(next);
       }}
       onValueChange={(item) => {
@@ -84,10 +81,7 @@ export function SearchCombobox<Item extends { id: string }>({
               ))}
             </Combobox.List>
             {items.length === 0 && (
-              <p
-                role="status"
-                className="px-space-3 py-space-2 text-[13px] text-ink-400"
-              >
+              <p role="status" className="px-space-3 py-space-2 text-[13px] text-ink-400">
                 {loading ? "Searching…" : emptyLabel}
               </p>
             )}

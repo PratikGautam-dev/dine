@@ -1,7 +1,11 @@
 // Adapter: the ERP's permission helpers (lib/staffAuth.ts) on Dine's role model. Dine grants per page as view / write / delete;
 // the ERP's `module:action` grants fold onto those: view -> view, delete -> delete, everything else (create, update, send_campaigns,
 // manage...) -> write. Dine has no per-branch grants, so "tenant-wide" and "any branch" are the same check.
-import { hasPermission as dinePermission, useStaffSession, type StaffSession } from "@/lib/staffAuth";
+import {
+  hasPermission as dinePermission,
+  useStaffSession,
+  type StaffSession,
+} from "@/lib/staffAuth";
 
 export { useStaffSession };
 export type { StaffSession };
@@ -12,8 +16,16 @@ const CUSTOMER_AREAS = new Set(["tags", "segments", "membership", "campaigns"]);
 /** The ERP's Workforce grants (`leave:approve`, `attendance:manage` ...) sit on the Dine pages of the same screens: leave -> Leave Requests. */
 const PAGE_ALIASES: Record<string, string> = { leave: "leave_requests" };
 
-export function hasPermission(session: StaffSession | null, pageKey: string, action: "view" | "write" | "delete"): boolean {
-  return dinePermission(session, CUSTOMER_AREAS.has(pageKey) ? "customers" : (PAGE_ALIASES[pageKey] ?? pageKey), action);
+export function hasPermission(
+  session: StaffSession | null,
+  pageKey: string,
+  action: "view" | "write" | "delete",
+): boolean {
+  return dinePermission(
+    session,
+    CUSTOMER_AREAS.has(pageKey) ? "customers" : (PAGE_ALIASES[pageKey] ?? pageKey),
+    action,
+  );
 }
 
 export function hasGrant(session: StaffSession | null, permission: string): boolean {

@@ -31,7 +31,8 @@ function BusinessId({ id }: { id: string }) {
   const [copied, setCopied] = useState(false);
   return (
     <p className="mb-space-4 flex flex-wrap items-center gap-x-space-2 gap-y-1 rounded-lg bg-brand-50 px-space-3 py-space-2 text-[13.5px] text-brand-700">
-      Your Business ID is <span className="font-mono text-[14px] font-bold tracking-wide text-ink-900">{id}</span>
+      Your Business ID is{" "}
+      <span className="font-mono text-[14px] font-bold tracking-wide text-ink-900">{id}</span>
       <button
         type="button"
         aria-label="Copy Business ID"
@@ -84,7 +85,9 @@ export default function SupportPage() {
         }
       />
       {list.data?.business_id && <BusinessId id={list.data.business_id} />}
-      {list.error && <p className="mb-space-3 text-[13px] font-medium text-error">{list.error.message}</p>}
+      {list.error && (
+        <p className="mb-space-3 text-[13px] font-medium text-error">{list.error.message}</p>
+      )}
 
       <Card className="p-space-4">
         <label className="flex h-11 items-center gap-space-2 rounded-md border border-line bg-card px-space-3 text-ink-400 focus-within:border-brand-400">
@@ -101,7 +104,11 @@ export default function SupportPage() {
             All ({total})
           </button>
           {STATUSES.map((s) => (
-            <button key={s} onClick={() => setStatus(status === s ? "" : s)} className={chip(status === s)}>
+            <button
+              key={s}
+              onClick={() => setStatus(status === s ? "" : s)}
+              className={chip(status === s)}
+            >
               {STATUS_LABEL[s]} ({counts?.[s] ?? 0})
             </button>
           ))}
@@ -113,7 +120,9 @@ export default function SupportPage() {
           <ListSkeleton rows={4} />
         ) : list.data.items.length === 0 ? (
           <p className="py-space-4 text-center text-[13.5px] text-ink-400">
-            {query || status ? "No tickets match." : "No tickets yet. If something isn't working, raise one and we'll help."}
+            {query || status
+              ? "No tickets match."
+              : "No tickets yet. If something isn't working, raise one and we'll help."}
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -133,11 +142,16 @@ export default function SupportPage() {
                 {list.data.items.map((t) => (
                   <tr key={t.id} className="hover:bg-black/[0.02]">
                     <td className="py-space-2 pr-space-3 font-semibold">
-                      <Link href={`/portal/support/${t.id}`} className="text-brand-700 hover:underline">
+                      <Link
+                        href={`/portal/support/${t.id}`}
+                        className="text-brand-700 hover:underline"
+                      >
                         {t.ticket_number}
                       </Link>
                     </td>
-                    <td className="max-w-[280px] truncate py-space-2 pr-space-3 text-ink-900">{t.subject}</td>
+                    <td className="max-w-[280px] truncate py-space-2 pr-space-3 text-ink-900">
+                      {t.subject}
+                    </td>
                     <td className="py-space-2 pr-space-3 text-ink-600">{t.category_name ?? "—"}</td>
                     <td className="py-space-2 pr-space-3">
                       <PriorityBadge priority={t.priority} />
@@ -145,7 +159,9 @@ export default function SupportPage() {
                     <td className="py-space-2 pr-space-3">
                       <StatusBadge status={t.status} />
                     </td>
-                    <td className="py-space-2 pr-space-3 text-right tabular-nums">{t.message_count ?? 0}</td>
+                    <td className="py-space-2 pr-space-3 text-right tabular-nums">
+                      {t.message_count ?? 0}
+                    </td>
                     <td className="py-space-2 text-ink-600">{formatDateTime(t.updated_at)}</td>
                   </tr>
                 ))}

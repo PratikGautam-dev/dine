@@ -46,7 +46,16 @@ export default function RolesAndPermissionsPage() {
     setCopying(true);
     try {
       let name = `${roleLabel(role)} copy`;
-      for (let n = 2; roles.includes(name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_|_$/g, "")); n++)
+      for (
+        let n = 2;
+        roles.includes(
+          name
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_|_$/g, ""),
+        );
+        n++
+      )
         name = `${roleLabel(role)} copy ${n}`;
       const key = await createRole(name, true);
       if (!key) return;
@@ -74,16 +83,27 @@ export default function RolesAndPermissionsPage() {
         }
       />
       {!canView ? (
-        <p className="text-[13px] text-ink-400">You don&apos;t have access to Roles &amp; Permissions.</p>
+        <p className="text-[13px] text-ink-400">
+          You don&apos;t have access to Roles &amp; Permissions.
+        </p>
       ) : (
         <>
           {error && <p className="mb-space-3 text-[13px] font-medium text-error">{error}</p>}
           <Card className="mb-space-5 p-space-2">
             <div className="p-space-2">
-              <Input placeholder="Search roles" aria-label="Search roles" value={q} onChange={(e) => setQ(e.target.value)} />
+              <Input
+                placeholder="Search roles"
+                aria-label="Search roles"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
             </div>
             {!matrix ? (
-              <div className="flex flex-col gap-space-2 p-space-2" role="status" aria-label="Loading roles">
+              <div
+                className="flex flex-col gap-space-2 p-space-2"
+                role="status"
+                aria-label="Loading roles"
+              >
                 {[0, 1, 2].map((i) => (
                   <Skeleton key={i} className="h-8 w-full" />
                 ))}
@@ -102,15 +122,22 @@ export default function RolesAndPermissionsPage() {
                   {shown.map((r) => {
                     const system = isAdministrator(r);
                     return (
-                      <tr key={r} className={`border-t border-line ${system ? "text-ink-400" : "text-ink-900"}`}>
+                      <tr
+                        key={r}
+                        className={`border-t border-line ${system ? "text-ink-400" : "text-ink-900"}`}
+                      >
                         <td className="p-space-3 font-medium">
                           <Link href={`/portal/settings/roles/${r}`} className="hover:underline">
                             {roleLabel(r)}
                           </Link>
-                          <div className="text-[12px] font-normal text-ink-400">{roleDescription(r)}</div>
+                          <div className="text-[12px] font-normal text-ink-400">
+                            {roleDescription(r)}
+                          </div>
                         </td>
                         <td className="p-space-3">
-                          <Badge tone={system ? "brand" : "clay"}>{system ? "Administrator" : "Portal"}</Badge>
+                          <Badge tone={system ? "brand" : "clay"}>
+                            {system ? "Administrator" : "Portal"}
+                          </Badge>
                         </td>
                         <td className="p-space-3 text-right">{usersByRole.get(r) ?? 0}</td>
                         <td className="p-space-3 text-right">
@@ -145,7 +172,9 @@ export default function RolesAndPermissionsPage() {
           {matrix && (
             <Card className="no-scrollbar overflow-x-auto p-space-4">
               <h2 className="text-[15px] font-bold text-ink-900">Page access overview</h2>
-              <p className="mb-space-3 text-[12px] text-ink-400">Which roles can open each page in the portal.</p>
+              <p className="mb-space-3 text-[12px] text-ink-400">
+                Which roles can open each page in the portal.
+              </p>
               <table className="w-full min-w-[480px] text-[13px]">
                 <thead>
                   <tr className="text-left text-[11px] tracking-wide text-ink-400 uppercase">
@@ -164,9 +193,17 @@ export default function RolesAndPermissionsPage() {
                       {roles.map((r) => (
                         <td key={r} className="py-space-2 text-center">
                           {isAdministrator(r) || matrix[r]?.[p.key]?.view ? (
-                            <Check size={14} className="mx-auto text-success" aria-label="Allowed" />
+                            <Check
+                              size={14}
+                              className="mx-auto text-success"
+                              aria-label="Allowed"
+                            />
                           ) : (
-                            <Minus size={14} className="mx-auto text-ink-300" aria-label="Not allowed" />
+                            <Minus
+                              size={14}
+                              className="mx-auto text-ink-300"
+                              aria-label="Not allowed"
+                            />
                           )}
                         </td>
                       ))}

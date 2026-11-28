@@ -11,19 +11,8 @@ import {
 
 export type Tier = "regular" | "silver" | "gold" | "platinum" | "inactive";
 export type BenefitTier = Exclude<Tier, "inactive">;
-export const TIERS: Tier[] = [
-  "regular",
-  "silver",
-  "gold",
-  "platinum",
-  "inactive",
-];
-export const BENEFIT_TIERS: BenefitTier[] = [
-  "regular",
-  "silver",
-  "gold",
-  "platinum",
-];
+export const TIERS: Tier[] = ["regular", "silver", "gold", "platinum", "inactive"];
+export const BENEFIT_TIERS: BenefitTier[] = ["regular", "silver", "gold", "platinum"];
 
 export const TIER_LABEL: Record<Tier, string> = {
   regular: "Regular",
@@ -43,10 +32,7 @@ export const TIER_STYLE: Record<Tier, string> = {
 };
 
 export type MemberStatus = "active" | "expiring" | "paused" | "expired";
-export const STATUS_META: Record<
-  MemberStatus,
-  { label: string; pill: string; dot: string }
-> = {
+export const STATUS_META: Record<MemberStatus, { label: string; pill: string; dot: string }> = {
   active: {
     label: "Active",
     pill: "bg-success-tint text-success",
@@ -69,8 +55,7 @@ export const STATUS_META: Record<
   },
 };
 
-export type Source =
-  "website" | "mobile_app" | "in_store" | "referral" | "campaign";
+export type Source = "website" | "mobile_app" | "in_store" | "referral" | "campaign";
 export const SOURCE_LABEL: Record<Source, string> = {
   website: "Website",
   mobile_app: "Mobile App",
@@ -144,17 +129,8 @@ export type Renewal = {
 };
 
 export type BenefitType =
-  | "loyalty_reward"
-  | "loyalty_multiplier"
-  | "coupon"
-  | "shipping"
-  | "access"
-  | "service"
-  | "price";
-export const BENEFIT_TYPE: Record<
-  BenefitType,
-  { label: string; icon: typeof GiftIcon }
-> = {
+  "loyalty_reward" | "loyalty_multiplier" | "coupon" | "shipping" | "access" | "service" | "price";
+export const BENEFIT_TYPE: Record<BenefitType, { label: string; icon: typeof GiftIcon }> = {
   loyalty_reward: { label: "Loyalty Reward", icon: GiftIcon },
   loyalty_multiplier: { label: "Loyalty Multiplier", icon: ChartBarLineIcon },
   coupon: { label: "Coupon Benefit", icon: Ticket01Icon },
@@ -235,5 +211,4 @@ export type HistoryEntry = {
   actor: string;
 };
 
-export const pctText = (n: number | null) =>
-  n === null ? null : `${n >= 0 ? "+" : ""}${n}%`;
+export const pctText = (n: number | null) => (n === null ? null : `${n >= 0 ? "+" : ""}${n}%`);

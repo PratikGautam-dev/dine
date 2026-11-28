@@ -88,7 +88,8 @@ export function useRaiseTicket() {
       form.append("question", input.question);
       form.append("priority", input.priority);
       if (input.category_id) form.append("category_id", input.category_id);
-      if (input.problem_reference.trim()) form.append("problem_reference", input.problem_reference.trim());
+      if (input.problem_reference.trim())
+        form.append("problem_reference", input.problem_reference.trim());
       input.files.forEach((f) => form.append("files", f));
       return erpSendForm<SupportTicket>("/api/v1/support/tickets", form);
     },
@@ -99,7 +100,8 @@ export function useRaiseTicket() {
 export function useReplyToTicket(id: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (body: string) => erpSend<SupportMessage>(`/api/v1/support/tickets/${id}/messages`, "POST", { body }),
+    mutationFn: (body: string) =>
+      erpSend<SupportMessage>(`/api/v1/support/tickets/${id}/messages`, "POST", { body }),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.support }),
   });
 }

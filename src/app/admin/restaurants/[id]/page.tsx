@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Store } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -65,8 +65,9 @@ export default function AdminRestaurantDetailPage() {
   // a background reload() after a successful save doesn't clobber in-flight
   // edits (there isn't one right now, but matches the rest of this app's
   // detail-page convention of re-seeding only off the source data changing).
-  useEffect(() => {
-    if (!tenant) return;
+  const [seededFrom, setSeededFrom] = useState<typeof tenant>(null);
+  if (tenant && tenant !== seededFrom) {
+    setSeededFrom(tenant);
     setForm({
       name: tenant.name,
       whatsapp_phone_number_id: tenant.whatsapp_phone_number_id,
@@ -81,7 +82,7 @@ export default function AdminRestaurantDetailPage() {
       admin_capabilities: tenant.admin_capabilities,
       enabled_features: tenant.enabled_features,
     });
-  }, [tenant]);
+  }
 
   if (loading || !form || !tenant) {
     return (

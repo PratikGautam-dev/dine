@@ -18,11 +18,7 @@ import { useReplyToTicket, useSupportTicket } from "@/hooks/useSupport";
 import { cn } from "@/lib/cn";
 import { formatDateTime } from "@/lib/erp/erp";
 import { usePermission } from "@/lib/staffAuth";
-import {
-  REPLY_MAX_CHARS,
-  STATUS_LABEL,
-  type SupportStatus,
-} from "@/lib/support";
+import { REPLY_MAX_CHARS, STATUS_LABEL, type SupportStatus } from "@/lib/support";
 import { toast } from "@/lib/toast";
 
 /** The steps a ticket moves through; "waiting on you" is a pause on the way, shown as the current step when it applies. */
@@ -65,16 +61,11 @@ function Tracker({ status }: { status: SupportStatus }) {
                 done || current ? "text-ink-900" : "text-ink-400",
               )}
             >
-              {current && status === "waiting_on_you"
-                ? STATUS_LABEL.waiting_on_you
-                : s.label}
+              {current && status === "waiting_on_you" ? STATUS_LABEL.waiting_on_you : s.label}
             </span>
             {i < STEPS.length - 1 && (
               <span
-                className={cn(
-                  "h-0.5 flex-1 rounded",
-                  done ? "bg-success" : "bg-black/[0.08]",
-                )}
+                className={cn("h-0.5 flex-1 rounded", done ? "bg-success" : "bg-black/[0.08]")}
               />
             )}
           </li>
@@ -115,9 +106,7 @@ export default function SupportTicketPage() {
         <ArrowLeft size={14} /> All tickets
       </Link>
       {ticketQ.error ? (
-        <p className="text-[13px] font-medium text-error">
-          {ticketQ.error.message}
-        </p>
+        <p className="text-[13px] font-medium text-error">{ticketQ.error.message}</p>
       ) : !t ? (
         <ListSkeleton rows={5} />
       ) : (
@@ -127,9 +116,7 @@ export default function SupportTicketPage() {
             title={
               <>
                 {t.subject}{" "}
-                <span className="text-[16px] font-medium text-ink-400">
-                  {t.ticket_number}
-                </span>
+                <span className="text-[16px] font-medium text-ink-400">{t.ticket_number}</span>
               </>
             }
             description={`Raised ${formatDateTime(t.created_at)}${t.category_name ? ` · ${t.category_name}` : ""}${t.problem_reference ? ` · Ref ${t.problem_reference}` : ""}`}
@@ -150,8 +137,8 @@ export default function SupportTicketPage() {
             )}
             {t.resolved_at && (
               <p className="mt-space-3 text-[13px] text-ink-600">
-                Completed {formatDateTime(t.resolved_at)}. If it isn&apos;t
-                solved, reply below to reopen it.
+                Completed {formatDateTime(t.resolved_at)}. If it isn&apos;t solved, reply below to
+                reopen it.
               </p>
             )}
           </Card>
@@ -160,28 +147,19 @@ export default function SupportTicketPage() {
             <h2 className="mb-space-1 text-[13px] font-bold uppercase tracking-wide text-ink-400">
               Your question
             </h2>
-            <p className="whitespace-pre-wrap break-words text-[14px] text-ink-900">
-              {t.question}
-            </p>
+            <p className="whitespace-pre-wrap break-words text-[14px] text-ink-900">{t.question}</p>
             <Attachments items={t.attachments} />
           </Card>
 
           <Card className="p-space-4">
-            <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-              Conversation
-            </h2>
+            <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Conversation</h2>
             {t.messages.length === 0 ? (
-              <p className="text-[13.5px] text-ink-400">
-                No replies yet. We&apos;ll answer here.
-              </p>
+              <p className="text-[13.5px] text-ink-400">No replies yet. We&apos;ll answer here.</p>
             ) : (
               <ul className="space-y-space-3">
                 {t.messages.map((m) =>
                   m.kind === "status" ? (
-                    <li
-                      key={m.id}
-                      className="text-center text-[12px] text-ink-400"
-                    >
+                    <li key={m.id} className="text-center text-[12px] text-ink-400">
                       {m.body} · {formatDateTime(m.created_at)}
                     </li>
                   ) : (
@@ -189,9 +167,7 @@ export default function SupportTicketPage() {
                       key={m.id}
                       className={cn(
                         "flex",
-                        m.author_type === "business"
-                          ? "justify-end"
-                          : "justify-start",
+                        m.author_type === "business" ? "justify-end" : "justify-start",
                       )}
                     >
                       <div
@@ -228,16 +204,9 @@ export default function SupportTicketPage() {
                       : "Write a reply…"
                   }
                 />
-                <Counter
-                  used={body.length}
-                  max={REPLY_MAX_CHARS}
-                  unit="characters"
-                />
+                <Counter used={body.length} max={REPLY_MAX_CHARS} unit="characters" />
                 <div className="mt-space-2 flex justify-end">
-                  <Button
-                    disabled={!body.trim() || reply.isPending}
-                    onClick={send}
-                  >
+                  <Button disabled={!body.trim() || reply.isPending} onClick={send}>
                     {reply.isPending
                       ? "Sending…"
                       : t.status === "completed"

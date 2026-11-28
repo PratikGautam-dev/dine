@@ -8,13 +8,7 @@ import {
   UserGroupIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import {
-  createContext,
-  useContext,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import { Row } from "@/components/crm/rules/ConditionBuilder";
 import { cn } from "@/lib/cn";
 import {
@@ -105,10 +99,8 @@ function SortableList({
     const g = geo.current;
     if (!drag || !g || index === drag.from) return 0;
     const size = g.heights[drag.from] + g.gap;
-    if (drag.from < drag.to && index > drag.from && index <= drag.to)
-      return -size;
-    if (drag.to < drag.from && index >= drag.to && index < drag.from)
-      return size;
+    if (drag.from < drag.to && index > drag.from && index <= drag.to) return -size;
+    if (drag.to < drag.from && index >= drag.to && index < drag.from) return size;
     return 0;
   };
   const key = (e: React.KeyboardEvent, index: number) => {
@@ -232,9 +224,7 @@ function MatchChoice({
               value === m ? "border-brand-700" : "border-ink-400",
             )}
           >
-            {value === m && (
-              <span className="h-2 w-2 rounded-full bg-brand-700" />
-            )}
+            {value === m && <span className="h-2 w-2 rounded-full bg-brand-700" />}
           </span>
           {label}
         </button>
@@ -258,10 +248,7 @@ export function SegmentConditions({
   // bumped when a row is removed, so the rows below it start afresh instead of keeping the removed row's typed text
   const [version, setVersion] = useState(0);
   const set = (next: SegmentCondition[]) => onChange(next, match);
-  const total = conditions.reduce(
-    (n, c) => n + (isGroup(c) ? c.group.length : 1),
-    0,
-  );
+  const total = conditions.reduce((n, c) => n + (isGroup(c) ? c.group.length : 1), 0);
   const replace = (i: number, c: SegmentCondition) =>
     set(conditions.map((x, j) => (j === i ? c : x)));
   const remove = (i: number) => {
@@ -276,12 +263,9 @@ export function SegmentConditions({
           <HugeiconsIcon icon={FilterHorizontalIcon} size={20} />
         </span>
         <div>
-          <h3 className="text-[15px] font-bold text-ink-900">
-            Segment Conditions
-          </h3>
+          <h3 className="text-[15px] font-bold text-ink-900">Segment Conditions</h3>
           <p className="text-[12.5px] text-ink-600">
-            Add one or more conditions to filter customers. Use AND/OR to build
-            the logic.
+            Add one or more conditions to filter customers. Use AND/OR to build the logic.
           </p>
         </div>
       </div>
@@ -307,14 +291,8 @@ export function SegmentConditions({
             {isGroup(c) ? (
               <div className="rounded-md border border-dashed border-brand-600/50 bg-brand-50/40 p-space-2">
                 <div className="mb-space-2 flex flex-wrap items-center gap-space-2">
-                  <HugeiconsIcon
-                    icon={UserGroupIcon}
-                    size={16}
-                    className="text-brand-700"
-                  />
-                  <span className="text-[13px] font-semibold text-ink-900">
-                    Group
-                  </span>
+                  <HugeiconsIcon icon={UserGroupIcon} size={16} className="text-brand-700" />
+                  <span className="text-[13px] font-semibold text-ink-900">Group</span>
                   <MatchChoice
                     name="Group match"
                     value={c.match}
@@ -407,10 +385,7 @@ export function SegmentConditions({
               set([
                 ...conditions,
                 {
-                  group: [
-                    defaultCondition("tier") as Condition,
-                    defaultCondition("total_spend"),
-                  ],
+                  group: [defaultCondition("tier") as Condition, defaultCondition("total_spend")],
                   match: "any",
                 },
               ])

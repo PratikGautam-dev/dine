@@ -21,8 +21,15 @@ export default function OnlineChannelPage() {
       />
       <ChannelStatusStrip channel="online" />
       <OnlineStoreThemes />
-      <h2 id="online-storefront" className="mb-space-3 mt-space-6 scroll-mt-24 text-[17px] font-semibold text-ink-900">Online storefront</h2>
-      <p className="mb-space-3 text-[13.5px] text-ink-600">Turn website ordering on or off and choose your store link.</p>
+      <h2
+        id="online-storefront"
+        className="mb-space-3 mt-space-6 scroll-mt-24 text-[17px] font-semibold text-ink-900"
+      >
+        Online storefront
+      </h2>
+      <p className="mb-space-3 text-[13.5px] text-ink-600">
+        Turn website ordering on or off and choose your store link.
+      </p>
       <StorefrontSettings />
     </PortalShell>
   );

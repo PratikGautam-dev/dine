@@ -133,11 +133,13 @@ export function StaffFormDialog({
               disabled={isSelf}
               id="sf-role"
             >
-              {ROLE_OPTIONS.filter((r) => r.value !== "admin" || member?.role === "admin").map((r) => (
-                <option key={r.value} value={r.value}>
-                  {r.label}
-                </option>
-              ))}
+              {ROLE_OPTIONS.filter((r) => r.value !== "admin" || member?.role === "admin").map(
+                (r) => (
+                  <option key={r.value} value={r.value}>
+                    {r.label}
+                  </option>
+                ),
+              )}
               {customRoles.map((key) => (
                 <option key={key} value={key}>
                   {roleLabel(key)}

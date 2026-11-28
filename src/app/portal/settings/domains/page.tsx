@@ -70,15 +70,13 @@ export default function DomainsSettingsPage() {
   if (!ready) return null;
   const data = list.data;
   const roots = data?.domains.filter((d) => d.kind === "custom") ?? [];
-  const twins = (id: string) =>
-    data?.domains.filter((d) => d.parent_id === id) ?? [];
+  const twins = (id: string) => data?.domains.filter((d) => d.parent_id === id) ?? [];
   const open = data?.domains.find((d) => d.id === openId) ?? null;
 
   const makePrimary = (domainId: string | null, label: string) =>
     setPrimary.mutate(domainId, {
       onSuccess: () => toast.success(`${label} is now your primary domain`),
-      onError: (e) =>
-        toast.error("Couldn't change the primary domain", e.message),
+      onError: (e) => toast.error("Couldn't change the primary domain", e.message),
     });
 
   const platformRow = data?.platform.host ? (
@@ -90,9 +88,7 @@ export default function DomainsSettingsPage() {
       note="Free address, always available"
       menu={
         canEdit && !data.platform.is_primary ? (
-          <DropdownMenuItem
-            onClick={() => makePrimary(null, data.platform.host!)}
-          >
+          <DropdownMenuItem onClick={() => makePrimary(null, data.platform.host!)}>
             <Star size={15} /> Set as primary
           </DropdownMenuItem>
         ) : null
@@ -119,8 +115,8 @@ export default function DomainsSettingsPage() {
       <div className="space-y-space-3">
         {data && !data.enabled && (
           <Card className="p-space-4 text-[13.5px] text-ink-600">
-            Connecting your own domain isn&apos;t switched on for this platform
-            yet. Your store is available at its free address below.
+            Connecting your own domain isn&apos;t switched on for this platform yet. Your store is
+            available at its free address below.
           </Card>
         )}
         <Card className="overflow-hidden p-0">
@@ -150,15 +146,9 @@ export default function DomainsSettingsPage() {
                     host={d.host}
                     primary={d.is_primary && d.status === "connected"}
                     status={d.status}
-                    note={
-                      d.status === "connected"
-                        ? undefined
-                        : (d.error ?? undefined)
-                    }
+                    note={d.status === "connected" ? undefined : (d.error ?? undefined)}
                     onOpen={() => setOpenId(d.id)}
-                    href={
-                      d.status === "connected" ? `https://${d.host}` : undefined
-                    }
+                    href={d.status === "connected" ? `https://${d.host}` : undefined}
                   />
                   {twins(d.id).map((t) => (
                     <Row
@@ -190,8 +180,8 @@ export default function DomainsSettingsPage() {
             >
               {data.primary_host ?? data.platform.host}
             </a>
-            . You can connect up to {data.max_domains} domains you own; buy a
-            domain from any registrar (Hostinger, GoDaddy…) first.
+            . You can connect up to {data.max_domains} domains you own; buy a domain from any
+            registrar (Hostinger, GoDaddy…) first.
           </p>
         )}
       </div>
@@ -242,14 +232,9 @@ function Row({
 }) {
   const s = STATUS[status];
   const body = (
-    <span
-      className={`flex min-w-0 flex-1 items-center gap-space-2 ${indent ? "pl-space-6" : ""}`}
-    >
+    <span className={`flex min-w-0 flex-1 items-center gap-space-2 ${indent ? "pl-space-6" : ""}`}>
       {indent ? (
-        <span
-          aria-hidden
-          className="h-4 w-3 shrink-0 border-b border-l border-line"
-        />
+        <span aria-hidden className="h-4 w-3 shrink-0 border-b border-l border-line" />
       ) : (
         <span className="shrink-0 text-ink-600">{icon}</span>
       )}
@@ -262,9 +247,7 @@ function Row({
             </span>
           )}
         </span>
-        {note && (
-          <span className="block text-[12.5px] text-ink-600">{note}</span>
-        )}
+        {note && <span className="block text-[12.5px] text-ink-600">{note}</span>}
       </span>
     </span>
   );
@@ -293,9 +276,7 @@ function Row({
             </DropdownMenuTrigger>
             <DropdownMenuContent>
               {href && (
-                <DropdownMenuItem
-                  onClick={() => window.open(href, "_blank", "noreferrer")}
-                >
+                <DropdownMenuItem onClick={() => window.open(href, "_blank", "noreferrer")}>
                   <ExternalLink size={15} /> Visit
                 </DropdownMenuItem>
               )}
@@ -381,10 +362,7 @@ function DomainDialog({
   const check = useCheckDomain();
   const remove = useRemoveDomain();
   const [confirmRemove, setConfirmRemove] = useState(false);
-  const records = [
-    ...domain.dns_records,
-    ...twins.flatMap((t) => t.dns_records),
-  ];
+  const records = [...domain.dns_records, ...twins.flatMap((t) => t.dns_records)];
   const s = STATUS[domain.status];
   const connected = domain.status === "connected";
   return (
@@ -417,19 +395,14 @@ function DomainDialog({
                   check.mutate(domain.id, {
                     onSuccess: (r) => {
                       const now = r.domains[0];
-                      if (now.status === "connected")
-                        toast.success(`${now.host} is connected`);
+                      if (now.status === "connected") toast.success(`${now.host} is connected`);
                       else toast.info(now.error ?? "Not connected yet");
                     },
-                    onError: (e) =>
-                      toast.error("Couldn't check the domain", e.message),
+                    onError: (e) => toast.error("Couldn't check the domain", e.message),
                   })
                 }
               >
-                <RefreshCw
-                  size={15}
-                  className={check.isPending ? "animate-spin" : ""}
-                />{" "}
+                <RefreshCw size={15} className={check.isPending ? "animate-spin" : ""} />{" "}
                 {check.isPending ? "Checking…" : "Check now"}
               </Button>
             )}
@@ -439,9 +412,7 @@ function DomainDialog({
         <div className="space-y-space-4">
           <div className="flex flex-wrap items-center gap-space-2 text-[13.5px]">
             <Badge tone={s.tone}>{s.label}</Badge>
-            {domain.is_primary && connected && (
-              <span className="text-ink-600">Primary domain</span>
-            )}
+            {domain.is_primary && connected && <span className="text-ink-600">Primary domain</span>}
             {domain.last_checked_at && (
               <span className="text-ink-600">
                 Last checked {formatShortDateTime(domain.last_checked_at)}
@@ -489,8 +460,7 @@ function DomainDialog({
               setConfirmRemove(false);
               onClose();
             },
-            onError: (e) =>
-              toast.error("Couldn't remove the domain", e.message),
+            onError: (e) => toast.error("Couldn't remove the domain", e.message),
           })
         }
       />
@@ -512,14 +482,10 @@ function RecordsTable({ records }: { records: DnsRecord[] }) {
         <tbody className="divide-y divide-line">
           {records.map((r) => (
             <tr key={`${r.type}-${r.host}-${r.value}`} className="align-top">
-              <td className="px-space-3 py-2 font-medium text-ink-900">
-                {r.type}
-              </td>
+              <td className="px-space-3 py-2 font-medium text-ink-900">{r.type}</td>
               <td className="px-space-3 py-2">
                 <CopyText text={r.name} />
-                <span className="block text-[11.5px] text-ink-600">
-                  {PURPOSE[r.purpose]}
-                </span>
+                <span className="block text-[11.5px] text-ink-600">{PURPOSE[r.purpose]}</span>
               </td>
               <td className="px-space-3 py-2">
                 <CopyText text={r.value} />

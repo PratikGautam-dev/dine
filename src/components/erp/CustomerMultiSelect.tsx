@@ -54,10 +54,7 @@ export function CustomerMultiSelect({
               <span className="truncate">
                 {c.name}
                 {c.phone && (
-                  <span className="text-[12px] text-ink-400">
-                    {" "}
-                    · {formatPhone(c.phone)}
-                  </span>
+                  <span className="text-[12px] text-ink-400"> · {formatPhone(c.phone)}</span>
                 )}
               </span>
               <button
@@ -87,14 +84,10 @@ export function CustomerMultiSelect({
           itemLabel={(customer) => customer.name}
           onPick={(customer) => onChange([...value, customer])}
           loading={results.isFetching || q.trim() !== query}
-          emptyLabel={
-            query ? "No customers match." : "No more customers to add."
-          }
+          emptyLabel={query ? "No customers match." : "No more customers to add."}
           renderItem={(customer) => (
             <>
-              <span className="block text-[14px] font-medium text-ink-900">
-                {customer.name}
-              </span>
+              <span className="block text-[14px] font-medium text-ink-900">{customer.name}</span>
               <span className="block text-[12px] text-ink-400">
                 {[customer.phone, customer.email].filter(Boolean).join(" · ")}
               </span>

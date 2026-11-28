@@ -29,10 +29,7 @@ export function useActivityLog(filters: ActivityFilters) {
     queryFn: () => erpGet<AuditEntry[]>(`/api/v1/audit-logs${qs(params)}`),
     placeholderData: keepPreviousData,
   });
-  const rows = useMemo(
-    () => (query.data ?? []).slice(0, pager.size),
-    [query.data, pager.size],
-  );
+  const rows = useMemo(() => (query.data ?? []).slice(0, pager.size), [query.data, pager.size]);
   return {
     rows,
     data: query.data,
@@ -44,15 +41,12 @@ export function useActivityLog(filters: ActivityFilters) {
       onSize: pager.setSize,
       hasNext: (query.data?.length ?? 0) > pager.size,
       onPrev: pager.prev,
-      onNext: () =>
-        rows.length && pager.next(String(rows[rows.length - 1]!.id)),
+      onNext: () => rows.length && pager.next(String(rows[rows.length - 1]!.id)),
     },
   };
 }
 
 /** Up to 500 entries matching the filters (not just the page on screen), for the CSV export. */
 export function fetchActivityForExport(filters: ActivityFilters) {
-  return erpGet<AuditEntry[]>(
-    `/api/v1/audit-logs${qs({ ...filters, limit: 500 })}`,
-  );
+  return erpGet<AuditEntry[]>(`/api/v1/audit-logs${qs({ ...filters, limit: 500 })}`);
 }

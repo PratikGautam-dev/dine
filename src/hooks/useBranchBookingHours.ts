@@ -21,9 +21,14 @@ type BranchHoursResponse = {
   own: Record<string, boolean>;
 };
 
-const emptyForm = (): BranchHoursForm => ({ schedule: [], turnover_minutes: "90", booking_interval_minutes: "30" });
+const emptyForm = (): BranchHoursForm => ({
+  schedule: [],
+  turnover_minutes: "90",
+  booking_interval_minutes: "30",
+});
 
-const sameSchedule = (a: ScheduleEntry[], b: ScheduleEntry[]) => JSON.stringify(a) === JSON.stringify(b);
+const sameSchedule = (a: ScheduleEntry[], b: ScheduleEntry[]) =>
+  JSON.stringify(a) === JSON.stringify(b);
 
 /** A branch's weekly opening hours plus its table turnover and slot interval (GET/POST /api/portal/settings/booking-hours). Reloads
  * when `branchId` changes. `inherited` is true while the branch has never saved its own hours (the form then shows the restaurant-wide
@@ -38,7 +43,9 @@ export function useBranchBookingHours(ready: boolean, branchId: string | null) {
 
   const load = useCallback(async () => {
     if (!branchId) return;
-    const result = await portalFetch(`/api/portal/settings/booking-hours?branch_id=${encodeURIComponent(branchId)}`);
+    const result = await portalFetch(
+      `/api/portal/settings/booking-hours?branch_id=${encodeURIComponent(branchId)}`,
+    );
     if (!result.ok) {
       if (!result.unauthorized) setError(result.error);
       return;
@@ -70,7 +77,9 @@ export function useBranchBookingHours(ready: boolean, branchId: string | null) {
   function addEntry(entry: ScheduleEntry): string | null {
     if (!entry.open || !entry.close) return "Choose an opening and a closing time.";
     if (entry.open >= entry.close) return "Opening time must be before closing time.";
-    if (form.schedule.some((e) => e.day === entry.day && e.open < entry.close && entry.open < e.close))
+    if (
+      form.schedule.some((e) => e.day === entry.day && e.open < entry.close && entry.open < e.close)
+    )
       return "That overlaps another opening time on the same day.";
     setFormState((f) => ({ ...f, schedule: [...f.schedule, entry] }));
     return null;
@@ -79,7 +88,9 @@ export function useBranchBookingHours(ready: boolean, branchId: string | null) {
   function removeEntry(entry: ScheduleEntry) {
     setFormState((f) => ({
       ...f,
-      schedule: f.schedule.filter((e) => !(e.day === entry.day && e.open === entry.open && e.close === entry.close)),
+      schedule: f.schedule.filter(
+        (e) => !(e.day === entry.day && e.open === entry.open && e.close === entry.close),
+      ),
     }));
   }
 
@@ -118,5 +129,16 @@ export function useBranchBookingHours(ready: boolean, branchId: string | null) {
     form.booking_interval_minutes !== saved.booking_interval_minutes;
   // true once the form holds the branch picked now (not a previous one's values)
   const loaded = loadedFor !== null && loadedFor === branchId;
-  return { form, setForm, addEntry, removeEntry, loaded, inherited, dirty, error, saving, handleSave };
+  return {
+    form,
+    setForm,
+    addEntry,
+    removeEntry,
+    loaded,
+    inherited,
+    dirty,
+    error,
+    saving,
+    handleSave,
+  };
 }

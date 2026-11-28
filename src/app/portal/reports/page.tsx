@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 import {
   Area,
-  Bar,
   CartesianGrid,
   ComposedChart,
   Line,
@@ -85,7 +84,6 @@ const DOWNLOAD_KINDS: {
     icon: CalendarCheck,
   },
 ];
-const BRAND = "#e21220";
 const BLUE = "#2f6fed";
 
 // Payment Method Split: no card/UPI/cash/wallet tracking exists in this app (only "online" vs

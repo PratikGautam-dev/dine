@@ -28,8 +28,7 @@ export type Stage = "draft" | "scheduled" | "active" | "completed";
 export function stageOf(k: Campaign, now = Date.now()): Stage {
   const starts = k.starts_at ? Date.parse(k.starts_at) : null;
   const ends = k.ends_at ? Date.parse(k.ends_at) : null;
-  if (k.status === "draft")
-    return starts && starts > now ? "scheduled" : "draft";
+  if (k.status === "draft") return starts && starts > now ? "scheduled" : "draft";
   if (k.status === "sending") return "active";
   return ends && ends >= now ? "active" : "completed"; // sent: running while its offer period lasts
 }
@@ -41,13 +40,7 @@ export const STAGE_META: Record<Stage, { label: string; className: string }> = {
   completed: { label: "Completed", className: "bg-ink-50 text-ink-700" },
 };
 
-export function StagePill({
-  stage,
-  sending,
-}: {
-  stage: Stage;
-  sending?: boolean;
-}) {
+export function StagePill({ stage, sending }: { stage: Stage; sending?: boolean }) {
   const m = STAGE_META[stage];
   return (
     <span
@@ -61,10 +54,7 @@ export function StagePill({
   );
 }
 
-const CHANNEL_ICON: Record<
-  CampaignChannel,
-  { label: string; icon: ReactNode }
-> = {
+const CHANNEL_ICON: Record<CampaignChannel, { label: string; icon: ReactNode }> = {
   whatsapp: { label: "WhatsApp", icon: <WhatsAppIcon size={16} /> },
   email: {
     label: "Email",
@@ -84,11 +74,7 @@ export function ChannelIcons({ k }: { k: Campaign }) {
   return (
     <span className="flex items-center gap-space-2 text-brand-700">
       {channelsOf(k).map((c) => (
-        <span
-          key={c}
-          title={CHANNEL_ICON[c].label}
-          aria-label={CHANNEL_ICON[c].label}
-        >
+        <span key={c} title={CHANNEL_ICON[c].label} aria-label={CHANNEL_ICON[c].label}>
           {CHANNEL_ICON[c].icon}
         </span>
       ))}
@@ -160,9 +146,7 @@ function Tile({
       <p className="flex min-w-0 items-center gap-space-2 text-[24px] leading-tight font-bold text-ink-900">
         {value}
       </p>
-      <p className="mt-1 truncate text-[12px] text-ink-600">
-        {hint ?? "\u00a0"}
-      </p>
+      <p className="mt-1 truncate text-[12px] text-ink-600">{hint ?? "\u00a0"}</p>
     </div>
   );
 }
@@ -177,10 +161,7 @@ export function CampaignPerformance({ list }: { list: Campaign[] }) {
   const failed = sent.reduce((s, k) => s + k.failed_n, 0);
   const byChannel = new Map<CampaignChannel, number>();
   for (const k of sent)
-    byChannel.set(
-      k.channel,
-      (byChannel.get(k.channel) ?? 0) + k.delivered_count,
-    );
+    byChannel.set(k.channel, (byChannel.get(k.channel) ?? 0) + k.delivered_count);
   const top = [...byChannel].sort((a, b) => b[1] - a[1])[0];
   return (
     <div className="grid grid-cols-2 gap-space-3 md:grid-cols-3 2xl:grid-cols-5">
@@ -192,19 +173,13 @@ export function CampaignPerformance({ list }: { list: Campaign[] }) {
       />
       <Tile
         label="Delivery Rate"
-        value={
-          reached ? `${Math.round((1000 * delivered) / reached) / 10}%` : "—"
-        }
+        value={reached ? `${Math.round((1000 * delivered) / reached) / 10}%` : "—"}
         hint={`${n(delivered)} delivered`}
         icon={<HugeiconsIcon icon={CheckmarkCircle02Icon} size={18} />}
       />
       <Tile
         label="Read Rate"
-        value={
-          waDelivered
-            ? `${Math.round((1000 * waRead) / waDelivered) / 10}%`
-            : "—"
-        }
+        value={waDelivered ? `${Math.round((1000 * waRead) / waDelivered) / 10}%` : "—"}
         hint="WhatsApp"
         icon={<HugeiconsIcon icon={ChartIncreaseIcon} size={18} />}
       />
@@ -220,12 +195,8 @@ export function CampaignPerformance({ list }: { list: Campaign[] }) {
         value={
           top ? (
             <>
-              <span className="shrink-0 text-brand-700">
-                {CHANNEL_ICON[top[0]].icon}
-              </span>
-              <span className="min-w-0 truncate text-[18px]">
-                {CHANNEL_ICON[top[0]].label}
-              </span>
+              <span className="shrink-0 text-brand-700">{CHANNEL_ICON[top[0]].icon}</span>
+              <span className="min-w-0 truncate text-[18px]">{CHANNEL_ICON[top[0]].label}</span>
             </>
           ) : (
             "—"
@@ -239,13 +210,7 @@ export function CampaignPerformance({ list }: { list: Campaign[] }) {
 }
 
 /** The latest things that happened to campaigns: created, and sent. */
-export function RecentActivity({
-  list,
-  limit = 6,
-}: {
-  list: Campaign[];
-  limit?: number;
-}) {
+export function RecentActivity({ list, limit = 6 }: { list: Campaign[]; limit?: number }) {
   const events = list
     .flatMap((k) => [
       { at: k.created_at, text: `${k.name} was created as a draft` },
@@ -268,9 +233,7 @@ export function RecentActivity({
         <li key={i} className="flex items-start gap-space-3 text-[13px]">
           <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-600" />
           <span className="min-w-0 flex-1 text-ink-900">{e.text}</span>
-          <span className="shrink-0 text-[12px] text-ink-600">
-            {formatDateTime(e.at)}
-          </span>
+          <span className="shrink-0 text-[12px] text-ink-600">{formatDateTime(e.at)}</span>
         </li>
       ))}
     </ul>
@@ -323,10 +286,7 @@ export function Panel({
 
 /** Messages delivered per channel, for the Analytics tab. */
 export function ChannelBreakdown({ list }: { list: Campaign[] }) {
-  const rows = new Map<
-    CampaignChannel,
-    { campaigns: number; delivered: number; sent: number }
-  >();
+  const rows = new Map<CampaignChannel, { campaigns: number; delivered: number; sent: number }>();
   for (const k of list.filter((x) => x.status !== "draft"))
     for (const c of channelsOf(k)) {
       const r = rows.get(c) ?? { campaigns: 0, delivered: 0, sent: 0 };
@@ -339,9 +299,7 @@ export function ChannelBreakdown({ list }: { list: Campaign[] }) {
     }
   const biggest = Math.max(1, ...[...rows.values()].map((r) => r.delivered));
   return rows.size === 0 ? (
-    <p className="text-[13px] text-ink-600">
-      Send a campaign to see how each channel does.
-    </p>
+    <p className="text-[13px] text-ink-600">Send a campaign to see how each channel does.</p>
   ) : (
     <ul className="space-y-space-3">
       {[...rows].map(([c, r]) => (
@@ -350,9 +308,7 @@ export function ChannelBreakdown({ list }: { list: Campaign[] }) {
             <span className="flex items-center gap-space-2 font-medium text-ink-900">
               <span className="text-brand-700">{CHANNEL_ICON[c].icon}</span>
               {CHANNEL_ICON[c].label}
-              <span className="font-normal text-ink-600">
-                · {r.campaigns} campaigns
-              </span>
+              <span className="font-normal text-ink-600">· {r.campaigns} campaigns</span>
             </span>
             <span className="text-ink-600">
               {n(r.delivered)} delivered of {n(r.sent)}

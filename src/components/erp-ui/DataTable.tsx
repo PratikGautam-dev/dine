@@ -145,8 +145,7 @@ export function DataTable<TData>({
     ...(paginate ? { getPaginationRowModel: getPaginationRowModel() } : {}),
     initialState: { pagination: { pageSize } },
     state: { columnVisibility: visibility },
-    onColumnVisibilityChange: (u) =>
-      changeVisibility(typeof u === "function" ? u(visibility) : u),
+    onColumnVisibilityChange: (u) => changeVisibility(typeof u === "function" ? u(visibility) : u),
   });
   const visibleCount = table.getVisibleLeafColumns().length;
   const shownToggleable = toggleable.filter((c) => visibility[c.id] !== false);
@@ -175,17 +174,13 @@ export function DataTable<TData>({
                   key={c.id}
                   closeOnClick={false}
                   disabled={last}
-                  onClick={() =>
-                    changeVisibility({ ...visibility, [c.id]: !on })
-                  }
+                  onClick={() => changeVisibility({ ...visibility, [c.id]: !on })}
                 >
                   <span
                     aria-hidden="true"
                     className={cn(
                       "flex h-4 w-4 shrink-0 items-center justify-center rounded-[4px] border",
-                      on
-                        ? "border-brand-600 bg-brand-600 text-white"
-                        : "border-ink-400 bg-card",
+                      on ? "border-brand-600 bg-brand-600 text-white" : "border-ink-400 bg-card",
                     )}
                   >
                     {on && <Check size={12} strokeWidth={3} />}
@@ -202,36 +197,25 @@ export function DataTable<TData>({
   return (
     <div>
       <Table containerClassName={containerClassName}>
-        <TableHeader
-          className={cn(stickyHeader && "sticky top-0 z-10 bg-card")}
-        >
+        <TableHeader className={cn(stickyHeader && "sticky top-0 z-10 bg-card")}>
           {table.getHeaderGroups().map((headerGroup) => (
             <TableRow key={headerGroup.id} className="hover:bg-transparent">
               {headerGroup.headers.map((header, i) => (
                 <TableHead
                   key={header.id}
                   className={
-                    (
-                      header.column.columnDef.meta as
-                        { className?: string } | undefined
-                    )?.className
+                    (header.column.columnDef.meta as { className?: string } | undefined)?.className
                   }
                 >
                   {picker && i === headerGroup.headers.length - 1 ? (
                     <span className="flex w-full items-center justify-between gap-space-2">
                       {header.isPlaceholder
                         ? null
-                        : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext(),
-                          )}
+                        : flexRender(header.column.columnDef.header, header.getContext())}
                       {picker}
                     </span>
                   ) : header.isPlaceholder ? null : (
-                    flexRender(
-                      header.column.columnDef.header,
-                      header.getContext(),
-                    )
+                    flexRender(header.column.columnDef.header, header.getContext())
                   )}
                 </TableHead>
               ))}
@@ -253,10 +237,7 @@ export function DataTable<TData>({
         ) : rows.length === 0 ? (
           <TableBody>
             <TableRow className="hover:bg-transparent">
-              <TableCell
-                colSpan={visibleCount}
-                className="py-space-4 text-center text-ink-400"
-              >
+              <TableCell colSpan={visibleCount} className="py-space-4 text-center text-ink-400">
                 {emptyMessage}
               </TableCell>
             </TableRow>
@@ -273,33 +254,23 @@ export function DataTable<TData>({
                       expanded && "border-b-0",
                       rowClassName?.(row.original),
                     )}
-                    onClick={
-                      onRowClick ? () => onRowClick(row.original) : undefined
-                    }
+                    onClick={onRowClick ? () => onRowClick(row.original) : undefined}
                   >
                     {row.getVisibleCells().map((cell) => (
                       <TableCell
                         key={cell.id}
                         className={
-                          (
-                            cell.column.columnDef.meta as
-                              { className?: string } | undefined
-                          )?.className
+                          (cell.column.columnDef.meta as { className?: string } | undefined)
+                            ?.className
                         }
                       >
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext(),
-                        )}
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
                       </TableCell>
                     ))}
                   </TableRow>
                   {expanded && renderRowDetail && (
                     <TableRow>
-                      <TableCell
-                        colSpan={row.getVisibleCells().length}
-                        className="pb-space-3"
-                      >
+                      <TableCell colSpan={row.getVisibleCells().length} className="pb-space-3">
                         {renderRowDetail(row.original)}
                       </TableCell>
                     </TableRow>
@@ -315,8 +286,7 @@ export function DataTable<TData>({
         <div className="mt-space-3 flex flex-col items-center justify-between gap-space-2 border-t border-line pt-space-3 md:flex-row">
           <p className="text-[12px] text-ink-400">
             Showing {pageIndex * currentPageSize + 1}–
-            {Math.min((pageIndex + 1) * currentPageSize, totalRows)} of{" "}
-            {totalRows}
+            {Math.min((pageIndex + 1) * currentPageSize, totalRows)} of {totalRows}
           </p>
           <div className="flex flex-wrap items-center justify-center gap-space-2">
             <Button

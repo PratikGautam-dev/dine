@@ -55,8 +55,7 @@ export function WhatsAppConnect() {
       </Card>
     );
 
-  const set = (patch: Partial<Form>) =>
-    setForm((f) => (f ? { ...f, ...patch } : f));
+  const set = (patch: Partial<Form>) => setForm((f) => (f ? { ...f, ...patch } : f));
   const blank: Form = {
     waba_id: "",
     phone_number_id: "",
@@ -120,19 +119,13 @@ export function WhatsAppConnect() {
     >
       {form && (
         <div className="grid gap-x-space-4 sm:grid-cols-2">
-          <Field
-            label="WhatsApp Business Account ID"
-            htmlFor="w_waba"
-            required={!editing}
-          >
+          <Field label="WhatsApp Business Account ID" htmlFor="w_waba" required={!editing}>
             <Input
               id="w_waba"
               inputMode="numeric"
               placeholder={a.connected ? a.waba_id : ""}
               value={form.waba_id}
-              onChange={(e) =>
-                set({ waba_id: e.target.value.replace(/\D/g, "") })
-              }
+              onChange={(e) => set({ waba_id: e.target.value.replace(/\D/g, "") })}
             />
           </Field>
           <Field label="Phone number ID" htmlFor="w_pid" required={!editing}>
@@ -141,9 +134,7 @@ export function WhatsAppConnect() {
               inputMode="numeric"
               placeholder={a.connected ? a.phone_number_id : ""}
               value={form.phone_number_id}
-              onChange={(e) =>
-                set({ phone_number_id: e.target.value.replace(/\D/g, "") })
-              }
+              onChange={(e) => set({ phone_number_id: e.target.value.replace(/\D/g, "") })}
             />
           </Field>
           <Field
@@ -170,9 +161,7 @@ export function WhatsAppConnect() {
             htmlFor="w_sec"
             required={!editing}
             hint={
-              a.connected
-                ? "Saved. Leave blank to keep it."
-                : "From your app's Settings → Basic."
+              a.connected ? "Saved. Leave blank to keep it." : "From your app's Settings → Basic."
             }
             className="sm:col-span-2"
           >
@@ -207,12 +196,8 @@ export function WhatsAppConnect() {
       <Card className="mt-space-5 p-space-4">
         <div className="mb-space-3 flex flex-wrap items-start justify-between gap-space-3">
           <div>
-            <h2 className="text-[15px] font-bold text-ink-900">
-              {a.display_phone}
-            </h2>
-            <p className="text-[13px] text-ink-600">
-              {a.verified_name ?? "Name not verified yet"}
-            </p>
+            <h2 className="text-[15px] font-bold text-ink-900">{a.display_phone}</h2>
+            <p className="text-[13px] text-ink-600">{a.verified_name ?? "Name not verified yet"}</p>
           </div>
           <div className="flex flex-wrap items-center gap-space-2">
             <Badge tone={a.last_error ? "warning" : "success"}>
@@ -220,10 +205,7 @@ export function WhatsAppConnect() {
             </Badge>
             {a.quality_rating && (
               <Badge
-                tone={
-                  QUALITY_TONE[a.quality_rating as keyof typeof QUALITY_TONE] ??
-                  "neutral"
-                }
+                tone={QUALITY_TONE[a.quality_rating as keyof typeof QUALITY_TONE] ?? "neutral"}
               >
                 Quality: {a.quality_rating.toLowerCase()}
               </Badge>
@@ -232,8 +214,7 @@ export function WhatsAppConnect() {
         </div>
         {a.last_error && (
           <p className="mb-space-3 rounded-md bg-warning-tint px-space-3 py-space-2 text-[13px] text-ink-900">
-            Meta said: {a.last_error}. Update the details or generate a new
-            token.
+            Meta said: {a.last_error}. Update the details or generate a new token.
           </p>
         )}
         <dl className="grid grid-cols-[auto_1fr] gap-x-space-4 gap-y-1 text-[13.5px]">
@@ -265,36 +246,20 @@ export function WhatsAppConnect() {
 
       <Card className="mt-space-4 p-space-4">
         <div className="mb-space-2 flex flex-wrap items-center justify-between gap-space-2">
-          <h2 className="text-[15px] font-bold text-ink-900">
-            Finish in Meta: the webhook
-          </h2>
-          <Badge
-            tone={
-              a.webhook_verified_at || a.last_message_at ? "success" : "warning"
-            }
-          >
-            {a.webhook_verified_at || a.last_message_at
-              ? "Webhook connected"
-              : "Waiting for Meta"}
+          <h2 className="text-[15px] font-bold text-ink-900">Finish in Meta: the webhook</h2>
+          <Badge tone={a.webhook_verified_at || a.last_message_at ? "success" : "warning"}>
+            {a.webhook_verified_at || a.last_message_at ? "Webhook connected" : "Waiting for Meta"}
           </Badge>
         </div>
         <p className="mb-space-3 text-[13px] text-ink-600">
-          In your Meta app open{" "}
-          <strong>WhatsApp → Configuration → Webhook</strong>, paste these two
+          In your Meta app open <strong>WhatsApp → Configuration → Webhook</strong>, paste these two
           values, choose <strong>Verify and save</strong>, then subscribe to the{" "}
-          <strong>messages</strong> field. Messages your customers send will
-          then appear here.
+          <strong>messages</strong> field. Messages your customers send will then appear here.
         </p>
         <CopyRow label="Callback URL" value={a.webhook_url} />
         <CopyRow label="Verify token" value={a.verify_token ?? ""} />
-        <Button
-          className="mobile-page-action"
-          variant="ghost"
-          onClick={() => setGuide((g) => !g)}
-        >
-          {guide
-            ? "Hide the Meta walkthrough"
-            : "Show me where to click in Meta"}
+        <Button className="mobile-page-action" variant="ghost" onClick={() => setGuide((g) => !g)}>
+          {guide ? "Hide the Meta walkthrough" : "Show me where to click in Meta"}
         </Button>
       </Card>
 

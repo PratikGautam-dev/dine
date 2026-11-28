@@ -88,34 +88,39 @@ export function useMessages(ready: boolean) {
 
   useEffect(() => {
     if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(interval);
   }, [ready, load]);
 
-  useEffect(() => {
-    if (selectedId !== null && !handoffs?.some((h) => h.id === selectedId)) {
-      setSelectedId(null);
-    }
-  }, [handoffs, selectedId]);
+  // The three adjustments below run while rendering, when their inputs change (React's "adjust state
+  // when a prop changes"), not in effects, so a stale selection is never painted.
+  if (selectedId !== null && !handoffs?.some((h) => h.id === selectedId)) {
+    setSelectedId(null);
+  }
 
   // Drops any selected id no longer present in the current list -- a poll
   // refresh after a bulk action (or someone else resolving a handoff)
   // shouldn't leave a stale checkbox "selected" for a row that's gone.
-  useEffect(() => {
-    setSelectedIds((prev) => {
-      if (!handoffs) return prev;
+  const [prunedFor, setPrunedFor] = useState(handoffs);
+  if (handoffs !== prunedFor) {
+    setPrunedFor(handoffs);
+    if (handoffs) {
       const visible = new Set(handoffs.map((h) => h.id));
-      const next = new Set([...prev].filter((id) => visible.has(id)));
-      return next.size === prev.size ? prev : next;
-    });
-  }, [handoffs]);
+      const next = new Set([...selectedIds].filter((id) => visible.has(id)));
+      if (next.size !== selectedIds.size) setSelectedIds(next);
+    }
+  }
 
   // Switching tabs/date shows a different list entirely -- a selection made
   // on "Open" shouldn't silently carry over and get bulk-acted-on from "All".
-  useEffect(() => {
+  const listKey = `${filter}|${dateFilter}`;
+  const [selectionListKey, setSelectionListKey] = useState(listKey);
+  if (listKey !== selectionListKey) {
+    setSelectionListKey(listKey);
     setSelectedIds(new Set());
-  }, [filter, dateFilter]);
+  }
 
   function toggleSelected(id: number, checked: boolean) {
     setSelectedIds((prev) => {
@@ -188,12 +193,15 @@ export function useMessages(ready: boolean) {
   // thread too (same reasoning POLL_INTERVAL_MS already documents for the
   // list itself) -- a patient's follow-up messages must show up without a
   // manual refresh, same as new handoffs appearing in the left list do.
-  useEffect(() => {
-    if (selectedId === null) {
-      setThread(null);
-      return;
-    }
+  // A different conversation (or none) clears the old thread at once, while rendering.
+  const [threadFor, setThreadFor] = useState(selectedId);
+  if (selectedId !== threadFor) {
+    setThreadFor(selectedId);
     setThread(null);
+  }
+  useEffect(() => {
+    if (selectedId === null) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     loadThread(selectedId);
     const interval = setInterval(() => loadThread(selectedId), POLL_INTERVAL_MS);
     return () => clearInterval(interval);

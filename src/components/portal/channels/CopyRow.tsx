@@ -20,11 +20,7 @@ export function CopyRow({ label, value }: { label: string; value: string }) {
         <code className="min-w-0 flex-1 truncate rounded-md bg-paper px-space-2 py-1.5 text-[13px] text-ink-900">
           {value}
         </code>
-        <Button
-          variant="secondary"
-          aria-label={`Copy ${label}`}
-          onClick={() => copy(value)}
-        >
+        <Button variant="secondary" aria-label={`Copy ${label}`} onClick={() => copy(value)}>
           <Copy size={14} /> Copy
         </Button>
       </div>

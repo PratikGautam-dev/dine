@@ -2,7 +2,7 @@
 
 import { useApplyBranding } from "@/hooks/useBranding";
 import { Menu } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { BranchSwitcher } from "@/components/portal/BranchSwitcher";
 import { DaapGate } from "@/components/portal/DaapGate";
@@ -79,10 +79,13 @@ export function PortalShell({ restaurant, active, children }: Props) {
 
   // A nav Link tap already calls onClose directly, but this also covers
   // back/forward navigation and any other route change that isn't a click
-  // on the sidebar itself.
-  useEffect(() => {
+  // on the sidebar itself. Done while rendering, when the path changes (React's
+  // "adjust state when a prop changes"), so the drawer never paints open on the new page.
+  const [drawerPath, setDrawerPath] = useState(pathname);
+  if (drawerPath !== pathname) {
+    setDrawerPath(pathname);
     setSidebarOpen(false);
-  }, [pathname]);
+  }
 
   return (
     <div className="flex h-screen overflow-hidden bg-paper">

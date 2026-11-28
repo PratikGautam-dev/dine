@@ -19,10 +19,7 @@ import type {
 } from "@/lib/erp/crm";
 
 export type Icon = typeof Call02Icon;
-export const FOLLOW_UP_TYPE: Record<
-  FollowUpType,
-  { label: string; icon: Icon; chip: string }
-> = {
+export const FOLLOW_UP_TYPE: Record<FollowUpType, { label: string; icon: Icon; chip: string }> = {
   call: {
     label: "Call",
     icon: Call02Icon,
@@ -64,50 +61,42 @@ export const FOLLOW_UP_TYPE: Record<
     chip: "bg-blue-50 text-blue-700",
   },
 };
-export const FOLLOW_UP_CHANNEL: Record<
-  FollowUpChannel,
-  { label: string; icon: Icon }
-> = {
+export const FOLLOW_UP_CHANNEL: Record<FollowUpChannel, { label: string; icon: Icon }> = {
   call: { label: "Call", icon: Call02Icon },
   whatsapp: { label: "WhatsApp", icon: WhatsappIcon },
   email: { label: "Email", icon: Mail01Icon },
   in_store: { label: "In-store", icon: Store01Icon },
 };
-export const FOLLOW_UP_PRIORITY: Record<
-  FollowUpPriority,
-  { label: string; chip: string }
-> = {
+export const FOLLOW_UP_PRIORITY: Record<FollowUpPriority, { label: string; chip: string }> = {
   high: { label: "High", chip: "bg-red-50 text-red-700" },
   medium: { label: "Medium", chip: "bg-amber-50 text-amber-700" },
   low: { label: "Low", chip: "bg-emerald-50 text-emerald-700" },
 };
-export const FOLLOW_UP_STATUS: Record<
-  FollowUpStatus,
-  { label: string; chip: string; icon: Icon }
-> = {
-  scheduled: {
-    label: "Scheduled",
-    chip: "bg-blue-50 text-blue-700",
-    icon: Calendar03Icon,
-  },
-  in_progress: {
-    label: "In Progress",
-    chip: "bg-blue-50 text-blue-700",
-    icon: Refresh01Icon,
-  },
-  completed: {
-    label: "Completed",
-    chip: "bg-emerald-50 text-emerald-700",
-    icon: CheckmarkCircle02Icon,
-  },
-  overdue: {
-    label: "Overdue",
-    chip: "bg-red-50 text-red-700",
-    icon: Alert02Icon,
-  },
-  missed: {
-    label: "Missed",
-    chip: "bg-red-50 text-red-700",
-    icon: Alert02Icon,
-  },
-};
+export const FOLLOW_UP_STATUS: Record<FollowUpStatus, { label: string; chip: string; icon: Icon }> =
+  {
+    scheduled: {
+      label: "Scheduled",
+      chip: "bg-blue-50 text-blue-700",
+      icon: Calendar03Icon,
+    },
+    in_progress: {
+      label: "In Progress",
+      chip: "bg-blue-50 text-blue-700",
+      icon: Refresh01Icon,
+    },
+    completed: {
+      label: "Completed",
+      chip: "bg-emerald-50 text-emerald-700",
+      icon: CheckmarkCircle02Icon,
+    },
+    overdue: {
+      label: "Overdue",
+      chip: "bg-red-50 text-red-700",
+      icon: Alert02Icon,
+    },
+    missed: {
+      label: "Missed",
+      chip: "bg-red-50 text-red-700",
+      icon: Alert02Icon,
+    },
+  };

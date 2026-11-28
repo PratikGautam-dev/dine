@@ -48,8 +48,7 @@ export default function CustomersPage() {
   const [team, setTeam] = useState<{ id: string; name: string }[]>([]);
   const canCreate = hasPermission(session, "customers", "write");
   // enrolling a member and tagging are separate changes to a customer
-  const canEnrich =
-    !session || hasGrant(session, "customers:update");
+  const canEnrich = !session || hasGrant(session, "customers:update");
   const currency = "INR";
   const s = summary.data;
 
@@ -69,35 +68,21 @@ export default function CustomersPage() {
         actionsClassName="w-full justify-end md:w-auto"
         actions={
           canCreate && tab === "follow-ups" ? (
-            <Button
-              onClick={() => setAddingFollowUp(true)}
-              className="shrink-0 whitespace-nowrap"
-            >
-              <HugeiconsIcon icon={Add01Icon} size={16} className="shrink-0" />{" "}
-              Add follow-up
+            <Button onClick={() => setAddingFollowUp(true)} className="shrink-0 whitespace-nowrap">
+              <HugeiconsIcon icon={Add01Icon} size={16} className="shrink-0" /> Add follow-up
             </Button>
           ) : (
             canCreate &&
             tab === "customers" && (
-              <Button
-                onClick={() => setOpen(true)}
-                className="shrink-0 whitespace-nowrap"
-              >
-                <HugeiconsIcon
-                  icon={UserAdd01Icon}
-                  size={16}
-                  className="shrink-0"
-                />{" "}
-                Add customer
+              <Button onClick={() => setOpen(true)} className="shrink-0 whitespace-nowrap">
+                <HugeiconsIcon icon={UserAdd01Icon} size={16} className="shrink-0" /> Add customer
               </Button>
             )
           )
         }
       />
       {summary.error && (
-        <p className="mb-space-3 text-[13px] font-medium text-error">
-          {summary.error}
-        </p>
+        <p className="mb-space-3 text-[13px] font-medium text-error">{summary.error}</p>
       )}
       <Tabs tabs={TABS} value={tab} onChange={setTab} />
 
@@ -133,9 +118,7 @@ export default function CustomersPage() {
             <KpiTile
               stacked
               label="Avg. purchase value"
-              value={
-                s ? formatMoney(s.avg_purchase_value_minor, currency) : "—"
-              }
+              value={s ? formatMoney(s.avg_purchase_value_minor, currency) : "—"}
               icon={<HugeiconsIcon icon={ShoppingCart01Icon} size={20} />}
             />
             <KpiTile
@@ -178,11 +161,7 @@ export default function CustomersPage() {
         />
       )}
       {open && (
-        <AddCustomerModal
-          canEnrich={canEnrich}
-          onClose={() => setOpen(false)}
-          onAdded={changed}
-        />
+        <AddCustomerModal canEnrich={canEnrich} onClose={() => setOpen(false)} onAdded={changed} />
       )}
     </PortalShell>
   );

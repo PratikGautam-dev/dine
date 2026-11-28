@@ -128,8 +128,7 @@ export function useIssuePairingCode(branchId: string) {
 export function useCancelPairingCode() {
   const refresh = useRefreshTerminals();
   return useMutation({
-    mutationFn: (id: string) =>
-      erpSend(`/api/v1/terminals/pairing-codes/${id}`, "DELETE"),
+    mutationFn: (id: string) => erpSend(`/api/v1/terminals/pairing-codes/${id}`, "DELETE"),
     onSuccess: refresh,
   });
 }
@@ -232,18 +231,27 @@ export function useSetCashierPin() {
 export function useClearCashierPin() {
   const refresh = useRefreshCashiers();
   return useMutation({
-    mutationFn: (userId: string) =>
-      erpSend(`/api/v1/users/${userId}/pin`, "DELETE"),
+    mutationFn: (userId: string) => erpSend(`/api/v1/users/${userId}/pin`, "DELETE"),
     onSuccess: refresh,
   });
 }
 
-
 /** What the Sales channels pages need of a branch: its name and whether it takes POS sales (GET /api/v1/channels/branches). */
-export type ChannelBranch = { id: string; branch_code: string; branch_name: string; status: string; accepts_pos: boolean; accepts_online: boolean; accepts_whatsapp: boolean };
+export type ChannelBranch = {
+  id: string;
+  branch_code: string;
+  branch_name: string;
+  status: string;
+  accepts_pos: boolean;
+  accepts_online: boolean;
+  accepts_whatsapp: boolean;
+};
 
 export function useChannelBranches() {
-  return useQuery({ queryKey: queryKeys.channelBranches, queryFn: () => erpGet<ChannelBranch[]>("/api/v1/channels/branches") });
+  return useQuery({
+    queryKey: queryKeys.channelBranches,
+    queryFn: () => erpGet<ChannelBranch[]>("/api/v1/channels/branches"),
+  });
 }
 
 export type ChannelSwitch = "accepts_pos" | "accepts_online" | "accepts_whatsapp";
@@ -253,8 +261,14 @@ export function useToggleChannelBranch() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (input: { branchId: string; field: ChannelSwitch; value: boolean }) =>
-      erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", { [input.field]: input.value }),
-    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: queryKeys.channelBranches }), qc.invalidateQueries({ queryKey: queryKeys.channels })]),
+      erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", {
+        [input.field]: input.value,
+      }),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.channelBranches }),
+        qc.invalidateQueries({ queryKey: queryKeys.channels }),
+      ]),
   });
 }
 
@@ -264,7 +278,11 @@ export function useTogglePosBranch() {
   return useMutation({
     mutationFn: (input: { branchId: string; value: boolean }) =>
       erpSend(`/api/v1/channels/branches/${input.branchId}`, "PATCH", { accepts_pos: input.value }),
-    onSuccess: () => Promise.all([qc.invalidateQueries({ queryKey: queryKeys.channels }), qc.invalidateQueries({ queryKey: queryKeys.terminals })]),
+    onSuccess: () =>
+      Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.channels }),
+        qc.invalidateQueries({ queryKey: queryKeys.terminals }),
+      ]),
   });
 }
 
@@ -279,6 +297,8 @@ export type TerminalSummary = {
 
 /** Paired and online terminals for every branch, in one request. */
 export function useTerminalSummary() {
-  return useQuery({ queryKey: queryKeys.terminalSummary, queryFn: () => erpGet<TerminalSummary[]>("/api/v1/terminals/summary") });
+  return useQuery({
+    queryKey: queryKeys.terminalSummary,
+    queryFn: () => erpGet<TerminalSummary[]>("/api/v1/terminals/summary"),
+  });
 }
-

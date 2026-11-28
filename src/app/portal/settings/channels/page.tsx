@@ -17,13 +17,20 @@ function ChannelRow({ channel }: { channel: Channel }) {
   const st = readinessStatus(data);
   const Icon = ICONS[channel];
   return (
-    <Link href={`/portal/settings/channels/${channel}`} className="flex items-center gap-space-3 p-space-4 hover:bg-paper">
+    <Link
+      href={`/portal/settings/channels/${channel}`}
+      className="flex items-center gap-space-3 p-space-4 hover:bg-paper"
+    >
       <Icon size={22} />
       <span className="min-w-0 flex-1">
-        <span className="block text-[14px] font-semibold text-ink-900">{CHANNELS[channel].label}</span>
+        <span className="block text-[14px] font-semibold text-ink-900">
+          {CHANNELS[channel].label}
+        </span>
         <span className="block text-[12.5px] text-ink-600">{CHANNELS[channel].blurb}</span>
       </span>
-      {data && <Badge tone={data.ready ? "success" : st.tone}>{data.ready ? "Ready" : st.label}</Badge>}
+      {data && (
+        <Badge tone={data.ready ? "success" : st.tone}>{data.ready ? "Ready" : st.label}</Badge>
+      )}
       <ChevronRight size={16} className="text-ink-400" />
     </Link>
   );
@@ -34,7 +41,13 @@ export default function SalesChannelsSettingsPage() {
   const { restaurant, ready } = usePortalGuard();
   if (!ready) return null;
   return (
-    <SettingsPageFrame maxWidthClass="max-w-[880px]" restaurant={restaurant} title="Sales channels" icon={<Plug size={20} />} description="Where your orders come from. Pick a channel to set up how it connects.">
+    <SettingsPageFrame
+      maxWidthClass="max-w-[880px]"
+      restaurant={restaurant}
+      title="Sales channels"
+      icon={<Plug size={20} />}
+      description="Where your orders come from. Pick a channel to set up how it connects."
+    >
       <Card className="divide-y divide-line">
         {CHANNEL_ORDER.map((c) => (
           <ChannelRow key={c} channel={c} />

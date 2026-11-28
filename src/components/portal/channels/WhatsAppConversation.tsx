@@ -28,12 +28,15 @@ export function WhatsAppConversation({ ready }: { ready: boolean }) {
         <Card className="p-space-3 sm:p-space-4">
           <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Language</h2>
           <p className="mb-space-3 text-[12.5px] text-ink-400">
-            Which language a fresh conversation defaults to, and whether guests are asked to choose at all.
+            Which language a fresh conversation defaults to, and whether guests are asked to choose
+            at all.
           </p>
           <Field label="Default language" htmlFor="default_language">
             <Select
               value={settings.default_language}
-              onValueChange={(v) => setSettings({ ...settings, default_language: v as "en" | "hi" })}
+              onValueChange={(v) =>
+                setSettings({ ...settings, default_language: v as "en" | "hi" })
+              }
               className="w-full !h-10"
               id="default_language"
             >
@@ -50,8 +53,9 @@ export function WhatsAppConversation({ ready }: { ready: boolean }) {
           </CheckboxRow>
           {!settings.language_prompt_enabled && (
             <p className="mt-space-2 text-[12px] text-ink-400">
-              Guests will go straight to the menu in {settings.default_language === "hi" ? "हिन्दी" : "English"} — the
-              language picker won&apos;t be shown.
+              Guests will go straight to the menu in{" "}
+              {settings.default_language === "hi" ? "हिन्दी" : "English"} — the language picker
+              won&apos;t be shown.
             </p>
           )}
           {feedback}
@@ -65,33 +69,48 @@ export function WhatsAppConversation({ ready }: { ready: boolean }) {
         <Card className="p-space-3 sm:p-space-4">
           <h2 className="mb-space-1 text-[15px] font-bold text-ink-900">Conversation behavior</h2>
           <p className="mb-space-3 text-[12.5px] text-ink-400">
-            Session timeout, handoff auto-resolve, and whether a single linked guest still needs to confirm.
+            Session timeout, handoff auto-resolve, and whether a single linked guest still needs to
+            confirm.
           </p>
           <div className="grid grid-cols-1 gap-x-space-4 sm:grid-cols-2">
-            <Field label="Session timeout (minutes)" htmlFor="session_timeout_minutes" hint="Between 2 and 120 minutes.">
+            <Field
+              label="Session timeout (minutes)"
+              htmlFor="session_timeout_minutes"
+              hint="Between 2 and 120 minutes."
+            >
               <Input
                 id="session_timeout_minutes"
                 type="number"
                 min={2}
                 max={120}
                 value={settings.session_timeout_minutes}
-                onChange={(e) => setSettings({ ...settings, session_timeout_minutes: Number(e.target.value) })}
+                onChange={(e) =>
+                  setSettings({ ...settings, session_timeout_minutes: Number(e.target.value) })
+                }
               />
             </Field>
-            <Field label="Handoff auto-resolve (hours)" htmlFor="handoff_auto_resolve_hours" hint="Between 1 and 168 hours.">
+            <Field
+              label="Handoff auto-resolve (hours)"
+              htmlFor="handoff_auto_resolve_hours"
+              hint="Between 1 and 168 hours."
+            >
               <Input
                 id="handoff_auto_resolve_hours"
                 type="number"
                 min={1}
                 max={168}
                 value={settings.handoff_auto_resolve_hours}
-                onChange={(e) => setSettings({ ...settings, handoff_auto_resolve_hours: Number(e.target.value) })}
+                onChange={(e) =>
+                  setSettings({ ...settings, handoff_auto_resolve_hours: Number(e.target.value) })
+                }
               />
             </Field>
           </div>
           <CheckboxRow
             checked={settings.require_patient_confirmation}
-            onChange={(checked) => setSettings({ ...settings, require_patient_confirmation: checked })}
+            onChange={(checked) =>
+              setSettings({ ...settings, require_patient_confirmation: checked })
+            }
           >
             Require explicit confirmation before entering the menu, even for a single linked guest
           </CheckboxRow>

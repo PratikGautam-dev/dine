@@ -82,7 +82,8 @@ type ImportRow = {
 function rowError(row: ImportRow): string | null {
   if (!row.name.trim()) return "Name is required";
   const price = Number(row.priceText);
-  if (row.priceText.trim() === "" || Number.isNaN(price) || price < 0) return "Price must be a number ≥ 0";
+  if (row.priceText.trim() === "" || Number.isNaN(price) || price < 0)
+    return "Price must be a number ≥ 0";
   return null;
 }
 
@@ -170,12 +171,16 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
             // file.content_type, not the extension). Set it explicitly from the extension so the
             // extracted File behaves exactly like one picked straight off disk.
             const ext = match[1].toLowerCase();
-            const mimeType = ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
+            const mimeType =
+              ext === "png" ? "image/png" : ext === "webp" ? "image/webp" : "image/jpeg";
             const blob = await entry.async("blob");
             extracted.push(new File([blob], baseName, { type: mimeType }));
           }
         } catch {
-          toast.error("Couldn't read zip file", `"${f.name}" doesn't look like a valid .zip archive.`);
+          toast.error(
+            "Couldn't read zip file",
+            `"${f.name}" doesn't look like a valid .zip archive.`,
+          );
         }
       } else if (ALLOWED_IMAGE_TYPES.has(f.type)) {
         extracted.push(f);
@@ -214,7 +219,10 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
       if (filename) {
         const file = imageFiles.get(filename);
         if (!file) {
-          updateRow(row.key, { status: "error", error: `No photo named "${row.imageFilename}" was picked` });
+          updateRow(row.key, {
+            status: "error",
+            error: `No photo named "${row.imageFilename}" was picked`,
+          });
           continue;
         }
         if (uploadedUrlByFilename.has(filename)) {
@@ -222,7 +230,10 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
         } else {
           const body = new FormData();
           body.append("file", file);
-          const uploadResult = await portalFetch("/api/portal/menu-items/upload-image", { method: "POST", body });
+          const uploadResult = await portalFetch("/api/portal/menu-items/upload-image", {
+            method: "POST",
+            body,
+          });
           if (!uploadResult.ok) {
             updateRow(row.key, {
               status: "error",
@@ -268,7 +279,11 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
   }
 
   return (
-    <Modal onClose={running ? () => {} : onClose} labelledBy="bulk-import-title" maxWidthClass="max-w-[860px]">
+    <Modal
+      onClose={running ? () => {} : onClose}
+      labelledBy="bulk-import-title"
+      maxWidthClass="max-w-[860px]"
+    >
       <div className="mb-space-4 flex items-start justify-between gap-space-3">
         <div>
           <h2 id="bulk-import-title" className="text-[16px] font-bold text-ink-900">
@@ -276,10 +291,14 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
           </h2>
           <p className="text-hint mt-1">
             Upload a CSV of items (name, price_rupees, category, description, stock_count,
-            image_filename) and, optionally, the photos it refers to — loose files, a whole
-            folder, or a single .zip (no need to extract it first). Review every row below
-            before anything is created —{" "}
-            <button type="button" onClick={downloadTemplate} className="font-semibold text-brand-700 hover:underline">
+            image_filename) and, optionally, the photos it refers to — loose files, a whole folder,
+            or a single .zip (no need to extract it first). Review every row below before anything
+            is created —{" "}
+            <button
+              type="button"
+              onClick={downloadTemplate}
+              className="font-semibold text-brand-700 hover:underline"
+            >
               download a template
             </button>
             .
@@ -346,7 +365,10 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
         >
           <FileUp size={28} className="text-ink-400" />
           <span className="text-[13.5px] font-semibold">Click to choose a CSV file</span>
-          <span className="text-hint">name, price_rupees required — category, description, stock_count, image_filename optional</span>
+          <span className="text-hint">
+            name, price_rupees required — category, description, stock_count, image_filename
+            optional
+          </span>
         </button>
       ) : (
         <>
@@ -452,7 +474,12 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
                       </td>
                       <td className="px-space-2 py-space-2">
                         {row.imageFilename ? (
-                          <span className={cn("whitespace-nowrap", hasPhotoFile ? "text-ink-600" : "text-warning")}>
+                          <span
+                            className={cn(
+                              "whitespace-nowrap",
+                              hasPhotoFile ? "text-ink-600" : "text-warning",
+                            )}
+                          >
                             {row.imageFilename}
                             {!hasPhotoFile && " (not picked)"}
                           </span>
@@ -462,14 +489,18 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
                       </td>
                       <td className="px-space-2 py-space-2">
                         <div className="flex items-center justify-end gap-space-2">
-                          {row.status === "uploading" && <Loader2 size={14} className="animate-spin text-brand-600" />}
+                          {row.status === "uploading" && (
+                            <Loader2 size={14} className="animate-spin text-brand-600" />
+                          )}
                           {row.status === "done" && <Badge tone="success">Created</Badge>}
                           {row.status === "error" && (
                             <span className="flex items-center gap-space-1 text-[11px] text-destructive">
                               <TriangleAlert size={12} /> {row.error}
                             </span>
                           )}
-                          {error && row.status === "pending" && <Badge tone="warning">{error}</Badge>}
+                          {error && row.status === "pending" && (
+                            <Badge tone="warning">{error}</Badge>
+                          )}
                           {row.status !== "uploading" && row.status !== "done" && (
                             <button
                               type="button"
@@ -504,7 +535,8 @@ export function BulkImportMenuItemsModal({ existingNames, onClose, onImported }:
               </>
             ) : (
               <>
-                <Upload size={14} /> Create {validRows.length} item{validRows.length === 1 ? "" : "s"}
+                <Upload size={14} /> Create {validRows.length} item
+                {validRows.length === 1 ? "" : "s"}
               </>
             )}
           </Button>

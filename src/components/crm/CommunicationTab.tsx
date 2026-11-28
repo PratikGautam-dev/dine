@@ -28,20 +28,13 @@ export function CommunicationTab({
   show?: "both" | "messages" | "follow-ups";
 }) {
   const [channel, setChannel] = useState<"" | MessageChannel>("");
-  const messages = useErpQuery<CrmMessage[]>(
-    show === "follow-ups" ? null : "/api/v1/crm/messages",
-  );
-  const followUps = useErpQuery<CrmNote[]>(
-    show === "messages" ? null : "/api/v1/crm/follow-ups",
-  );
-  const shown = (messages.data ?? []).filter(
-    (m) => !channel || m.channel === channel,
-  );
+  const messages = useErpQuery<CrmMessage[]>(show === "follow-ups" ? null : "/api/v1/crm/messages");
+  const followUps = useErpQuery<CrmNote[]>(show === "messages" ? null : "/api/v1/crm/follow-ups");
+  const shown = (messages.data ?? []).filter((m) => !channel || m.channel === channel);
 
   async function done(n: CrmNote) {
     const res = await erp(`/api/v1/crm/notes/${n.id}`, "PATCH", { done: true });
-    if (res.error)
-      return toast.error("Couldn't update the follow-up", res.error);
+    if (res.error) return toast.error("Couldn't update the follow-up", res.error);
     followUps.reload();
     onChanged();
   }
@@ -49,18 +42,11 @@ export function CommunicationTab({
   return (
     <div className={show === "both" ? "grid gap-space-4 lg:grid-cols-3" : ""}>
       {show !== "follow-ups" && (
-        <Card
-          className={show === "both" ? "p-space-4 lg:col-span-2" : "p-space-4"}
-        >
+        <Card className={show === "both" ? "p-space-4 lg:col-span-2" : "p-space-4"}>
           <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-2">
-            <h2 className="text-[15px] font-bold text-ink-900">
-              Message history
-            </h2>
+            <h2 className="text-[15px] font-bold text-ink-900">Message history</h2>
             <span className="flex gap-space-1">
-              <Button
-                variant={channel === "" ? "primary" : "ghost"}
-                onClick={() => setChannel("")}
-              >
+              <Button variant={channel === "" ? "primary" : "ghost"} onClick={() => setChannel("")}>
                 All
               </Button>
               {(Object.keys(MESSAGE_CHANNELS) as MessageChannel[]).map((c) => (
@@ -87,18 +73,14 @@ export function CommunicationTab({
       )}
       {show !== "messages" && (
         <Card className="p-space-4">
-          <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">
-            Follow-ups
-          </h2>
+          <h2 className="mb-space-3 text-[15px] font-bold text-ink-900">Follow-ups</h2>
           {followUps.loading && <SkeletonLines rows={2} />}
           {!followUps.loading && (followUps.data ?? []).length === 0 && (
             <p className="text-[13px] text-ink-400">Nothing to follow up.</p>
           )}
           <ul className="space-y-space-3">
             {(followUps.data ?? []).map((n) => {
-              const overdue =
-                n.follow_up_at !== null &&
-                new Date(n.follow_up_at) < new Date();
+              const overdue = n.follow_up_at !== null && new Date(n.follow_up_at) < new Date();
               return (
                 <li key={n.id} className="text-[13.5px]">
                   <button

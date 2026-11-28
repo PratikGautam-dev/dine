@@ -61,6 +61,7 @@ export function useStorefrontSettings(ready: boolean) {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     if (ready) load();
   }, [ready, load]);
 
@@ -87,7 +88,11 @@ export function useStorefrontSettings(ready: boolean) {
    * off the Storefront draft/publish pipeline onto General settings, immediate save through this
    * same /api/portal/settings/storefront route (it already accepts these keys). Used by the
    * General settings page's shared contact-details modal, not this page's own StorefrontForm. */
-  async function saveIdentity(fields: Partial<Record<"name" | "address_line" | "city" | "email" | "phone" | "pincode" | "state", string>>): Promise<string | null> {
+  async function saveIdentity(
+    fields: Partial<
+      Record<"name" | "address_line" | "city" | "email" | "phone" | "pincode" | "state", string>
+    >,
+  ): Promise<string | null> {
     setSaving(true);
     const result = await staffFetch("/api/portal/settings/storefront", {
       method: "POST",
@@ -111,7 +116,10 @@ export function useStorefrontSettings(ready: boolean) {
     setUploading(true);
     const body = new FormData();
     body.append("file", file);
-    const result = await staffFetch("/api/portal/settings/storefront/upload-image", { method: "POST", body });
+    const result = await staffFetch("/api/portal/settings/storefront/upload-image", {
+      method: "POST",
+      body,
+    });
     setUploading(false);
     if (!result.ok) {
       toast.error(
@@ -123,5 +131,14 @@ export function useStorefrontSettings(ready: boolean) {
     return (result.data as { image_url: string }).image_url;
   }
 
-  return { storefront, error, saving, save, saveIdentity, uploadingLogo, uploadingCover, uploadImage };
+  return {
+    storefront,
+    error,
+    saving,
+    save,
+    saveIdentity,
+    uploadingLogo,
+    uploadingCover,
+    uploadImage,
+  };
 }

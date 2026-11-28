@@ -17,16 +17,7 @@ export function safeEditorHtml(value: string): string {
       " ",
     ),
   );
-  const drop = new Set([
-    "SCRIPT",
-    "STYLE",
-    "IFRAME",
-    "OBJECT",
-    "EMBED",
-    "SVG",
-    "MATH",
-    "TEMPLATE",
-  ]);
+  const drop = new Set(["SCRIPT", "STYLE", "IFRAME", "OBJECT", "EMBED", "SVG", "MATH", "TEMPLATE"]);
   const escape = (text: string) =>
     text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
   if (!/<[a-z][^>]*>/i.test(value))
@@ -36,12 +27,9 @@ export function safeEditorHtml(value: string): string {
       .join("");
   const parsed = new DOMParser().parseFromString(value, "text/html");
   const safeUrl = (url: string) =>
-    /^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(
-      url.replace(/[\x00-\x20\x7f]/g, ""),
-    );
+    /^(https?:\/\/|mailto:|\/(?!\/)|#)/i.test(url.replace(/[\x00-\x20\x7f]/g, ""));
   const clean = (node: Node): Node[] => {
-    if (node.nodeType === Node.TEXT_NODE)
-      return [document.createTextNode(node.textContent ?? "")];
+    if (node.nodeType === Node.TEXT_NODE) return [document.createTextNode(node.textContent ?? "")];
     if (!(node instanceof HTMLElement) || drop.has(node.tagName)) return [];
     const children = Array.from(node.childNodes).flatMap(clean);
     if (!allowed.has(node.tagName.toLowerCase())) return children;
@@ -53,8 +41,7 @@ export function safeEditorHtml(value: string): string {
       element.style.textAlign = styles.textAlign;
     if (["bold", "normal", "400", "700"].includes(styles.fontWeight))
       element.style.fontWeight = styles.fontWeight;
-    if (["italic", "normal"].includes(styles.fontStyle))
-      element.style.fontStyle = styles.fontStyle;
+    if (["italic", "normal"].includes(styles.fontStyle)) element.style.fontStyle = styles.fontStyle;
     if (["underline", "line-through", "none"].includes(styles.textDecoration))
       element.style.textDecoration = styles.textDecoration;
     if (styles.color) element.style.color = styles.color;
@@ -65,8 +52,7 @@ export function safeEditorHtml(value: string): string {
       element.setAttribute("rel", "noopener noreferrer");
     }
     if (node.tagName === "IMG") {
-      if (!/^(https?:\/\/|\/(?!\/))/i.test(node.getAttribute("src") ?? ""))
-        return [];
+      if (!/^(https?:\/\/|\/(?!\/))/i.test(node.getAttribute("src") ?? "")) return [];
       element.setAttribute("src", node.getAttribute("src")!);
       element.setAttribute("alt", node.getAttribute("alt") ?? "");
     }

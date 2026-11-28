@@ -13,13 +13,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import {
-  CalendarCheck,
-  Download,
-  TrendingUp,
-  TriangleAlert,
-  UserX,
-} from "lucide-react";
+import { CalendarCheck, Download, TrendingUp, TriangleAlert, UserX } from "lucide-react";
 import { Badge } from "@/components/erp-ui/Badge";
 import { Button } from "@/components/erp-ui/Button";
 import { Card } from "@/components/erp-ui/Card";
@@ -83,8 +77,7 @@ export default function MyAttendancePage() {
   const canView = usePermission("check_in_out", "view");
   const [month, setMonth] = useState(currentMonth());
   const [status, setStatus] = useState("");
-  const { records, stats, weeklyTrend, firstMonth, error } =
-    useMyMonthlyAttendance(canView, month);
+  const { records, stats, weeklyTrend, firstMonth, error } = useMyMonthlyAttendance(canView, month);
 
   const filtered = useMemo(
     () => (records ?? []).filter((r) => !status || r.status === status),
@@ -92,14 +85,7 @@ export default function MyAttendancePage() {
   );
 
   function exportCsv() {
-    const header = [
-      "Date",
-      "Check-in",
-      "Check-out",
-      "Break (min)",
-      "Working (min)",
-      "Status",
-    ];
+    const header = ["Date", "Check-in", "Check-out", "Break (min)", "Working (min)", "Status"];
     const rows = filtered.map((r) => [
       r.work_date,
       r.check_in_local ?? "",
@@ -108,9 +94,7 @@ export default function MyAttendancePage() {
       String(r.working_minutes ?? 0),
       DAY_STATE[r.status]?.label ?? r.status,
     ]);
-    const csv = [header, ...rows]
-      .map((r) => r.map((c) => csvCell(c)).join(","))
-      .join("\n");
+    const csv = [header, ...rows].map((r) => r.map((c) => csvCell(c)).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -131,9 +115,7 @@ export default function MyAttendancePage() {
   if (!canView) {
     return (
       <PortalShell restaurant={session?.restaurant ?? null} active="my-attendance">
-        <p className="text-[13px] text-ink-400">
-          You don&apos;t have access to attendance.
-        </p>
+        <p className="text-[13px] text-ink-400">You don&apos;t have access to attendance.</p>
       </PortalShell>
     );
   }
@@ -154,11 +136,7 @@ export default function MyAttendancePage() {
         title="Attendance"
         description="See your own hours, overtime, and attendance history. Clock in from Check-in / Check-out."
         actions={
-          <Button
-            variant="secondary"
-            onClick={exportCsv}
-            disabled={filtered.length === 0}
-          >
+          <Button variant="secondary" onClick={exportCsv} disabled={filtered.length === 0}>
             <Download size={16} /> Download Report
           </Button>
         }
@@ -226,10 +204,7 @@ export default function MyAttendancePage() {
             </div>
           ) : (
             <ResponsiveContainer width="100%" height={240}>
-              <BarChart
-                data={trendData}
-                margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
-              >
+              <BarChart data={trendData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
                 <CartesianGrid stroke="#ebe0d6" vertical={false} />
                 <XAxis
                   dataKey="label"
@@ -244,16 +219,10 @@ export default function MyAttendancePage() {
                   unit="%"
                   domain={[0, 100]}
                 />
-                <Tooltip
-                  content={<TrendTooltip />}
-                  cursor={{ fill: "rgba(0,0,0,0.03)" }}
-                />
+                <Tooltip content={<TrendTooltip />} cursor={{ fill: "rgba(0,0,0,0.03)" }} />
                 <Bar dataKey="pct" radius={[4, 4, 0, 0]}>
                   {trendData.map((w) => (
-                    <Cell
-                      key={w.label}
-                      fill={w.isLatest ? SUCCESS : SUCCESS_TINT}
-                    />
+                    <Cell key={w.label} fill={w.isLatest ? SUCCESS : SUCCESS_TINT} />
                   ))}
                 </Bar>
               </BarChart>
@@ -272,9 +241,7 @@ export default function MyAttendancePage() {
 
       <Card className="min-w-0 p-space-3 md:p-space-4">
         <div className="mb-space-3 flex flex-wrap items-center justify-between gap-space-3">
-          <h3 className="text-[15px] font-bold text-ink-900">
-            Attendance records
-          </h3>
+          <h3 className="text-[15px] font-bold text-ink-900">Attendance records</h3>
           <div className="flex min-w-0 w-full flex-col items-stretch gap-space-2 md:w-auto md:flex-row md:flex-wrap md:items-center">
             <input
               aria-label="Month"
@@ -303,24 +270,16 @@ export default function MyAttendancePage() {
           {!records ? (
             <SkeletonLines rows={3} />
           ) : filtered.length === 0 ? (
-            <p className="p-space-4 text-[13px] text-ink-400">
-              No attendance in this period.
-            </p>
+            <p className="p-space-4 text-[13px] text-ink-400">No attendance in this period.</p>
           ) : (
             <table className="w-full text-left text-[13px] max-md:min-w-[600px]">
               <thead>
                 <tr className="text-label border-b border-line text-ink-600">
                   <th className="px-space-3 py-space-2 font-medium">Date</th>
-                  <th className="px-space-3 py-space-2 font-medium">
-                    Check-in
-                  </th>
-                  <th className="px-space-3 py-space-2 font-medium">
-                    Check-out
-                  </th>
+                  <th className="px-space-3 py-space-2 font-medium">Check-in</th>
+                  <th className="px-space-3 py-space-2 font-medium">Check-out</th>
                   <th className="px-space-3 py-space-2 font-medium">Break</th>
-                  <th className="px-space-3 py-space-2 font-medium">
-                    Working hours
-                  </th>
+                  <th className="px-space-3 py-space-2 font-medium">Working hours</th>
                   <th className="px-space-3 py-space-2 font-medium">Status</th>
                 </tr>
               </thead>
@@ -334,12 +293,8 @@ export default function MyAttendancePage() {
                     <td className="px-space-3 py-space-2 font-semibold text-ink-900">
                       {fmtDate(r.work_date)}
                     </td>
-                    <td className="px-space-3 py-space-2">
-                      {r.check_in_local ?? "—"}
-                    </td>
-                    <td className="px-space-3 py-space-2">
-                      {r.check_out_local ?? "—"}
-                    </td>
+                    <td className="px-space-3 py-space-2">{r.check_in_local ?? "—"}</td>
+                    <td className="px-space-3 py-space-2">{r.check_out_local ?? "—"}</td>
                     <td className="px-space-3 py-space-2">
                       {r.break_minutes ? fmtMinutes(r.break_minutes) : "—"}
                     </td>

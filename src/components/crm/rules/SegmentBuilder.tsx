@@ -42,18 +42,13 @@ export function SegmentBuilder({
     segment?.conditions ?? [defaultCondition("tier")],
   );
   const [match, setMatch] = useState<Match>(segment?.match ?? "all");
-  const [kind, setKind] = useState<"dynamic" | "static">(
-    segment?.kind ?? "dynamic",
-  );
+  const [kind, setKind] = useState<"dynamic" | "static">(segment?.kind ?? "dynamic");
   const [marketing, setMarketing] = useState(segment?.marketing ?? true);
-  const [showInFilters, setShowInFilters] = useState(
-    segment?.show_in_filters ?? true,
-  );
+  const [showInFilters, setShowInFilters] = useState(segment?.show_in_filters ?? true);
   const [busy, setBusy] = useState(false);
   const tagList = tags.data ?? [];
   const tagNames = Object.fromEntries(tagList.map((t) => [t.id, t.name]));
-  const ready =
-    conditions.length > 0 && conditions.every(segmentConditionReady);
+  const ready = conditions.length > 0 && conditions.every(segmentConditionReady);
 
   const body = useDebounced(
     ready ? JSON.stringify({ conditions, match, members_only: false }) : "",
@@ -64,11 +59,7 @@ export function SegmentBuilder({
   useEffect(() => {
     if (!body) return;
     let live = true;
-    void erp<Preview>(
-      "/api/v1/crm/rules/preview",
-      "POST",
-      JSON.parse(body),
-    ).then((res) => {
+    void erp<Preview>("/api/v1/crm/rules/preview", "POST", JSON.parse(body)).then((res) => {
       if (!live) return;
       setPreview(res.data ?? null);
       setPreviewError(res.error ?? null);
@@ -79,8 +70,7 @@ export function SegmentBuilder({
   }, [body]);
 
   const total = summary.data?.total_customers ?? 0;
-  const pct =
-    preview && total ? Math.round((1000 * preview.matched) / total) / 10 : null;
+  const pct = preview && total ? Math.round((1000 * preview.matched) / total) / 10 : null;
 
   async function save(status: "active" | "draft") {
     if (!ready || !name.trim() || busy) return;
@@ -96,16 +86,8 @@ export function SegmentBuilder({
       show_in_filters: showInFilters,
     };
     const res = segment
-      ? await erp<SavedSegment>(
-          `/api/v1/crm/customer-segments/${segment.id}`,
-          "PUT",
-          payload,
-        )
-      : await erp<SavedSegment>(
-          "/api/v1/crm/customer-segments",
-          "POST",
-          payload,
-        );
+      ? await erp<SavedSegment>(`/api/v1/crm/customer-segments/${segment.id}`, "PUT", payload)
+      : await erp<SavedSegment>("/api/v1/crm/customer-segments", "POST", payload);
     setBusy(false);
     if (res.error || !res.data)
       return toast.error("Couldn't save the segment", res.error ?? undefined);
@@ -135,11 +117,7 @@ export function SegmentBuilder({
             />
           </Field>
           <Field label="Segment type">
-            <div
-              className="flex gap-space-2"
-              role="radiogroup"
-              aria-label="Segment type"
-            >
+            <div className="flex gap-space-2" role="radiogroup" aria-label="Segment type">
               {(["dynamic", "static"] as const).map((k) => (
                 <button
                   key={k}
@@ -160,9 +138,7 @@ export function SegmentBuilder({
                       (kind === k ? "border-brand-700" : "border-ink-400")
                     }
                   >
-                    {kind === k && (
-                      <span className="h-2 w-2 rounded-full bg-brand-700" />
-                    )}
+                    {kind === k && <span className="h-2 w-2 rounded-full bg-brand-700" />}
                   </span>
                   {k === "dynamic" ? "Dynamic" : "Static"}
                 </button>
@@ -194,11 +170,7 @@ export function SegmentBuilder({
         />
         <div className="mt-space-4 border-t border-line pt-space-4">
           <h3 className="mb-space-2 flex items-center gap-space-2 text-[15px] font-bold text-ink-900">
-            <HugeiconsIcon
-              icon={Settings02Icon}
-              size={18}
-              className="text-brand-700"
-            />
+            <HugeiconsIcon icon={Settings02Icon} size={18} className="text-brand-700" />
             Settings
           </h3>
           <div className="space-y-space-3">
@@ -206,12 +178,10 @@ export function SegmentBuilder({
               checked={kind === "dynamic"}
               onChange={(on) => setKind(on ? "dynamic" : "static")}
             >
-              <span className="block font-semibold">
-                Auto-update segment (recommended)
-              </span>
+              <span className="block font-semibold">Auto-update segment (recommended)</span>
               <span className="block text-[12.5px] text-ink-600">
-                Customers automatically enter or leave this segment based on the
-                conditions. Off makes it a static segment.
+                Customers automatically enter or leave this segment based on the conditions. Off
+                makes it a static segment.
               </span>
             </CheckboxRow>
             <CheckboxRow checked={marketing} onChange={setMarketing}>
@@ -223,12 +193,9 @@ export function SegmentBuilder({
               </span>
             </CheckboxRow>
             <CheckboxRow checked={showInFilters} onChange={setShowInFilters}>
-              <span className="block font-semibold">
-                Show in customer filters and reports
-              </span>
+              <span className="block font-semibold">Show in customer filters and reports</span>
               <span className="block text-[12.5px] text-ink-600">
-                Offered in the All Customers filters and in the segment
-                analytics.
+                Offered in the All Customers filters and in the segment analytics.
               </span>
             </CheckboxRow>
           </div>
@@ -239,9 +206,7 @@ export function SegmentBuilder({
             disabled={busy || !ready || !name.trim()}
             onClick={() => save("active")}
           >
-            {segment && segment.status === "active"
-              ? "Save segment"
-              : "Create segment"}
+            {segment && segment.status === "active" ? "Save segment" : "Create segment"}
           </Button>
           <Button
             variant="secondary"
@@ -268,13 +233,9 @@ export function SegmentBuilder({
           </span>
           <div>
             {!ready ? (
-              <p className="text-[13px] text-ink-600">
-                Fill in the conditions to see who matches.
-              </p>
+              <p className="text-[13px] text-ink-600">Fill in the conditions to see who matches.</p>
             ) : previewError ? (
-              <p className="text-[13px] font-medium text-error">
-                {previewError}
-              </p>
+              <p className="text-[13px] font-medium text-error">{previewError}</p>
             ) : (
               <>
                 <p className="text-[13px] text-ink-600">Matching customers</p>
@@ -292,9 +253,7 @@ export function SegmentBuilder({
         </div>
         {ready && (
           <div className="mt-space-4">
-            <p className="mb-1 text-[13px] font-bold text-ink-900">
-              Condition summary
-            </p>
+            <p className="mb-1 text-[13px] font-bold text-ink-900">Condition summary</p>
             <p className="text-[13px] text-ink-700">
               {describeConditions(conditions, match, tagNames)}
             </p>
@@ -302,15 +261,10 @@ export function SegmentBuilder({
         )}
         {ready && preview && preview.sample.length > 0 && (
           <div className="mt-space-4">
-            <p className="mb-1 text-[13px] font-bold text-ink-900">
-              Sample customers
-            </p>
+            <p className="mb-1 text-[13px] font-bold text-ink-900">Sample customers</p>
             <ul className="divide-y divide-line rounded-lg border border-line">
               {preview.sample.slice(0, 5).map((s) => (
-                <li
-                  key={s.id}
-                  className="px-space-3 py-space-2 text-[13px] text-ink-900"
-                >
+                <li key={s.id} className="px-space-3 py-space-2 text-[13px] text-ink-900">
                   {s.name || "Unnamed"}
                 </li>
               ))}
@@ -318,9 +272,8 @@ export function SegmentBuilder({
           </div>
         )}
         <p className="mt-space-4 rounded-lg bg-ink-50 p-space-3 text-[12.5px] text-ink-700">
-          Tip: segments like Inactive Members, High-value Customers or New
-          Customers work well for targeted campaigns. Pick a segment as the
-          audience when you create a campaign.
+          Tip: segments like Inactive Members, High-value Customers or New Customers work well for
+          targeted campaigns. Pick a segment as the audience when you create a campaign.
         </p>
       </Card>
     </div>

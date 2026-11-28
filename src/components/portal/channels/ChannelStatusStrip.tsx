@@ -1,10 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import {
-  readinessStatus,
-  useReadiness,
-} from "@/components/portal/channels/ChannelPanels";
+import { readinessStatus, useReadiness } from "@/components/portal/channels/ChannelPanels";
 import { Badge } from "@/components/erp-ui/Badge";
 import { CHANNELS, type Channel } from "@/lib/erp/erp";
 

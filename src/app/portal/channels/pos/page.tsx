@@ -13,7 +13,11 @@ export default function PosChannelPage() {
   if (!ready) return null;
   return (
     <PortalShell restaurant={restaurant} active="channel-pos">
-      <PageHeader icon={<Store size={20} />} title="POS" description="Choose how the till screen looks and what it says." />
+      <PageHeader
+        icon={<Store size={20} />}
+        title="POS"
+        description="Choose how the till screen looks and what it says."
+      />
       <ChannelStatusStrip channel="pos" />
       <PosScreenEditor />
     </PortalShell>

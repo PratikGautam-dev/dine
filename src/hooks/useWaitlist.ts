@@ -20,7 +20,9 @@ export function useWaitlist(ready: boolean, branchId: string | null = null) {
   const [actingId, setActingId] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
   const branchIdRef = useRef(branchId);
-  branchIdRef.current = branchId;
+  useEffect(() => {
+    branchIdRef.current = branchId;
+  });
 
   const load = useCallback(async () => {
     const requestedBranchId = branchId;
@@ -32,6 +34,7 @@ export function useWaitlist(ready: boolean, branchId: string | null = null) {
 
   useEffect(() => {
     if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- loads from the server; state is set when the response arrives
     load();
     const interval = setInterval(load, POLL_INTERVAL_MS);
     return () => clearInterval(interval);

@@ -61,7 +61,9 @@ export function usePortalDashboard(
   const [error, setError] = useState<string | null>(null);
   const [restaurant, setRestaurant] = useState<PortalRestaurant | null>(null);
   const routerRef = useRef(router);
-  routerRef.current = router;
+  useEffect(() => {
+    routerRef.current = router;
+  });
 
   // Branch and period together make the request; a response is only used (and only shown) for the request
   // that is current. An unfiltered "All Branches" fetch can take longer than a filtered one, so switching
@@ -74,7 +76,9 @@ export function usePortalDashboard(
     return text ? `?${text}` : "";
   }, [branchId, range]);
   const queryRef = useRef(query);
-  queryRef.current = query;
+  useEffect(() => {
+    queryRef.current = query;
+  });
 
   const load = useCallback(async () => {
     const requested = query;
@@ -91,6 +95,7 @@ export function usePortalDashboard(
 
   useEffect(() => {
     if (!ready) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- browser storage is only readable after mount (the server render has none)
     setRestaurant(getPortalRestaurant());
     void load();
     const interval = setInterval(load, POLL_INTERVAL_MS);

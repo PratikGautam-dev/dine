@@ -16,9 +16,5 @@ export function QueryProvider({ children }: { children: React.ReactNode }) {
     if (seen.current !== owner && seen.current !== null) clearQueryCache();
     seen.current = owner;
   }, [owner]);
-  return (
-    <QueryClientProvider client={getQueryClient()}>
-      {children}
-    </QueryClientProvider>
-  );
+  return <QueryClientProvider client={getQueryClient()}>{children}</QueryClientProvider>;
 }

@@ -14,15 +14,16 @@ Every restaurant (tenant) onboarded gets its own customer-facing website, while 
 
 Two separate repos, plus the backend API both talk to:
 
-| Repo | Audience | Host |
-| --- | --- | --- |
-| `dine` (this repo) | Restaurant staff / managers (portal) | `dineconnect.daaprimetech.com` |
-| `dine-storefront` (new) | Customers ordering online | `<slug>.<storefront-domain>` + custom domains |
-| `erp-dine-backend` | Both frontends (JSON API) | API host |
+| Repo                    | Audience                             | Host                                          |
+| ----------------------- | ------------------------------------ | --------------------------------------------- |
+| `dine` (this repo)      | Restaurant staff / managers (portal) | `dineconnect.daaprimetech.com`                |
+| `dine-storefront` (new) | Customers ordering online            | `<slug>.<storefront-domain>` + custom domains |
+| `erp-dine-backend`      | Both frontends (JSON API)            | API host                                      |
 
 Platform admin (`admin-dine`) is a separate repo/host and is out of scope here.
 
 Why separate repos:
+
 - Independent deploys and scaling: a storefront traffic spike or bad theme can't take down the staff portal.
 - Code visibility: GitHub/GitLab have no folder-level read permissions, so a developer working on the storefront would otherwise see portal code. Separate repos give separate access lists.
 - Runtime isolation (below) comes from separate deployments/origins, not from repo layout, but separate repos make it natural.
@@ -69,6 +70,7 @@ Principle: **we write the themes; tenants only choose one and configure it.** No
 - Tenants cannot change layout beyond what the theme's settings schema exposes. Anything more is a new theme or a new setting field, built by us.
 
 **Default theme**
+
 - One theme is the platform default (config value, e.g. `DEFAULT_THEME = "classic"`).
 - A newly onboarded tenant gets a `tenant_themes` row pointing at the default with sensible default settings, so the site works immediately.
 - Fallback: if a tenant has no theme row, or their theme is removed or broken, render the default instead of an error.
@@ -86,11 +88,11 @@ Neither is for the restaurant picking a theme in the portal. Both concern whoeve
 - **Liquid** is Shopify's restricted templating language (HTML with placeholders, loops and simple logic; no file, network or arbitrary code access). It lets Shopify safely run themes written by thousands of outside developers. **We do not use Liquid**: our themes are React components written by our own developers.
 - **Sandbox** = an isolated environment (e.g. `<iframe sandbox>`, restricted runtime) so untrusted code can't reach anything else. It matters only when code we didn't write runs on the platform.
 
-| Role | What they do | Needs Liquid / sandbox? |
-| --- | --- | --- |
-| Restaurant staff (portal) | Pick a theme, edit colors/logo/text, publish | No: settings only |
-| Our developers | Write themes as React components in the storefront repo | No: trusted code |
-| Outside developers / tenants | Upload their own theme code or scripts | **Yes**: only relevant if we later add a theme marketplace or custom-code uploads |
+| Role                         | What they do                                            | Needs Liquid / sandbox?                                                           |
+| ---------------------------- | ------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| Restaurant staff (portal)    | Pick a theme, edit colors/logo/text, publish            | No: settings only                                                                 |
+| Our developers               | Write themes as React components in the storefront repo | No: trusted code                                                                  |
+| Outside developers / tenants | Upload their own theme code or scripts                  | **Yes**: only relevant if we later add a theme marketplace or custom-code uploads |
 
 ## 5. Order of work
 
